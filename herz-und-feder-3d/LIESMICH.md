@@ -23,6 +23,8 @@ entpacken, `HerzUndFeder.exe` doppelklicken. Windows warnt bei unbekannten Progr
 
 Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, **Windows**, **Web** und Linux.
 
+- **Automatisch:** Bei jedem Push nach `main` baut GitHub (Workflow `.github/workflows/bauen.yml`) alle drei Fassungen.
+  Die Web-Fassung erscheint auf GitHub Pages, Mac und Windows liegen unter „Actions“ am jeweiligen Lauf als Artefakte.
 - **Selbst bauen:** In Godot „Projekt → Exportieren“, Voreinstellung wählen, „Projekt exportieren“.
   Beim ersten Mal bietet Godot an, die Exportvorlagen herunterzuladen (rund 1,2 GB).
   Von der Befehlszeile: `godot --path . --export-release macOS` (oder `Windows`, `Web`). Die Ergebnisse landen in `build/`.
