@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -72,28 +72,22 @@ jobs:
           touch $PROJEKT/build/web/.nojekyll
           ls -la $PROJEKT/build $PROJEKT/build/web
 
-      - name: Mac-Fassung ablegen
-        uses: actions/upload-artifact@v4
-        with:
-          name: HerzUndFeder-Mac
-          path: ${{ env.PROJEKT }}/build/HerzUndFeder-Mac.zip
-          compression-level: 0
-
-      - name: Windows-Fassung ablegen
-        uses: actions/upload-artifact@v4
-        with:
-          name: HerzUndFeder-Windows
-          path: ${{ env.PROJEKT }}/build/HerzUndFeder.exe
-
-      - name: Pages einrichten
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - name: Web-Fassung für Pages ablegen
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.PROJEKT }}/build/web
+
+      # Mac und Windows als Download unter „Releases“ (Eintrag „Neueste Fassung“, wird bei jedem Lauf ersetzt).
+      # Das zählt nicht gegen den Speicher für Artefakte, der bei GitHub schnell voll ist.
+      - name: Mac und Windows als Release bereitstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release delete neueste --yes --cleanup-tag || true
+          gh release create neueste --target "$GITHUB_SHA" --title "Neueste Fassung" \
+            --notes "Automatisch gebaut aus $GITHUB_SHA. Mac: entpacken, Rechtsklick auf das Programm, Öffnen. Windows: HerzUndFeder.exe starten, bei der Warnung Weitere Informationen, Trotzdem ausführen." \
+            "$PROJEKT/build/HerzUndFeder-Mac.zip" "$PROJEKT/build/HerzUndFeder.exe"
 
   deploy:
     needs: bauen
