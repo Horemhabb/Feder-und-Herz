@@ -36,10 +36,13 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 - **Web:** Der Ordner `build/web/` muss von einem Webserver über https ausgeliefert werden; ein Doppelklick auf
   `index.html` genügt nicht. Zum Ausprobieren am eigenen Rechner: `python3 -m http.server` in `build/web/`
   und dann `http://localhost:8000` öffnen.
-- **iPhone und iPad:** die Web-Adresse in Safari öffnen und das Gerät quer halten. Über „Teilen → Zum Home-Bildschirm“
-  läuft das Spiel im Vollbild. Auf Geräten mit Berührungsbildschirm startet es von selbst im **Handy-Modus**:
-  größere Anzeige, Knöpfe für Grafik, Ton und Bildrate, niedrige Grafik und geringere 3D-Auflösung.
-  Finger halten heißt laufen, Gegner antippen heißt angreifen, Fähigkeiten unten antippen (auch mit dem zweiten Finger im Laufen).
+- **Vollbild im Browser:** Beim Druck auf „Eintreten“ schaltet das Spiel selbst auf Vollbild (der Browser verlangt dafür
+  eine Berührung). Danach schalten der Knopf „Vollbild“ (Handy) oder die Taste V um, mit Esc verlässt der Browser es wieder.
+  **Auf dem iPhone gibt es für Webseiten kein Vollbild**: Dort unten auf Teilen tippen, „Zum Home-Bildschirm“ wählen und
+  das Spiel vom Symbol aus starten, dann läuft es ohne Adressleiste. Die Tafel zu Beginn weist darauf hin.
+- **iPhone und iPad:** die Web-Adresse in Safari öffnen und das Gerät quer halten. Auf Geräten mit Berührungsbildschirm startet es von selbst im **Handy-Modus**:
+  größere Anzeige, Knöpfe für Vollbild, Beutel, Grafik, Ton und Bildrate, niedrige Grafik und geringere 3D-Auflösung.
+  Finger halten heißt laufen, Gegner antippen heißt angreifen (auch ein flüchtiger Tipp), Fähigkeiten unten antippen (auch mit dem zweiten Finger im Laufen).
   Am Rechner lässt sich der Handy-Modus mit `godot --path . -- --touch` ansehen.
 
 ## Steuerung
@@ -58,6 +61,8 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 | F | Bildrate anzeigen |
 | G | Grafik hoch/niedrig (ohne Schatten und Glühen) |
 | M | Ton an/aus |
+| I oder Tab | Beutel: Rotbier, Münzen, Fortschritt (das Spiel steht, solange er offen ist) |
+| V | Vollbild an/aus |
 | E oder Eingabe | Fenster bestätigen |
 
 ## Was drin ist
@@ -78,7 +83,9 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- Beute, Fähigkeitenbaum und die anderen Klassen fehlen in der Probe.
+- **Beute ist erst ein Anfang:** Besiegte lassen manchmal Rotbier und immer Münzen fallen; der Beutel (I) zeigt beides.
+  Die Münzen haben noch keinen Zweck (Händler folgen). Gegenstände zum Anlegen, Fähigkeitenbaum und die anderen
+  Klassen fehlen in der Probe.
 
 ## Für Entwickler
 

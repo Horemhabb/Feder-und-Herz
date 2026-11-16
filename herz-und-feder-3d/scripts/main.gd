@@ -52,6 +52,8 @@ var gate_ask := true
 var shake := 0.0
 var shot_gap := 0.0
 var kills := 0
+var gold := 0                 # Münzen aus dem Beutel der Besiegten
+var can_fullscreen := true    # im Browser: kann diese Seite Vollbild? (iPhone-Safari kann es nicht)
 var total := 0
 var deaths := 0
 var clock := 0.0
@@ -59,6 +61,7 @@ var started := false
 var low_gfx := false
 var touch := false   # Handy oder Tablet im Browser: größere Anzeige, Knöpfe statt Tasten, sparsame Grafik
 var hold_attack := false
+var tap_t := 0.0     # Handy: ein kurzer Fingertipp zählt noch einen Moment als gedrückt (bei wenigen Bildern je Sekunde sonst verloren)
 var cam_pos := Vector3.ZERO
 var autotest: Node
 var slow_t := 0.0
@@ -92,8 +95,14 @@ func _ready() -> void:
 		or (OS.has_feature("web") and DisplayServer.is_touchscreen_available())
 	if touch:
 		get_window().content_scale_factor = 1.5   # Schrift und Knöpfe anderthalbmal so groß: mit dem Finger treffbar
+	var standalone := false
+	if OS.has_feature("web"):
+		can_fullscreen = bool(JavaScriptBridge.eval("!!(document.fullscreenEnabled || document.webkitFullscreenEnabled)"))
+		standalone = bool(JavaScriptBridge.eval("(window.navigator.standalone === true) || window.matchMedia('(display-mode: fullscreen)').matches || window.matchMedia('(display-mode: standalone)').matches"))
 	hud = Hud.new()
 	hud.game = self
+	if OS.has_feature("web") and not can_fullscreen and not standalone:
+		hud.chapter_note = "Vollbild auf dem iPhone: unten auf Teilen tippen, „Zum Home-Bildschirm“ wählen und das Spiel von dort starten."
 	add_child(hud)
 	if touch:
 		auto_low_done = true
@@ -114,12 +123,38 @@ func _ready() -> void:
 			get_tree().root.add_child.call_deferred(pt)
 
 func begin() -> void:
+	# der Knopf „Eintreten“ ist die Berührung, die der Browser für Vollbild verlangt
+	if OS.has_feature("web") and can_fullscreen:
+		set_fullscreen(true)
 	sfx.hush()
 	started = true
 	get_tree().paused = false
 	hud.banner(TXT.name, TXT.no)
 
 # ---------------------------------------------------------------- Welt
+func is_fullscreen() -> bool:
+	var m := DisplayServer.window_get_mode()
+	return m == DisplayServer.WINDOW_MODE_FULLSCREEN or m == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+
+func set_fullscreen(on: bool) -> void:
+	if on != is_fullscreen():
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
+
+func toggle_fullscreen() -> void:
+	set_fullscreen(not is_fullscreen())
+
+func toggle_bag() -> void:
+	# Beutel: zeigt Rotbier, Münzen und Fortschritt; das Spiel steht, solange er offen ist
+	if not started or hero.dead:
+		return
+	if hud.bag_open:
+		sfx.play("ui")
+		hud.close_bag()
+	elif hud.overlay == null and not get_tree().paused:
+		sfx.play("ui")
+		get_tree().paused = true
+		hud.show_bag()
+
 func is_floor(cx: int, cz: int) -> bool:
 	return cx >= 0 and cz >= 0 and cx < W and cz < H and MAP[cz][cx] != "#"
 
@@ -705,6 +740,9 @@ func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float) -> void:
 	bolts.append({"n": l, "v": dir * speed, "dmg": dmg, "life": 3.2})
 
 func on_foe_dead(f: Foe) -> void:
+	var coins := 120 if f == boss else (randi_range(6, 12) if f.kind == "mage" else randi_range(3, 8))
+	gold += coins
+	float_text(f.global_position + Vector3(0, 0.8, 0), "+%d Münzen" % coins, Color(0.95, 0.78, 0.3))
 	if f == boss:
 		on_boss_dead()
 	else:
@@ -811,7 +849,7 @@ func _ask_gate() -> void:
 	get_tree().paused = true
 	sfx.play("ui")
 	sfx.say("vo_epi")
-	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], [str(deaths), "Rückschläge"]]
+	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], [str(gold), "Münzen"], [str(deaths), "Rückschläge"]]
 	hud.show_gate(TXT.no + " · VOLLENDET", TXT.name, TXT.epi, stats, "HINTER DER PFORTE · ZWEITE STUNDE DER NACHT", TXT.next, TXT.next_lead,
 		func():
 			sfx.hush()
@@ -945,7 +983,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_Q: hero.cast("potion")
 			KEY_F: hud.toggle_fps()
 			KEY_G: set_low(not low_gfx)
+			KEY_V: toggle_fullscreen()
+			KEY_I, KEY_TAB: toggle_bag()
 			KEY_M: sfx.set_muted(not sfx.muted)
+	if touch and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		tap_t = 0.3
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 		hero.aim = mouse_ground()
 		hero.cast("beam")
@@ -982,7 +1024,9 @@ func _physics_process(delta: float) -> void:
 			dir = (Vector3(1, 0, -1).normalized() * v.x + Vector3(1, 0, 1).normalized() * v.y).normalized()
 		var mg := mouse_ground()
 		hero.aim = mg
-		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not hud.mouse_over_ui():
+		var gedrueckt := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or tap_t > 0.0
+		tap_t = maxf(0.0, tap_t - delta)
+		if gedrueckt and not hud.mouse_over_ui():
 			var tgt := foe_near(mg, 1.6)
 			var to := mg - hero.global_position
 			to.y = 0

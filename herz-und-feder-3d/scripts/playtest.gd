@@ -75,6 +75,11 @@ func run() -> void:
 	# Fähigkeiten und Schalter
 	h.en = 100.0
 	for k in [[KEY_1, "whirl"], [KEY_2, "dash"], [KEY_3, "oath"], [KEY_4, "udjat"]]:
+		# Abwarten, bis die Figur wieder handeln darf (kein Hieb, keine Betäubung): sonst prüft der Test den Zufall
+		var warte := 0.0
+		while not h.can(k[1]) and warte < 3.0:
+			await wait(0.1)
+			warte += 0.1
 		await key(k[0])
 		check("Taste %s löst %s aus" % [OS.get_keycode_string(k[0]), Hero.SKILLS[k[1]].name], h.cd[k[1]] > 0.0)
 		await wait(0.7)
@@ -97,6 +102,25 @@ func run() -> void:
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
 	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
+	# Beutel
+	G.gold = 7
+	await key(KEY_I)
+	await wait(0.3)
+	check("I öffnet den Beutel, Spiel steht", G.hud.bag_open and get_tree().paused and G.hud.overlay != null)
+	shot("beutel")
+	await key(KEY_I)
+	await wait(0.3)
+	check("I schließt den Beutel, Spiel läuft", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
+	await key(KEY_I)
+	await wait(0.3)
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	check("Esc schließt den Beutel", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
+	var opfer: Foe = G.foes.filter(func(f): return f.kind == "minion")[1]
+	var g0: int = G.gold
+	opfer.hit(99999.0, h.global_position)
+	await wait(0.6)
+	check("ein besiegter Gegner lässt Münzen fallen (%d -> %d)" % [g0, G.gold], G.gold > g0)
 	var foe: Foe = G.foes.filter(func(f): return f.kind == "minion")[0]
 	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
 	G.cam_pos = h.global_position
@@ -106,6 +130,18 @@ func run() -> void:
 	await wait(2.5)
 	mouse(sp, MOUSE_BUTTON_LEFT, false)
 	check("Klick auf Gegner schlägt zu (Leben %d von %d)" % [int(foe.hp), int(foe.max_hp)], foe.hp < foe.max_hp)
+	await wait(0.25)   # der Trefferstopp dauert 0,05 s und darf beim Prüfen vorbei sein
+	# Handy: ein Fingertipp, der im selben Bild losgelassen wird, muss trotzdem treffen
+	G.touch = true
+	var hp_vor := foe.hp
+	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
+	await wait(0.6)
+	var tp: Vector2 = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
+	mouse(tp, MOUSE_BUTTON_LEFT, true)
+	mouse(tp, MOUSE_BUTTON_LEFT, false)
+	await wait(1.0)
+	G.touch = false
+	check("Handy: kurzer Fingertipp auf einen Gegner schlägt zu", foe.hp < hp_vor)
 	check("Zeit läuft nach dem Treffer normal weiter", is_equal_approx(Engine.time_scale, 1.0))
 	shot("angriff")
 	# Niederlage und Rückkehr
