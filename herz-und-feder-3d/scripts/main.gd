@@ -109,6 +109,7 @@ func _ready() -> void:
 		set_low(true, true)
 	sfx.loop("amb_wind")
 	sfx.loop("amb_drone")
+	sfx.music("mus_titel")
 	get_tree().paused = true
 	if "--autotest" in OS.get_cmdline_user_args():
 		autotest = load("res://scripts/autotest.gd").new()
@@ -136,6 +137,7 @@ func begin() -> void:
 		set_fullscreen(true)
 	sfx.hush()
 	started = true
+	sfx.music(area_music())
 	get_tree().paused = false
 	Spiel.speichern()
 	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
@@ -1279,8 +1281,13 @@ func _open_chest(c: Dictionary) -> void:
 				drop("mat", c.pos, mats[k], k)
 			get_tree().paused = false)
 
+# Musik der Stunde: Wüstennacht im Freiland, Hallen der Duat im Dungeon
+func area_music() -> String:
+	return "mus_duat" if karte and karte.indoor else "mus_wueste"
+
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
+	sfx.music("mus_kampf", 1.0)
 	hud.boss_show(b.K.name)
 	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
 	sfx.play("boss_appear")
@@ -1289,6 +1296,7 @@ func on_boss_wake(b: Foe) -> void:
 
 func on_boss_dead() -> void:
 	hud.boss_hide()
+	sfx.music(area_music(), 3.0)
 	hud.banner("Die Stunde ist vollendet. Eine Pforte steht offen.", "DER HÜTER IST GEFALLEN", 5.0)
 	sfx.play("victory")
 	for f in live_foes():
@@ -1315,6 +1323,7 @@ func on_hero_dead() -> void:
 				f.sleep_again()
 		if boss.state != Foe.St.DEAD:
 			boss_awake = false
+			sfx.music(area_music())
 			hud.boss_hide()
 		for b in bolts:
 			b.n.queue_free()

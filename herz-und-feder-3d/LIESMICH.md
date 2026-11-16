@@ -138,8 +138,9 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - **Figuren, Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus.
   Sie stehen für Bewegung, Licht und Ton, nicht für das endgültige Aussehen. Animationsnamen stehen nur in den
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
-- **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
-  als Ersatz läuft ein dunkler Klangteppich.
+- **Musik** kommt von Gomo Sounds (Spiel „Herz und Feder“ dort, vier Stücke à 30 s, nahtlos wiederholbar, „leicht utopisch, ein bisschen düster“):
+  Titelthema (Startbildschirm), Wüstennacht (Freiland), Hallen der Duat (Dungeons), Hüterkampf. Dateien `audio/mus_*.ogg`,
+  Lautstärken in `scripts/sfx.gd` (`VOL`), Überblenden mit `Sfx.music()`. Länger als 30 s erlaubt der kostenlose Gomo-Tarif nicht.
 - Die Oberflächen der Stunden 2 bis 5 (Lehm, Feld, Grabwand, Glas, Höhle) sind getönte Verwandte der vorhandenen Texturen,
   bis die Bilder aus `bilder/auftrag_3d.txt` (W03, T10, W04, T11, W05, T12) da sind. Sie heißen dann `w03_lehm`,
   `t10_feld`, `w04_grab`, `t11_glas`, `w05_hoehle`, `t12_hoehlenboden` und werden ohne Codeänderung genutzt.
