@@ -110,7 +110,7 @@ func run() -> void:
 	await key(KEY_M)
 	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
 	# Beute, Tasche, Anlegen, Aufwerten
-	var opfer: Foe = G.foes.filter(func(f): return f.kind == "minion")[1]
+	var opfer: Foe = G.foes.filter(func(f): return f.kind != "boss")[1]
 	var xp0 := Spiel.xp + Spiel.lvl * 100000.0
 	opfer.hit(99999.0, h.global_position)
 	await wait(0.6)
@@ -154,7 +154,7 @@ func run() -> void:
 	check("„Alles nehmen“ legt den Fund in die Tasche", Spiel.bag.size() + Spiel.eq.size() > bag0 and not get_tree().paused)
 	check("Spielstand liegt vor und enthält die Ausrüstung", FileAccess.file_exists(Spiel.DATEI) and FileAccess.get_file_as_string(Spiel.DATEI).contains(String(ring.name)))
 	h.global_position = G.start_pos
-	var foe: Foe = G.foes.filter(func(f): return f.kind == "minion")[0]
+	var foe: Foe = G.foes.filter(func(f): return f.kind != "boss" and f.K.ai != "swarm")[0]
 	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
 	G.cam_pos = h.global_position
 	await wait(0.6)
@@ -167,7 +167,7 @@ func run() -> void:
 	# Handy: ein Fingertipp, der im selben Bild losgelassen wird, muss trotzdem treffen
 	G.touch = true
 	# ein unverletzter Gegner: der vorige kann durch kritische Treffer schon gefallen sein
-	var ziel: Foe = G.foes.filter(func(f): return f.kind == "minion" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp)[0]
+	var ziel: Foe = G.foes.filter(func(f): return f.kind != "boss" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp)[0]
 	var hp_vor := ziel.hp
 	h.global_position = ziel.global_position + Vector3(2.2, 0, 2.2)
 	G.cam_pos = h.global_position
@@ -184,6 +184,13 @@ func run() -> void:
 	h.pots = 0
 	h.inv = 0.0
 	h.hp = 3.0
+	# ein Gegner, der den Auto-Angriff der Figur überlebt, steht direkt daneben und ist wach
+	var killer: Foe = G.foes.filter(func(f): return f.kind != "boss" and f.state != Foe.St.DEAD)[0]
+	killer.max_hp = 1e6
+	killer.hp = 1e6
+	h.global_position = killer.global_position + Vector3(1.6, 0, 0)
+	G.cam_pos = h.global_position
+	G.wake_pack(killer.pack)
 	var t0 := Time.get_ticks_msec()
 	while not h.dead and Time.get_ticks_msec() - t0 < 25000:
 		h.inv = 0.0

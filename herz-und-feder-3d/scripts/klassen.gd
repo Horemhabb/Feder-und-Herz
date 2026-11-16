@@ -129,6 +129,11 @@ static var _portrait := {}
 static func portrait(cls: String) -> Texture2D:
 	if _portrait.has(cls):
 		return _portrait[cls]
+	# Porträts aus Higgsfield (F11–F14); fehlt eins, der Ausschnitt aus der Figur der 2D-Fassung
+	var path := "res://ui/portrait_%s.jpg" % cls
+	if ResourceLoader.exists(path):
+		_portrait[cls] = load(path)
+		return _portrait[cls]
 	var a := AtlasTexture.new()
 	a.atlas = load("res://ui/%s.webp" % CLS[cls].art[0])
 	a.region = CLS[cls].art[1]

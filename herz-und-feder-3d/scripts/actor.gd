@@ -53,7 +53,7 @@ func _collect(n: Node) -> void:
 		_collect(c)
 
 func play(anim: String, speed := 1.0, blend := 0.15, restart := false) -> void:
-	if not ap.has_animation(anim):
+	if ap == null or not ap.has_animation(anim):
 		return
 	if cur_anim == anim and not restart:
 		ap.speed_scale = speed
@@ -65,7 +65,7 @@ func play(anim: String, speed := 1.0, blend := 0.15, restart := false) -> void:
 		ap.seek(0.0, true)
 
 func anim_len(anim: String) -> float:
-	return ap.get_animation(anim).length if ap.has_animation(anim) else 1.0
+	return ap.get_animation(anim).length if ap and ap.has_animation(anim) else 0.6
 
 func turn(delta: float, rate := 14.0) -> void:
 	model.rotation.y = lerp_angle(model.rotation.y, face, minf(1.0, delta * rate))

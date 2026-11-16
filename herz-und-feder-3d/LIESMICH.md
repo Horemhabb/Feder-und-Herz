@@ -103,7 +103,20 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
   Klasse ab 8 verteilten Punkten, Zurücksetzen für 10 + 3 × Stufe Scherben.
 - Daten in `scripts/klassen.gd`; Klassentest: `godot --path . -- --neu --klasse=jaegerin --klassentest`.
 
-Noch offen: Etappe 3 (alle Gegnerarten und Hüter), Etappe 4 (zwölf Stunden,
+### Etappe 3: Gegner und Hüter
+
+- Neun Gegnerarten aus der 2D-Fassung mit ihren Kampfweisen: **Irrende Ba** (leuchtende Lichter, schwärmen und beißen),
+  **Tefens Brut** (Skorpione, Tiere: fliehen vor Upuauts Hatz), **Sebau-Krieger** (holen sichtbar aus: roter Kegel),
+  **Sebau-Priesterin** und **Erloschene** (halten Abstand und schießen, ein gemeinsamer Schusstakt je Schwierigkeit),
+  **Sebau-Koloss** (Aufschlag mit rotem Kreis), **Ruhelose** (liegen am Boden und stehen auf), **Herzlose** (schnell, glühen).
+  Aussehen: KayKit-Skelette, eingefärbt; Lichter und Skorpione sind aus Grundformen gebaut.
+- Rudel nach den Daten der Stunde (`scripts/stunden.gd`), Größe je Schwierigkeit, Aufstellung als Lager (mit Feuer),
+  Wache, Streife, Ruhe oder Hinterhalt (unsichtbar, bis du nah bist). Sie bemerken dich mit Sichtkegel („?“, dann „!“),
+  bei Schwer und Albtraum rufen sie Nachbarrudel. Nur so viele greifen zugleich an, wie die Schwierigkeit erlaubt.
+- **Hüter**: Gestalt und Name aus der Stunde (in Stunde 1 Mahaf als großes Licht), Geschossring, Beschwörung von
+  Dienern, Ansturm mit rotem Streifen als Ansage, unter 30 % Leben schneller.
+
+Noch offen: Etappe 4 (zwölf Stunden,
 Kartengenerator, Karte, Stundenwahl).
 
 ## Was noch Platzhalter ist
@@ -113,8 +126,7 @@ Kartengenerator, Karte, Stundenwahl).
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- Die übrigen Gegnerarten und die Stunden 2 bis 12 folgen in den
-  nächsten Etappen. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
+- Die Stunden 2 bis 12 folgen in Etappe 4. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
 
 ## Für Entwickler
 

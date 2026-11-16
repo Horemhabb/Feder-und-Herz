@@ -661,7 +661,7 @@ func _class_card(c: String) -> Control:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 92 if game.touch else 150)
+	b.custom_minimum_size = Vector2(0, 92 if game.touch else 146)
 	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("3d3947"), 3 if on else 1))
 	b.add_theme_stylebox_override("hover", _flat(Color("2a2731"), 8, C.col, 2))
 	b.add_theme_stylebox_override("pressed", _flat(Color("2a2731"), 8, C.col, 3))
@@ -677,7 +677,7 @@ func _class_card(c: String) -> Control:
 	tr.texture = Klassen.portrait(c)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.custom_minimum_size = Vector2(34 if game.touch else 56, 0)
+	tr.custom_minimum_size = Vector2(60 if game.touch else 100, 0)
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(tr)
 	var l := _label(C.name, 13 if game.touch else 15, C.col if on else PARCH)

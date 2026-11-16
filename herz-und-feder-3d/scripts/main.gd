@@ -20,7 +20,7 @@ const MAP := [
 	"######k..t.###########",
 	"######################",
 ]
-const HOUR_LEGS := ["lantern", "sight"]   # Hüter-Legendäre der ersten Stunde (ACT[0].legs)
+var hdef: Dictionary           # die Stunde aus Stunden.def: Rudel, Hüter, Legendäre, Texte
 const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "model": "chest"}, {"name": "Prunktruhe", "model": "chest_gold"}]
 const TXT := {
 	"no": "ERSTE STUNDE DER NACHT", "name": "Das Tor des Westens",
@@ -92,6 +92,7 @@ func _ready() -> void:
 		lim.ceiling_db = -0.5
 		AudioServer.add_bus_effect(0, lim)
 	Spiel.pots = mini(Daten.POTS, Spiel.pots + 2)
+	hdef = Stunden.def(Spiel.fall)
 	_build_env()
 	_build_world()
 	hero = Hero.new()
@@ -462,8 +463,7 @@ func _build_world() -> void:
 		ground.material_override = gm
 	ground.position = Vector3(W * CELL / 2, -0.12, H * CELL / 2)
 	add_child(ground)
-	var pack := 0
-	var packs := {}
+	var groups := {}   # Rudel-Plätze aus der Karte: Schlüssel -> Zellen
 	var floors := {"gruft": [], "sand": []}
 	for cz in H:
 		for cx in W:
@@ -496,18 +496,14 @@ func _build_world() -> void:
 				"S":
 					start_pos = p
 				"B":
-					boss = _spawn("boss", p, 99)
+					boss = _spawn("boss", p, 99, "", hdef)
+					boss.home_face = PI * 0.75
 				"m", "p":
-					# Nachbarn im Umkreis gehören zu einem Rudel und wachen zusammen auf
+					# Nachbarn im Umkreis bilden einen Rudel-Platz
 					var key := "%d_%d" % [cx / 5, cz / 4]
-					if not packs.has(key):
-						pack += 1
-						packs[key] = pack
-					# das erste Mitglied eines Rudels ist mit 20 % Elite (03-world.js › newFall)
-					var first: bool = not packs.has(key + "_e")
-					packs[key + "_e"] = true
-					var el: String = Daten.ELITE.pick_random().id if first and randf() < 0.2 else ""
-					_spawn("minion" if ch == "m" else "mage", p + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8)), packs[key], el)
+					if not groups.has(key):
+						groups[key] = []
+					groups[key].append(p)
 				"t":
 					var kindp: String = ["barrel_large", "crates_stacked", "barrel_small_stack", "box_large"][(cx + cz) % 4]
 					var bn := _piece(kindp, p + Vector3(-0.6, 0, -0.6), (cx * 3 + cz) % 4 * PI / 2)
@@ -541,6 +537,7 @@ func _build_world() -> void:
 	for k in floors:
 		_floor_mesh(floors[k], k)
 	_fest_bauen()
+	_spawn_packs(groups)
 	total = foes.size() - 1
 	# Irrende Ba: Lichter, die gegen den Wind ziehen
 	for i in 7:
@@ -669,10 +666,108 @@ func _chest(pos: Vector3, tier: int) -> void:
 	astar.set_point_solid(_sub(pos), true)
 	chests.append({"n": n, "lid": lid, "tier": tier, "open": false, "label": l, "body": body, "pos": pos})
 
-func _spawn(kind: String, pos: Vector3, pack: int, elite := "") -> Foe:
+# Rudel nach den Daten der Stunde (03-world.js › newFall): Zusammensetzung aus hdef.packs, Größe je Schwierigkeit,
+# das erste Mitglied mit 20 % Elite, Aufstellung je Stil (Lager, Wache, Streife, Ruhe, Hinterhalt)
+func _spawn_packs(groups: Dictionary) -> void:
+	var D := Spiel.D()
+	var pid := 0
+	for key in groups:
+		var cells: Array = groups[key]
+		var c := Vector3.ZERO
+		for q in cells:
+			c += q
+		c /= cells.size()
+		c = cells[0] if not walkable(cells[0], c) else c
+		pid += 1
+		var comp := Stunden.expand(hdef.packs.pick_random())
+		comp = comp.slice(0, maxi(2, int(round(comp.size() * float(D.pack)))))
+		var style: String = ["ruhe", "lager", "wache", "streife", "hinterhalt"].pick_random()
+		var far: Vector3 = cells[0]
+		for q in cells:
+			if (q - c).length() > (far - c).length():
+				far = q
+		var way := [c, far if (far - c).length() > 3.0 else c + Vector3(4, 0, 0)]
+		var face := randf() * TAU
+		var lead: Foe = null
+		if style == "lager":
+			_campfire(c)
+		for i in comp.size():
+			var pos := _pack_pos(style, c, face, i, comp.size())
+			if not walkable(c, pos) or astar.is_point_solid(_sub(pos)):
+				pos = cells.pick_random() + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8))
+			var el: String = Daten.ELITE.pick_random().id if i == 0 and randf() < 0.2 else ""
+			var f := _spawn(comp[i], pos, pid, el, hdef)
+			f.home_face = atan2(c.x - pos.x, c.z - pos.z) if style == "lager" else face
+			f.face = f.home_face
+			if f.model:
+				f.model.rotation.y = f.face
+			f.set_style(style, way)
+			if style == "streife":
+				f.lead = lead
+				if lead == null:
+					lead = f
+
+func _pack_pos(style: String, c: Vector3, face: float, i: int, n: int) -> Vector3:
+	var fwd := Vector3(sin(face), 0, cos(face))
+	var side := Vector3(fwd.z, 0, -fwd.x)
+	match style:
+		"lager":
+			var a := TAU * i / n
+			return c + Vector3(sin(a), 0, cos(a)) * randf_range(2.3, 3.3)
+		"wache":
+			return c + fwd * 1.8 + side * ((i - (n - 1) / 2.0) * 1.5)
+		"streife":
+			return c - fwd * (i / 2) * 1.5 + side * ((i % 2) * 1.4 - 0.7)
+	var a2 := randf() * TAU
+	return c + Vector3(sin(a2), 0, cos(a2)) * randf_range(2.4, 5.0)
+
+func _campfire(c: Vector3) -> void:
+	var logs := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.45
+	cm.bottom_radius = 0.55
+	cm.height = 0.25
+	cm.radial_segments = 8
+	logs.mesh = cm
+	var lm := StandardMaterial3D.new()
+	lm.albedo_color = Color(0.25, 0.17, 0.1)
+	logs.material_override = lm
+	add_child(logs)
+	logs.global_position = c + Vector3(0, 0.12, 0)
+	var fl := CPUParticles3D.new()
+	fl.amount = 14
+	fl.lifetime = 0.5
+	fl.direction = Vector3(0, 1, 0)
+	fl.spread = 14.0
+	fl.gravity = Vector3(0, 1.5, 0)
+	fl.initial_velocity_min = 0.6
+	fl.initial_velocity_max = 1.3
+	fl.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	fl.emission_sphere_radius = 0.3
+	var qm := SphereMesh.new()
+	qm.radius = 0.12
+	qm.height = 0.24
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.albedo_color = Color(1.0, 0.65, 0.25)
+	qm.material = fm
+	fl.mesh = qm
+	add_child(fl)
+	fl.global_position = c + Vector3(0, 0.3, 0)
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.6, 0.3)
+	l.light_energy = 1.6
+	l.omni_range = 7.0
+	add_child(l)
+	l.global_position = c + Vector3(0, 1.0, 0)
+	torches.append({"l": l, "ph": randf() * 10.0})
+	_box(c, Vector3(1.0, 0.5, 1.0))
+	astar.set_point_solid(_sub(c), true)
+
+func _spawn(kind: String, pos: Vector3, pack: int, elite := "", hd := {}) -> Foe:
 	var f := Foe.new()
 	f.game = self
-	f.init(kind, pos, pack, elite)
+	f.init(kind, pos, pack, elite, hd)
 	add_child(f)
 	foes.append(f)
 	return f
@@ -712,10 +807,36 @@ func find_path(a: Vector3, b: Vector3) -> PackedVector3Array:
 
 func wake_pack(pack: int) -> void:
 	var k := 0
+	var woke := []
 	for f in foes:
 		if f.pack == pack and f.state == Foe.St.SLEEP:
-			f.wake(k * 0.25)
+			f.wake(k * 0.35)
+			woke.append(f)
 			k += 1
+	if Spiel.D().alarm and pack != 99:
+		for f in foes:
+			if f.state == Foe.St.SLEEP and f.pack != pack and f.pack != 99 and f.alarm < 0.0:
+				for o in woke:
+					if (o.global_position - f.global_position).length() < 13.2 and sees(o.global_position, f.global_position):
+						f.alarm = 1.2
+						break
+
+# Der Hüter ruft Diener herbei: sofort wach, ohne Erfahrung und Fortschritt
+func boss_summon(b: Foe, kinds: Array) -> void:
+	for i in kinds.size():
+		var a := TAU * i / kinds.size() + randf()
+		var p := b.global_position + Vector3(sin(a), 0, cos(a)) * 2.8
+		if not walkable(b.global_position, p):
+			p = b.global_position
+		var f := _spawn(kinds[i], p, 98, "", hdef)
+		f.summoned = true
+		f.xp = 0.0
+		f.w = 0.0
+		f.state = Foe.St.FIGHT
+		f.lying = false
+		f.set_collision_layer_value(3, true)
+		f.play(Foe.ANIM.idle)
+		spark(p + Vector3(0, 0.8, 0), Color(0.75, 0.45, 0.95))
 
 # ---------------------------------------------------------------- Kampf
 func live_foes() -> Array:
@@ -1118,24 +1239,24 @@ func _pet_tick(delta: float) -> void:
 	if far > 28.8 or (far > 10.4 and not sees(pet.global_position, hp_)):
 		pet.global_position = hp_ - hero.forward() * 1.2
 
-func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float) -> void:
-	var l := OmniLight3D.new()
-	l.light_color = Color(0.9, 0.4, 0.85)
-	l.light_energy = 1.3
-	l.omni_range = 4.0
+func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float, col := Color(0.95, 0.55, 0.9), life := 3.2) -> void:
+	# ohne eigenes Licht: ein Geschossring des Hüters hätte sonst zwanzig Lichter auf einmal
+	var n := Node3D.new()
 	var m := MeshInstance3D.new()
 	var sm := SphereMesh.new()
 	sm.radius = 0.24
 	sm.height = 0.48
+	sm.radial_segments = 10
+	sm.rings = 5
 	m.mesh = sm
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(0.95, 0.55, 0.9)
+	mat.albedo_color = col
 	m.material_override = mat
-	l.add_child(m)
-	add_child(l)
-	l.global_position = pos
-	bolts.append({"n": l, "v": dir * speed, "dmg": dmg, "life": 3.2})
+	n.add_child(m)
+	add_child(n)
+	n.global_position = pos
+	bolts.append({"n": n, "v": dir * speed, "dmg": dmg, "life": life})
 
 func on_foe_dead(f: Foe) -> void:
 	if f.mark_t > 0.0 and f != boss:
@@ -1147,7 +1268,7 @@ func on_foe_dead(f: Foe) -> void:
 		_level_up()
 	if f == boss:
 		on_boss_dead()
-	else:
+	elif not f.summoned:
 		kills += 1
 
 func _level_up() -> void:
@@ -1169,6 +1290,13 @@ func _drops(f: Foe) -> void:
 		return
 	var T: Dictionary = Daten.ET[f.K.typ]
 	var el := f.elite != ""
+	if f.summoned:
+		# Diener des Hüters: nur Gegenstand nach Fundchance und Isisblut
+		if randf() < T.drop * Spiel.S.find:
+			drop_item(at, Spiel.new_item(n, 0))
+		if randf() < 0.07:
+			drop("blood", at)
+		return
 	if el:
 		drop_item(at, Spiel.new_item(n, 1))
 		if randf() < 0.5:
@@ -1205,7 +1333,7 @@ func _boss_drops(at: Vector3) -> void:
 	var n1 := Spiel.fall + 1
 	var its := [Spiel.new_item(n1, 3 if randf() < 0.6 else 2)]
 	if randf() < 0.4:
-		var lid: String = HOUR_LEGS.pick_random()
+		var lid: String = hdef.legs.pick_random()
 		its.append(Spiel.new_item(n1, 3, {"slot": Daten.leg(lid).slot, "leg": lid}))
 	else:
 		its.append(Spiel.new_item(n1, 2))
@@ -1415,7 +1543,7 @@ func _open_chest(c: Dictionary) -> void:
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
 	hud.boss_show(b.K.name)
-	hud.banner(TXT.boss_say, b.K.name.to_upper(), 6.0)
+	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
 	sfx.play("boss_appear")
 	sfx.say("vo_boss")
 	shake = maxf(shake, 0.6)
@@ -1564,6 +1692,50 @@ func ring_fx(c: Vector3, r: float, col: Color) -> void:
 	var tw := create_tween()
 	tw.tween_property(m, "scale", Vector3(r, 0.4, r), 0.28).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.32)
+	tw.tween_callback(m.queue_free)
+
+# Ansage eines Hiebs: roter Kegel vor dem Gegner (05-update.js: Kegel ±0,8 rad)
+func cone_fx(c: Vector3, face: float, r: float, half: float, t: float) -> void:
+	var im := ImmediateMesh.new()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var steps := 10
+	for i in steps:
+		var a0 := face - half + 2.0 * half * i / steps
+		var a1 := face - half + 2.0 * half * (i + 1) / steps
+		im.surface_add_vertex(Vector3.ZERO)
+		im.surface_add_vertex(Vector3(sin(a1), 0, cos(a1)) * r)
+		im.surface_add_vertex(Vector3(sin(a0), 0, cos(a0)) * r)
+	im.surface_end()
+	var m := MeshInstance3D.new()
+	m.mesh = im
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.albedo_color = Color(0.85, 0.2, 0.15, 0.1)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.material_override = mat
+	add_child(m)
+	m.global_position = c + Vector3(0, 0.1, 0)
+	var tw := create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.45, t)
+	tw.tween_callback(m.queue_free)
+
+# Ansage des Ansturms: roter Streifen in Laufrichtung
+func stripe_fx(c: Vector3, dir: Vector3, length: float, width: float, t: float) -> void:
+	var m := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(width, 0.04, length)
+	m.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.85, 0.2, 0.15, 0.1)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.material_override = mat
+	add_child(m)
+	m.global_position = c + dir * (length / 2.0) + Vector3(0, 0.1, 0)
+	m.rotation.y = atan2(dir.x, dir.z)
+	var tw := create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.45, t)
 	tw.tween_callback(m.queue_free)
 
 func warn_fx(c: Vector3, r: float, t: float) -> void:
@@ -1728,10 +1900,11 @@ func _physics_process(delta: float) -> void:
 				hero.attack()
 		hero.want_dir = dir
 	# höchstens zwei Nahkämpfer greifen zugleich an, die anderen lauern
-	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai == "melee")
+	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai != "ranged" and f.K.ai != "boss" and f.fear_t <= 0.0)
 	melee.sort_custom(func(a, b): return a.global_position.distance_squared_to(hero.global_position) < b.global_position.distance_squared_to(hero.global_position))
 	for i in melee.size():
 		melee[i].slot = i < int(Spiel.D().slots)
+		melee[i].ring_i = i
 	# Geschosse
 	for i in range(bolts.size() - 1, -1, -1):
 		var b: Dictionary = bolts[i]

@@ -30,7 +30,7 @@ func harm(G: Node) -> float:
 func near_group(G: Node) -> Vector3:
 	# ein Platz neben dem nächsten Rudel, das noch lebt
 	for f in G.foes:
-		if f.kind == "minion" and f.state != Foe.St.DEAD:
+		if f.kind != "boss" and f.state != Foe.St.DEAD:
 			return f.global_position
 	return G.boss.global_position
 
