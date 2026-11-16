@@ -162,6 +162,29 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Musik:** je ein eigenes Stück für die Stunden 2 bis 5; die Stücke einer Stunde wechseln sich alle anderthalb Minuten ab.
 - Logik der Orte und Aufgaben: `scripts/orte.gd`. Der Spieltest prüft sie mit.
 
+### Sparsam mit der Maschine (nach Empfehlungen der Godot-Doku und anderer Entwickler)
+
+Umgesetzt:
+- **Schatten im Browser kleiner und weicher gerechnet** (`project.godot`, Einträge mit `.web`): Der Browser auf dem iPhone
+  gilt für Godot nicht als „mobil“ und bekam bisher die Einstellungen für große Rechner (Schattenbilder mit 4096 Punkten).
+- **Mondschatten in einem Durchgang** statt in vier Stufen (`SHADOW_ORTHOGONAL`).
+- **Ferne Lichter aus:** Der Renderer rechnet höchstens 32 Lichter. Lichter weiter als 44 m von der Kamera schaltet
+  `main.gd › _spar_tick` ab, sonst könnten in großen Stunden einzelne Fackeln ausfallen.
+- **Ferne, schlafende Gegner stehen still** (keine Bewegung, keine Animation), bis die Figur auf 48 m heran ist.
+- **Ecken der Fenster auf Handys ohne Kantenglättung:** Geglättete runde Ecken haben auf iPhones in Einzelfällen den
+  Grafikkontext gekostet (Godot-Fehlerbericht 105945).
+- **Farbtafeln der Modelle verkleinert:** Die 24 Farbtafeln der Figuren und Requisiten (als Datei je 14 KB) wurden als
+  Texturen mit 1024 Punkten eingelesen und belegten 32 MB im Paket. Jetzt mit 512 Punkten (`process/size_limit` in den
+  `.import`-Dateien unter `models/`): 8 MB. Das Paket schrumpft von 75 auf 51 MB, der Grafikspeicher wird ebenso entlastet.
+- Schon vorher: Texturen im Grafikspeicher komprimiert (ETC2 fürs Handy), 3D-Auflösung auf dem Handy 60 %, Mauern und
+  Böden je Abschnitt zu einem Körper zusammengefasst, Web-Export ohne Threads und ohne Erweiterungen.
+
+Bewusst noch nicht umgesetzt (jeweils mit Risiko oder Aufwand):
+- Physik mit 30 statt 60 Schritten je Sekunde und Zwischenbildern: spart Rechenzeit, ändert aber das Laufgefühl.
+- Shader vorab hinter der Ladetafel aufwärmen: nähme den ersten Rucklern (erste Feuerschale, erster Treffer) die Spitze.
+- Das Paket ist noch rund 51 MB groß. Den größten Teil machen jetzt die fünf Reliefkarten der Stein- und Bodentexturen
+  aus (je 2,8 MB in zwei Formaten).
+
 ## Was noch Platzhalter ist
 
 - **Figuren, Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus.

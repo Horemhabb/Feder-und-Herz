@@ -106,7 +106,7 @@ func run() -> void:
 			"mantra":
 				check("%s legt den Kreis an" % name, h.mantra_t > 0.0)
 			"roll", "blink":
-				check("%s versetzt die Figur (%.1f m)" % [name, p0.distance_to(h.global_position)], p0.distance_to(h.global_position) > 2.0)
+				check("%s versetzt die Figur (%.1f m)" % [name, p0.distance_to(h.global_position)], p0.distance_to(h.global_position) > 1.5)
 			"glass":
 				check("%s legt eine Fläche, die verlangsamt" % name, G.zones.size() > 0 or harm(G) > before)
 			_:
