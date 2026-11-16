@@ -32,7 +32,7 @@ func _knopf(text: String, main: bool, cb: Callable, enabled := true) -> Button:
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color"]:
 			b.add_theme_color_override(c, Color("14110c"))
 	else:
-		b.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("3d3947"), 1))
+		b.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
 		b.add_theme_stylebox_override("hover", hud._flat(Color(1, 1, 1, 0.06), 8, Hud.DIM, 1))
 		b.add_theme_stylebox_override("pressed", hud._flat(Color(1, 1, 1, 0.1), 8, Hud.DIM, 1))
 		b.add_theme_stylebox_override("disabled", hud._flat(Color(0, 0, 0, 0), 8, Color("2a2731"), 1))
@@ -59,7 +59,7 @@ func _cell(it, cb: Callable, chosen: bool, caption := "") -> Control:
 	b.custom_minimum_size = Vector2(64, 64)
 	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var col := Color("3d3947")
+	var col := Color("5c4a2e")
 	if it != null:
 		col = Daten.RAR[it.rar].col
 		b.icon = Daten.icon(Daten.icon_of(it))
@@ -136,6 +136,17 @@ func render() -> void:
 		st.add_child(h)
 	add_child(st)
 	# Material und Scherben
+	# Herzwaage: Stand und Wirkung, dazu die Entscheidungen dieser Nacht
+	add_child(_h3("Herzwaage"))
+	var maat := 0
+	var isfet := 0
+	for k in Spiel.wahl:
+		if Spiel.wahl[k] == "maat":
+			maat += 1
+		else:
+			isfet += 1
+	add_child(hud._label("Dein Herz ist %s (%+d). Entscheidungen: %d für Maat, %d für Isfet." % [Geschichte.herz_name(Spiel.herz), int(round(Spiel.herz)), maat, isfet], 15, Hud.PARCH))
+	add_child(hud._para(Geschichte.herz_wirkung(Spiel.herz), 13, Hud.DIM))
 	add_child(_h3("Material"))
 	var mf := HFlowContainer.new()
 	mf.add_theme_constant_override("h_separation", 16)
@@ -249,7 +260,7 @@ func _can_pay(c: Dictionary, sh := 0) -> bool:
 
 func _detail() -> Control:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", hud._flat(Color("08080d"), 8, Color("3d3947"), 1))
+	p.add_theme_stylebox_override("panel", hud._flat(Color("08080d"), 8, Color("5c4a2e"), 1))
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + s, 12)

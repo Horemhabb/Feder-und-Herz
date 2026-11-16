@@ -26,6 +26,9 @@ var muted := false
 var item_id := 1
 var tree := {"r": {}, "a": {}, "p": {}, "key": false}   # Fähigkeitenbaum: Ränge, Wucht/Eile, Passive, Schlüsselstein
 var pots := Daten.POTS   # Rotbier: wird nicht gespeichert, wie in der 2D-Fassung
+var herz := 0.0          # Herzwaage: über null leicht (Maat), unter null schwer (Isfet); −100 bis 100
+var wahl := {}           # Entscheidungen je Stunde der Nacht: "1" → "maat" oder "isfet"
+var segen := {}          # Segen der Schreine in dieser Stunde: Gott → true (setzt main.gd, wirkt in calc)
 var neu := 0             # neue Teile seit dem letzten Blick in die Tasche
 var hat_stand := false   # liegt ein Spielstand vor?
 var force_new := false   # Startbildschirm gleich im Modus „Neue Figur“
@@ -65,6 +68,9 @@ func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	item_id = 1
 	pots = Daten.POTS
 	neu = 0
+	herz = 0.0
+	wahl = {}
+	segen = {}
 	calc()
 	speichern()
 
@@ -97,25 +103,37 @@ func calc() -> void:
 	armor += a.armor
 	var w = eq.get("waffe")
 	var dmg: float = ((Daten.it_dmg(w) if w else 4) + 3.0 + lvl * 1.2) * 1.2 * (1.0 + a.dmgPct / 100.0)
+	# Herzwaage und Segen der Schreine
+	var leicht := 2 if herz >= 60.0 else (1 if herz >= Geschichte.LEICHT else 0)
+	var schwer := 2 if herz <= -60.0 else (1 if herz <= Geschichte.SCHWER else 0)
+	dmg *= (1.0 + 0.1 * schwer) * (1.3 if segen.has("sachmet") else 1.0)
 	S = {
 		"dmg": dmg,
-		"max_hp": round((110.0 + lvl * 20.0 + a.hp) * C.hp * (1.0 + 0.06 * pas("zaeh"))),
+		"max_hp": round((110.0 + lvl * 20.0 + a.hp) * C.hp * (1.0 + 0.06 * pas("zaeh")) * (0.9 if schwer == 2 else 1.0)),
 		"armor": armor,
 		"red": 1.0 - (1.0 - armor / (armor + 100.0)) * (1.0 - C.red),
 		"crit": minf(60.0, 5.0 + a.crit + (15.0 if legs.has("star") else 0.0) + 2.0 * pas("scharf")),
 		"crit_dmg": 50.0 + a.critDmg,
-		"speed": C.spd * (1.0 + minf(45.0, a.speed + (15.0 if legs.has("caravan") else 0.0) + 3.0 * pas("flink")) / 100.0),
+		"speed": C.spd * (1.0 + minf(45.0, a.speed + (15.0 if legs.has("caravan") else 0.0) + 3.0 * pas("flink")) / 100.0) * (1.25 if segen.has("bastet") else 1.0),
 		"rate": 1.75 * (1.0 + a.as / 100.0),
-		"regen": C.regen + a.regen + pas("kraft"),
+		"regen": C.regen + a.regen + pas("kraft") + 2.0 * leicht,
 		"loh": float(a.loh),
 		"thorns": float(a.thorns),
-		"xp_mul": 1.0 + a.xp / 100.0,
-		"find": 1.0 + a.find / 100.0,
-		"cone": 1.35 if legs.has("sight") else 1.0,
+		"xp_mul": 1.0 + a.xp / 100.0 + 0.1 * leicht + (0.5 if segen.has("thot") else 0.0),
+		"find": 1.0 + a.find / 100.0 + (0.6 if segen.has("hathor") else 0.0),
+		"cone": (1.35 if legs.has("sight") else 1.0) * (1.0 + 0.125 * leicht),
+		"shard": 1.0 + 0.25 * schwer,
 		"pick": (170.0 if legs.has("greed") else 34.0) / Daten.PX,
 		"legs": legs,
 		"a": a,
 	}
+
+# Gewicht auf die Herzwaage legen (plus: Maat, minus: Isfet); gibt zurück, ob sich die Stufe geändert hat
+func wiegen(v: float) -> bool:
+	var vor := Geschichte.herz_name(herz)
+	herz = clampf(herz + v, -100.0, 100.0)
+	calc()
+	return Geschichte.herz_name(herz) != vor
 
 # ---------------------------------------------------------------- Fähigkeitenbaum (01-data.js › treeSpent, treePoints, respecCost)
 func pas(id: String) -> int:
@@ -280,7 +298,8 @@ func xp_gain(v: float) -> bool:
 # ---------------------------------------------------------------- Spielstand
 func speichern() -> void:
 	var d := {"v": VERSION, "fall": fall, "lvl": lvl, "xp": xp, "eq": eq, "bag": bag, "muted": muted, "itemId": item_id,
-		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree}
+		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree,
+		"herz": herz, "wahl": wahl}
 	var f := FileAccess.open(DATEI, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -309,6 +328,8 @@ func laden() -> void:
 	muted = bool(d.get("muted", false))
 	item_id = maxi(1, int(d.get("itemId", 1)))
 	shards = maxi(0, int(d.get("shards", 0)))
+	herz = clampf(float(d.get("herz", 0.0)), -100.0, 100.0)
+	wahl = d.get("wahl", {}) if d.get("wahl") is Dictionary else {}
 	eq = {}
 	if d.get("eq") is Dictionary:
 		for slot in d.eq:

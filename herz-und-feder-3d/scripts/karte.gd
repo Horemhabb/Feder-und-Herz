@@ -26,6 +26,10 @@ var obst: Array = []         # Hindernisse: {p, r (Zellen), kind, v}
 var sconces: Array = []      # Wandfackeln: {p, dir} (dir: 0 Mauer im Norden, 1 Mauer im Westen)
 var towers: Array = []       # {x, y} (linke obere Zelle, 4 × 4)
 var rugs: Array = []         # {x, y, w, h, col} in Zellen
+var deko: Array = []         # Kulisse mit Körper: {p, kind (obelisk, anubis, koloss, palme, stumpf), r, face}
+var pools: Array = []        # Wasserbecken der Oase: {p, r}
+var sites: Array = []        # Orte zum Handeln: {p, kind (feuer, schrein, krug, relikt, figur), v}
+var road: Array = []         # Punkte entlang des Prozessionswegs (für die Wegmarken)
 
 static func gi(cx: int, cy: int) -> int:
 	return cy * GW + cx
@@ -264,6 +268,167 @@ func gen_dungeon(dkind: String) -> void:
 		var a: Dictionary = l[0]
 		var b: Dictionary = l[1]
 		spots.append({"p": Vector2((a.cx + b.cx) / 2.0, (a.cy + b.cy) / 2.0), "style": "streife", "way": [Vector2(a.cx, a.cy), Vector2(b.cx, b.cy)], "snap": true})
+	_place_sites()
+
+# ---------------------------------------------------------------- Kulisse und Orte (Fassung 2.0)
+func _deko_near(p: Vector2, d: float) -> bool:
+	for q in deko:
+		if q.p.distance_to(p) < q.r + d:
+			return true
+	for q in pools:
+		if q.p.distance_to(p) < q.r + d:
+			return true
+	return false
+
+func _open_land(p: Vector2, rad: int) -> bool:
+	var cx := int(p.x)
+	var cy := int(p.y)
+	for dy in range(-rad, rad + 1):
+		for dx in range(-rad, rad + 1):
+			if not in_grid(cx + dx, cy + dy) or wall(cx + dx, cy + dy) or flr[gi(cx + dx, cy + dy)] != 0:
+				return false
+	return true
+
+# gepflasterter Weg entlang der Punkte (Bodenart 3), zwei Zellen breit; daneben abwechselnd Obelisken und Wächterstatuen
+func _road(pts: Array) -> void:
+	var walked := 0.0
+	var next_deko := 5.0
+	var k := 0
+	for i in range(pts.size() - 1):
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var dir := (b - a).normalized()
+		var side := Vector2(-dir.y, dir.x)
+		var steps := maxi(1, int(a.distance_to(b) / 0.4))
+		for j in steps + 1:
+			var q := a.lerp(b, float(j) / steps)
+			for o in [Vector2.ZERO, side * 0.9, -side * 0.9]:
+				var c: Vector2 = q + o
+				if in_grid(int(c.x), int(c.y)) and not wall(int(c.x), int(c.y)) and flr[gi(int(c.x), int(c.y))] == 0:
+					flr[gi(int(c.x), int(c.y))] = 3
+			if j % 3 == 0:
+				road.append(q)
+			walked += a.distance_to(b) / steps
+			if walked >= next_deko:
+				next_deko += 5.5
+				k += 1
+				if q.distance_to(start) < 5.0 or q.distance_to(lair) < 6.0:
+					continue
+				for sg in [1.0, -1.0]:
+					var dp: Vector2 = q + side * 2.6 * sg
+					if _open_land(dp, 1) and not _deko_near(dp, 1.0):
+						deko.append({"p": dp, "kind": "obelisk" if k % 2 == 1 else "anubis", "r": 0.45 if k % 2 == 1 else 0.7, "face": atan2(-side.x * sg, -side.y * sg)})
+
+# Oase: ein Wasserbecken mit Palmen, dazu einzelne Palmen und Säulenstümpfe im Gelände
+func _oasis() -> void:
+	for t in 200:
+		var p := Vector2(randf_range(8, GW - 8), randf_range(6, GH - 6))
+		if p.distance_to(start) < 12 or p.distance_to(lair) < 10 or not _open_land(p, 4) or _deko_near(p, 4.0):
+			continue
+		pools.append({"p": p, "r": 2.1})
+		for i in randi_range(5, 7):
+			var a := randf() * TAU
+			var q := p + Vector2(cos(a), sin(a)) * randf_range(2.9, 3.9)
+			if _open_land(q, 0) and not _deko_near(q, 0.5):
+				deko.append({"p": q, "kind": "palme", "r": 0.3, "face": randf() * TAU})
+		break
+	var n := 0
+	for t in 300:
+		if n >= 12:
+			break
+		var p := Vector2(randf_range(3, GW - 3), randf_range(3, GH - 3))
+		if p.distance_to(start) < 4 or not _open_land(p, 1) or _deko_near(p, 2.0):
+			continue
+		deko.append({"p": p, "kind": "palme" if n % 3 != 2 else "koloss", "r": 0.3 if n % 3 != 2 else 0.8, "face": randf() * TAU})
+		n += 1
+
+func _site_ok(p: Vector2, reach: PackedInt32Array, gap := 2.2) -> bool:
+	var cx := int(p.x)
+	var cy := int(p.y)
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			if wall(cx + dx, cy + dy):
+				return false
+	if reach[gi(cx, cy)] < 0 or _deko_near(p, 0.9):
+		return false
+	for q in obst:
+		if q.p.distance_to(p) < q.r + 1.0:
+			return false
+	for q in chests:
+		if q.p.distance_to(p) < 1.4:
+			return false
+	for q in casks:
+		if q.distance_to(p) < 1.2:
+			return false
+	for q in spots:
+		if q.p.distance_to(p) < 1.8:
+			return false
+	for q in sites:
+		if q.p.distance_to(p) < gap:
+			return false
+	return p.distance_to(start) > 2.0 and p.distance_to(lair) > 4.5
+
+# Feuerschalen, Schreine, Seelenkrüge, das Fundstück der Stunde und die Figur am Eingang
+func _place_sites() -> void:
+	var reach := flood(int(start.x), int(start.y))
+	# die Figur wartet in Sichtweite des Starts
+	for t in 80:
+		var a := randf() * TAU
+		var p := start + Vector2(cos(a), sin(a)) * randf_range(2.4, 4.0)
+		if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach):
+			sites.append({"p": p, "kind": "figur", "v": 0})
+			break
+	# Plätze: Räume (ohne Start und Hüter), im Freiland zusätzlich offene Stellen; sortiert nach Entfernung vom Start
+	var places := []
+	for r in rooms:
+		if r.kind == "start" or r.kind == "boss" or r.kind == "kapelle":
+			continue
+		places.append({"x": r.x + 1, "y": r.y + 1, "w": maxi(1, r.w - 2), "h": maxi(1, r.h - 2), "c": Vector2(r.cx, r.cy)})
+	if not indoor:
+		for q in road:
+			if q.distance_to(start) > 9 and q.distance_to(lair) > 8 and (places.is_empty() or places[-1].c.distance_to(q) > 12):
+				places.append({"x": int(q.x) - 3, "y": int(q.y) - 3, "w": 7, "h": 7, "c": q})
+		for t in 200:
+			if places.size() >= 13:
+				break
+			var p := Vector2(randf_range(5, GW - 5), randf_range(4, GH - 4))
+			var far := _open_land(p, 2)
+			for q in places:
+				if q.c.distance_to(p) < 9:
+					far = false
+			if far:
+				places.append({"x": int(p.x) - 2, "y": int(p.y) - 2, "w": 5, "h": 5, "c": p})
+	places.sort_custom(func(a, b): return a.c.distance_to(start) < b.c.distance_to(start))
+	var plan := ["feuer", "krug", "feuer", "schrein", "feuer", "krug", "feuer", "schrein", "krug", "feuer"]
+	var i := 0
+	var v := 0
+	for pl in places:
+		if i >= plan.size():
+			break
+		for t in 40:
+			var p := Vector2(pl.x + randf() * pl.w, pl.y + randf() * pl.h)
+			if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach):
+				sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": plan[i], "v": v})
+				v += 1
+				i += 1
+				break
+	# das Fundstück liegt weit hinten
+	places.reverse()
+	for pl in places:
+		var done := false
+		for t in 40:
+			var p := Vector2(pl.x + randf() * pl.w, pl.y + randf() * pl.h)
+			if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach):
+				sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": "relikt", "v": 0})
+				done = true
+				break
+		if done:
+			break
+	# zwei Wächter vor dem Lager des Hüters
+	for o in [Vector2(-4.5, -2.5), Vector2(-4.5, 2.5)]:
+		var p: Vector2 = lair + o
+		if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 1.0) and p.distance_to(lair) > 3.0:
+			deko.append({"p": p, "kind": "anubis", "r": 0.7, "face": PI / 2})
 
 # ---------------------------------------------------------------- Freiland
 func gen_outdoor(mix: Array) -> void:
@@ -356,6 +521,13 @@ func gen_outdoor(mix: Array) -> void:
 		rooms.append({"x": r.x, "y": r.y, "w": r.w, "h": r.h, "cx": b.cx, "cy": b.cy, "kind": b.kind if b.kind != "" else "haus", "shape": "rect"})
 	if lair == Vector2.ZERO:
 		lair = Vector2(GW - 6, GH / 2.0)
+	# Prozessionsweg vom Start durch das Tor bis vor die Kapelle des Hüters, gesäumt von Obelisken und Wächtern
+	var pts := [start]
+	if not blocked:
+		pts.append(Vector2(wx + 0.5, gate + 2.0))
+	pts.append(lair)
+	_road(pts)
+	_oasis()
 	# zwei Türme als Landmarken
 	var n := 0
 	for t in 200:
@@ -393,7 +565,7 @@ func gen_outdoor(mix: Array) -> void:
 					clear = false
 		if not clear or p.distance_to(start) < 4.8:
 			continue
-		var near := false
+		var near := _deko_near(p, r + 1.3)
 		for q in obst:
 			if q.p.distance_to(p) < q.r + r + 0.88:
 				near = true
@@ -408,7 +580,7 @@ func gen_outdoor(mix: Array) -> void:
 		var p := Vector2(randf_range(4, GW - 4), randf_range(4, GH - 4))
 		if wall(int(p.x), int(p.y)) or flr[gi(int(p.x), int(p.y))] != 0 or p.distance_to(start) < 10.4:
 			continue
-		var close := false
+		var close := _deko_near(p, 3.2)
 		for q in spots:
 			if q.p.distance_to(p) < 6.6:
 				close = true
@@ -418,6 +590,7 @@ func gen_outdoor(mix: Array) -> void:
 		var to := Vector2(clampf(p.x + cos(a) * 8.4, 3, GW - 3), clampf(p.y + sin(a) * 8.4, 3, GH - 3))
 		spots.append({"p": p, "style": ["streife", "streife", "lager", "ruhe", "hinterhalt"].pick_random(), "way": [p, _free_path(p, to)]})
 		n += 1
+	_place_sites()
 
 func _free_path(a: Vector2, b: Vector2) -> Vector2:
 	var steps := maxi(1, int(a.distance_to(b) / 0.24))

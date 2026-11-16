@@ -42,6 +42,7 @@ func run() -> void:
 		await wait(1.6)
 		G = g()
 	var h: Hero = G.hero
+	G.orte.auto = false   # Orte lösen im Klassentest nicht aus (die Figur wird neben Gegner gesetzt)
 	var cls := Spiel.cls
 	print("KLASSE ", cls, " (", Spiel.CLS[cls].name, ")")
 	check("die gewählte Klasse ist im Spiel", h.cls == cls and h.SK.size() == 6)

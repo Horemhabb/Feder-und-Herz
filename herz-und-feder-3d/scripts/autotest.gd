@@ -54,6 +54,9 @@ func _physics_process(delta: float) -> void:
 				shot("pforte_fenster")
 				phase = "ende"
 				finish("an der Pforte")
+			elif not game.hud.dialog_opts.is_empty():
+				# Gespräch oder Entscheidung: der Bot nimmt immer die erste Antwort
+				game.hud.press_option(0)
 			else:
 				shot("niederlage")
 				game.hud.press_primary()
@@ -147,6 +150,15 @@ func rundgang() -> void:
 	var spots := [[k.start, "start", false]]
 	for r in k.rooms.slice(0, 3):
 		spots.append([Vector2(r.cx, r.cy), "raum", false])
+	for kind in ["figur", "feuer", "schrein", "krug", "relikt"]:
+		for st in k.sites:
+			if st.kind == kind:
+				spots.append([st.p + Vector2(1.5, 1.5), kind, false])
+				break
+	if not k.pools.is_empty():
+		spots.append([k.pools[0].p + Vector2(3.2, 3.2), "oase", false])
+	if not k.road.is_empty():
+		spots.append([k.road[k.road.size() / 2], "weg", false])
 	spots.append([k.lair + Vector2(0, 3), "huter", false])
 	spots.append([k.start, "start_niedrig", true])
 	for s in spots:

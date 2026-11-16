@@ -47,6 +47,14 @@ func _reveal() -> void:
 			if karte.wall(c.x, c.y) or game.sees(h, p):
 				seen[i] = 1
 
+# eine entzündete Feuerschale deckt die Karte im Umkreis auf
+func reveal_around(pos: Vector3, rad: int) -> void:
+	var c := Vector2i(int(pos.x / Karte.CELL), int(pos.z / Karte.CELL))
+	for dy in range(-rad, rad + 1):
+		for dx in range(-rad, rad + 1):
+			if Karte.in_grid(c.x + dx, c.y + dy) and dx * dx + dy * dy <= rad * rad:
+				seen[Karte.gi(c.x + dx, c.y + dy)] = 1
+
 func _paint() -> void:
 	for y in Karte.GH:
 		for x in Karte.GW:
@@ -79,7 +87,7 @@ func _draw() -> void:
 		return
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.03, 0.03, 0.05, 0.72))
 	draw_texture_rect(tex, Rect2(Vector2.ZERO, size), false)
-	draw_rect(Rect2(Vector2.ZERO, size), Color("3d3947"), false, 1.0)
+	draw_rect(Rect2(Vector2.ZERO, size), Color("5c4a2e"), false, 1.0)
 	var packs := {}
 	for f in game.foes:
 		if f.state == Foe.St.DEAD or f.hidden:
@@ -96,6 +104,28 @@ func _draw() -> void:
 		if not c.open and _seen_at(c.pos):
 			var p := _to_px(c.pos)
 			draw_rect(Rect2(p - Vector2(2.5, 2.5), Vector2(5, 5)), Color(0.85, 0.7, 0.4))
+	# Orte: Feuerschalen (Ring, entzündet gefüllt), Schreine, Seelenkrüge, Fundstück (Raute), Figur
+	for st in game.orte.sites:
+		if not _seen_at(st.pos):
+			continue
+		var q := _to_px(st.pos)
+		match st.kind:
+			"feuer":
+				if st.done:
+					draw_circle(q, 2.5, Color(1.0, 0.62, 0.25))
+				else:
+					draw_arc(q, 2.5, 0.0, TAU, 8, Color(1.0, 0.62, 0.25), 1.0)
+			"schrein":
+				if not st.done:
+					draw_rect(Rect2(q - Vector2(1.5, 3), Vector2(3, 6)), st.gott.col)
+			"krug":
+				if not st.done:
+					draw_circle(q, 2.0, Color(1.0, 0.35, 0.3))
+			"relikt":
+				if not st.done:
+					draw_colored_polygon(PackedVector2Array([q + Vector2(0, -4), q + Vector2(4, 0), q + Vector2(0, 4), q + Vector2(-4, 0)]), Color(1.0, 0.85, 0.4))
+			"figur":
+				draw_circle(q, 2.5, Color(0.56, 0.89, 0.88))
 	if game.gate:
 		draw_arc(_to_px(game.gate.global_position), 5.0, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5)
 	if game.hero:
