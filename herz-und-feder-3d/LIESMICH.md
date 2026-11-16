@@ -23,10 +23,8 @@ entpacken, `HerzUndFeder.exe` doppelklicken. Windows warnt bei unbekannten Progr
 
 Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, **Windows**, **Web** und Linux.
 
-- **Automatisch:** Bei jedem Push nach `main` baut GitHub (Workflow `.github/workflows/bauen.yml`) alle drei Fassungen.
-  Die Web-Fassung erscheint auf GitHub Pages
-  (einmalig in den Repo-Einstellungen unter „Pages“ die Quelle auf „GitHub Actions“ stellen),
-  Mac und Windows liegen unter „Releases“ im Eintrag „Neueste Fassung“.
+- **Automatisch:** Bei jedem Push nach `main` baut GitHub (Workflow `.github/workflows/bauen.yml`) die **Web-Fassung**
+  und stellt sie auf GitHub Pages. Mac und Windows ruhen vorerst; ihre Voreinstellungen bleiben im Projekt.
 - **Selbst bauen:** In Godot „Projekt → Exportieren“, Voreinstellung wählen, „Projekt exportieren“.
   Beim ersten Mal bietet Godot an, die Exportvorlagen herunterzuladen (rund 1,2 GB).
   Von der Befehlszeile: `godot --path . --export-release macOS` (oder `Windows`, `Web`). Die Ergebnisse landen in `build/`.
@@ -61,7 +59,7 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 | F | Bildrate anzeigen |
 | G | Grafik hoch/niedrig (ohne Schatten und Glühen) |
 | M | Ton an/aus |
-| I oder Tab | Beutel: Rotbier, Münzen, Fortschritt (das Spiel steht, solange er offen ist) |
+| I oder Tab | Tasche: Ausrüstung, Werte, Material, Aufwerten, Neuwürfeln, Grabräuber, Buch des Thot (das Spiel steht, solange sie offen ist) |
 | V | Vollbild an/aus |
 | E oder Eingabe | Fenster bestätigen |
 
@@ -76,6 +74,25 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 - Geräusche, Umgebungston und Erzählerstimme von ElevenLabs
 - Tafel am Anfang, Pforte mit Bestätigung am Ende
 
+### Aus der 2D-Fassung übernommen (Etappe 1 von 4: Gerüst)
+
+Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figur in `scripts/spiel.gd`).
+- **Startbildschirm** mit Schwierigkeit (Normal, Schwer, Albtraum), Hardcore und „Weiterspielen“.
+- **Spielstand** (`user://spielstand.json`, im Browser dauerhaft gespeichert): Stufe, Erfahrung, Ausrüstung, Tasche,
+  Scherben, Material, Buch des Thot, Schwierigkeit. Wie im Original beginnt eine Stunde nach dem Laden von vorn.
+  Hardcore: Stirbt die Figur, ist der Spielstand sofort gelöscht.
+- **Werte und Stufen**: Schaden, Leben, Rüstung, Krit, Angriffstempo, Lauftempo, Kraft je Sekunde, Dornen, Lebensraub,
+  Erfahrung und Beuteglück nach den Formeln des Originals; Erfahrungskurve 60 · Stufe^1,6.
+- **Gegner** nach Stunde und Schwierigkeit skaliert, Elite-Gegner (flink, zäh, rasend) mit goldenem Ring.
+- **Beute**: Gegenstände in vier Seltenheiten mit 12 Affixen und 16 legendären Kräften (die für den Eidträger wirken),
+  Scherben, vier Materialien, Isisblut, Seiten aus dem Buch des Thot. Truhen (Truhe, Eisentruhe, Prunktruhe) mit
+  Fundfenster, zerschlagbare Fässer und Kisten, der Hüter lässt vier Gegenstände fallen.
+- **Tasche**: acht Ausrüstungsplätze, Werte, Material, 32 Plätze, Vergleich mit dem Angelegten (▲), Anlegen,
+  Aufwerten bis +5, Neuwürfeln eines Affixes, Wegwerfen, „Alles Gewöhnliche wegwerfen“, Grabräuber, Buch des Thot.
+
+Noch offen: Etappe 2 (vier Klassen, Fähigkeitenbaum), Etappe 3 (alle Gegnerarten und Hüter), Etappe 4 (zwölf Stunden,
+Kartengenerator, Karte, Stundenwahl).
+
 ## Was noch Platzhalter ist
 
 - **Figuren, Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus.
@@ -83,9 +100,8 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- **Beute ist erst ein Anfang:** Besiegte lassen manchmal Rotbier und immer Münzen fallen; der Beutel (I) zeigt beides.
-  Die Münzen haben noch keinen Zweck (Händler folgen). Gegenstände zum Anlegen, Fähigkeitenbaum und die anderen
-  Klassen fehlen in der Probe.
+- Fähigkeitenbaum, die drei übrigen Klassen, die übrigen Gegnerarten und die Stunden 2 bis 12 folgen in den
+  nächsten Etappen. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
 
 ## Für Entwickler
 

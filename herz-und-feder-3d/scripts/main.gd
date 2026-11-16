@@ -3,22 +3,25 @@ extends Node3D
 # Baut Welt, Licht und Gegner aus einer Karte, führt Kamera und Eingabe und verbindet alles mit der Anzeige.
 
 const CELL := 4.0
-# S Start · B Hüter · m Ruheloser · p Priester · t Fass/Kisten · c Säule · # Fels
+# S Start · B Hüter · m Ruheloser · p Priester · t Fass/Kisten (zerschlagbar) · c Säule · # Fels
+# k Truhe · K Eisentruhe · P Prunktruhe (03a-dungeon.js › addChest)
 const MAP := [
 	"######################",
-	"#.t.#m...t#c...c######",
+	"#kt.#m...t#cK..c######",
 	"#.S....m..#.....######",
 	"#...#.m..p#..B..######",
 	"##.###.####m...m######",
 	"##.###.#####.####m.pt#",
 	"#t.m.#m...t#.####....#",
-	"#.......p..#.####.m..#",
+	"#.......p..#.####.mP.#",
 	"#.m.p#.m.m...m.....m.#",
 	"######t...p#####t..p##",
 	"######.m.m.###########",
-	"######...t.###########",
+	"######k..t.###########",
 	"######################",
 ]
+const HOUR_LEGS := ["lantern", "sight"]   # Hüter-Legendäre der ersten Stunde (ACT[0].legs)
+const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "model": "chest"}, {"name": "Prunktruhe", "model": "chest_gold"}]
 const TXT := {
 	"no": "ERSTE STUNDE DER NACHT", "name": "Das Tor des Westens",
 	"lead": "Über Sandtor ziehen Lichter gegen den Wind. Es sind Seelen, und niemand holt sie ab.",
@@ -52,7 +55,11 @@ var gate_ask := true
 var shake := 0.0
 var shot_gap := 0.0
 var kills := 0
-var gold := 0                 # Münzen aus dem Beutel der Besiegten
+var loot: Array = []          # Beute am Boden
+var chests: Array = []        # {"n", "lid", "tier", "open", "label"}
+var breakables: Array = []    # Fässer und Kisten: {"n", "body", "sub"}
+var chests_open := 0
+var full_t := 0.0             # „Tasche voll“ höchstens alle 4 Sekunden melden
 var can_fullscreen := true    # im Browser: kann diese Seite Vollbild? (iPhone-Safari kann es nicht)
 var total := 0
 var deaths := 0
@@ -78,6 +85,7 @@ func _ready() -> void:
 		var lim := AudioEffectHardLimiter.new()   # fängt Spitzen ab, wenn viele Treffer zugleich klingen
 		lim.ceiling_db = -0.5
 		AudioServer.add_bus_effect(0, lim)
+	Spiel.pots = mini(Daten.POTS, Spiel.pots + 2)
 	_build_env()
 	_build_world()
 	hero = Hero.new()
@@ -114,9 +122,13 @@ func _ready() -> void:
 		autotest = load("res://scripts/autotest.gd").new()
 		autotest.game = self
 		add_child(autotest)
+	elif not Spiel.skip_intro:
+		hud.show_intro(Spiel.force_new)
+		Spiel.force_new = false
 	else:
 		hud.show_chapter(TXT.no, TXT.name, TXT.lead, TXT.brief, "Eintreten", func(): begin())
 		sfx.say("vo_chapter")
+	if autotest == null:
 		if "--playtest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Playtest"):
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
@@ -129,7 +141,28 @@ func begin() -> void:
 	sfx.hush()
 	started = true
 	get_tree().paused = false
+	Spiel.speichern()
 	hud.banner(TXT.name, TXT.no)
+
+# Startbildschirm: neue Figur oder weiterspielen. Danach baut sich die Stunde mit den gewählten Werten neu auf.
+func start_game(neu: bool, d: int, hardcore: bool) -> void:
+	if neu:
+		Spiel.neue_figur("ermittler", d, hardcore)
+	elif d != Spiel.diff:
+		Spiel.diff = d
+		Spiel.speichern()
+	restart(true)
+
+# aus der Tasche: zurück zum Startbildschirm, dort gleich „Neue Figur“
+func new_character() -> void:
+	Spiel.force_new = true
+	restart(false)
+
+func restart(skip_intro: bool) -> void:
+	Spiel.skip_intro = skip_intro
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 # ---------------------------------------------------------------- Welt
 func is_fullscreen() -> bool:
@@ -144,7 +177,7 @@ func toggle_fullscreen() -> void:
 	set_fullscreen(not is_fullscreen())
 
 func toggle_bag() -> void:
-	# Beutel: zeigt Rotbier, Münzen und Fortschritt; das Spiel steht, solange er offen ist
+	# Tasche: Ausrüstung, Werte, Material, Buch des Thot; das Spiel steht, solange sie offen ist
 	if not started or hero.dead:
 		return
 	if hud.bag_open:
@@ -153,6 +186,7 @@ func toggle_bag() -> void:
 	elif hud.overlay == null and not get_tree().paused:
 		sfx.play("ui")
 		get_tree().paused = true
+		Spiel.neu = 0
 		hud.show_bag()
 
 func is_floor(cx: int, cz: int) -> bool:
@@ -347,7 +381,7 @@ func _floor_teil(cells: Array, surf_name: String) -> void:
 	mi.mesh = st.commit()
 	add_child(mi)
 
-func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> void:
+func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> StaticBody3D:
 	var b := StaticBody3D.new()
 	if vis:
 		b.set_meta("vis", vis)
@@ -360,6 +394,7 @@ func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> void:
 	b.rotation.y = rot
 	b.collision_layer = 1
 	add_child(b)
+	return b
 
 func _build_env() -> void:
 	env = Environment.new()
@@ -456,12 +491,19 @@ func _build_world() -> void:
 					if not packs.has(key):
 						pack += 1
 						packs[key] = pack
-					_spawn("minion" if ch == "m" else "mage", p + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8)), packs[key])
+					# das erste Mitglied eines Rudels ist mit 20 % Elite (03-world.js › newFall)
+					var first: bool = not packs.has(key + "_e")
+					packs[key + "_e"] = true
+					var el: String = Daten.ELITE.pick_random().id if first and randf() < 0.2 else ""
+					_spawn("minion" if ch == "m" else "mage", p + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8)), packs[key], el)
 				"t":
 					var kindp: String = ["barrel_large", "crates_stacked", "barrel_small_stack", "box_large"][(cx + cz) % 4]
-					_piece(kindp, p + Vector3(-0.6, 0, -0.6), (cx * 3 + cz) % 4 * PI / 2)
-					_box(p + Vector3(-0.6, 0, -0.6), Vector3(2.0, 2.0, 2.0))
+					var bn := _piece(kindp, p + Vector3(-0.6, 0, -0.6), (cx * 3 + cz) % 4 * PI / 2)
+					var bb := _box(p + Vector3(-0.6, 0, -0.6), Vector3(2.0, 2.0, 2.0))
 					astar.set_point_solid(Vector2i(cx * 2, cz * 2), true)
+					breakables.append({"n": bn, "body": bb, "sub": Vector2i(cx * 2, cz * 2), "pos": p + Vector3(-0.6, 0, -0.6)})
+				"k", "K", "P":
+					_chest(p + Vector3(0.6, 0, -0.9), {"k": 0, "K": 1, "P": 2}[ch])
 				"c":
 					_column(p)
 					_box(p, Vector3(1.6, 4.0, 1.6))
@@ -591,10 +633,34 @@ func _torch(pos: Vector3, rot: float) -> void:
 		sfx.loop_at("torch", t)
 	torches.append({"l": l, "ph": randf() * 10.0})
 
-func _spawn(kind: String, pos: Vector3, pack: int) -> Foe:
+func _chest(pos: Vector3, tier: int) -> void:
+	var n := _piece(CHEST[tier].model, pos, PI, Vector3.ONE * (1.25 if tier == 2 else 1.0))
+	var lid := n.find_child("*_lid", true, false)
+	var body := _box(pos, Vector3(1.4, 1.0, 1.0))
+	var l := Label3D.new()
+	l.text = CHEST[tier].name
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 40
+	l.outline_size = 10
+	l.modulate = [Color(0.85, 0.78, 0.62), Color(0.75, 0.82, 0.9), Color(0.98, 0.78, 0.35)][tier]
+	l.pixel_size = 0.0055
+	l.position = pos + Vector3(0, 1.8, 0)
+	l.visible = false
+	add_child(l)
+	if tier == 2:
+		var o := OmniLight3D.new()
+		o.light_color = Color(1.0, 0.8, 0.4)
+		o.light_energy = 1.2
+		o.omni_range = 4.0
+		o.position = pos + Vector3(0, 1.4, 0)
+		add_child(o)
+	astar.set_point_solid(_sub(pos), true)
+	chests.append({"n": n, "lid": lid, "tier": tier, "open": false, "label": l, "body": body, "pos": pos})
+
+func _spawn(kind: String, pos: Vector3, pack: int, elite := "") -> Foe:
 	var f := Foe.new()
 	f.game = self
-	f.init(kind, pos, pack)
+	f.init(kind, pos, pack, elite)
 	add_child(f)
 	foes.append(f)
 	return f
@@ -653,26 +719,29 @@ func _impact(n: int, at: Vector3) -> void:
 		Engine.time_scale = 0.08
 		get_tree().create_timer(0.05, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
 
-func hero_arc(h: Hero, reach: float, half_angle: float, mult: float, push: float, gain: bool) -> void:
+func hero_arc(h: Hero, reach: float, half_angle: float, mult: float, push: float, gain: bool, stun_t := 0.0) -> void:
 	var n := 0
 	for f in live_foes():
 		var d: Vector3 = f.global_position - h.global_position
 		d.y = 0
 		if d.length() < reach + f.radius and (d.length() < 1.2 or h.forward().angle_to(d.normalized()) < half_angle):
-			f.hit(h.dmg(mult), h.global_position, push)
+			h.deal(f, mult, push, stun_t)
 			spark(f.global_position + Vector3(0, 1.3, 0), Color(1.0, 0.85, 0.6))
 			n += 1
+	# Kraftgewinn wie in der 2D-Fassung: 5 und 1 je weiterem Getroffenen, höchstens 9
 	if n > 0 and gain:
-		h.en = minf(100.0, h.en + 7.0)
+		h.en = minf(100.0, h.en + 5.0 + mini(4, n - 1))
+	smash_around(h.global_position + h.forward() * 1.6, 2.0)
 	_impact(n, h.global_position + h.forward() * 1.5)
 
 func hero_slam(c: Vector3, r: float, mult: float, push: float) -> void:
 	var n := 0
 	for f in live_foes():
 		if (f.global_position - c).length() < r + f.radius:
-			f.hit(hero.dmg(mult), c, push)
+			hero.deal(f, mult, push)
 			spark(f.global_position + Vector3(0, 1.3, 0), Color(1.0, 0.85, 0.6))
 			n += 1
+	smash_around(c, r)
 	_impact(n, c)
 
 func hero_udjat(c: Vector3, r: float) -> void:
@@ -680,7 +749,8 @@ func hero_udjat(c: Vector3, r: float) -> void:
 	shake = maxf(shake, 0.4)
 	for f in live_foes():
 		if (f.global_position - c).length() < r + f.radius:
-			f.hit(hero.dmg(2.2), c, 3.0, 2.2)
+			hero.deal(f, 2.2, 3.0, 2.2)
+	smash_around(c, r)
 	for b in bolts:
 		b.n.queue_free()
 	bolts.clear()
@@ -699,7 +769,7 @@ func hero_beam(h: Hero) -> void:
 		rel.y = 0
 		var along := rel.dot(dir)
 		if along > 0.0 and along < length and (rel - dir * along).length() < 0.9 + f.radius:
-			f.hit(h.dmg(1.25), h.global_position, 3.0)
+			h.deal(f, 1.25, 3.0)
 			n += 1
 	var m := MeshInstance3D.new()
 	var bm := BoxMesh.new()
@@ -740,16 +810,277 @@ func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float) -> void:
 	bolts.append({"n": l, "v": dir * speed, "dmg": dmg, "life": 3.2})
 
 func on_foe_dead(f: Foe) -> void:
-	var coins := 120 if f == boss else (randi_range(6, 12) if f.kind == "mage" else randi_range(3, 8))
-	gold += coins
-	float_text(f.global_position + Vector3(0, 0.8, 0), "+%d Münzen" % coins, Color(0.95, 0.78, 0.3))
+	_drops(f)
+	if Spiel.has_leg("leech") and not hero.dead:
+		hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * 0.03)
+	if Spiel.xp_gain(f.xp * Spiel.S.xp_mul):
+		_level_up()
 	if f == boss:
 		on_boss_dead()
 	else:
 		kills += 1
-		if randf() < 0.14 and hero.pots < 4:
-			hero.pots += 1
-			float_text(f.global_position, "+1 Rotbier", Color(0.5, 0.9, 0.55))
+
+func _level_up() -> void:
+	hero.apply_stats(true)
+	hero.en = 100.0
+	hud.banner("Stufe %d" % Spiel.lvl, "AUFSTIEG")
+	sfx.play("oath")
+	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
+
+# ---------------------------------------------------------------- Beute (04-combat.js › kill, 03a-dungeon.js › openChest)
+func _shard_mul() -> int:
+	return 2 if Spiel.has_leg("shards") else 1
+
+func _drops(f: Foe) -> void:
+	var at := f.global_position
+	var n := Spiel.fall
+	if f == boss:
+		_boss_drops(at)
+		return
+	var T: Dictionary = Daten.ET[f.K.typ]
+	var el := f.elite != ""
+	if el:
+		drop_item(at, Spiel.new_item(n, 1))
+		if randf() < 0.5:
+			drop_item(at, Spiel.new_item(n, 0))
+		if randf() < 0.08:
+			drop_item(at, Spiel.new_item(n, 3))
+	elif randf() < T.drop * Spiel.S.find:
+		drop_item(at, Spiel.new_item(n, 0))
+	if randf() < 0.45:
+		drop("shard", at, randi_range(1, 3) * (4 if el else 1) * _shard_mul())
+	if el and randf() < 0.4:
+		_drop_page(at)
+	if el:
+		drop("mat", at, randi_range(2, 3), "staub")
+	elif randf() < 0.12:
+		drop("mat", at, 1, "staub")
+	var m: String = f.K.mat
+	if m != "" and randf() < (0.6 if el else (0.05 if m == "stern" else 0.1)):
+		drop("mat", at, 1, m)
+	if randf() < (0.5 if el else 0.07):
+		drop("blood", at)
+
+func _boss_drops(at: Vector3) -> void:
+	drop("mat", at, randi_range(4, 6), "staub")
+	var m: String = boss.K.mat
+	if m == "":
+		drop("mat", at, 3, "stern")
+	else:
+		drop("mat", at, 2 if m == "stern" else 3, m)
+		if m != "stern":
+			drop("mat", at, 1, "stern")
+	drop("shard", at, 25 * _shard_mul())
+	_drop_page(at)
+	var n1 := Spiel.fall + 1
+	var its := [Spiel.new_item(n1, 3 if randf() < 0.6 else 2)]
+	if randf() < 0.4:
+		var lid: String = HOUR_LEGS.pick_random()
+		its.append(Spiel.new_item(n1, 3, {"slot": Daten.leg(lid).slot, "leg": lid}))
+	else:
+		its.append(Spiel.new_item(n1, 2))
+	its.append(Spiel.new_item(n1, 2))
+	its.append(Spiel.new_item(n1, 2))
+	for i in its.size():
+		var a := TAU * i / its.size() + 0.4
+		drop_item(at, its[i], at + Vector3(sin(a), 0, cos(a)) * 3.4)
+
+func _drop_page(at: Vector3) -> void:
+	var lying := loot.filter(func(b): return b.kind == "page").map(func(b): return b.page)
+	for i in Daten.EVID.size():
+		if not Spiel.evid.has(i) and not lying.has(i):
+			var b := drop("page", at)
+			b.page = i
+			return
+
+func _spot(at: Vector3) -> Vector3:
+	# ein freier Fleck neben at, nie in einer Mauer
+	for k in 6:
+		var a := randf() * TAU
+		var p := at + Vector3(sin(a), 0, cos(a)) * randf_range(0.9, 1.9)
+		if walkable(at, p) and not astar.is_point_solid(_sub(p)):
+			return p
+	return at
+
+func drop(kind: String, at: Vector3, amount := 1, m := "", to := Vector3.INF) -> Beute:
+	var b := Beute.new()
+	b.kind = kind
+	b.amount = amount
+	b.mat = m
+	add_child(b)
+	b.global_position = _spot(at) if to == Vector3.INF else to
+	loot.append(b)
+	return b
+
+func drop_item(at: Vector3, it: Dictionary, to := Vector3.INF) -> void:
+	var b := Beute.new()
+	b.kind = "item"
+	b.item = it
+	add_child(b)
+	b.global_position = _spot(at) if to == Vector3.INF else (to if walkable(at, to) else _spot(at))
+	loot.append(b)
+	if it.rar >= 2:
+		sfx.play_at("udjat" if it.rar == 3 else "ui", b.global_position, 0.05, -4.0 if it.rar == 2 else 0.0)
+		if it.rar == 3:
+			shake = maxf(shake, 0.3)
+
+func item_sub(it: Dictionary) -> String:
+	# Seltenheit, Platz und Vergleich mit dem Angelegten (07-ui.js › itemSub)
+	var t: String = "%s · %s" % [Daten.RAR[it.rar].name, Daten.SLOT[it.slot].name]
+	var cur = Spiel.eq.get(it.slot)
+	if cur == null:
+		return t + " · Platz frei"
+	var dlt := Daten.item_score(it) - Daten.item_score(cur)
+	if dlt > 0.5:
+		return t + " · ▲ besser als angelegt (+%d)" % int(round(dlt))
+	return t
+
+func _take(b: Beute) -> bool:
+	match b.kind:
+		"item":
+			var sub := item_sub(b.item)
+			var res := Spiel.take_item(b.item)
+			if res == "voll":
+				if full_t <= 0.0:
+					full_t = 4.0
+					hud.toast_item(-1, "Tasche voll", "Wirf in der Tasche (I) etwas weg.", Color(0.9, 0.45, 0.4))
+				return false
+			if res == "angelegt":
+				hero.apply_stats()
+				sub = "direkt angelegt"
+			hud.toast_item(Daten.icon_of(b.item), Daten.item_name(b.item), sub, Daten.RAR[b.item.rar].col, 6.5 if b.item.rar >= 2 else 4.0)
+			sfx.play("ui", 0.1)
+		"shard":
+			Spiel.shards += b.amount
+			float_text(hero.global_position, "+%d Scherben" % b.amount, Color(0.95, 0.85, 0.55))
+			sfx.play("ui", 0.15, -8.0)
+		"mat":
+			Spiel.mats[b.mat] += b.amount
+			Spiel.speichern()
+			hud.toast_item(Daten.ICON[b.mat], "%d × %s" % [b.amount, Daten.MATS[b.mat].name], "jetzt %d" % Spiel.mats[b.mat], Daten.MATS[b.mat].col)
+			sfx.play("ui", 0.15, -6.0)
+		"blood":
+			hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * (0.3 if Spiel.has_leg("caravan") else 0.15))
+			if Spiel.pots < Daten.POTS:
+				Spiel.pots += 1
+				float_text(hero.global_position, "+1 Rotbier", Color(0.5, 0.9, 0.55))
+			sfx.play("potion", 0.1, -4.0)
+		"page":
+			if not Spiel.evid.has(b.page):
+				Spiel.evid.append(b.page)
+				Spiel.neu += 1
+				Spiel.speichern()
+				hud.banner(Daten.EVID[b.page][0], "BUCH DES THOT · SEITE %d VON %d" % [b.page + 1, Daten.EVID.size()], 5.6)
+				hud.toast_item(Daten.ICON.evid, Daten.EVID[b.page][0], "Seite aus dem Buch des Thot. Lies sie in der Tasche (I).", Color(0.98, 0.9, 0.62), 6.5)
+				sfx.play("oath")
+	return true
+
+func _loot_tick(delta: float) -> void:
+	full_t -= delta
+	var hp_ := hero.global_position
+	for i in range(loot.size() - 1, -1, -1):
+		var b: Beute = loot[i]
+		if b.age < 0.25:
+			continue
+		var d := hp_ - b.global_position
+		d.y = 0.0
+		var dist := d.length()
+		if b.kind != "item" and dist < Spiel.S.pick and dist > 0.01:
+			b.global_position += d / dist * minf(dist, 16.8 * delta)
+		if dist < 1.36 and not hero.dead and _take(b):
+			loot.remove_at(i)
+			b.queue_free()
+
+# Fässer und Kisten zerschlagen (03a-dungeon.js › smashAround)
+func smash_around(c: Vector3, r: float) -> void:
+	for i in range(breakables.size() - 1, -1, -1):
+		var br: Dictionary = breakables[i]
+		var d: Vector3 = br.pos - c
+		d.y = 0.0
+		if d.length() > r + 1.0:
+			continue
+		breakables.remove_at(i)
+		br.n.queue_free()
+		br.body.queue_free()
+		astar.set_point_solid(br.sub, false)
+		sfx.play_at("hit", br.pos, 0.2, -4.0)
+		spark(br.pos + Vector3(0, 0.8, 0), Color(0.7, 0.55, 0.35))
+		if randf() < 0.34:
+			drop("shard", br.pos, randi_range(1, 3) * _shard_mul())
+		if randf() < 0.12:
+			drop("mat", br.pos, 1, "staub")
+		if randf() < 0.06:
+			drop("blood", br.pos)
+
+# Truhen öffnen sich, sobald die Figur sie berührt
+func _chest_tick() -> void:
+	for c in chests:
+		var d: Vector3 = c.pos - hero.global_position
+		d.y = 0.0
+		c.label.visible = not c.open and d.length() < 10.0
+		if not c.open and d.length() < 1.9 and not hero.dead and hud.overlay == null:
+			_open_chest(c)
+			return
+
+func _open_chest(c: Dictionary) -> void:
+	c.open = true
+	chests_open += 1
+	if c.lid:
+		var tw := create_tween()
+		tw.tween_property(c.lid, "rotation:x", -1.7, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	sfx.play_at("gate", c.pos, 0.1, -6.0)
+	shake = maxf(shake, 0.2)
+	var T: int = c.tier
+	var n := Spiel.fall
+	var its := []
+	match T:
+		0:
+			for i in randi_range(1, 2):
+				its.append(Spiel.new_item(n, 1))
+		1:
+			for i in randi_range(2, 3):
+				its.append(Spiel.new_item(n, 2 if i == 0 else 1))
+		2:
+			its.append(Spiel.new_item(n + 1, 3 if randf() < 0.45 else 2))
+			its.append(Spiel.new_item(n + 1, 2))
+			its.append(Spiel.new_item(n + 1, 2))
+	var sh: int = [randi_range(6, 14), randi_range(15, 30), randi_range(40, 60)][T] * _shard_mul()
+	var mats := {"staub": randi_range(1, 3) + 2 * T}
+	if T > 0 or randf() < 0.3:
+		var mk: String = "stern" if T == 2 else ["leder", "eisen"].pick_random()
+		mats[mk] = mats.get(mk, 0) + 1
+	var lines := []
+	for it in its:
+		lines.append([Daten.icon_of(it), Daten.item_name(it), item_sub(it), Daten.RAR[it.rar].col])
+	lines.append([Daten.ICON.shard, "%d Scherben" % sh, "", Color(0.95, 0.85, 0.55)])
+	for k in mats:
+		lines.append([Daten.ICON[k], "%d × %s" % [mats[k], Daten.MATS[k].name], "", Daten.MATS[k].col])
+	var free := Daten.BAG_MAX - Spiel.bag.size()
+	var note := "" if free >= its.size() else "In der Tasche ist nur noch Platz für %d Teile. Was nicht passt, bleibt neben der Truhe liegen." % maxi(0, free)
+	get_tree().paused = true
+	hud.show_chest("PRUNKFUND" if T == 2 else "FUND", CHEST[T].name, lines, note,
+		func():
+			Spiel.shards += sh
+			for k in mats:
+				Spiel.mats[k] += mats[k]
+			var got := 0
+			for it in its:
+				var res := Spiel.take_item(it)
+				if res == "voll":
+					drop_item(c.pos, it)
+				else:
+					got += 1
+			hero.apply_stats()
+			Spiel.speichern()
+			hud.toast_item(Daten.ICON.shard, "Truhe geleert", "%d Teile, %d Scherben" % [got, sh], Color(0.95, 0.85, 0.55))
+			get_tree().paused = false,
+		func():
+			for it in its:
+				drop_item(c.pos, it)
+			drop("shard", c.pos, sh)
+			for k in mats:
+				drop("mat", c.pos, mats[k], k)
+			get_tree().paused = false)
 
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
@@ -772,9 +1103,15 @@ func on_boss_dead() -> void:
 
 func on_hero_dead() -> void:
 	deaths += 1
+	if Spiel.hc:
+		# Hardcore: der Spielstand ist sofort verloren (04-combat.js › hurt)
+		Spiel.loeschen()
 	await get_tree().create_timer(1.6).timeout
 	sfx.say("vo_death")
 	get_tree().paused = true
+	if Spiel.hc:
+		hud.show_dead("Hardcore: Eidträger, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.lvl, "ersten Stunde"], func(): restart(false), "Neue Figur anlegen")
+		return
 	hud.show_dead(TXT.dead, func():
 		sfx.hush()
 		for f in foes:
@@ -849,11 +1186,11 @@ func _ask_gate() -> void:
 	get_tree().paused = true
 	sfx.play("ui")
 	sfx.say("vo_epi")
-	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], [str(gold), "Münzen"], [str(deaths), "Rückschläge"]]
+	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], ["%d/%d" % [chests_open, chests.size()], "Truhen"], ["%d/%d" % [Spiel.evid.size(), Daten.EVID.size()], "Seiten"], [str(deaths), "Rückschläge"]]
 	hud.show_gate(TXT.no + " · VOLLENDET", TXT.name, TXT.epi, stats, "HINTER DER PFORTE · ZWEITE STUNDE DER NACHT", TXT.next, TXT.next_lead,
 		func():
 			sfx.hush()
-			hud.show_chapter("ENDE DER PROBESTUNDE", "Herz und Feder", "Hinter der Pforte liegen die Felder von Wernes.", "Das war die erste Stunde der Nacht als 3D-Probe. Wenn sie dir gefällt, bauen wir von hier aus weiter.", "Noch einmal von vorn", func(): Engine.time_scale = 1.0; get_tree().paused = false; get_tree().reload_current_scene()),
+			hud.show_chapter("ENDE DER PROBESTUNDE", "Herz und Feder", "Hinter der Pforte liegen die Felder von Wernes.", "Das war die erste Stunde der Nacht als 3D-Probe. Wenn sie dir gefällt, bauen wir von hier aus weiter.", "Noch einmal von vorn", func(): restart(true)),
 		func():
 			sfx.hush()
 			get_tree().paused = false)
@@ -862,7 +1199,7 @@ func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
 
 # ---------------------------------------------------------------- Effekte
-func float_text(pos: Vector3, text: String, col: Color) -> void:
+func float_text(pos: Vector3, text: String, col: Color, big := 1.0) -> void:
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -870,7 +1207,7 @@ func float_text(pos: Vector3, text: String, col: Color) -> void:
 	l.font_size = 64
 	l.outline_size = 14
 	l.modulate = col
-	l.pixel_size = 0.012
+	l.pixel_size = 0.012 * big
 	add_child(l)
 	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 2.2, randf_range(-0.2, 0.2))
 	var tw := create_tween()
@@ -1012,6 +1349,8 @@ func _physics_process(delta: float) -> void:
 		return
 	clock += delta
 	shot_gap -= delta
+	_loot_tick(delta)
+	_chest_tick()
 	if autotest == null:
 		# Eingabe: WASD läuft (zur Kamera gedreht), linke Maustaste gehalten läuft zum Zeiger oder greift an
 		var v := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -1049,7 +1388,7 @@ func _physics_process(delta: float) -> void:
 	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai == "melee")
 	melee.sort_custom(func(a, b): return a.global_position.distance_squared_to(hero.global_position) < b.global_position.distance_squared_to(hero.global_position))
 	for i in melee.size():
-		melee[i].slot = i < 2
+		melee[i].slot = i < int(Spiel.D().slots)
 	# Geschosse
 	for i in range(bolts.size() - 1, -1, -1):
 		var b: Dictionary = bolts[i]
@@ -1060,9 +1399,24 @@ func _physics_process(delta: float) -> void:
 		var gone: bool = b.life <= 0.0 or not sees(hitp - Vector3(0, 1.2, 0), hitp - Vector3(0, 1.2, 0) + b.v.normalized() * 0.3)
 		var dh: Vector3 = hitp - hero.global_position
 		dh.y = 0
-		if not gone and dh.length() < hero.radius + 0.45:
-			hero.hurt(b.dmg, hitp - b.v)
-			gone = true
+		if b.get("hero", false):
+			for f in live_foes():
+				var df: Vector3 = hitp - f.global_position
+				df.y = 0
+				if not gone and df.length() < f.radius + 0.45:
+					f.hit(b.dmg, hitp - b.v, 3.0)
+					gone = true
+		elif not gone and dh.length() < hero.radius + 0.45 and not hero.dead and hero.inv <= 0.0:
+			if Spiel.has_leg("mirror") and randf() < 0.25:
+				# Spiegel der Hathor: das Geschoss fliegt zum Schützen zurück
+				b.v = -b.v * 1.6
+				b.dmg *= 1.6
+				b.life = 1.6
+				b["hero"] = true
+				float_text(hero.global_position, "gespiegelt", Color(0.95, 0.85, 0.55))
+			else:
+				hero.hurt(b.dmg, hitp - b.v)
+				gone = true
 		if gone:
 			n.queue_free()
 			bolts.remove_at(i)

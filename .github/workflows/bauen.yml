@@ -1,8 +1,8 @@
 name: Bauen und veröffentlichen
 
-# Baut bei jedem Push nach main die Web-, Mac- und Windows-Fassung von herz-und-feder-3d.
-# Die Web-Fassung geht auf GitHub Pages (Adresse steht im Lauf unter „deploy“),
-# Mac und Windows liegen als Artefakte zum Herunterladen am Lauf.
+# Baut bei jedem Push nach main die Web-Fassung von herz-und-feder-3d und stellt sie auf GitHub Pages
+# (Adresse steht im Lauf unter „deploy“). Mac und Windows ruhen vorerst: Ihre Voreinstellungen liegen in
+# export_presets.cfg, über die Plattformen wird am Ende entschieden.
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -35,7 +35,7 @@ jobs:
           path: |
             ~/godot
             ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}-web-mac-win
+          key: godot-${{ env.GODOT_VERSION }}-web
 
       - name: Godot und Exportvorlagen laden
         if: steps.cache.outputs.cache-hit != 'true'
@@ -50,8 +50,7 @@ jobs:
           curl -sSL -o t.tpz $B/Godot_v$V-stable_export_templates.tpz
           T=~/.local/share/godot/export_templates/$V.stable
           mkdir -p $T
-          unzip -q -j t.tpz templates/version.txt templates/web_nothreads_release.zip templates/web_nothreads_debug.zip \
-            templates/macos.zip templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d $T
+          unzip -q -j t.tpz templates/version.txt templates/web_nothreads_release.zip templates/web_nothreads_debug.zip -d $T
           rm t.tpz
 
       - name: Projekt importieren
@@ -59,35 +58,19 @@ jobs:
           ~/godot/godot --headless --path $PROJEKT --import || true
           ~/godot/godot --headless --path $PROJEKT --import
 
-      - name: Exportieren
+      - name: Web-Fassung exportieren
         run: |
           set -e
           mkdir -p $PROJEKT/build/web
           ~/godot/godot --headless --path $PROJEKT --export-release Web
-          ~/godot/godot --headless --path $PROJEKT --export-release macOS
-          ~/godot/godot --headless --path $PROJEKT --export-release Windows
           test -s $PROJEKT/build/web/index.pck
-          test -s $PROJEKT/build/HerzUndFeder-Mac.zip
-          test -s $PROJEKT/build/HerzUndFeder.exe
           touch $PROJEKT/build/web/.nojekyll
-          ls -la $PROJEKT/build $PROJEKT/build/web
+          ls -la $PROJEKT/build/web
 
       - name: Web-Fassung für Pages ablegen
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.PROJEKT }}/build/web
-
-      # Mac und Windows als Download unter „Releases“ (Eintrag „Neueste Fassung“, wird bei jedem Lauf ersetzt).
-      # Das zählt nicht gegen den Speicher für Artefakte, der bei GitHub schnell voll ist.
-      - name: Mac und Windows als Release bereitstellen
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          gh release delete neueste --yes --cleanup-tag || true
-          gh release create neueste --target "$GITHUB_SHA" --title "Neueste Fassung" \
-            --notes "Automatisch gebaut aus $GITHUB_SHA. Mac: entpacken, Rechtsklick auf das Programm, Öffnen. Windows: HerzUndFeder.exe starten, bei der Warnung Weitere Informationen, Trotzdem ausführen." \
-            "$PROJEKT/build/HerzUndFeder-Mac.zip" "$PROJEKT/build/HerzUndFeder.exe"
 
   deploy:
     needs: bauen

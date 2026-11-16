@@ -7,9 +7,9 @@ const ANIM := {
 	"hit": "Hit_A", "death": "Death_C_Skeletons", "stand": "Skeleton_Inactive_Standing_Pose", "rise": "Skeletons_Awaken_Standing", "taunt": "Taunt",
 }
 const KINDS := {
-	"minion": {"name": "Ruheloser", "model": "Skeleton_Minion", "scale": 1.0, "r": 0.55, "hp": 66.0, "dmg": 9.0, "spd": 3.9, "weapon": "Skeleton_Blade", "ai": "melee", "atk_cd": 1.9},
-	"mage": {"name": "Ruheloser Priester", "model": "Skeleton_Mage", "scale": 1.0, "r": 0.55, "hp": 42.0, "dmg": 9.0, "spd": 3.2, "weapon": "Skeleton_Staff", "ai": "ranged", "atk_cd": 2.6},
-	"boss": {"name": "Mahaf, das Leitlicht", "model": "Skeleton_Warrior", "scale": 1.75, "r": 1.0, "hp": 1000.0, "dmg": 18.0, "spd": 3.4, "weapon": "Skeleton_Axe", "ai": "boss", "atk_cd": 2.4},
+	"minion": {"typ": "guard", "mat": "eisen", "undead": true, "name": "Ruheloser", "model": "Skeleton_Minion", "scale": 1.0, "r": 0.55, "hp": 66.0, "dmg": 9.0, "spd": 3.9, "weapon": "Skeleton_Blade", "ai": "melee", "atk_cd": 1.9},
+	"mage": {"typ": "fahl", "mat": "eisen", "undead": true, "name": "Ruheloser Priester", "model": "Skeleton_Mage", "scale": 1.0, "r": 0.55, "hp": 42.0, "dmg": 9.0, "spd": 3.2, "weapon": "Skeleton_Staff", "ai": "ranged", "atk_cd": 2.6},
+	"boss": {"typ": "boss", "bossf": 0.7, "mat": "", "undead": false, "name": "Mahaf, das Leitlicht", "model": "Skeleton_Warrior", "scale": 1.75, "r": 1.0, "hp": 1000.0, "dmg": 18.0, "spd": 3.4, "weapon": "Skeleton_Axe", "ai": "boss", "atk_cd": 2.4},
 }
 
 enum St { SLEEP, WAKING, FIGHT, DEAD }
@@ -29,16 +29,45 @@ var strafe := 1.0
 var nova_t := 6.0
 var glow: OmniLight3D
 var home := Vector3.ZERO
+# Werte nach den Formeln der 2D-Fassung (03-world.js › spawn): Gegnerart, Stunde und Schwierigkeit
+var dmg := 10.0
+var spd := 4.0
+var xp := 10.0
+var w := 1.0
+var elite := ""        # "", "flink", "zaeh" oder "wild"
+var disp_name := ""
 
-func init(k: String, pos: Vector3, p: int) -> void:
+func init(k: String, pos: Vector3, p: int, el := "") -> void:
 	kind = k
 	K = KINDS[k]
 	pack = p
-	setup("res://models/chars/%s.glb" % K.model, K.scale, K.r)
+	elite = el
+	var T: Dictionary = Daten.ET[K.typ]
+	var D: Dictionary = Spiel.D()
+	var F := Spiel.fall
+	max_hp = T.hp * 1.55 * pow(1.28, F - 1) * D.hp * K.get("bossf", 1.0)
+	dmg = T.dmg * 1.25 * pow(1.2, F - 1) * D.dmg
+	xp = T.xp * pow(1.22, F - 1) * D.xp
+	w = T.w
+	spd = K.spd * D.spd
+	disp_name = K.name
+	var scl: float = K.scale
+	if elite != "":
+		max_hp *= 3.4 * (1.7 if elite == "zaeh" else 1.0)
+		dmg *= 1.35 * (1.4 if elite == "wild" else 1.0)
+		spd *= 1.5 if elite == "flink" else 1.0
+		xp *= 4.0
+		w *= 3.0
+		scl *= 1.25
+		for e in Daten.ELITE:
+			if e.id == elite:
+				disp_name = "%s, %s" % [K.name, e.name]
+	setup("res://models/chars/%s.glb" % K.model, scl, K.r * (1.25 if elite != "" else 1.0))
 	collision_layer = 4
 	collision_mask = 1 | 2 | 4
-	max_hp = K.hp
 	hp = max_hp
+	if elite != "":
+		_elite_mark(scl)
 	position = pos
 	home = pos
 	face = randf() * TAU
@@ -71,7 +100,6 @@ func sleep_again() -> void:
 	kb = Vector3.ZERO
 	path = PackedVector3Array()
 	if kind == "boss":
-		hp = max_hp
 		nova_t = 6.0
 		play(ANIM.stand, 1.0, 0.2, true)
 	else:
@@ -117,7 +145,7 @@ func _physics_process(delta: float) -> void:
 	var d := to.length()
 	var dirn := to / maxf(d, 0.001)
 	var move := Vector3.ZERO
-	var speed: float = K.spd
+	var speed: float = spd
 	if stun > 0.0:
 		velocity = kb
 		move_and_slide()
@@ -145,7 +173,7 @@ func _physics_process(delta: float) -> void:
 			"ranged":
 				var see: bool = game.sees(global_position, h.global_position)
 				if d < 15.0 and see and atk_t <= 0.0 and game.shot_gap <= 0.0:
-					game.shot_gap = 1.1
+					game.shot_gap = float(Spiel.D().gap)
 					_windup(ANIM.cast, 1.6, 0.4)
 				elif d > 12.0 or not see:
 					move = _toward(h.global_position, dirn, delta)
@@ -169,8 +197,8 @@ func _physics_process(delta: float) -> void:
 		move = Vector3.ZERO
 	if move.length() > 0.05:
 		if wind <= 0.0:
-			face = atan2(move.x, move.z) if speed >= K.spd * 0.9 else atan2(dirn.x, dirn.z)
-		play(ANIM.run if kind != "boss" else ANIM.walk, speed / K.spd * (1.0 if kind != "boss" else 1.3))
+			face = atan2(move.x, move.z) if speed >= spd * 0.9 else atan2(dirn.x, dirn.z)
+		play(ANIM.run if kind != "boss" else ANIM.walk, speed / spd * (1.0 if kind != "boss" else 1.3))
 	elif wind <= 0.0 and act_t <= 0.0:
 		face = atan2(dirn.x, dirn.z)
 		play(ANIM.idle)
@@ -199,24 +227,24 @@ func _strike(h: Hero, d: float) -> void:
 		game.sfx.play_at("bolt", global_position, 0.05, 3.0)
 		for i in 10:
 			var a := TAU * i / 10.0 + randf() * 0.2
-			game.spawn_bolt(global_position + Vector3(0, 1.4, 0), Vector3(sin(a), 0, cos(a)), K.dmg * 0.6, 7.5)
+			game.spawn_bolt(global_position + Vector3(0, 1.4, 0), Vector3(sin(a), 0, cos(a)), dmg * 0.6, 7.5)
 		return
 	match K.ai:
 		"ranged":
 			game.sfx.play_at("bolt", global_position)
-			game.spawn_bolt(global_position + Vector3(0, 1.5, 0) + forward() * 0.8, flat(h.global_position - global_position).normalized(), K.dmg, 9.5)
+			game.spawn_bolt(global_position + Vector3(0, 1.5, 0) + forward() * 0.8, flat(h.global_position - global_position).normalized(), dmg, 9.5)
 		"boss":
 			var c := global_position + forward() * 2.6
 			game.ring_fx(c, 3.0, Color(0.45, 0.95, 0.9))
 			game.shake = maxf(game.shake, 0.5)
 			game.sfx.play_at("hit", c, 0.1, -3.0)
 			if flat(h.global_position - c).length() < 3.0 + h.radius:
-				h.hurt(K.dmg, global_position)
+				h.hurt(dmg, global_position, self)
 		_:
 			# wer rechtzeitig einen Schritt zurück macht, wird nicht getroffen
 			var dd := flat(h.global_position - global_position)
 			if dd.length() < radius + h.radius + 2.0 and forward().dot(dd.normalized()) > 0.3:
-				h.hurt(K.dmg, global_position)
+				h.hurt(dmg, global_position, self)
 
 func _toward(target: Vector3, dirn: Vector3, delta: float) -> Vector3:
 	# gerade, wenn der Weg frei ist; sonst über das Wegenetz um die Mauern herum
@@ -233,7 +261,7 @@ func _toward(target: Vector3, dirn: Vector3, delta: float) -> Vector3:
 		return dirn
 	return flat(path[0] - global_position).normalized()
 
-func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0) -> void:
+func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false) -> void:
 	if state == St.DEAD:
 		return
 	if state == St.SLEEP:
@@ -246,7 +274,11 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0) -> void:
 		stun = maxf(stun, stun_t)
 		wind = 0.0
 		act_t = 0.0
-	game.float_text(global_position + Vector3(0, 2.4 * K.scale, 0), str(int(round(amount))), Color(1.0, 0.9, 0.6))
+	if crit:
+		game.float_text(global_position + Vector3(0, 2.6 * K.scale, 0), str(int(round(amount))) + "!", Color(1.0, 0.85, 0.2), 1.5)
+		game.shake = maxf(game.shake, 0.18)
+	else:
+		game.float_text(global_position + Vector3(0, 2.4 * K.scale, 0), str(int(round(amount))), Color(1.0, 0.9, 0.6))
 	if hp <= 0.0:
 		die()
 	elif kind != "boss" and wind <= 0.0 and act_t <= 0.0:
@@ -263,3 +295,29 @@ func die() -> void:
 		var tw := create_tween()
 		tw.tween_property(glow, "light_energy", 0.0, 1.2)
 	game.on_foe_dead(self)
+
+# Elite: goldener Ring am Boden und der Name über dem Kopf
+func _elite_mark(scl: float) -> void:
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = radius * 1.35
+	tm.outer_radius = radius * 1.6
+	tm.rings = 24
+	tm.ring_segments = 6
+	ring.mesh = tm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.95, 0.82, 0.29, 0.85)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.material_override = m
+	ring.position.y = 0.06
+	add_child(ring)
+	var l := Label3D.new()
+	l.text = disp_name
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 44
+	l.outline_size = 10
+	l.modulate = Color(0.95, 0.82, 0.29)
+	l.position.y = 2.9 * scl
+	l.pixel_size = 0.006
+	add_child(l)
