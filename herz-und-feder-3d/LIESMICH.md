@@ -1,6 +1,6 @@
-# Herz und Feder · Probestunde in 3D
+# Herz und Feder · 3D-Fassung
 
-Die erste Stunde der Nacht, „Das Tor des Westens“, als Probe in der Spiel-Engine Godot.
+Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
 ob sich Bewegung, Licht und Ton in 3D echter anfühlen.
 
@@ -47,14 +47,12 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 
 | Taste | Wirkung |
 |---|---|
-| W A S D oder linke Maustaste halten | laufen |
+| W A S D oder linke Maustaste halten | laufen (steht ein Gegner in Reichweite und du tust nichts, greift die Figur von selbst an) |
 | Linke Maustaste auf einen Gegner | hinlaufen und zuschlagen |
 | Umschalt + linke Maustaste | auf der Stelle zuschlagen |
-| 1 | Falkenkreis (Rundumschlag) |
-| 2 | Sturz des Falken (Sprung zum Mauszeiger) |
-| 3 | Eid der Maat (stärker und zäher für 6 Sekunden) |
-| 4 | Blick des Udjat (betäubt alles ringsum) |
-| Rechte Maustaste | Strahl des Re |
+| 1 2 3 4 | Fähigkeiten der Klasse, gezielt auf den Mauszeiger (auf dem Handy: Knöpfe unten, sie zielen selbst) |
+| Rechte Maustaste | fünfte Fähigkeit der Klasse |
+| K | Fähigkeitenbaum |
 | Q | Rotbier der Sachmet (heilt) |
 | F | Bildrate anzeigen |
 | G | Grafik hoch/niedrig (ohne Schatten und Glühen) |
@@ -90,8 +88,49 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - **Tasche**: acht Ausrüstungsplätze, Werte, Material, 32 Plätze, Vergleich mit dem Angelegten (▲), Anlegen,
   Aufwerten bis +5, Neuwürfeln eines Affixes, Wegwerfen, „Alles Gewöhnliche wegwerfen“, Grabräuber, Buch des Thot.
 
-Noch offen: Etappe 2 (vier Klassen, Fähigkeitenbaum), Etappe 3 (alle Gegnerarten und Hüter), Etappe 4 (zwölf Stunden,
-Kartengenerator, Karte, Stundenwahl).
+### Etappe 2: vier Klassen und Fähigkeitenbaum
+
+| Klasse | Modell (KayKit) | Standardangriff | 1 · 2 · 3 · 4 · rechte Maustaste |
+|---|---|---|---|
+| Eidträger | Ritter mit Zweihänder | Hieb | Falkenkreis · Sturz des Falken · Eid der Maat · Blick des Udjat · Strahl des Re |
+| Priester des Schu | Barbar ohne Waffe | Faustfolge, jeder dritte Schlag weiter und härter | Fäuste des Month · Schritt des Schu · Kreis des Ka · Gebs Lachen · Atem des Schu |
+| Wüstenjägerin | Schurkin mit Armbrust (statt Bogen), Fuchs als leuchtender Geist | Pfeil | Neiths Fächer · Sprung der Gazelle · Upuauts Hatz · Sieben Pfeile der Sachmet · Pfeil der Neith |
+| Sternleserin | Magierin mit Stab | Funke, durchschlägt einmal | Zorn des Seth · Schritt durch die Duat · Seschats Maß · Hu, das Machtwort · Fallender Stern der Nut |
+
+- Klassenwahl auf dem Startbildschirm mit den gemalten Porträts der 2D-Fassung; Symbole der Fähigkeiten aus dem Original.
+- **Fähigkeitenbaum** (K, auf dem Handy „Fähigk.“): ein Punkt je Stufe, fünf Ränge je Fähigkeit (+12 % Stärke,
+  Hilfsfähigkeiten −6 % Abklingzeit), ab Rang 2 Wucht oder Eile, sechs dauerhafte Stärken, ein Schlüsselstein je
+  Klasse ab 8 verteilten Punkten, Zurücksetzen für 10 + 3 × Stufe Scherben.
+- Daten in `scripts/klassen.gd`; Klassentest: `godot --path . -- --neu --klasse=jaegerin --klassentest`.
+
+### Etappe 3: Gegner und Hüter
+
+- Neun Gegnerarten aus der 2D-Fassung mit ihren Kampfweisen: **Irrende Ba** (leuchtende Lichter, schwärmen und beißen),
+  **Tefens Brut** (Skorpione, Tiere: fliehen vor Upuauts Hatz), **Sebau-Krieger** (holen sichtbar aus: roter Kegel),
+  **Sebau-Priesterin** und **Erloschene** (halten Abstand und schießen, ein gemeinsamer Schusstakt je Schwierigkeit),
+  **Sebau-Koloss** (Aufschlag mit rotem Kreis), **Ruhelose** (liegen am Boden und stehen auf), **Herzlose** (schnell, glühen).
+  Aussehen: KayKit-Skelette, eingefärbt; Lichter und Skorpione sind aus Grundformen gebaut.
+- Rudel nach den Daten der Stunde (`scripts/stunden.gd`), Größe je Schwierigkeit, Aufstellung als Lager (mit Feuer),
+  Wache, Streife, Ruhe oder Hinterhalt (unsichtbar, bis du nah bist). Sie bemerken dich mit Sichtkegel („?“, dann „!“),
+  bei Schwer und Albtraum rufen sie Nachbarrudel. Nur so viele greifen zugleich an, wie die Schwierigkeit erlaubt.
+- **Hüter**: Gestalt und Name aus der Stunde (in Stunde 1 Mahaf als großes Licht), Geschossring, Beschwörung von
+  Dienern, Ansturm mit rotem Streifen als Ansage, unter 30 % Leben schneller.
+
+### Etappe 4: zwölf Stunden mit generierten Karten
+
+- Jede Stunde wird beim Betreten neu erzeugt (`scripts/karte.gd`, nach dem Kartengenerator der 2D-Fassung):
+  Stunde 1 ist Freiland mit Felsen, Glasnadeln und Ruinen, die Stunden 2 bis 5 sind Dungeons
+  (Felder von Wernes: Lehmruinen · König ohne Namen: Grabkammern · Rosetau: Glas · Höhle des Sokar: Höhle).
+  Die Stunden 6 bis 12 nutzen Landschaft und Hüter-Gestalt einer früheren Stunde und mischen alle Rudel.
+  Nach der zwölften Stunde beginnt die nächste Nacht, die Gegner werden weiter stärker.
+- `scripts/welt.gd` baut daraus Böden, Mauern (unterschiedlich hoch, Reste und Türme), Hindernisse, Wandfackeln,
+  Teppiche, Truhen, Fässer, Rudel und den Hüter.
+- **Durchblick:** Mauern zwischen Kamera und Figur werden oberhalb der Hüfte gerastert ausgespart
+  (`scripts/mauer.gdshader`), statt wie bisher abzusinken. Niedrige Mauerreste versperren nur den Weg, nicht Sicht und Geschosse.
+- **Karte** oben rechts: Mauern, Rudel (gelb), wache Gegner (rot), Truhen, Pforte und Figur; im Dungeon nur, was du schon gesehen hast.
+- Die **Pforte** führt in die nächste Stunde. **Stundenwahl**: im Startbildschirm (◀ ▶) und in der Tasche („Stunde wechseln“)
+  lässt sich jede schon erreichte Stunde noch einmal betreten.
+- Die Figur wirft im Licht der eigenen Laterne keinen Schatten mehr (vorher lag ein dunkler Fleck um sie).
 
 ## Was noch Platzhalter ist
 
@@ -100,17 +139,19 @@ Kartengenerator, Karte, Stundenwahl).
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- Fähigkeitenbaum, die drei übrigen Klassen, die übrigen Gegnerarten und die Stunden 2 bis 12 folgen in den
-  nächsten Etappen. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
+- Die Oberflächen der Stunden 2 bis 5 (Lehm, Feld, Grabwand, Glas, Höhle) sind getönte Verwandte der vorhandenen Texturen,
+  bis die Bilder aus `bilder/auftrag_3d.txt` (W03, T10, W04, T11, W05, T12) da sind. Sie heißen dann `w03_lehm`,
+  `t10_feld`, `w04_grab`, `t11_glas`, `w05_hoehle`, `t12_hoehlenboden` und werden ohne Codeänderung genutzt.
 
 ## Für Entwickler
 
-- `scripts/main.gd` baut Welt, Licht und Gegner aus der Karte `MAP` und führt Kamera und Eingabe.
+- `scripts/main.gd` führt Licht, Kamera, Eingabe, Kampf und Beute; die Welt kommt aus `karte.gd` (Karte) und `welt.gd` (Bau),
+  die Texte und Rudel der Stunde aus `stunden.gd`.
 - `scripts/actor.gd`, `hero.gd`, `foe.gd`: Figuren. `scripts/hud.gd`: Anzeige. `scripts/sfx.gd`: Ton.
 - Testmodus: `godot --path . -- --autotest` lässt einen Bot die Stunde durchspielen und speichert Bilder nach `test_out/`.
-- Rundgang: `godot --path . -- --autotest --rundgang` setzt die Figur an feste Stellen (Start, Gang, Halle, Gruft …) und macht je ein Bild, auch mit niedriger Grafik.
-- Mauern und Sockel, die nie absinken, fasst `main.gd` je Material zu einem einzigen Körper zusammen (`_fest`, `_fest_bauen`).
-  Das spart Zeichenaufrufe, vor allem beim Schattenwurf.
+- `-- --stunde=3` beginnt in der dritten Stunde (für Tests).
+- Rundgang: `godot --path . -- --autotest --rundgang --stunde=2` setzt die Figur an den Start, in drei Räume und vor den Hüter und macht je ein Bild, auch mit niedriger Grafik.
+- Mauern derselben Art fasst `welt.gd` je Abschnitt von 6 × 6 Zellen zu einem Körper zusammen. Das spart Zeichenaufrufe, vor allem beim Schattenwurf.
 - `tools/hol_godot.sh` lädt Godot 4.7.2 für Linux (zum Testen ohne Bildschirm).
 
 ### Stein- und Bodentexturen

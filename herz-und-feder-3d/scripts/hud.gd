@@ -32,12 +32,15 @@ var primary_btn: Button
 var banner_tw: Tween
 var toast_tw: Tween
 var bag_open := false
+var tree_open := false
 var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
 var toasts: VBoxContainer   # Fundmeldungen links oben (07-ui.js › toast)
 var bar_xp: ProgressBar
 var l_lvl: Label
 var tasche_btn: Button
+var tree_btn: Button
 var l_quer: Label          # Hinweis, das Handy quer zu halten
+var intro_fall := 1        # im Startbildschirm gewählte Stunde
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
 func _ready() -> void:
@@ -52,14 +55,14 @@ func _ready() -> void:
 	tl.custom_minimum_size = Vector2(330, 0)
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tl)
-	tl.add_child(_label(game.TXT.no, 13, GOLD))
-	tl.add_child(_label(game.TXT.name, 24, PARCH))
+	tl.add_child(_label(Stunden.case_no(Spiel.fall), 13, GOLD))
+	tl.add_child(_label(game.hdef.name, 24, PARCH))
 	bar_track = _bar(TEAL, 6)
 	tl.add_child(bar_track)
 	l_track = _label("", 13, DIM)
 	l_track.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tl.add_child(l_track)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Tasche · V Vollbild", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -69,11 +72,11 @@ func _ready() -> void:
 		# ohne Tastatur: Grafik, Ton und Bildrate als Knöpfe
 		var row := HBoxContainer.new()
 		row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		row.position = Vector2(-470, 38)
-		row.custom_minimum_size = Vector2(450, 0)
+		row.position = Vector2(-580, 38)
+		row.custom_minimum_size = Vector2(560, 0)
 		row.alignment = BoxContainer.ALIGNMENT_END
 		row.add_theme_constant_override("separation", 6)
-		var knoepfe := [["Tasche", func(): game.toggle_bag()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
+		var knoepfe := [["Tasche", func(): game.toggle_bag()], ["Fähigk.", func(): game.toggle_tree()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
 		if game.can_fullscreen:
 			knoepfe.insert(0, ["Vollbild", func(): game.toggle_fullscreen()])
 		for t in knoepfe:
@@ -90,6 +93,8 @@ func _ready() -> void:
 			row.add_child(b)
 			if t[0] == "Tasche":
 				tasche_btn = b
+			if t[0] == "Fähigk.":
+				tree_btn = b
 		root.add_child(row)
 		l_quer = _label("Bitte das Gerät quer halten.", 30, PARCH)
 		l_quer.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -174,9 +179,9 @@ func _ready() -> void:
 	bar_hp = hpb[1]
 	l_hp = hpb[2]
 	bottom.add_child(hpb[0])
-	for id in Hero.ORDER:
+	for id in game.hero.ORDER:
 		bottom.add_child(_skill_box(id))
-	var enb := _stat_box("Eidkraft", Color("3f7fd6"))
+	var enb := _stat_box(Spiel.CLS[Spiel.cls].res, Spiel.CLS[Spiel.cls].rc)
 	bar_en = enb[1]
 	l_en = enb[2]
 	bottom.add_child(enb[0])
@@ -226,7 +231,8 @@ func _stat_box(title: String, col: Color) -> Array:
 	return [v, b, val]
 
 func _skill_box(id: String) -> Control:
-	var S: Dictionary = Hero.SKILLS[id]
+	var S: Dictionary = game.hero.SK[id]
+	var slot: int = game.hero.ORDER.find(id)
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(98, 84)
 	p.add_theme_stylebox_override("panel", _flat(PANEL, 8, Color("3d3947"), 1))
@@ -238,8 +244,9 @@ func _skill_box(id: String) -> Control:
 		if tap and not get_tree().paused and tap_frame != Engine.get_process_frames():
 			tap_frame = Engine.get_process_frames()
 			# der Zeiger liegt auf dem Knopf, nicht auf einem Ziel: auf den nächsten Gegner zielen, sonst nach vorn
-			var near: Foe = game.foe_near(game.hero.global_position, 12.0)
-			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 6.0
+			var near: Foe = game.foe_near(game.hero.global_position, 20.8)
+			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 8.8
+			game.hero.auto_aim = true
 			game.hero.cast(id))
 	var cdr := ColorRect.new()
 	cdr.color = Color(0, 0, 0, 0.62)
@@ -249,15 +256,25 @@ func _skill_box(id: String) -> Control:
 	var v := VBoxContainer.new()
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	var k := _label(S.key, 18, GOLD)
-	k.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(k)
+	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
+	top.add_theme_constant_override("separation", 4)
+	var ic := TextureRect.new()
+	ic.texture = Klassen.icon(id, 48)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.custom_minimum_size = Vector2(26, 26)
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(ic)
+	var k := _label(Klassen.keys()[slot], 16, GOLD)
+	top.add_child(k)
+	v.add_child(top)
 	var n := _label(S.name, 11, PARCH)
 	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	n.custom_minimum_size = Vector2(86, 0)
 	v.add_child(n)
-	var c := _label(("%d Eidkraft" % S.cost) if S.cost > 0 else "", 10, DIM)
+	var c := _label(("%d %s" % [S.cost, Spiel.CLS[Spiel.cls].res]) if S.cost > 0 else "", 10, DIM)
 	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(c)
 	p.add_child(v)
@@ -283,8 +300,10 @@ func refresh() -> void:
 	l_lvl.text = "Stufe %d" % Spiel.lvl
 	if tasche_btn:
 		tasche_btn.add_theme_color_override("font_color", GOLD if Spiel.neu > 0 else PARCH)
-	for id in Hero.ORDER:
-		var S: Dictionary = Hero.SKILLS[id]
+	if tree_btn:
+		tree_btn.add_theme_color_override("font_color", GOLD if Spiel.tree_points() > 0 else PARCH)
+	for id in h.ORDER:
+		var S: Dictionary = h.SK[id]
 		var u: Dictionary = skill_ui[id]
 		u.cd.scale.y = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
 		if id != "potion" and S.cost > 0:
@@ -381,6 +400,7 @@ func toast(text: String) -> void:
 # ---------------------------------------------------------------- Fenster
 func _close() -> void:
 	bag_open = false
+	tree_open = false
 	if overlay:
 		overlay.queue_free()
 		overlay = null
@@ -533,6 +553,15 @@ func show_bag() -> void:
 	var cb := func(): get_tree().paused = false
 	secondary = cb
 
+func show_tree() -> void:
+	var v := _sheet(0.86, 900)
+	tree_open = true
+	var t := Baum.new()
+	t.hud = self
+	t.game = game
+	v.add_child(t)
+	secondary = func(): get_tree().paused = false
+
 func close_bag() -> void:
 	_close()
 	get_tree().paused = false
@@ -558,6 +587,11 @@ func press_primary() -> bool:
 	return true
 
 func _input(ev: InputEvent) -> void:
+	if tree_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_K:
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		close_bag()
+		return
 	if bag_open and ev is InputEventKey and ev.pressed and not ev.echo and (ev.keycode == KEY_I or ev.keycode == KEY_TAB):
 		get_viewport().set_input_as_handled()
 		game.sfx.play("ui")
@@ -620,11 +654,76 @@ func show_chest(stamp: String, title: String, lines: Array, note: String, take: 
 var intro_new := false
 var intro_diff := 0
 var intro_hc := false
+var intro_cls := "ermittler"
+
+func _class_card(c: String) -> Control:
+	var C: Dictionary = Klassen.CLS[c]
+	var on := c == intro_cls
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 92 if game.touch else 146)
+	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("3d3947"), 3 if on else 1))
+	b.add_theme_stylebox_override("hover", _flat(Color("2a2731"), 8, C.col, 2))
+	b.add_theme_stylebox_override("pressed", _flat(Color("2a2731"), 8, C.col, 3))
+	var h := HBoxContainer.new()
+	h.set_anchors_preset(Control.PRESET_FULL_RECT)
+	h.offset_left = 6
+	h.offset_right = -6
+	h.offset_top = 6
+	h.offset_bottom = -6
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", 6)
+	var tr := TextureRect.new()
+	tr.texture = Klassen.portrait(c)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.custom_minimum_size = Vector2(60 if game.touch else 100, 0)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(tr)
+	var l := _label(C.name, 13 if game.touch else 15, C.col if on else PARCH)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	h.add_child(l)
+	b.add_child(h)
+	b.pressed.connect(func():
+		game.sfx.play("ui")
+		intro_cls = c
+		_render_intro())
+	return b
+
+# Stunde wählen (02-ui.js › Stundenwahl): jede schon erreichte Stunde lässt sich noch einmal betreten
+func _hour_pick() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_label("STUNDE  ", 12, DIM))
+	for step in [-1, 1]:
+		var b := _button("  ◀  " if step < 0 else "  ▶  ", false, func(): pass)
+		for c in b.pressed.get_connections():
+			b.pressed.disconnect(c.callable)
+		var st: int = step
+		b.disabled = intro_fall + st < 1 or intro_fall + st > Spiel.max_fall
+		b.pressed.connect(func():
+			game.sfx.play("ui")
+			intro_fall = clampi(intro_fall + st, 1, Spiel.max_fall)
+			_render_intro())
+		if step < 0:
+			row.add_child(b)
+		else:
+			var l := _label("%s · %s" % [Stunden.hour_txt(intro_fall), Stunden.def(intro_fall).name], 15, PARCH if intro_fall == Spiel.fall else TEAL)
+			l.custom_minimum_size = Vector2(380, 0)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			row.add_child(l)
+			row.add_child(b)
+	return row
 
 func show_intro(force_new := false) -> void:
+	intro_fall = Spiel.fall
 	intro_new = force_new or not Spiel.hat_stand
 	intro_diff = Spiel.diff
 	intro_hc = false
+	intro_cls = Spiel.cls
 	_render_intro()
 
 func _render_intro() -> void:
@@ -646,11 +745,25 @@ func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:
 		v.add_child(_para("Spielstand: %s%s, Stufe %d, %d von %d Seiten im Buch des Thot." % [Spiel.CLS[Spiel.cls].name, " (Hardcore)" if Spiel.hc else "", Spiel.lvl, Spiel.evid.size(), Daten.EVID.size()], 15, TEAL))
 	else:
+		if not game.touch:
+			v.add_child(_para("WÄHLE DEINE KLASSE", 12, DIM))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		for c in Klassen.ORDER:
+			row.add_child(_class_card(c))
+		v.add_child(row)
+		var C: Dictionary = Klassen.CLS[intro_cls]
 		if game.touch:
-			v.add_child(_para("Klasse: Eidträger, Nahkampf mit dem Zweihänder. (Die drei übrigen folgen.)", 13, DIM))
+			v.add_child(_para("%s · %s" % [C.like, C.txt], 12, DIM))
 		else:
-			v.add_child(_para("KLASSE", 12, DIM))
-			v.add_child(_para("Eidträger: Nahkampf mit dem Zweihänder. Hat auf die Feder der Maat geschworen, hält viel aus und steht mitten im Getümmel. (Die drei übrigen Klassen folgen.)", 14, PARCH))
+			var names := []
+			for id in Klassen.order(intro_cls):
+				if id != "potion":
+					names.append(Klassen.SK[id].name)
+			v.add_child(_para("%s · %s" % [C.like, C.txt], 14, PARCH))
+			v.add_child(_para("Fähigkeiten: " + ", ".join(names), 12, DIM))
+	if not intro_new and Spiel.max_fall > 1:
+		v.add_child(_hour_pick())
 	if not game.touch:
 		v.add_child(_para("SCHWIERIGKEIT", 12, DIM))
 	var row := HBoxContainer.new()
@@ -679,7 +792,7 @@ func _intro_rest(v: VBoxContainer) -> void:
 		v.add_child(_para(chapter_note, 14, TEAL))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
-	var go := func(): game.start_game(intro_new, intro_diff, intro_hc)
+	var go := func(): game.start_game(intro_new, intro_diff, intro_hc, intro_cls, intro_fall)
 	primary_btn = _button(_taste("  %s  [E]  " % ("Die Nacht betreten" if intro_new else "Weiterspielen")), true, go)
 	btns.add_child(primary_btn)
 	if not intro_new:

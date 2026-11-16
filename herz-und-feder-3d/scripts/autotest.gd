@@ -21,7 +21,7 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--max="): max_t = float(a.substr(6))
 		if a.begins_with("--every="): every = float(a.substr(8))
-	game.hud.show_chapter(game.TXT.no, game.TXT.name, game.TXT.lead, game.TXT.brief, "Eintreten", func(): game.begin())
+	game.hud.show_chapter(Stunden.case_no(Spiel.fall), game.hdef.name, game.hdef.lead, game.hdef.brief, "Eintreten", func(): game.begin())
 
 func shot(tag: String) -> void:
 	var img := get_viewport().get_texture().get_image()
@@ -50,10 +50,10 @@ func _physics_process(delta: float) -> void:
 		# Fenster: Niederlage bestätigen, Pforte ansehen und durchgehen
 		if game.hud.overlay and frames % 30 == 0:
 			if game.gate and not h.dead:
+				# die Pforte führt in die nächste Stunde (die Szene lädt neu): hier endet der Bot
 				shot("pforte_fenster")
-				game.hud.press_primary()
 				phase = "ende"
-				get_tree().create_timer(1.5, true, false, true).timeout.connect(func(): shot("ende"); finish("durch die Pforte"))
+				finish("an der Pforte")
 			else:
 				shot("niederlage")
 				game.hud.press_primary()
@@ -112,16 +112,16 @@ func _physics_process(delta: float) -> void:
 		if h.hp < h.max_hp * 0.45:
 			h.cast("potion")
 		if near >= 3:
-			h.cast("udjat")
+			h.cast(h.ORDER[3])
 		if near >= 2 and h.en >= 40:
-			if h.cast("whirl") and burst == 0 and n < 60: burst = 9
+			if h.cast(h.ORDER[0]) and burst == 0 and n < 60: burst = 9
 		if foe == game.boss and awake:
-			h.cast("oath")
+			h.cast(h.ORDER[2])
 		if awake and dist > 7.0 and dist < 12.0 and game.walkable(h.global_position, target):
-			h.cast("dash")
+			h.cast(h.ORDER[1])
 		if awake and dist > 5.0 and dist < 15.0 and h.en > 55 and game.sees(h.global_position, target):
-			h.cast("beam")
-		if dist < 3.0 + foe.radius:
+			h.cast(h.ORDER[4])
+		if dist < h.reach() - 0.3 + foe.radius and (not h.ranged() or game.sees(h.global_position, target)):
 			h.want_dir = Vector3.ZERO
 			if h.attack() and t > 8.0 and burst == 0 and n < 40:
 				burst = 9   # Folgebilder: Hieb
@@ -135,46 +135,28 @@ func _physics_process(delta: float) -> void:
 			print("HÄNGT bei ", h.global_position, " Ziel ", target, " frei=", game.walkable(h.global_position, target))
 			stuck_t = 0.0
 
-# Rundgang (Start mit „-- --autotest --rundgang“): Figur an feste Stellen setzen und je ein Bild machen,
-# zum Vergleichen von Mauern, Böden und Licht. Gegner ruhen dabei.
+# Rundgang (Start mit „-- --autotest --rundgang [--stunde=N]“): Figur an den Start, in Räume und vor den Hüter setzen
+# und je ein Bild machen, zum Vergleichen von Mauern, Böden und Licht. Gegner ruhen dabei. Danach jede zehnte Bodenzelle
+# betreten und prüfen, ob die Figur dort von der Kamera aus zu sehen ist (Durchblick der Mauern).
 func rundgang() -> void:
 	for f in game.foes:
 		f.process_mode = Node.PROCESS_MODE_DISABLED
-	var spots := [[Vector2i(2, 2), "start", false], [Vector2i(2, 4), "gang", false], [Vector2i(8, 7), "halle", false],
-		[Vector2i(13, 3), "gruft", false], [Vector2i(13, 3), "gruft_niedrig", true], [Vector2i(8, 10), "sued", false],
-		[Vector2i(18, 7), "ost", false], [Vector2i(2, 2), "start_niedrig", true]]
+	var k: Karte = game.karte
+	print("RUNDGANG %s · %s · %s · Räume %d · Rudel %d · Truhen %d · Fackeln %d" % [Stunden.case_no(Spiel.fall), game.hdef.name,
+		k.kind if k.indoor else "Freiland", k.rooms.size(), k.spots.size(), k.chests.size(), game.torches.size()])
+	var spots := [[k.start, "start", false]]
+	for r in k.rooms.slice(0, 3):
+		spots.append([Vector2(r.cx, r.cy), "raum", false])
+	spots.append([k.lair + Vector2(0, 3), "huter", false])
+	spots.append([k.start, "start_niedrig", true])
 	for s in spots:
 		if game.low_gfx != s[2]:
 			game.set_low(s[2])
-		game.hero.global_position = game.cell_pos(s[0].x, s[0].y)
+		game.hero.global_position = Welt.cell_pos(s[0])
+		game.cam_pos = game.hero.global_position
 		game.hero.want_dir = Vector3.ZERO
-		await get_tree().create_timer(2.0).timeout
-		shot("rundgang_" + s[1])
-		var low_y := 0.0
-		for w in game.sunk:
-			low_y = minf(low_y, w.position.y)
-		print("rundgang %s: %d Mauern/Pfeiler abgesenkt (tiefste %.1f m)" % [s[1], game.sunk.size(), low_y])
-	# jede Bodenzelle einmal betreten: wo sinken Mauern, wo Pfeiler?
-	var cells := 0
-	var with_wall := 0
-	var with_pillar := 0
-	for cz in game.H:
-		for cx in game.W:
-			if not game.is_floor(cx, cz):
-				continue
-			cells += 1
-			game.hero.global_position = game.cell_pos(cx, cz) + Vector3(1.2, 0, 1.2)
-			game.cam_pos = game.hero.global_position
-			await get_tree().create_timer(0.25).timeout
-			var w := 0
-			var pf := 0
-			for node in game.sunk:
-				if game.sunk[node] > 0.0:
-					if node.has_meta("pfeiler"): pf += 1
-					else: w += 1
-			if w > 0: with_wall += 1
-			if pf > 0: with_pillar += 1
-	print("RUNDGANG Zellen: %d · davon sinkt eine Mauer bei %d, ein Pfeiler bei %d" % [cells, with_wall, with_pillar])
+		await get_tree().create_timer(1.5).timeout
+		shot("rundgang_%d_%s" % [Spiel.fall, s[1]])
 	print("RUNDGANG fertig: %d Bilder" % n)
 	get_tree().quit()
 

@@ -1,0 +1,36 @@
+Du bist die Bildproduktion für mein Spielprojekt „Herz und Feder“ (3D-Fassung in Godot). Erzeuge mit dem Higgsfield-Konnektor genau die unten aufgeführten Bilder, in der angegebenen Reihenfolge.
+
+Regeln:
+1. Nutze generate_image (ein Bild pro Aufruf), in der Reihenfolge der Liste. Die ersten fünf sind wichtig, sechs bis acht sind Puffer: Reicht das Kontingent nicht, hör nach Bild 5 auf.
+2. Einstellungen für jedes Bild: model "gpt_image_2_6", quality "medium", resolution "2k", use_unlim true, dazu das angegebene aspect_ratio.
+3. Gib niemals Credits aus. Wird „unbegrenzt“ abgelehnt, brich ab und sag mir den genauen Wortlaut der Meldung.
+4. Übernimm jeden Prompt wörtlich und vollständig. Nicht kürzen, nicht umformulieren, nicht übersetzen, nichts ergänzen.
+5. Lehnt gpt_image_2_6 diese Einstellungen ab, nimm stattdessen model "nano_banana_pro" mit resolution "2k" (ohne quality).
+6. Warte mit jobs_wait, bis ein Bild fertig ist, bevor du das nächste startest. Wiederhole ein fehlgeschlagenes Bild genau einmal.
+7. Zeig mir am Ende eine Tabelle: Kürzel, Job-ID, Status, Bildadresse. Die Bilder selbst musst du nicht beschreiben.
+
+Bilder (8 Stück, die ersten 5 zuerst):
+
+W03 · Mauer der Felder von Wernes (Stunde 2) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable wall texture, photographed straight from the front (orthographic, no perspective, no vanishing lines), flat even dim lighting without directional shadows: an ancient Egyptian wall of sun-dried Nile mud bricks laid in even horizontal courses, straw visible in the clay, crumbling edges, thin dry roots and dust in the joints, pale ochre and grey-brown tones. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no floor, no ceiling, no objects, no border, no vignette, no text.
+
+T10 · Boden der Felder von Wernes (Stunde 2) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable ground texture, photographed straight down from directly above (top-down orthographic, no perspective, no horizon), flat even dim lighting without directional shadows: dry cracked dark Nile field soil with short stubble of cut barley, scattered golden chaff and a few small stones, fine dust in the cracks. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no plants taller than the stubble, no objects, no border, no vignette, no text.
+
+W04 · Grabwand des Königs ohne Namen (Stunde 3) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable wall texture, photographed straight from the front (orthographic, no perspective, no vanishing lines), flat even dim lighting without directional shadows: the plastered limestone wall of an ancient Egyptian royal tomb, faded ochre, red and lapis-blue painted bands and rows of abstract hieroglyph-like pictograms (decorative, not readable writing), several oval cartouches deliberately chiseled out leaving rough pale gouges, soot from torches, cracked plaster. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no floor, no ceiling, no objects, no border, no vignette, no letters, no text.
+
+T11 · Glasboden von Rosetau (Stunde 4) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable ground texture, photographed straight down from directly above (top-down orthographic, no perspective, no horizon), flat even dim lighting without directional shadows: desert sand fused into dark smoky glass by ancient heat, broken into irregular flat plates with fine cracks, pale sand drifting in the cracks, tiny scattered cold glints embedded in the glass like distant stars, deep blue-grey and black tones. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no objects, no border, no vignette, no text.
+
+W05 · Höhlenfels der Höhle des Sokar (Stunde 5) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable wall texture, photographed straight from the front (orthographic, no perspective, no vanishing lines), flat even dim lighting without directional shadows: a rough natural cave wall of dark basalt with deep vertical fissures, mineral streaks of faint violet and rust, damp patches and fine dust on the ledges. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no floor, no ceiling, no objects, no border, no vignette, no text.
+
+T12 · Boden der Höhle des Sokar (Puffer) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable ground texture, photographed straight down from directly above (top-down orthographic, no perspective, no horizon), flat even dim lighting without directional shadows: packed dark cave earth strewn with broken shards of old clay storage jars, flakes of dried resin and fine grey dust, a few flat stones. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no whole objects, no border, no vignette, no text.
+
+X02 · Titelbild für den Startbildschirm (Puffer) · aspect_ratio 16:9
+Prompt: Atmospheric realistic digital painting, cinematic wide shot, dark and quiet: on the left third of the image a lone small figure seen from behind stands at the top of worn stone stairs that lead down into the underworld beneath a desert night, holding up a lantern whose warm golden light is the brightest spot in the picture. Far below and in the distance a dark river winds through the darkness, on it a faint golden sun barque; above it, half hidden in mist, the huge silhouette of an ancient balance scale with a single feather on one pan. Deep night blue, black and gold, soft fog, scattered stars. The right half of the image is calm dark sky and mist with little detail, so text can be placed there later. No text, no letters, no logo, no border, no frame.
+
+F01 · Felsoberfläche für Felsen im Freiland (Puffer) · aspect_ratio 1:1
+Prompt: Photorealistic seamless tileable rock surface texture, photographed straight from the front (orthographic, no perspective), flat even dim lighting without directional shadows: weathered desert sandstone boulder surface with wind-eroded horizontal layers, small pits, cracks and a thin crust of reddish dust, warm grey-ochre tones. Natural realistic detail, muted dark colors. The pattern continues evenly to all four edges so the image can be tiled, no sky, no ground line, no objects, no border, no vignette, no text.
