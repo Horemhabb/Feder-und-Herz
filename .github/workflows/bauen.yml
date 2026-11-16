@@ -35,7 +35,7 @@ jobs:
           path: |
             ~/godot
             ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}-web
+          key: godot-${{ env.GODOT_VERSION }}-nurweb-v2
 
       - name: Godot und Exportvorlagen laden
         if: steps.cache.outputs.cache-hit != 'true'
@@ -45,12 +45,12 @@ jobs:
           B=https://github.com/godotengine/godot-builds/releases/download/$V-stable
           mkdir -p ~/godot
           curl -sSL -o g.zip $B/Godot_v$V-stable_linux.x86_64.zip
-          unzip -q g.zip -d ~/godot && rm g.zip
+          unzip -q -o g.zip -d ~/godot && rm g.zip
           mv ~/godot/Godot_v$V-stable_linux.x86_64 ~/godot/godot
           curl -sSL -o t.tpz $B/Godot_v$V-stable_export_templates.tpz
           T=~/.local/share/godot/export_templates/$V.stable
           mkdir -p $T
-          unzip -q -j t.tpz templates/version.txt templates/web_nothreads_release.zip templates/web_nothreads_debug.zip -d $T
+          unzip -q -o -j t.tpz templates/version.txt templates/web_nothreads_release.zip templates/web_nothreads_debug.zip -d $T
           rm t.tpz
 
       - name: Projekt importieren
