@@ -162,6 +162,26 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Musik:** je ein eigenes Stück für die Stunden 2 bis 5; die Stücke einer Stunde wechseln sich alle anderthalb Minuten ab.
 - Logik der Orte und Aufgaben: `scripts/orte.gd`. Der Spieltest prüft sie mit.
 
+### Fassung 2.1: Rückmeldung vom Mac
+
+- **Symbole der Fähigkeiten neu gezeichnet** (`scripts/glyphen.gd`): goldene Hieroglyphen auf Steintafeln in der Farbe der
+  Klasse (Lapislazuli, Türkis, Karneol, Amethyst). Jedes Zeichen lehnt sich an ein echtes an: Flügelsonne, Udjat-Auge,
+  Feder der Maat, Aton mit Strahlenhänden, Wappen der Neith, Schakal des Upuaut, Seth-Tier, Stern im Kreis (Duat),
+  Zeichen der Seschat, Mund (Hu), Arme des Ka, Segel (Atem), Land mit drei Körnern (Geb).
+- **Fähigkeiten:** größere Symbole mit Namen darunter. Die Figur beginnt mit zwei Fähigkeiten und
+  lernt die übrigen mit den Stufen 2, 3 und 5 (`Klassen.UNLOCK`). Jede neue Fähigkeit und jeder Aufstieg wird mit
+  Symbol, Name und Erklärung in der Bildmitte angekündigt (`Hud.announce`). Sind Punkte frei, pulsiert ein goldener
+  Knopf über der Leiste und öffnet den Fähigkeitenbaum.
+- **Musik:** gut 7 dB leiser als zuvor, weicht weitere 9 dB zurück, solange die Erzählstimme spricht, und spielt nicht mehr
+  pausenlos: Nach 75 Sekunden blendet sie aus, 40 Sekunden bleibt es still (nur Wind und Raum), dann setzt das nächste
+  Stück ein (`scripts/sfx.gd`, Werte `MUS_…`). Im Hüterkampf läuft sie durch.
+- **Leute und ihre Sorgen:** In jeder Stunde steht am Eingang ein gewöhnlicher Mensch mit einem gewöhnlichen Kummer:
+  Der Hirte Djau sucht seine drei Schafe, die Bäuerin Ipi ihre Saatsäcke, der Steinmetz sein Werkzeug, die Wasserträgerin
+  ihre Krüge, ein Kind seine Kätzchen (`Geschichte.LEUTE`, zwölf Stück). Wer alle drei findet und zurückkommt, wird belohnt.
+- **Wegsuche repariert:** Stand die Figur oder ein Gegner dicht an einer der neuen Requisiten, fand die Wegsuche keinen
+  Weg (die Zelle galt als belegt). Sie weicht jetzt auf die nächste freie Zelle aus (`main.gd › _free_cell`).
+- Die Aufgaben im Questbuch sind schlichter benannt (Der Hüter, Feuerschalen, Seelenkrüge).
+
 ### Sparsam mit der Maschine (nach Empfehlungen der Godot-Doku und anderer Entwickler)
 
 Umgesetzt:

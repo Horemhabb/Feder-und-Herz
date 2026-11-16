@@ -84,6 +84,7 @@ func _ready() -> void:
 	hero.game = self
 	add_child(hero)
 	hero.global_position = start_pos
+	lvl_seen = Spiel.lvl
 	if hero.C.get("pet", false):
 		_build_pet()
 	cam = Camera3D.new()
@@ -572,10 +573,22 @@ func walkable(a: Vector3, b: Vector3) -> bool:
 func _sub(p: Vector3) -> Vector2i:
 	return Vector2i(clampi(int(p.x / CELL), 0, W - 1), clampi(int(p.z / CELL), 0, H - 1))
 
+func _free_cell(c: Vector2i) -> Vector2i:
+	if not astar.is_point_solid(c):
+		return c
+	for r in range(1, 4):
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				var q := c + Vector2i(dx, dy)
+				if maxi(absi(dx), absi(dy)) == r and astar.is_in_boundsv(q) and not astar.is_point_solid(q):
+					return q
+	return c
+
 func find_path(a: Vector3, b: Vector3) -> PackedVector3Array:
 	var out := PackedVector3Array()
-	var ia := _sub(a)
-	var ib := _sub(b)
+	# steht jemand dicht an einer Requisite, kann seine Zelle als belegt gelten: dann von der nächsten freien Zelle aus
+	var ia := _free_cell(_sub(a))
+	var ib := _free_cell(_sub(b))
 	if astar.is_point_solid(ia) or astar.is_point_solid(ib):
 		return out
 	var ids := astar.get_id_path(ia, ib)
@@ -1049,10 +1062,20 @@ func on_foe_dead(f: Foe) -> void:
 	elif not f.summoned:
 		kills += 1
 
+var lvl_seen := 0   # bis zu dieser Stufe sind neue Fähigkeiten schon angekündigt
+
 func _level_up() -> void:
 	hero.apply_stats(true)
 	hero.en = 100.0
-	hud.banner("Stufe %d" % Spiel.lvl, "AUFSTIEG")
+	# groß in der Bildmitte: die neue Stufe, der freie Punkt und jede Fähigkeit, die jetzt gelernt ist
+	hud.announce(null, "AUFSTIEG", "Stufe %d" % Spiel.lvl, "Ein Fähigkeitenpunkt ist frei. %s öffnet den Fähigkeitenbaum: Ränge, Verstärkungen und Passive." % ("„Fähigk.“ oben rechts" if touch else "Taste K"), 5.0)
+	for i in 5:
+		var id: String = hero.ORDER[i]
+		var need := Klassen.unlock_lvl(hero.cls, id)
+		if need > lvl_seen and need <= Spiel.lvl and need > 1:
+			var S: Dictionary = hero.SK[id]
+			hud.announce(Klassen.icon(id, 176), "NEUE FÄHIGKEIT · %s" % ("ANTIPPEN" if touch else ("RECHTE MAUSTASTE" if i == 4 else "TASTE %d" % (i + 1))), S.name, S.txt, 7.0)
+	lvl_seen = Spiel.lvl
 	sfx.play("oath")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
 
@@ -1625,7 +1648,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 				hero.cast(hero.ORDER[ev.keycode - KEY_1])
 			KEY_Q: hero.cast("potion")
 			KEY_E:
-				if orte.near_npc():
+				if orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
+					orte.talk_helfer()
+				elif orte.near_npc():
 					orte.talk()
 			KEY_K: toggle_tree()
 			KEY_F: hud.toggle_fps()
@@ -1637,6 +1662,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			and mouse_ground().distance_to(orte.npc.pos) < 1.8 and not hud.mouse_over_ui():
 		# die Figur der Stunde antippen oder anklicken: noch einmal mit ihr sprechen
 		orte.talk()
+		return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.helfer_talked and orte.near_helfer() \
+			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
+		orte.talk_helfer()
 		return
 	if touch and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 		tap_t = 0.3

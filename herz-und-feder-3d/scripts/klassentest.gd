@@ -112,7 +112,10 @@ func run() -> void:
 			_:
 				if harm(G) <= before:
 					# verzögerte Flächen können ein laufendes Ziel verfehlen: ein zweiter Versuch auf den jetzt nächsten Gegner
-					nf = G.foe_near(h.global_position, 12.0)
+					nf = G.foe_near(h.global_position, 30.0)
+					if nf:
+						h.global_position = nf.global_position + Vector3(1.3, 0, 0)   # dicht heran: das Ziel war weggelaufen
+						await wait(0.2)
 					h.aim = nf.global_position if nf else target
 					h.en = 100.0
 					h.busy = 0.0
