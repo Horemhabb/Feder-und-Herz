@@ -1,6 +1,6 @@
-# Herz und Feder · Probestunde in 3D
+# Herz und Feder · 3D-Fassung
 
-Die erste Stunde der Nacht, „Das Tor des Westens“, als Probe in der Spiel-Engine Godot.
+Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
 ob sich Bewegung, Licht und Ton in 3D echter anfühlen.
 
@@ -116,8 +116,21 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - **Hüter**: Gestalt und Name aus der Stunde (in Stunde 1 Mahaf als großes Licht), Geschossring, Beschwörung von
   Dienern, Ansturm mit rotem Streifen als Ansage, unter 30 % Leben schneller.
 
-Noch offen: Etappe 4 (zwölf Stunden,
-Kartengenerator, Karte, Stundenwahl).
+### Etappe 4: zwölf Stunden mit generierten Karten
+
+- Jede Stunde wird beim Betreten neu erzeugt (`scripts/karte.gd`, nach dem Kartengenerator der 2D-Fassung):
+  Stunde 1 ist Freiland mit Felsen, Glasnadeln und Ruinen, die Stunden 2 bis 5 sind Dungeons
+  (Felder von Wernes: Lehmruinen · König ohne Namen: Grabkammern · Rosetau: Glas · Höhle des Sokar: Höhle).
+  Die Stunden 6 bis 12 nutzen Landschaft und Hüter-Gestalt einer früheren Stunde und mischen alle Rudel.
+  Nach der zwölften Stunde beginnt die nächste Nacht, die Gegner werden weiter stärker.
+- `scripts/welt.gd` baut daraus Böden, Mauern (unterschiedlich hoch, Reste und Türme), Hindernisse, Wandfackeln,
+  Teppiche, Truhen, Fässer, Rudel und den Hüter.
+- **Durchblick:** Mauern zwischen Kamera und Figur werden oberhalb der Hüfte gerastert ausgespart
+  (`scripts/mauer.gdshader`), statt wie bisher abzusinken. Niedrige Mauerreste versperren nur den Weg, nicht Sicht und Geschosse.
+- **Karte** oben rechts: Mauern, Rudel (gelb), wache Gegner (rot), Truhen, Pforte und Figur; im Dungeon nur, was du schon gesehen hast.
+- Die **Pforte** führt in die nächste Stunde. **Stundenwahl**: im Startbildschirm (◀ ▶) und in der Tasche („Stunde wechseln“)
+  lässt sich jede schon erreichte Stunde noch einmal betreten.
+- Die Figur wirft im Licht der eigenen Laterne keinen Schatten mehr (vorher lag ein dunkler Fleck um sie).
 
 ## Was noch Platzhalter ist
 
@@ -126,16 +139,19 @@ Kartengenerator, Karte, Stundenwahl).
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- Die Stunden 2 bis 12 folgen in Etappe 4. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
+- Die Oberflächen der Stunden 2 bis 5 (Lehm, Feld, Grabwand, Glas, Höhle) sind getönte Verwandte der vorhandenen Texturen,
+  bis die Bilder aus `bilder/auftrag_3d.txt` (W03, T10, W04, T11, W05, T12) da sind. Sie heißen dann `w03_lehm`,
+  `t10_feld`, `w04_grab`, `t11_glas`, `w05_hoehle`, `t12_hoehlenboden` und werden ohne Codeänderung genutzt.
 
 ## Für Entwickler
 
-- `scripts/main.gd` baut Welt, Licht und Gegner aus der Karte `MAP` und führt Kamera und Eingabe.
+- `scripts/main.gd` führt Licht, Kamera, Eingabe, Kampf und Beute; die Welt kommt aus `karte.gd` (Karte) und `welt.gd` (Bau),
+  die Texte und Rudel der Stunde aus `stunden.gd`.
 - `scripts/actor.gd`, `hero.gd`, `foe.gd`: Figuren. `scripts/hud.gd`: Anzeige. `scripts/sfx.gd`: Ton.
 - Testmodus: `godot --path . -- --autotest` lässt einen Bot die Stunde durchspielen und speichert Bilder nach `test_out/`.
-- Rundgang: `godot --path . -- --autotest --rundgang` setzt die Figur an feste Stellen (Start, Gang, Halle, Gruft …) und macht je ein Bild, auch mit niedriger Grafik.
-- Mauern und Sockel, die nie absinken, fasst `main.gd` je Material zu einem einzigen Körper zusammen (`_fest`, `_fest_bauen`).
-  Das spart Zeichenaufrufe, vor allem beim Schattenwurf.
+- `-- --stunde=3` beginnt in der dritten Stunde (für Tests).
+- Rundgang: `godot --path . -- --autotest --rundgang --stunde=2` setzt die Figur an den Start, in drei Räume und vor den Hüter und macht je ein Bild, auch mit niedriger Grafik.
+- Mauern derselben Art fasst `welt.gd` je Abschnitt von 6 × 6 Zellen zu einem Körper zusammen. Das spart Zeichenaufrufe, vor allem beim Schattenwurf.
 - `tools/hol_godot.sh` lädt Godot 4.7.2 für Linux (zum Testen ohne Bildschirm).
 
 ### Stein- und Bodentexturen

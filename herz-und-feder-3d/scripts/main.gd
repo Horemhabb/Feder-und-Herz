@@ -2,36 +2,12 @@ extends Node3D
 # Herz und Feder · Probestunde in 3D: „Das Tor des Westens“ (erste Stunde der Nacht).
 # Baut Welt, Licht und Gegner aus einer Karte, führt Kamera und Eingabe und verbindet alles mit der Anzeige.
 
-const CELL := 4.0
-# S Start · B Hüter · m Ruheloser · p Priester · t Fass/Kisten (zerschlagbar) · c Säule · # Fels
-# k Truhe · K Eisentruhe · P Prunktruhe (03a-dungeon.js › addChest)
-const MAP := [
-	"######################",
-	"#kt.#m...t#cK..c######",
-	"#.S....m..#.....######",
-	"#...#.m..p#..B..######",
-	"##.###.####m...m######",
-	"##.###.#####.####m.pt#",
-	"#t.m.#m...t#.####....#",
-	"#.......p..#.####.mP.#",
-	"#.m.p#.m.m...m.....m.#",
-	"######t...p#####t..p##",
-	"######.m.m.###########",
-	"######k..t.###########",
-	"######################",
-]
+const CELL := Karte.CELL   # Meter je Kartenzelle
 var hdef: Dictionary           # die Stunde aus Stunden.def: Rudel, Hüter, Legendäre, Texte
 const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "model": "chest"}, {"name": "Prunktruhe", "model": "chest_gold"}]
-const TXT := {
-	"no": "ERSTE STUNDE DER NACHT", "name": "Das Tor des Westens",
-	"lead": "Über Sandtor ziehen Lichter gegen den Wind. Es sind Seelen, und niemand holt sie ab.",
-	"brief": "Folge den Lichtern hinab. Halte die Laterne hoch. In ihr brennt ein Funke des Re, und was Isfet ist, weicht vor ihm zurück oder greift ihn an.",
-	"boss_say": "Der Fährmann, der hinter sich schaut. Er hat seine Fähre verloren und setzt trotzdem über.",
-	"epi": "Mahaf war der Fährmann. Seit die Waage stillsteht, darf er niemanden mehr übersetzen, also führte er die Seelen im Kreis. Sein Licht brennt jetzt in deiner Laterne, und es zeigt nach unten.",
-	"next": "Die Felder von Wernes",
-	"next_lead": "Wo die Gerechtfertigten Korn schnitten, häutet sich die Brut des Apophis. Jede Haut macht sie größer.",
-	"dead": "Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort.",
-}
+const DEAD_TXT := "Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort."
+var karte: Karte               # die generierte Stunde (karte.gd), gebaut von welt.gd
+var karte_ui: KarteAnzeige
 
 var hero: Hero
 var sfx: Sfx
@@ -79,12 +55,11 @@ var cam_pos := Vector3.ZERO
 var autotest: Node
 var slow_t := 0.0
 var auto_low_done := false
-var sunk := {}   # Mauern, die gerade abgesenkt sind, weil sie die Figur verdecken: Knoten -> Restzeit
 
 func _ready() -> void:
 	randomize()
-	H = MAP.size()
-	W = MAP[0].length()
+	W = Karte.GW
+	H = Karte.GH
 	sfx = Sfx.new()
 	add_child(sfx)
 	if AudioServer.get_bus_effect_count(0) == 0:
@@ -121,6 +96,14 @@ func _ready() -> void:
 	if OS.has_feature("web") and not can_fullscreen and not standalone:
 		hud.chapter_note = "Vollbild auf dem iPhone: unten auf Teilen tippen, „Zum Home-Bildschirm“ wählen und das Spiel von dort starten."
 	add_child(hud)
+	# Karte der Stunde oben rechts, mit Kartennebel im Dungeon
+	karte_ui = KarteAnzeige.new()
+	karte_ui.setup(self, karte)
+	karte_ui.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	var ks := Vector2(Karte.GW, Karte.GH) * (2.6 if touch else 3.6)
+	karte_ui.size = ks
+	karte_ui.position = Vector2(-ks.x - 16, 112 if touch else 86)
+	hud.root.add_child(karte_ui)
 	if touch:
 		auto_low_done = true
 		set_low(true, true)
@@ -135,7 +118,7 @@ func _ready() -> void:
 		hud.show_intro(Spiel.force_new)
 		Spiel.force_new = false
 	else:
-		hud.show_chapter(TXT.no, TXT.name, TXT.lead, TXT.brief, "Eintreten", func(): begin())
+		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin())
 		sfx.say("vo_chapter")
 	if autotest == null:
 		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
@@ -155,14 +138,16 @@ func begin() -> void:
 	started = true
 	get_tree().paused = false
 	Spiel.speichern()
-	hud.banner(TXT.name, TXT.no)
+	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
 
 # Startbildschirm: neue Figur oder weiterspielen. Danach baut sich die Stunde mit den gewählten Werten neu auf.
-func start_game(neu: bool, d: int, hardcore: bool, cls := "ermittler") -> void:
+func start_game(neu: bool, d: int, hardcore: bool, cls := "ermittler", hour := 0) -> void:
 	if neu:
 		Spiel.neue_figur(cls, d, hardcore)
-	elif d != Spiel.diff:
+	else:
 		Spiel.diff = d
+		if hour > 0:
+			Spiel.fall = clampi(hour, 1, Spiel.max_fall)
 		Spiel.speichern()
 	restart(true)
 
@@ -203,7 +188,7 @@ func toggle_bag() -> void:
 		hud.show_bag()
 
 func is_floor(cx: int, cz: int) -> bool:
-	return cx >= 0 and cz >= 0 and cx < W and cz < H and MAP[cz][cx] != "#"
+	return Karte.in_grid(cx, cz) and not karte.wall(cx, cz)
 
 func cell_pos(cx: int, cz: int) -> Vector3:
 	return Vector3(cx * CELL + CELL / 2, 0, cz * CELL + CELL / 2)
@@ -220,49 +205,74 @@ func _piece(name: String, pos: Vector3, rot := 0.0, scl := Vector3.ONE) -> Node3
 # Die Texturen liegen in textures/ (aufbereitet mit tools/texturen.py). Fehlt eine Datei, z. B. der Wüstensand,
 # nimmt das Spiel den Ersatz aus SURF. So lässt sich eine neue Textur einfach dazulegen.
 const SURF := {
-	# Name: [Datei, Kachelgröße in Metern, Tönung, Ersatz falls Datei fehlt]
-	"sandstein": ["w01_sandstein", 6.0, Color(1.0, 0.93, 0.80), ""],
-	"sandstein_sims": ["w01_sandstein", 6.0, Color(1.25, 1.15, 0.98), ""],
-	"granit": ["w02_granit", 6.0, Color(0.85, 0.85, 0.92), ""],
-	"granit_sims": ["w02_granit", 6.0, Color(1.1, 1.1, 1.15), ""],
-	"gruft": ["t07_gruft", 5.5, Color(0.95, 0.90, 0.84), ""],
-	"pflaster": ["t06_pflaster", 4.0, Color(0.95, 0.88, 0.78), ""],
-	"sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68), "pflaster"],
-	"sand_aussen": ["t09_sand", 6.0, Color(0.45, 0.40, 0.35), ""],
+	# Name: [Datei, Kachelgröße in Metern, Tönung, Ersatz falls Datei fehlt, Tönung des Ersatzes]
+	"sandstein": ["w01_sandstein", 6.0, Color(1.0, 0.93, 0.80), "", Color.WHITE],
+	"sandstein_sims": ["w01_sandstein", 6.0, Color(1.25, 1.15, 0.98), "", Color.WHITE],
+	"granit": ["w02_granit", 6.0, Color(0.85, 0.85, 0.92), "", Color.WHITE],
+	"gruft": ["t07_gruft", 5.5, Color(0.95, 0.90, 0.84), "", Color.WHITE],
+	"pflaster": ["t06_pflaster", 4.0, Color(0.95, 0.88, 0.78), "", Color.WHITE],
+	"sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68), "pflaster", Color(0.95, 0.88, 0.78)],
+	"sand_aussen": ["t09_sand", 6.0, Color(0.45, 0.40, 0.35), "", Color.WHITE],
+	# Stunden 2–5 (Bildauftrag W03–W05, T10–T12): bis die Bilder da sind, getönte Verwandte
+	"lehm": ["w03_lehm", 6.0, Color(1.0, 0.95, 0.88), "sandstein", Color(0.78, 0.66, 0.50)],
+	"feld": ["t10_feld", 6.0, Color(0.9, 0.85, 0.78), "sand", Color(0.72, 0.66, 0.50)],
+	"grab": ["w04_grab", 6.0, Color(1.0, 0.95, 0.9), "sandstein", Color(1.0, 0.9, 0.74)],
+	"glaswand": ["w02_granit", 6.0, Color(0.72, 0.84, 1.0), "", Color.WHITE],
+	"glas": ["t11_glas", 5.0, Color(0.9, 0.92, 1.0), "gruft", Color(0.66, 0.74, 0.88)],
+	"hoehle": ["w05_hoehle", 6.0, Color(0.95, 0.92, 1.0), "granit", Color(0.72, 0.64, 0.80)],
+	"hoehlenboden": ["t12_hoehlenboden", 5.0, Color(0.9, 0.88, 0.92), "gruft", Color(0.78, 0.70, 0.74)],
 }
-const FELD := 3          # Kantenlänge eines Abschnitts in Zellen, zu dem feste Steine und Boden zusammengefasst werden
-const WALL_SINK := 2.8   # so tief sinkt eine verdeckende Mauer ein (von 4 m bleiben 1,2 m)
-# Gruftraum des Hüters (Zellen x 11–15, z 1–4): dunkler Granit statt Sandstein
-const CRYPT := Rect2i(11, 1, 5, 4)
 
 var mats := {}
+var cut_mats := {}      # Mauermaterial mit Durchblick (mauer.gdshader) je Oberfläche
 var block_meshes := {}
-var fest := {}          # Steine, die sich nie bewegen, je Material gesammelt: am Ende ein Körper statt hunderter
 var spark_meshes := {}  # Funkenform je Farbe, damit nicht jeder Treffer ein neues Material anlegt
+const MAUER_SHADER := preload("res://scripts/mauer.gdshader")
 
 func surf(name: String) -> StandardMaterial3D:
+	# fehlt die Datei, nimmt das Spiel die Datei des Ersatzes mit dessen eigener Tönung
 	if mats.has(name):
 		return mats[name]
 	var d: Array = SURF[name]
-	var path := "res://textures/%s.jpg" % d[0]
-	if not ResourceLoader.exists(path):
-		if d[3] != "":
-			mats[name] = surf(d[3])
-			return mats[name]
-		mats[name] = null
-		return null
+	var file: String = d[0]
+	var tint: Color = d[2]
+	var per: float = d[1]
+	if not ResourceLoader.exists("res://textures/%s.jpg" % file):
+		if d[3] == "":
+			mats[name] = null
+			return null
+		var e: StandardMaterial3D = surf(d[3])
+		var m0: StandardMaterial3D = e.duplicate()
+		m0.albedo_color = d[4]
+		m0.set_meta("period", e.get_meta("period"))
+		mats[name] = m0
+		return m0
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = load(path)
-	m.albedo_color = d[2]
-	var npath := "res://textures/%s_n.jpg" % d[0]
+	m.albedo_texture = load("res://textures/%s.jpg" % file)
+	m.albedo_color = tint
+	var npath := "res://textures/%s_n.jpg" % file
 	if ResourceLoader.exists(npath):
 		m.normal_texture = load(npath)
 		m.normal_enabled = not low_gfx
 		m.normal_scale = 0.9
 	m.roughness = 0.93
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	m.set_meta("period", d[1])
+	m.set_meta("period", per)
 	mats[name] = m
+	return m
+
+func cut_mat(name: String) -> ShaderMaterial:
+	# dieselbe Oberfläche als Mauer mit Durchblick: was zwischen Kamera und Figur steht, wird ausgespart
+	if cut_mats.has(name):
+		return cut_mats[name]
+	var src := surf(name)
+	var m := ShaderMaterial.new()
+	m.shader = MAUER_SHADER
+	m.set_shader_parameter("tex_albedo", src.albedo_texture)
+	m.set_shader_parameter("tint", src.albedo_color)
+	m.set_shader_parameter("tex_normal", src.normal_texture)
+	m.set_shader_parameter("use_normal", src.normal_texture != null and not low_gfx)
+	cut_mats[name] = m
 	return m
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, ua: Vector2, ub: Vector2, uc: Vector2, ud: Vector2) -> void:
@@ -303,96 +313,6 @@ func _block_mesh(size: Vector3, mat: StandardMaterial3D, uoff: float) -> ArrayMe
 	var m := st.commit()
 	block_meshes[key] = m
 	return m
-
-func _fest(surf_name: String, mesh: ArrayMesh, xf: Transform3D) -> void:
-	# Abschnitte von FELD x FELD Zellen: klein genug, dass die Kamera ferne Abschnitte gar nicht zeichnet und
-	# jeden Abschnitt nur wenige Lichter treffen (der Renderer rechnet höchstens acht Lichter je Körper)
-	var key := "%s|%d|%d" % [surf_name, floori(xf.origin.x / (CELL * FELD)), floori(xf.origin.z / (CELL * FELD))]
-	if not fest.has(key):
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		fest[key] = [st, surf_name]
-	fest[key][0].append_from(mesh, 0, xf)
-
-func _fest_bauen() -> void:
-	# die festen Steine eines Materials je Abschnitt als ein Körper: ein Zeichenaufruf (und einer je Schattenwurf) statt vieler
-	for k in fest:
-		var st: SurfaceTool = fest[k][0]
-		st.set_material(surf(fest[k][1]))
-		var mi := MeshInstance3D.new()
-		mi.mesh = st.commit()
-		mi.name = "Fest_" + k.replace("|", "_")
-		add_child(mi)
-	fest.clear()
-
-func _block(surf_name: String, pos: Vector3, size: Vector3, rot := 0.0, uoff := 0.0, sims := false, steht := false) -> Node3D:
-	# Halter am Fußpunkt; der Stein selbst ist ein Kind, damit das Absenken nur die Höhe des Halters ändert.
-	# sims: helleres, überstehendes Gesims obendrauf, wie an ägyptischen Tempelmauern
-	# steht: der Stein sinkt nie ab (niedrige Mauern, Sockel) und wird mit seinesgleichen zusammengefasst
-	if steht:
-		var xf := Transform3D(Basis(Vector3.UP, rot), pos)
-		_fest(surf_name, _block_mesh(size, surf(surf_name), uoff), xf)
-		if sims:
-			_fest(surf_name + "_sims", _block_mesh(Vector3(size.x + 0.1, 0.32, size.z + 0.36), surf(surf_name + "_sims"), uoff + 0.13), xf.translated_local(Vector3(0, size.y, 0)))
-		return null
-	var holder := Node3D.new()
-	holder.position = pos
-	holder.rotation.y = rot
-	var mi := MeshInstance3D.new()
-	mi.mesh = _block_mesh(size, surf(surf_name), uoff)
-	holder.add_child(mi)
-	if sims:
-		var cap := MeshInstance3D.new()
-		cap.mesh = _block_mesh(Vector3(size.x + 0.1, 0.32, size.z + 0.36), surf(surf_name + "_sims"), uoff + 0.13)
-		cap.position.y = size.y
-		holder.add_child(cap)
-	add_child(holder)
-	return holder
-
-func _probe(pos: Vector3, size: Vector3, vis: Node3D) -> void:
-	# unsichtbarer Körper nur für den Sichtstrahl der Kamera (Ebene 5, Wert 16): lässt Pfeiler absinken,
-	# ohne Laufwege oder Sichtlinien der Gegner zu ändern (die prüfen nur Ebene 1; Held 2, Gegner 4)
-	var b := StaticBody3D.new()
-	b.set_meta("vis", vis)
-	b.collision_layer = 16
-	b.collision_mask = 0
-	var c := CollisionShape3D.new()
-	var s := BoxShape3D.new()
-	s.size = size
-	c.shape = s
-	b.add_child(c)
-	b.position = pos + Vector3(0, size.y / 2, 0)
-	add_child(b)
-
-func _floor_mesh(cells: Array, surf_name: String) -> void:
-	# Bodenzellen einer Sorte je Abschnitt als eine Fläche: wenige Zeichenaufrufe, Muster läuft nahtlos durch.
-	# Abschnitte statt einer einzigen Fläche, weil der Renderer je Körper höchstens acht Lichter rechnet.
-	var teile := {}
-	for c in cells:
-		var k := Vector2i(c.x / FELD, c.y / FELD)
-		if not teile.has(k):
-			teile[k] = []
-		teile[k].append(c)
-	for k in teile:
-		_floor_teil(teile[k], surf_name)
-
-func _floor_teil(cells: Array, surf_name: String) -> void:
-	var mat := surf(surf_name)
-	var p: float = mat.get_meta("period")
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for c in cells:
-		var x0: float = c.x * CELL
-		var z0: float = c.y * CELL
-		var x1 := x0 + CELL
-		var z1 := z0 + CELL
-		_quad(st, Vector3(x0, 0.02, z1), Vector3(x1, 0.02, z1), Vector3(x1, 0.02, z0), Vector3(x0, 0.02, z0), Vector3.UP,
-			Vector2(x0, z1) / p, Vector2(x1, z1) / p, Vector2(x1, z0) / p, Vector2(x0, z0) / p)
-	st.set_material(mat)
-	st.generate_tangents()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	add_child(mi)
 
 func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> StaticBody3D:
 	var b := StaticBody3D.new()
@@ -435,114 +355,24 @@ func _build_env() -> void:
 	add_child(moon)
 
 func _build_world() -> void:
-	astar.region = Rect2i(0, 0, W * 2, H * 2)
-	astar.cell_size = Vector2(2, 2)
-	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	astar.update()
-	# Sandboden unter allem, damit Lücken nicht ins Leere schauen
-	var ground := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(W * CELL + 80, H * CELL + 80)
-	ground.mesh = pm
-	var gm := surf("sand_aussen")
-	if gm:
-		ground.mesh = null
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var e := Vector2(W * CELL + 80, H * CELL + 80) / 2
-		var gp: float = gm.get_meta("period")
-		_quad(st, Vector3(-e.x, 0, e.y), Vector3(e.x, 0, e.y), Vector3(e.x, 0, -e.y), Vector3(-e.x, 0, -e.y), Vector3.UP,
-			Vector2(-e.x, e.y) / gp, Vector2(e.x, e.y) / gp, Vector2(e.x, -e.y) / gp, Vector2(-e.x, -e.y) / gp)
-		st.set_material(gm)
-		st.generate_tangents()
-		ground.mesh = st.commit()
+	# die Stunde aus karte.gd: Dungeon (Stunden 2–5 und die offenen Stunden je nach Vorlage) oder Freiland
+	karte = Karte.new()
+	if hdef.has("dungeon"):
+		karte.gen_dungeon(hdef.dungeon)
 	else:
-		gm = StandardMaterial3D.new()
-		gm.albedo_color = Color(0.16, 0.135, 0.10)
-		gm.roughness = 1.0
-		ground.material_override = gm
-	ground.position = Vector3(W * CELL / 2, -0.12, H * CELL / 2)
-	add_child(ground)
-	var groups := {}   # Rudel-Plätze aus der Karte: Schlüssel -> Zellen
-	var floors := {"gruft": [], "sand": []}
-	for cz in H:
-		for cx in W:
-			var ch: String = MAP[cz][cx]
-			var p := cell_pos(cx, cz)
-			if ch == "#":
-				for sx in 2:
-					for sz in 2:
-						astar.set_point_solid(Vector2i(cx * 2 + sx, cz * 2 + sz), true)
-				continue
-			var corridor := (not is_floor(cx - 1, cz) and not is_floor(cx + 1, cz)) or (not is_floor(cx, cz - 1) and not is_floor(cx, cz + 1))
-			var crypt := CRYPT.has_point(Vector2i(cx, cz))
-			# Räume: Gruftplatten · Gänge: Wüstensand (solange T09 fehlt: Pflaster)
-			floors["sand" if corridor and not crypt else "gruft"].append(Vector2i(cx, cz))
-			# Mauern an jeder Kante zum Fels. Die Kamera schaut von Südosten: Mauern auf dieser Seite bleiben niedrig,
-			# damit sie die Figur nicht verdecken.
-			var edges := [[0, -1, 0.0, false], [0, 1, PI, true], [-1, 0, PI / 2, false], [1, 0, -PI / 2, true]]
-			for e in edges:
-				if is_floor(cx + e[0], cz + e[1]):
-					continue
-				var wp := p + Vector3(e[0], 0, e[1]) * (CELL / 2)
-				var low: bool = e[3]
-				# Versatz der Steinlagen je nach Lage: Mauerstücke wirken nicht wie Stempel
-				var uoff: float = [0.0, 0.5, 0.25, 0.75][(cx * 3 + cz * 5) % 4] if e[1] != 0 else [0.0, 0.5, 0.25, 0.75][(cz * 3 + cx) % 4]
-				var wn := _block("granit" if crypt else "sandstein", wp, Vector3(CELL, 1.2 if low else 4.0, 1.0), e[2], uoff, true, low)
-				_box(wp, Vector3(CELL, 4.0, 1.0), e[2], null if low else wn)
-				if not low and (cx * 5 + cz * 3) % 3 == 0 and torches.size() < 16:
-					_torch(wp + Vector3(-e[0], 0, -e[1]) * 0.55 + Vector3(0, 2.4, 0), e[2])
-			match ch:
-				"S":
-					start_pos = p
-				"B":
-					boss = _spawn("boss", p, 99, "", hdef)
-					boss.home_face = PI * 0.75
-				"m", "p":
-					# Nachbarn im Umkreis bilden einen Rudel-Platz
-					var key := "%d_%d" % [cx / 5, cz / 4]
-					if not groups.has(key):
-						groups[key] = []
-					groups[key].append(p)
-				"t":
-					var kindp: String = ["barrel_large", "crates_stacked", "barrel_small_stack", "box_large"][(cx + cz) % 4]
-					var bn := _piece(kindp, p + Vector3(-0.6, 0, -0.6), (cx * 3 + cz) % 4 * PI / 2)
-					var bb := _box(p + Vector3(-0.6, 0, -0.6), Vector3(2.0, 2.0, 2.0))
-					astar.set_point_solid(Vector2i(cx * 2, cz * 2), true)
-					breakables.append({"n": bn, "body": bb, "sub": Vector2i(cx * 2, cz * 2), "pos": p + Vector3(-0.6, 0, -0.6)})
-				"k", "K", "P":
-					_chest(p + Vector3(0.6, 0, -0.9), {"k": 0, "K": 1, "P": 2}[ch])
-				"c":
-					_column(p)
-					_box(p, Vector3(1.6, 4.0, 1.6))
-					for sx in 2:
-						for sz in 2:
-							astar.set_point_solid(Vector2i(cx * 2 + sx, cz * 2 + sz), true)
-	# Eckpfeiler dort, wo Mauern über Eck stehen
-	for vz in H + 1:
-		for vx in W + 1:
-			var f := [is_floor(vx - 1, vz - 1), is_floor(vx, vz - 1), is_floor(vx - 1, vz), is_floor(vx, vz)]
-			var n := int(f[0]) + int(f[1]) + int(f[2]) + int(f[3])
-			if n == 1 or n == 3 or (n == 2 and f[0] == f[3]):
-				var low: bool = f[0] and not (f[1] and f[2])   # liegt die Ecke südöstlich einer Bodenzelle, bleibt sie niedrig
-				var in_crypt := false
-				for q in [Vector2i(vx - 1, vz - 1), Vector2i(vx, vz - 1), Vector2i(vx - 1, vz), Vector2i(vx, vz)]:
-					if CRYPT.has_point(q) and is_floor(q.x, q.y):
-						in_crypt = true
-				var pp := Vector3(vx * CELL, 0, vz * CELL)
-				var pn := _block("granit" if in_crypt else "sandstein", pp, Vector3(1.3, 1.5 if low else 4.5, 1.3), 0.0, 0.37, true, low)
-				if not low:
-					pn.set_meta("pfeiler", true)
-					_probe(pp, Vector3(1.3, 4.5, 1.3), pn)
-	for k in floors:
-		_floor_mesh(floors[k], k)
-	_fest_bauen()
-	_spawn_packs(groups)
+		karte.gen_outdoor(hdef.mix)
+	Welt.new(self, karte).bauen()
 	total = foes.size() - 1
-	# Irrende Ba: Lichter, die gegen den Wind ziehen
-	for i in 7:
+	if karte.indoor:
+		# drinnen kein Mondlicht, dafür etwas mehr Grundlicht, damit Räume außerhalb der Fackeln nicht schwarz bleiben
+		env.ambient_light_energy = 0.26
+		env.ambient_light_color = Color(0.36, 0.38, 0.5)
+		moon.light_energy = 0.1
+	# Irrende Ba: Lichter, die gegen den Wind ziehen (Farbe nach der Stunde)
+	var mote := Color(hdef.get("mote", "#bcd0e8"))
+	for i in 5:
 		var w := OmniLight3D.new()
-		w.light_color = Color(0.5, 0.95, 0.9)
+		w.light_color = mote
 		w.light_energy = 0.9
 		w.omni_range = 5.0
 		var m := MeshInstance3D.new()
@@ -552,62 +382,12 @@ func _build_world() -> void:
 		m.mesh = sm
 		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.albedo_color = Color(0.75, 1.0, 0.97)
+		mat.albedo_color = mote.lightened(0.4)
 		m.material_override = mat
 		w.add_child(m)
 		add_child(w)
 		w.position = Vector3(randf_range(6, W * CELL - 6), 3.0, randf_range(6, H * CELL - 6))
 		wisps.append({"n": w, "ph": randf() * TAU, "sp": randf_range(0.5, 1.0)})
-
-func _column(p: Vector3) -> void:
-	# runde Granitsäule mit Sockel und Deckplatte, wie in einer Grabkammer
-	if not mats.has("säule"):
-		var sm: StandardMaterial3D = surf("granit").duplicate()
-		sm.uv1_scale = Vector3(1.1, 1.0, 1.0)   # Umfang ≈ 4,4 m, Höhe 4 m: Steinmaß wie an der Mauer
-		mats["säule"] = sm
-	var mat: StandardMaterial3D = mats["säule"]
-	var col := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.62
-	cm.bottom_radius = 0.7
-	cm.height = 4.0
-	cm.radial_segments = 20
-	cm.rings = 1
-	col.mesh = cm
-	col.material_override = mat
-	col.position = p + Vector3(0, 2.0, 0)
-	add_child(col)
-	_block("granit", p, Vector3(1.7, 0.35, 1.7), 0.0, 0.1, false, true)
-	_block("granit", p + Vector3(0, 3.7, 0), Vector3(1.6, 0.4, 1.6), 0.0, 0.6, false, true)
-	# Feuerschale obendrauf: sonst bleibt die Gruft des Hüters fast schwarz
-	var l := OmniLight3D.new()
-	l.light_color = Color(1.0, 0.6, 0.3)
-	l.light_energy = 1.9   # flackert wie die Fackeln um diesen Wert
-	l.omni_range = 13.0
-	l.omni_attenuation = 1.3
-	l.position = p + Vector3(0, 4.7, 0)
-	add_child(l)
-	var fl := CPUParticles3D.new()
-	fl.amount = 18
-	fl.lifetime = 0.6
-	fl.direction = Vector3(0, 1, 0)
-	fl.spread = 18.0
-	fl.gravity = Vector3(0, 1.5, 0)
-	fl.initial_velocity_min = 0.6
-	fl.initial_velocity_max = 1.3
-	fl.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	fl.emission_sphere_radius = 0.35
-	var qm := SphereMesh.new()
-	qm.radius = 0.15
-	qm.height = 0.3
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.albedo_color = Color(1.0, 0.72, 0.3)
-	qm.material = fm
-	fl.mesh = qm
-	fl.position = p + Vector3(0, 4.2, 0)
-	add_child(fl)
-	torches.append({"l": l, "ph": randf() * 10.0})
 
 func _torch(pos: Vector3, rot: float) -> void:
 	var t := _piece("torch_mounted", pos, rot)
@@ -665,47 +445,6 @@ func _chest(pos: Vector3, tier: int) -> void:
 		add_child(o)
 	astar.set_point_solid(_sub(pos), true)
 	chests.append({"n": n, "lid": lid, "tier": tier, "open": false, "label": l, "body": body, "pos": pos})
-
-# Rudel nach den Daten der Stunde (03-world.js › newFall): Zusammensetzung aus hdef.packs, Größe je Schwierigkeit,
-# das erste Mitglied mit 20 % Elite, Aufstellung je Stil (Lager, Wache, Streife, Ruhe, Hinterhalt)
-func _spawn_packs(groups: Dictionary) -> void:
-	var D := Spiel.D()
-	var pid := 0
-	for key in groups:
-		var cells: Array = groups[key]
-		var c := Vector3.ZERO
-		for q in cells:
-			c += q
-		c /= cells.size()
-		c = cells[0] if not walkable(cells[0], c) else c
-		pid += 1
-		var comp := Stunden.expand(hdef.packs.pick_random())
-		comp = comp.slice(0, maxi(2, int(round(comp.size() * float(D.pack)))))
-		var style: String = ["ruhe", "lager", "wache", "streife", "hinterhalt"].pick_random()
-		var far: Vector3 = cells[0]
-		for q in cells:
-			if (q - c).length() > (far - c).length():
-				far = q
-		var way := [c, far if (far - c).length() > 3.0 else c + Vector3(4, 0, 0)]
-		var face := randf() * TAU
-		var lead: Foe = null
-		if style == "lager":
-			_campfire(c)
-		for i in comp.size():
-			var pos := _pack_pos(style, c, face, i, comp.size())
-			if not walkable(c, pos) or astar.is_point_solid(_sub(pos)):
-				pos = cells.pick_random() + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8))
-			var el: String = Daten.ELITE.pick_random().id if i == 0 and randf() < 0.2 else ""
-			var f := _spawn(comp[i], pos, pid, el, hdef)
-			f.home_face = atan2(c.x - pos.x, c.z - pos.z) if style == "lager" else face
-			f.face = f.home_face
-			if f.model:
-				f.model.rotation.y = f.face
-			f.set_style(style, way)
-			if style == "streife":
-				f.lead = lead
-				if lead == null:
-					lead = f
 
 func _pack_pos(style: String, c: Vector3, face: float, i: int, n: int) -> Vector3:
 	var fwd := Vector3(sin(face), 0, cos(face))
@@ -786,13 +525,13 @@ func walkable(a: Vector3, b: Vector3) -> bool:
 	var side := Vector3(-d.z, 0, d.x).normalized() * 0.5
 	var sp := get_world_3d().direct_space_state
 	for s in [side, -side]:
-		var q := PhysicsRayQueryParameters3D.create(a + s + Vector3(0, 0.6, 0), b + s + Vector3(0, 0.6, 0), 1)
+		var q := PhysicsRayQueryParameters3D.create(a + s + Vector3(0, 0.6, 0), b + s + Vector3(0, 0.6, 0), 1 | Welt.LOW_LAYER)
 		if not sp.intersect_ray(q).is_empty():
 			return false
 	return true
 
 func _sub(p: Vector3) -> Vector2i:
-	return Vector2i(clampi(int(p.x / 2.0), 0, W * 2 - 1), clampi(int(p.z / 2.0), 0, H * 2 - 1))
+	return Vector2i(clampi(int(p.x / CELL), 0, W - 1), clampi(int(p.z / CELL), 0, H - 1))
 
 func find_path(a: Vector3, b: Vector3) -> PackedVector3Array:
 	var out := PackedVector3Array()
@@ -1556,8 +1295,7 @@ func on_boss_dead() -> void:
 		if f.global_position.distance_to(boss.global_position) < 30.0:
 			f.hit(9999.0, boss.global_position)
 	# die Pforte wächst in der Mitte der Bodenplatte, auf der der Hüter fiel (nie in einer Mauer)
-	var bp := boss.global_position
-	_build_gate(cell_pos(clampi(int(bp.x / CELL), 0, W - 1), clampi(int(bp.z / CELL), 0, H - 1)))
+	_build_gate(Welt.cell_pos(karte.lair))
 
 func on_hero_dead() -> void:
 	deaths += 1
@@ -1568,9 +1306,9 @@ func on_hero_dead() -> void:
 	sfx.say("vo_death")
 	get_tree().paused = true
 	if Spiel.hc:
-		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, "ersten Stunde"], func(): restart(false), "Neue Figur anlegen")
+		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, Stunden.hour_txt(Spiel.fall)], func(): restart(false), "Neue Figur anlegen")
 		return
-	hud.show_dead(TXT.dead, func():
+	hud.show_dead(DEAD_TXT, func():
 		sfx.hush()
 		for f in foes:
 			if f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING:
@@ -1647,13 +1385,22 @@ func _ask_gate() -> void:
 	sfx.play("ui")
 	sfx.say("vo_epi")
 	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], ["%d/%d" % [chests_open, chests.size()], "Truhen"], ["%d/%d" % [Spiel.evid.size(), Daten.EVID.size()], "Seiten"], [str(deaths), "Rückschläge"]]
-	hud.show_gate(TXT.no + " · VOLLENDET", TXT.name, TXT.epi, stats, "HINTER DER PFORTE · ZWEITE STUNDE DER NACHT", TXT.next, TXT.next_lead,
+	var n1 := Spiel.fall + 1
+	var nd := Stunden.def(n1)
+	hud.show_gate(Stunden.case_no(Spiel.fall) + " · VOLLENDET", hdef.name, hdef.epi, stats, "HINTER DER PFORTE · " + Stunden.case_no(n1), nd.name, nd.lead,
 		func():
 			sfx.hush()
-			hud.show_chapter("ENDE DER PROBESTUNDE", "Herz und Feder", "Hinter der Pforte liegen die Felder von Wernes.", "Das war die erste Stunde der Nacht als 3D-Probe. Wenn sie dir gefällt, bauen wir von hier aus weiter.", "Noch einmal von vorn", func(): restart(true)),
+			go_hour(n1),
 		func():
 			sfx.hush()
 			get_tree().paused = false)
+
+# in eine andere Stunde wechseln (Pforte, Startbildschirm, Tasche): die Welt baut sich mit der neuen Stunde neu auf
+func go_hour(n: int) -> void:
+	Spiel.fall = clampi(n, 1, maxi(Spiel.max_fall, n))
+	Spiel.max_fall = maxi(Spiel.max_fall, Spiel.fall)
+	Spiel.speichern()
+	restart(true)
 
 func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
@@ -1847,6 +1594,8 @@ func set_low(low: bool, still := false) -> void:
 		if m:
 			m.normal_enabled = not low and m.normal_texture != null
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if low else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	for name in cut_mats:
+		cut_mats[name].set_shader_parameter("use_normal", not low and surf(name).normal_texture != null)
 	if not still:
 		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 
@@ -1947,33 +1696,12 @@ func _physics_process(delta: float) -> void:
 			gate_ask = false
 			_ask_gate()
 
-func _cutaway(delta: float) -> void:
-	# Strahlen von der Kamera zur Figur: Was dazwischen steht, sinkt auf Brusthöhe und hebt sich danach wieder
-	var sp := get_world_3d().direct_space_state
-	var side := Vector3(1, 0, -1).normalized()
-	for off in [Vector3(0, 0.4, 0), Vector3(0, 1.8, 0), side * 0.9 + Vector3(0, 1.0, 0), -side * 0.9 + Vector3(0, 1.0, 0)]:
-		var excl: Array[RID] = []
-		for i in 3:
-			var q := PhysicsRayQueryParameters3D.create(cam.global_position, hero.global_position + off, 1 | 16)
-			q.exclude = excl
-			var r := sp.intersect_ray(q)
-			if r.is_empty():
-				break
-			excl.append(r.rid)
-			if r.collider.has_meta("vis"):
-				sunk[r.collider.get_meta("vis")] = 0.35
-	for n in sunk.keys():
-		sunk[n] -= delta
-		var want := -WALL_SINK if sunk[n] > 0.0 else 0.0
-		n.position.y = move_toward(n.position.y, want, delta * 5.0 * 4.0)
-		if sunk[n] <= 0.0 and n.position.y >= -0.001:
-			n.position.y = 0.0
-			sunk.erase(n)
-
 func _process(delta: float) -> void:
 	shake = maxf(0.0, shake - delta * 2.2)
 	_place_cam(minf(1.0, delta * 6.0))
-	_cutaway(delta)
+	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte
+	RenderingServer.global_shader_parameter_set("cut_cam", cam.global_position)
+	RenderingServer.global_shader_parameter_set("cut_hero", hero.global_position)
 	var t := Time.get_ticks_msec() * 0.001
 	for tc in torches:
 		tc.l.light_energy = 1.9 + sin(t * 9.0 + tc.ph) * 0.22 + sin(t * 23.0 + tc.ph * 2.0) * 0.12

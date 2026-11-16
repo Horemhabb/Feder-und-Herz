@@ -178,14 +178,24 @@ func run() -> void:
 	await wait(1.0)
 	G.touch = false
 	check("Handy: kurzer Fingertipp auf einen Gegner schlägt zu", ziel.hp < hp_vor)
-	check("Zeit läuft nach dem Treffer normal weiter", is_equal_approx(Engine.time_scale, 1.0))
+	# die Figur greift von selbst weiter an, darum kann gerade ein neuer Trefferstopp laufen: kurz darauf muss er vorbei sein
+	var ts_ok := false
+	for i in 10:
+		if is_equal_approx(Engine.time_scale, 1.0):
+			ts_ok = true
+			break
+		await wait(0.03)
+	check("Zeit läuft nach dem Treffer normal weiter", ts_ok)
 	shot("angriff")
 	# Niederlage und Rückkehr
 	h.pots = 0
 	h.inv = 0.0
 	h.hp = 3.0
 	# ein Gegner, der den Auto-Angriff der Figur überlebt, steht direkt daneben und ist wach
-	var killer: Foe = G.foes.filter(func(f): return f.kind != "boss" and f.state != Foe.St.DEAD)[0]
+	var cand: Array = G.foes.filter(func(f): return f.kind != "boss" and f.state != Foe.St.DEAD and f.K.ai == "melee" and not f.hidden)
+	if cand.is_empty():
+		cand = G.foes.filter(func(f): return f.kind != "boss" and f.state != Foe.St.DEAD)
+	var killer: Foe = cand[0]
 	killer.max_hp = 1e6
 	killer.hp = 1e6
 	h.global_position = killer.global_position + Vector3(1.6, 0, 0)
@@ -194,6 +204,7 @@ func run() -> void:
 	var t0 := Time.get_ticks_msec()
 	while not h.dead and Time.get_ticks_msec() - t0 < 25000:
 		h.inv = 0.0
+		h.hp = minf(h.hp, 3.0)   # ein Stufenaufstieg durch den Auto-Angriff heilt sonst
 		await wait(0.2)
 	check("die Figur kann fallen", h.dead)
 	await wait(2.6)
@@ -230,12 +241,19 @@ func run() -> void:
 	mouse(c, MOUSE_BUTTON_LEFT, true)
 	await wait(0.1)
 	mouse(c, MOUSE_BUTTON_LEFT, false)
-	await wait(1.3)
-	check("Mausklick auf „Durch die Pforte gehen“ zeigt die Schlusstafel", G.hud.overlay != null and G.hud.primary_btn != null and "vorn" in G.hud.primary_btn.text)
-	shot("ende")
-	await key(KEY_ENTER)
 	await wait(2.5)
 	var G2 := g()
-	check("„Noch einmal von vorn“ lädt die Stunde neu", G2 != null and G2 != G and not G2.started and G2.hud.overlay != null and G2.kills == 0)
+	check("Mausklick auf „Durch die Pforte gehen“ führt in die zweite Stunde", G2 != null and G2 != G and Spiel.fall == 2 and Spiel.max_fall >= 2)
+	check("die zweite Stunde ist ein Dungeon mit eigener Karte", G2 != null and G2.karte.indoor and G2.karte.kind == "ruin" and G2.hdef.name == "Die Felder von Wernes")
+	check("Kapiteltafel der zweiten Stunde steht", G2 != null and not G2.started and G2.hud.overlay != null)
+	shot("stunde2")
+	await key(KEY_ENTER)
+	await wait(1.0)
+	check("Eintreten startet die zweite Stunde", G2.started and not get_tree().paused and G2.foes.size() > 10 and G2.chests.size() > 0)
+	check("Hüter der zweiten Stunde ist die Mutter der Häute", G2.boss.K.name == "Die Mutter der Häute")
+	G2.go_hour(1)
+	await wait(2.5)
+	var G3 := g()
+	check("Stundenwahl: zurück in die erste Stunde (Freiland)", G3 != null and G3 != G2 and Spiel.fall == 1 and Spiel.max_fall == 2 and not G3.karte.indoor)
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()

@@ -41,6 +41,11 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--klasse="):
 			neue_figur(a.substr(9), diff, false)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--stunde="):
+			# Testläufe: „-- --stunde=3“ beginnt in dieser Stunde
+			fall = maxi(1, int(a.substr(9)))
+			max_fall = maxi(max_fall, fall)
 	calc()
 
 func neue_figur(c: String, d: int, hardcore: bool) -> void:

@@ -196,6 +196,17 @@ func render() -> void:
 		add_child(pv)
 	if found.size() < Daten.EVID.size():
 		add_child(hud._para("Noch nicht gefunden … Elite-Gegner und Hüter tragen die Seiten bei sich.", 13, Color(Hud.DIM, 0.6)))
+	# Stunde wechseln: jede erreichte Stunde noch einmal betreten (beginnt neu)
+	if Spiel.max_fall > 1:
+		add_child(_h3("STUNDE WECHSELN"))
+		var hf := HFlowContainer.new()
+		hf.add_theme_constant_override("h_separation", 6)
+		hf.add_theme_constant_override("v_separation", 6)
+		for n in range(maxi(1, Spiel.max_fall - 11), Spiel.max_fall + 1):
+			var nn: int = n
+			hf.add_child(_knopf("%d · %s" % [Stunden.hour_of(n), Stunden.def(n).name] if Stunden.night_of(n) == 1 else Stunden.hour_txt(n),
+				n == Spiel.fall, func(): game.go_hour(nn), n != Spiel.fall))
+		add_child(hf)
 	# Neue Figur
 	var nf := HBoxContainer.new()
 	nf.add_theme_constant_override("separation", 10)

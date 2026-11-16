@@ -138,7 +138,7 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 	else:
 		_build_proc(K.look, r, K.get("bcol", K.get("col", Color.WHITE)) if k == "boss" else K.col)
 	collision_layer = 4
-	collision_mask = 1 | 2 | 4
+	collision_mask = 1 | 2 | 4 | 32
 	hp = max_hp
 	position = pos
 	home = pos

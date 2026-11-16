@@ -47,7 +47,7 @@ func _ready() -> void:
 		cd[id] = 0.0
 	setup("res://models/chars/%s.glb" % C.model, 1.0, 0.55)
 	collision_layer = 2
-	collision_mask = 1 | 4
+	collision_mask = 1 | 4 | 32
 	apply_stats(true)
 	for n in Klassen.WEAPONS:
 		if not C.keep.has(n):
@@ -61,6 +61,11 @@ func _ready() -> void:
 	lantern.omni_attenuation = 1.3
 	lantern.shadow_enabled = true
 	lantern.position = Vector3(0, 2.6, 0)
+	# die Figur wirft im Licht ihrer eigenen Laterne keinen Schatten (sonst liegt ein dunkler Fleck um sie herum);
+	# im Mondlicht schon. Dafür liegt sie auf Sichtebene 2, die die Laterne beim Schattenwurf auslässt.
+	for m in meshes:
+		m.layers = 2
+	lantern.shadow_caster_mask = 0xFFFFF & ~2
 	add_child(lantern)
 	aura = OmniLight3D.new()
 	aura.light_color = Color(1.0, 0.85, 0.3)
@@ -165,7 +170,7 @@ func _physics_process(delta: float) -> void:
 		velocity = dash_dir * 30.0
 		move_and_slide()
 		if dash_t <= 0.0:
-			collision_mask = 1 | 4
+			collision_mask = 1 | 4 | 32
 			if dash_slam.y > 0.0:
 				game.hero_slam(global_position, dash_slam.x, dash_slam.y, 9.0)
 		turn(delta)
@@ -270,7 +275,7 @@ func _jump(max_d: float, r: float, mult: float) -> void:
 	dash_t = dist / 30.0
 	dash_slam = Vector2(r, mult)
 	inv = maxf(inv, dash_t + 0.45)
-	collision_mask = 1
+	collision_mask = 1 | 32
 	play(ANIM.get(ORDER[1], "Dodge_Forward"), 1.6, 0.05, true)
 	game.sfx.play("dash")
 

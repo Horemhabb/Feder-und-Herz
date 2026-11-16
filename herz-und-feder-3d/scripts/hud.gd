@@ -40,6 +40,7 @@ var l_lvl: Label
 var tasche_btn: Button
 var tree_btn: Button
 var l_quer: Label          # Hinweis, das Handy quer zu halten
+var intro_fall := 1        # im Startbildschirm gewählte Stunde
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
 func _ready() -> void:
@@ -54,8 +55,8 @@ func _ready() -> void:
 	tl.custom_minimum_size = Vector2(330, 0)
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tl)
-	tl.add_child(_label(game.TXT.no, 13, GOLD))
-	tl.add_child(_label(game.TXT.name, 24, PARCH))
+	tl.add_child(_label(Stunden.case_no(Spiel.fall), 13, GOLD))
+	tl.add_child(_label(game.hdef.name, 24, PARCH))
 	bar_track = _bar(TEAL, 6)
 	tl.add_child(bar_track)
 	l_track = _label("", 13, DIM)
@@ -692,7 +693,33 @@ func _class_card(c: String) -> Control:
 		_render_intro())
 	return b
 
+# Stunde wählen (02-ui.js › Stundenwahl): jede schon erreichte Stunde lässt sich noch einmal betreten
+func _hour_pick() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_label("STUNDE  ", 12, DIM))
+	for step in [-1, 1]:
+		var b := _button("  ◀  " if step < 0 else "  ▶  ", false, func(): pass)
+		for c in b.pressed.get_connections():
+			b.pressed.disconnect(c.callable)
+		var st: int = step
+		b.disabled = intro_fall + st < 1 or intro_fall + st > Spiel.max_fall
+		b.pressed.connect(func():
+			game.sfx.play("ui")
+			intro_fall = clampi(intro_fall + st, 1, Spiel.max_fall)
+			_render_intro())
+		if step < 0:
+			row.add_child(b)
+		else:
+			var l := _label("%s · %s" % [Stunden.hour_txt(intro_fall), Stunden.def(intro_fall).name], 15, PARCH if intro_fall == Spiel.fall else TEAL)
+			l.custom_minimum_size = Vector2(380, 0)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			row.add_child(l)
+			row.add_child(b)
+	return row
+
 func show_intro(force_new := false) -> void:
+	intro_fall = Spiel.fall
 	intro_new = force_new or not Spiel.hat_stand
 	intro_diff = Spiel.diff
 	intro_hc = false
@@ -735,6 +762,8 @@ func _intro_rest(v: VBoxContainer) -> void:
 					names.append(Klassen.SK[id].name)
 			v.add_child(_para("%s · %s" % [C.like, C.txt], 14, PARCH))
 			v.add_child(_para("Fähigkeiten: " + ", ".join(names), 12, DIM))
+	if not intro_new and Spiel.max_fall > 1:
+		v.add_child(_hour_pick())
 	if not game.touch:
 		v.add_child(_para("SCHWIERIGKEIT", 12, DIM))
 	var row := HBoxContainer.new()
@@ -763,7 +792,7 @@ func _intro_rest(v: VBoxContainer) -> void:
 		v.add_child(_para(chapter_note, 14, TEAL))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
-	var go := func(): game.start_game(intro_new, intro_diff, intro_hc, intro_cls)
+	var go := func(): game.start_game(intro_new, intro_diff, intro_hc, intro_cls, intro_fall)
 	primary_btn = _button(_taste("  %s  [E]  " % ("Die Nacht betreten" if intro_new else "Weiterspielen")), true, go)
 	btns.add_child(primary_btn)
 	if not intro_new:
