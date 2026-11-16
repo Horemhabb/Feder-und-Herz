@@ -50,10 +50,10 @@ func _physics_process(delta: float) -> void:
 		# Fenster: Niederlage bestätigen, Pforte ansehen und durchgehen
 		if game.hud.overlay and frames % 30 == 0:
 			if game.gate and not h.dead:
+				# die Pforte führt in die nächste Stunde (die Szene lädt neu): hier endet der Bot
 				shot("pforte_fenster")
-				game.hud.press_primary()
 				phase = "ende"
-				get_tree().create_timer(1.5, true, false, true).timeout.connect(func(): shot("ende"); finish("durch die Pforte"))
+				finish("an der Pforte")
 			else:
 				shot("niederlage")
 				game.hud.press_primary()
