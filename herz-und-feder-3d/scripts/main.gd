@@ -8,6 +8,10 @@ const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "mod
 const DEAD_TXT := "Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort."
 var karte: Karte               # die generierte Stunde (karte.gd), gebaut von welt.gd
 var karte_ui: KarteAnzeige
+var lichter: Array = []        # feste Lichter der Stunde: weit entfernte werden abgeschaltet (der Renderer rechnet höchstens 32)
+var spar_t := 0.0
+var freeze_foes := false       # der Rundgang hält die Gegner selbst an
+var orte: Orte                 # Feuerschalen, Schreine, Seelenkrüge, Figur, Fundstück und das Questbuch der Stunde
 
 var hero: Hero
 var sfx: Sfx
@@ -68,8 +72,14 @@ func _ready() -> void:
 		AudioServer.add_bus_effect(0, lim)
 	Spiel.pots = mini(Daten.POTS, Spiel.pots + 2)
 	hdef = Stunden.def(Spiel.fall)
+	orte = Orte.new()
+	orte.game = self
+	add_child(orte)
 	_build_env()
 	_build_world()
+	orte.setup()
+	for l in find_children("*", "OmniLight3D", true, false):
+		lichter.append(l)
 	hero = Hero.new()
 	hero.game = self
 	add_child(hero)
@@ -137,7 +147,7 @@ func begin() -> void:
 		set_fullscreen(true)
 	sfx.hush()
 	started = true
-	sfx.music(area_music())
+	sfx.music_set(area_music())
 	get_tree().paused = false
 	Spiel.speichern()
 	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
@@ -189,6 +199,9 @@ func toggle_bag() -> void:
 		Spiel.neu = 0
 		hud.show_bag()
 
+func add_site(kind: String, pos: Vector3, v: int) -> void:
+	orte.add(kind, pos, v)
+
 func is_floor(cx: int, cz: int) -> bool:
 	return Karte.in_grid(cx, cz) and not karte.wall(cx, cz)
 
@@ -215,6 +228,7 @@ const SURF := {
 	"pflaster": ["t06_pflaster", 4.0, Color(0.95, 0.88, 0.78), "", Color.WHITE],
 	"sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68), "pflaster", Color(0.95, 0.88, 0.78)],
 	"sand_aussen": ["t09_sand", 6.0, Color(0.45, 0.40, 0.35), "", Color.WHITE],
+	"weg": ["t06_pflaster", 4.0, Color(1.25, 1.12, 0.92), "", Color.WHITE],
 	# Stunden 2–5 (Bildauftrag W03–W05, T10–T12): bis die Bilder da sind, getönte Verwandte
 	"lehm": ["w03_lehm", 6.0, Color(1.0, 0.95, 0.88), "sandstein", Color(0.78, 0.66, 0.50)],
 	"feld": ["t10_feld", 6.0, Color(0.9, 0.85, 0.78), "sand", Color(0.72, 0.66, 0.50)],
@@ -331,30 +345,57 @@ func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> Static
 	add_child(b)
 	return b
 
+# Licht der Stunde. Vorbild sind die alten Dungeon-Spiele: kühles Grundlicht, in dem man alles erkennt,
+# dazu warme Lichtinseln aus Laterne, Fackeln und Feuerschalen. Draußen scheint der Mond, drinnen färbt die Stunde das Dunkel.
+const LICHT := {
+	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.36, "moon": 0.5, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
+	"ruin": {"amb": Color(0.52, 0.56, 0.5), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.08, 0.10, 0.09), "fog_d": 0.008, "bg": Color(0.01, 0.015, 0.02)},
+	"tomb": {"amb": Color(0.62, 0.48, 0.36), "amb_e": 0.46, "moon": 0.22, "fog": Color(0.10, 0.07, 0.04), "fog_d": 0.009, "bg": Color(0.015, 0.01, 0.008)},
+	"glass": {"amb": Color(0.38, 0.56, 0.66), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.04, 0.10, 0.13), "fog_d": 0.008, "bg": Color(0.008, 0.015, 0.025)},
+	"vault": {"amb": Color(0.5, 0.4, 0.68), "amb_e": 0.48, "moon": 0.25, "fog": Color(0.08, 0.05, 0.13), "fog_d": 0.009, "bg": Color(0.012, 0.008, 0.02)},
+}
+
 func _build_env() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.006, 0.008, 0.02)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.30, 0.38, 0.60)
-	env.ambient_light_energy = 0.17
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 1.0
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.03, 0.05, 0.10)
-	env.fog_density = 0.012
 	env.glow_enabled = true
 	env.glow_intensity = 0.7
 	env.glow_bloom = 0.15
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.15
+	env.adjustment_contrast = 1.06
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 	moon = DirectionalLight3D.new()
-	moon.light_color = Color(0.55, 0.68, 1.0)
-	moon.light_energy = 0.2
+	moon.light_color = Color(0.62, 0.74, 1.0)
 	moon.rotation_degrees = Vector3(-52, -35, 0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 70.0
+	# ein Schattenbild statt vier Stufen: bei dieser Kamera reicht das, und jedes Stück wird nur einmal mehr gezeichnet
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	add_child(moon)
+	# Aufhellung von der Kameraseite, ohne Schatten: Figuren heben sich vom Boden ab
+	var fill := DirectionalLight3D.new()
+	fill.light_color = Color(1.0, 0.86, 0.7)
+	fill.light_energy = 0.1
+	fill.rotation_degrees = Vector3(-35, 135, 0)
+	fill.shadow_enabled = false
+	add_child(fill)
+	_set_light("")
+
+func _set_light(kind: String) -> void:
+	var L: Dictionary = LICHT.get(kind, LICHT[""])
+	env.background_color = L.bg
+	env.ambient_light_color = L.amb
+	env.ambient_light_energy = L.amb_e
+	env.fog_light_color = L.fog
+	env.fog_density = L.fog_d
+	moon.light_energy = L.moon
 
 func _build_world() -> void:
 	# die Stunde aus karte.gd: Dungeon (Stunden 2–5 und die offenen Stunden je nach Vorlage) oder Freiland
@@ -365,11 +406,7 @@ func _build_world() -> void:
 		karte.gen_outdoor(hdef.mix)
 	Welt.new(self, karte).bauen()
 	total = foes.size() - 1
-	if karte.indoor:
-		# drinnen kein Mondlicht, dafür etwas mehr Grundlicht, damit Räume außerhalb der Fackeln nicht schwarz bleiben
-		env.ambient_light_energy = 0.26
-		env.ambient_light_color = Color(0.36, 0.38, 0.5)
-		moon.light_energy = 0.1
+	_set_light(karte.kind if karte.indoor else "")
 	# Irrende Ba: Lichter, die gegen den Wind ziehen (Farbe nach der Stunde)
 	var mote := Color(hdef.get("mote", "#bcd0e8"))
 	for i in 5:
@@ -1150,8 +1187,9 @@ func _take(b: Beute) -> bool:
 			hud.toast_item(Daten.icon_of(b.item), Daten.item_name(b.item), sub, Daten.RAR[b.item.rar].col, 6.5 if b.item.rar >= 2 else 4.0)
 			sfx.play("ui", 0.1)
 		"shard":
-			Spiel.shards += b.amount
-			float_text(hero.global_position, "+%d Scherben" % b.amount, Color(0.95, 0.85, 0.55))
+			var am := int(round(b.amount * float(Spiel.S.shard)))   # ein schweres Herz findet mehr
+			Spiel.shards += am
+			float_text(hero.global_position, "+%d Scherben" % am, Color(0.95, 0.85, 0.55))
 			sfx.play("ui", 0.15, -8.0)
 		"mat":
 			Spiel.mats[b.mat] += b.amount
@@ -1281,9 +1319,13 @@ func _open_chest(c: Dictionary) -> void:
 				drop("mat", c.pos, mats[k], k)
 			get_tree().paused = false)
 
-# Musik der Stunde: Wüstennacht im Freiland, Hallen der Duat im Dungeon
-func area_music() -> String:
-	return "mus_duat" if karte and karte.indoor else "mus_wueste"
+# Musik der Stunde: im Freiland die Wüstennacht, im Dungeon das Stück seiner Art, jeweils im Wechsel mit einem zweiten
+const MUSIK := {"ruin": "mus_felder", "tomb": "mus_grab", "glass": "mus_rosetau", "vault": "mus_hoehle"}
+
+func area_music() -> Array:
+	if karte and karte.indoor:
+		return [MUSIK.get(karte.kind, "mus_duat"), "mus_duat"]
+	return ["mus_wueste", "mus_titel"]
 
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
@@ -1296,7 +1338,7 @@ func on_boss_wake(b: Foe) -> void:
 
 func on_boss_dead() -> void:
 	hud.boss_hide()
-	sfx.music(area_music(), 3.0)
+	sfx.music_set(area_music(), 3.0)
 	hud.banner("Die Stunde ist vollendet. Eine Pforte steht offen.", "DER HÜTER IST GEFALLEN", 5.0)
 	sfx.play("victory")
 	for f in live_foes():
@@ -1323,7 +1365,7 @@ func on_hero_dead() -> void:
 				f.sleep_again()
 		if boss.state != Foe.St.DEAD:
 			boss_awake = false
-			sfx.music(area_music())
+			sfx.music_set(area_music())
 			hud.boss_hide()
 		for b in bolts:
 			b.n.queue_free()
@@ -1396,7 +1438,11 @@ func _ask_gate() -> void:
 	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], ["%d/%d" % [chests_open, chests.size()], "Truhen"], ["%d/%d" % [Spiel.evid.size(), Daten.EVID.size()], "Seiten"], [str(deaths), "Rückschläge"]]
 	var n1 := Spiel.fall + 1
 	var nd := Stunden.def(n1)
-	hud.show_gate(Stunden.case_no(Spiel.fall) + " · VOLLENDET", hdef.name, hdef.epi, stats, "HINTER DER PFORTE · " + Stunden.case_no(n1), nd.name, nd.lead,
+	var epi: String = hdef.epi
+	var urteil := Geschichte.urteil(Spiel.fall)
+	if urteil != "":
+		epi += "\n\n" + urteil
+	hud.show_gate(Stunden.case_no(Spiel.fall) + " · VOLLENDET", hdef.name, epi, stats, "HINTER DER PFORTE · " + Stunden.case_no(n1), nd.name, nd.lead,
 		func():
 			sfx.hush()
 			go_hour(n1),
@@ -1578,12 +1624,20 @@ func _unhandled_input(ev: InputEvent) -> void:
 				hero.auto_aim = false
 				hero.cast(hero.ORDER[ev.keycode - KEY_1])
 			KEY_Q: hero.cast("potion")
+			KEY_E:
+				if orte.near_npc():
+					orte.talk()
 			KEY_K: toggle_tree()
 			KEY_F: hud.toggle_fps()
 			KEY_G: set_low(not low_gfx)
 			KEY_V: toggle_fullscreen()
 			KEY_I, KEY_TAB: toggle_bag()
 			KEY_M: sfx.set_muted(not sfx.muted)
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.talked and orte.near_npc() \
+			and mouse_ground().distance_to(orte.npc.pos) < 1.8 and not hud.mouse_over_ui():
+		# die Figur der Stunde antippen oder anklicken: noch einmal mit ihr sprechen
+		orte.talk()
+		return
 	if touch and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 		tap_t = 0.3
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
@@ -1615,6 +1669,8 @@ func _physics_process(delta: float) -> void:
 	shot_gap -= delta
 	_loot_tick(delta)
 	_chest_tick()
+	orte.tick(delta)
+	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)
 	_pet_tick(delta)
@@ -1705,7 +1761,27 @@ func _physics_process(delta: float) -> void:
 			gate_ask = false
 			_ask_gate()
 
+# Sparen: Lichter jenseits des Bildes abschalten (alle 0,3 s), schlafende Gegner weit weg anhalten (auch ihre Animation)
+func _spar_tick() -> void:
+	var c := cam_pos
+	for l in lichter:
+		if is_instance_valid(l):
+			l.visible = l.global_position.distance_squared_to(c) < 44.0 * 44.0
+
+func _foes_sleep_far() -> void:
+	if freeze_foes:
+		return
+	var c := hero.global_position
+	for f in foes:
+		var far: bool = f.state == Foe.St.SLEEP and f.global_position.distance_squared_to(c) > 48.0 * 48.0
+		if far != (f.process_mode == Node.PROCESS_MODE_DISABLED):
+			f.process_mode = Node.PROCESS_MODE_DISABLED if far else Node.PROCESS_MODE_INHERIT
+
 func _process(delta: float) -> void:
+	spar_t -= delta
+	if spar_t <= 0.0 and hero:
+		spar_t = 0.3
+		_spar_tick()
 	shake = maxf(0.0, shake - delta * 2.2)
 	_place_cam(minf(1.0, delta * 6.0))
 	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte
@@ -1713,7 +1789,7 @@ func _process(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("cut_hero", hero.global_position)
 	var t := Time.get_ticks_msec() * 0.001
 	for tc in torches:
-		tc.l.light_energy = 1.9 + sin(t * 9.0 + tc.ph) * 0.22 + sin(t * 23.0 + tc.ph * 2.0) * 0.12
+		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06)
 	for w in wisps:
 		var n: Node3D = w.n
 		n.position.x -= delta * w.sp

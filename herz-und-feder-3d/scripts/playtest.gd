@@ -69,6 +69,9 @@ func run() -> void:
 	await wait(0.4)
 	check("E gibt das Spiel frei", G.started and not get_tree().paused and G.hud.overlay == null)
 	var h: Hero = G.hero
+	G.orte.auto = false   # Orte lösen erst im eigenen Abschnitt aus, damit das Umsetzen der Figur nichts anstößt
+	check("Lebens- und Kraftkugel zeigen die Werte", is_equal_approx(G.hud.orb_hp.value, h.hp / h.max_hp) and G.hud.orb_hp.text == str(int(ceil(h.hp))))
+	check("Questbuch zeigt die Aufgaben der Stunde (%d)" % G.orte.quests.size(), G.orte.quests.size() >= 3 and G.hud.quest_box.get_child_count() >= 6)
 	var p0 := h.global_position
 	await key(KEY_D, 0.9)
 	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
@@ -105,7 +108,7 @@ func run() -> void:
 	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
 	await key(KEY_G)
 	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
-	check("Musik der ersten Stunde läuft (Wüstennacht)", G.sfx.mus_name == "mus_wueste" and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
+	check("Musik der ersten Stunde läuft (Wüstennacht)", G.sfx.mus_list.has(G.sfx.mus_name) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
@@ -154,6 +157,77 @@ func run() -> void:
 	await wait(0.4)
 	check("„Alles nehmen“ legt den Fund in die Tasche", Spiel.bag.size() + Spiel.eq.size() > bag0 and not get_tree().paused)
 	check("Spielstand liegt vor und enthält die Ausrüstung", FileAccess.file_exists(Spiel.DATEI) and FileAccess.get_file_as_string(Spiel.DATEI).contains(String(ring.name)))
+	# Fassung 2.0: Feuerschale, Schrein, Seelenkrüge, Figur der Stunde, Fundstück, Herzwaage
+	var O: Orte = G.orte
+	var site := func(kind: String, n := 0) -> Dictionary:
+		var l: Array = O.sites.filter(func(s): return s.kind == kind)
+		return l[n] if n < l.size() else {}
+	Spiel.herz = 0.0
+	O.auto = true
+	var fs: Dictionary = site.call("feuer")
+	var lights: int = G.torches.size()
+	h.global_position = fs.pos + Vector3(1.3, 0, 0)
+	await wait(0.5)
+	check("Feuerschale entzündet sich bei Berührung, das Herz wird leichter", fs.done and G.torches.size() == lights + 1 and Spiel.herz > 0.0)
+	var sr: Dictionary = site.call("schrein")
+	h.global_position = sr.pos + Vector3(1.4, 0, 0)
+	await wait(0.5)
+	check("Schrein gibt den Segen der Gottheit (%s)" % sr.gott.name, sr.done and O.buffs.has(sr.gott.id) and Spiel.segen.has(sr.gott.id))
+	var k1: Dictionary = site.call("krug", 0)
+	var hz := Spiel.herz
+	h.global_position = k1.pos + Vector3(1.3, 0, 0)
+	await wait(0.5)
+	check("Seelenkrug fragt, was geschehen soll", G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == 3)
+	shot("krug")
+	await key(KEY_1)
+	await wait(0.3)
+	check("Taste 1 lässt das Herz frei: leichter", k1.done and Spiel.herz > hz and not get_tree().paused)
+	var k2: Dictionary = site.call("krug", 1)
+	hz = Spiel.herz
+	var nl: int = G.loot.size()
+	h.global_position = k2.pos + Vector3(1.3, 0, 0)
+	await wait(0.5)
+	await key(KEY_2)
+	await wait(0.3)
+	check("Taste 2 plündert den Krug: schwerer, Beute fällt", k2.done and Spiel.herz < hz and G.loot.size() > nl)
+	var k3: Dictionary = site.call("krug", 2)
+	h.global_position = k3.pos + Vector3(1.3, 0, 0)
+	await wait(0.5)
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	check("Esc lässt den Krug stehen", not k3.done and not get_tree().paused and G.hud.overlay == null)
+	h.global_position = O.npc.pos + Vector3(2.0, 0, 0)
+	await wait(0.5)
+	check("die Figur der Stunde spricht dich an (%s)" % O.G.wer, G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == 3)
+	shot("gespraech")
+	await key(KEY_1)
+	await wait(0.3)
+	check("eine Frage führt zur Antwort, die andere Frage bleibt", G.hud.overlay != null and G.hud.dialog_opts.size() == 2)
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	check("nach dem Gespräch steht der Auftrag im Questbuch", O.talked and not get_tree().paused and O.quest("relikt").text == O.G.auftrag)
+	var rl: Dictionary = site.call("relikt")
+	var boss_hp: float = G.boss.hp
+	hz = Spiel.herz
+	h.global_position = rl.pos + Vector3(1.3, 0, 0)
+	await wait(0.5)
+	check("das Fundstück stellt vor die Wahl", G.hud.overlay != null and G.hud.dialog_opts.size() == 3)
+	shot("fundstueck")
+	await key(KEY_1)
+	await wait(0.3)
+	check("nach der Entscheidung steht, was sie bewirkt", G.hud.overlay != null and G.hud.dialog_opts.size() == 1 and rl.done)
+	await key(KEY_E)
+	await wait(0.3)
+	check("Entscheidung für Maat: Herz leichter, Hüter geschwächt, gemerkt", Spiel.herz > hz and G.boss.hp < boss_hp and Spiel.wahl.get("1", "") == "maat" and not get_tree().paused)
+	Spiel.herz = 30.0
+	Spiel.calc()
+	var cone: float = Spiel.S.cone
+	Spiel.herz = -30.0
+	Spiel.calc()
+	check("leichtes Herz: Laterne weiter · schweres Herz: mehr Schaden und Scherben", cone > 1.0 and Spiel.S.shard > 1.0 and Spiel.S.cone == 1.0)
+	Spiel.herz = 0.0
+	Spiel.calc()
+	O.auto = false
 	h.global_position = G.start_pos
 	var foe: Foe = G.foes.filter(func(f): return f.kind != "boss" and f.K.ai != "swarm")[0]
 	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
@@ -224,6 +298,7 @@ func run() -> void:
 	await wait(3.6)
 	check("Pforte steht", G.gate != null)
 	check("nach dem Hüter wieder die Musik der Stunde", G.sfx.mus_name == "mus_wueste")
+	check("an der Pforte: Hüter-Aufgabe erledigt", G.orte.quest("hueter").done or G.gate != null)
 	h.global_position = G.gate.global_position + Vector3(0.5, 0, 1.0)
 	await wait(0.8)
 	check("Pforte fragt", G.hud.overlay != null and get_tree().paused)

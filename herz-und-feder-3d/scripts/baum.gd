@@ -22,7 +22,7 @@ func _knopf(text: String, main: bool, cb: Callable, enabled := true, pressed := 
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
 	b.add_theme_font_size_override("font_size", 14)
 	b.custom_minimum_size = Vector2(40, 38)
-	var edge := Hud.GOLD if (main or pressed) else Color("3d3947")
+	var edge := Hud.GOLD if (main or pressed) else Color("5c4a2e")
 	b.add_theme_stylebox_override("normal", hud._flat(Color(Hud.GOLD, 0.16) if pressed else Color(0, 0, 0, 0), 8, edge, 1))
 	b.add_theme_stylebox_override("hover", hud._flat(Color(1, 1, 1, 0.06), 8, Hud.GOLD, 1))
 	b.add_theme_stylebox_override("pressed", hud._flat(Color(1, 1, 1, 0.1), 8, Hud.GOLD, 1))
@@ -41,7 +41,7 @@ func _card(on: bool) -> Array:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(270, 0)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	p.add_theme_stylebox_override("panel", hud._flat(Color("211f27"), 8, Hud.GOLD if on else Color("3d3947"), 1))
+	p.add_theme_stylebox_override("panel", hud._flat(Color("211f27"), 8, Hud.GOLD if on else Color("5c4a2e"), 1))
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + s, 10)
@@ -57,7 +57,7 @@ func _pips(n: int) -> Control:
 	for i in Klassen.SK_RANKS:
 		var r := ColorRect.new()
 		r.custom_minimum_size = Vector2(14, 6)
-		r.color = Hud.GOLD if i < n else Color("3d3947")
+		r.color = Hud.GOLD if i < n else Color("5c4a2e")
 		h.add_child(r)
 	return h
 
@@ -79,7 +79,7 @@ func render() -> void:
 	close.text = hud._taste("  Schließen  [K]  ").strip_edges()
 	close.focus_mode = Control.FOCUS_NONE
 	close.add_theme_font_size_override("font_size", 15)
-	close.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("3d3947"), 1))
+	close.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
 	close.pressed.connect(func(): game.toggle_tree())
 	top.add_child(close)
 	add_child(top)

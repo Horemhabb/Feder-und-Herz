@@ -6,16 +6,20 @@ const PARCH := Color("ece3cb")
 const DIM := Color("a39c8e")
 const GOLD := Color("e8b04a")
 const TEAL := Color("8fe3e0")
-const PANEL := Color(0.09, 0.086, 0.11, 0.94)
+const PANEL := Color(0.085, 0.075, 0.075, 0.95)
 
 var game: Node
 var root: Control
 var l_track: Label
-var bar_track: ProgressBar
-var bar_hp: ProgressBar
-var bar_en: ProgressBar
-var l_hp: Label
-var l_en: Label
+var orb_hp: Kugel
+var orb_en: Kugel
+var waage: Control          # Herzwaage: Feder links, Herz rechts
+var quest_box: VBoxContainer
+var l_buff: Label
+var f_zier: FontFile        # Cinzel: Titel, Stempel, Knöpfe
+var f_text: FontFile        # EB Garamond: Fließtext
+var dialog_opts: Array = [] # Antworten im Gesprächsfenster (Tasten 1 bis 9)
+var herz_alt := 999.0
 var skill_ui := {}
 var boss_box: Control
 var bar_boss: ProgressBar
@@ -48,20 +52,38 @@ func _ready() -> void:
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	f_zier = load("res://ui/fonts/cinzel.woff")
+	f_text = load("res://ui/fonts/garamond.woff")
+	f_zier.fallbacks = [ThemeDB.fallback_font]
+	f_text.fallbacks = [ThemeDB.fallback_font]
+	var th := Theme.new()
+	th.default_font = f_text
+	th.default_font_size = 18
+	root.theme = th
 	add_child(root)
 	# oben links: Stunde, Name, Fortschritt
+	var tlp := PanelContainer.new()
+	tlp.position = Vector2(8, 6)
+	var tls := _flat(Color(0.03, 0.025, 0.03, 0.42), 6)
+	tls.set_content_margin_all(10)
+	tlp.add_theme_stylebox_override("panel", tls)
+	tlp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(tlp)
 	var tl := VBoxContainer.new()
-	tl.position = Vector2(18, 14)
 	tl.custom_minimum_size = Vector2(330, 0)
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(tl)
+	tlp.add_child(tl)
 	tl.add_child(_label(Stunden.case_no(Spiel.fall), 13, GOLD))
 	tl.add_child(_label(game.hdef.name, 24, PARCH))
-	bar_track = _bar(TEAL, 6)
-	tl.add_child(bar_track)
-	l_track = _label("", 13, DIM)
-	l_track.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tl.add_child(l_track)
+	var rule := ColorRect.new()
+	rule.color = Color("7a5a26")
+	rule.custom_minimum_size = Vector2(0, 1)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tl.add_child(rule)
+	quest_box = VBoxContainer.new()
+	quest_box.add_theme_constant_override("separation", 1)
+	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tl.add_child(quest_box)
 	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -85,8 +107,8 @@ func _ready() -> void:
 			b.focus_mode = Control.FOCUS_NONE
 			b.add_theme_font_size_override("font_size", 13)
 			b.custom_minimum_size = Vector2(86, 40)
-			b.add_theme_stylebox_override("normal", _flat(PANEL, 8, Color("3d3947"), 1))
-			b.add_theme_stylebox_override("hover", _flat(PANEL, 8, Color("3d3947"), 1))
+			b.add_theme_stylebox_override("normal", _flat(PANEL, 8, Color("5c4a2e"), 1))
+			b.add_theme_stylebox_override("hover", _flat(PANEL, 8, Color("5c4a2e"), 1))
 			b.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, DIM, 1))
 			b.add_theme_color_override("font_color", PARCH)
 			b.pressed.connect(t[1])
@@ -137,59 +159,140 @@ func _ready() -> void:
 	l_banner_small.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_box.add_child(l_banner_small)
 	l_banner = _label("", 26, PARCH)
+	l_banner.add_theme_font_override("font", f_text)   # ganze Sätze: Textschrift statt Zierschrift
+	l_banner.add_theme_font_size_override("font_size", 28)
 	l_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l_banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l_banner.add_theme_constant_override("outline_size", 6)
 	l_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	banner_box.add_child(l_banner)
 	toasts = VBoxContainer.new()
-	toasts.position = Vector2(18, 112)
+	toasts.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	toasts.position = Vector2(18, -330)
+	toasts.alignment = BoxContainer.ALIGNMENT_END
 	toasts.custom_minimum_size = Vector2(330, 0)
 	toasts.add_theme_constant_override("separation", 6)
 	toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(toasts)
-	# Erfahrung: dünne Leiste unter der Fähigkeitenleiste, daneben die Stufe
-	bar_xp = _bar(GOLD, 5)
-	bar_xp.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	bar_xp.position = Vector2(-300, -11)
-	bar_xp.custom_minimum_size = Vector2(600, 5)
-	bar_xp.size = Vector2(600, 5)
-	root.add_child(bar_xp)
-	l_lvl = _label("", 11, DIM)
-	l_lvl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	l_lvl.position = Vector2(310, -16)
-	root.add_child(l_lvl)
 	l_toast = _label("", 14, PARCH)
 	l_toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	l_toast.position = Vector2(-300, -170)
+	l_toast.position = Vector2(-300, -196)
 	l_toast.custom_minimum_size = Vector2(600, 0)
 	l_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l_toast.modulate.a = 0.0
 	root.add_child(l_toast)
-	# unten: Leben, Fähigkeiten, Eidkraft
+	# unten: Lebenskugel, Fähigkeitenleiste mit Herzwaage und Erfahrung, Kraftkugel
 	var bottom := HBoxContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	bottom.position = Vector2(-470, -104)
-	bottom.custom_minimum_size = Vector2(940, 88)
+	bottom.position = Vector2(-400, -142)
+	bottom.custom_minimum_size = Vector2(800, 134)
 	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
-	bottom.add_theme_constant_override("separation", 10)
+	bottom.add_theme_constant_override("separation", 4)
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bottom)
-	var hpb := _stat_box("Leben", Color("c8443a"))
-	bar_hp = hpb[1]
-	l_hp = hpb[2]
-	bottom.add_child(hpb[0])
+	orb_hp = Kugel.new()
+	orb_hp.setup(Color("c22a22"), "Leben", f_zier, 126.0)
+	orb_hp.size_flags_vertical = Control.SIZE_SHRINK_END
+	bottom.add_child(orb_hp)
+	var mid := VBoxContainer.new()
+	mid.alignment = BoxContainer.ALIGNMENT_END
+	mid.add_theme_constant_override("separation", 3)
+	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(mid)
+	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mid.add_child(top)
+	l_lvl = _label("", 12, DIM)
+	l_lvl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l_lvl.size_flags_vertical = Control.SIZE_SHRINK_END
+	top.add_child(l_lvl)
+	waage = Control.new()
+	waage.custom_minimum_size = Vector2(96, 38)
+	waage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	waage.draw.connect(_draw_waage)
+	top.add_child(waage)
+	l_buff = _label("", 12, TEAL)
+	l_buff.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l_buff.size_flags_vertical = Control.SIZE_SHRINK_END
+	l_buff.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	top.add_child(l_buff)
+	var bar := PanelContainer.new()
+	var bs := _flat(Color(0.065, 0.055, 0.06, 0.93), 5, Color("7a5a26"), 2)
+	bs.set_content_margin_all(7)
+	bs.shadow_color = Color(0, 0, 0, 0.5)
+	bs.shadow_size = 6
+	bar.add_theme_stylebox_override("panel", bs)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mid.add_child(bar)
+	var slots := HBoxContainer.new()
+	slots.add_theme_constant_override("separation", 6)
+	slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(slots)
 	for id in game.hero.ORDER:
-		bottom.add_child(_skill_box(id))
-	var enb := _stat_box(Spiel.CLS[Spiel.cls].res, Spiel.CLS[Spiel.cls].rc)
-	bar_en = enb[1]
-	l_en = enb[2]
-	bottom.add_child(enb[0])
+		slots.add_child(_skill_box(id))
+	bar_xp = _bar(GOLD, 5)
+	mid.add_child(bar_xp)
+	orb_en = Kugel.new()
+	orb_en.setup(Spiel.CLS[Spiel.cls].rc, Spiel.CLS[Spiel.cls].res, f_zier, 126.0)
+	orb_en.size_flags_vertical = Control.SIZE_SHRINK_END
+	bottom.add_child(orb_en)
+
+# Herzwaage: links die Feder der Maat, rechts das Herz. Ein leichtes Herz steigt, ein schweres sinkt.
+func _draw_waage() -> void:
+	var sz := waage.size
+	var c := Vector2(sz.x / 2.0, 9.0)
+	var ang := clampf(-Spiel.herz / 100.0, -1.0, 1.0) * 0.4
+	var d := Vector2(cos(ang), sin(ang)) * sz.x * 0.36
+	var gold := Color("c9a04a")
+	var dim := Color("7a5a26")
+	waage.draw_line(Vector2(c.x, 3), Vector2(c.x, sz.y - 3), gold, 2.0)
+	waage.draw_line(Vector2(c.x - 13, sz.y - 2), Vector2(c.x + 13, sz.y - 2), gold, 3.0)
+	waage.draw_line(c - d, c + d, gold, 2.5, true)
+	waage.draw_circle(c, 3.0, gold)
+	for side in [-1.0, 1.0]:
+		var e: Vector2 = c + d * side
+		var pan := e + Vector2(0, 14)
+		waage.draw_line(e, pan + Vector2(-8, 0), dim, 1.0, true)
+		waage.draw_line(e, pan + Vector2(8, 0), dim, 1.0, true)
+		waage.draw_arc(pan, 8.0, 0.0, PI, 10, gold, 2.0, true)
+		if side < 0.0:
+			waage.draw_line(pan + Vector2(-5, 1), pan + Vector2(5, -6), Color("f3ead2"), 3.0, true)
+		else:
+			waage.draw_circle(pan + Vector2(-2.2, -3), 3.2, Color("c22a22"))
+			waage.draw_circle(pan + Vector2(2.2, -3), 3.2, Color("c22a22"))
+
+# Questbuch oben links: Aufgaben der Stunde, erledigte gedimmt
+func _quests() -> void:
+	for c in quest_box.get_children():
+		quest_box.remove_child(c)
+		c.queue_free()
+	for q in game.orte.quests:
+		# (nur Zeichen, die die Zierschrift selbst hat: im Browser fehlen sonst Sonderzeichen)
+		var kurz: String = q.get("kurz", "")
+		var head: String = "• " + q.titel.to_upper() + (" · ERLEDIGT" if q.done else ("   " + kurz if game.touch and kurz != "" else ""))
+		quest_box.add_child(_label(head, 12, DIM if q.done else GOLD))
+		if game.touch and (q.done or kurz != ""):
+			continue   # auf dem Handy knapp: eine Zeile je Aufgabe
+		var l := _label(q.text, 13, Color(DIM, 0.75) if q.done else PARCH)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(330, 0)
+		l.add_theme_constant_override("outline_size", 4)
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+		quest_box.add_child(l)
+	var segen := []
+	for id in game.orte.buffs:
+		for g in Orte.GOETTER:
+			if g.id == id:
+				segen.append("%s %d s" % [g.name, int(game.orte.buffs[id])])
+	l_buff.text = "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
 
 func _label(t: String, size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = t
-	l.add_theme_font_size_override("font_size", size)
+	# Zierschrift für Titel und für Stempel in Großbuchstaben, sonst die Textschrift (zwei Punkt größer: sie läuft schmaler)
+	var zier: bool = size >= 22 or (t.length() > 2 and t == t.to_upper() and t != t.to_lower())
+	l.add_theme_font_override("font", f_zier if zier else f_text)
+	l.add_theme_font_size_override("font_size", size if zier else size + 2)
 	l.add_theme_color_override("font_color", col)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -200,6 +303,10 @@ func _flat(col: Color, radius := 6, border := Color(0, 0, 0, 0), bw := 0) -> Sty
 	s.set_corner_radius_all(radius)
 	s.border_color = border
 	s.set_border_width_all(bw)
+	if game.touch:
+		# auf iPhone und iPad haben geglättete runde Ecken in manchen Fällen den Grafikkontext gekostet (Godot-Fehler 105945)
+		s.anti_aliasing = false
+		s.corner_detail = 1
 	return s
 
 func _bar(col: Color, h: int) -> ProgressBar:
@@ -208,34 +315,17 @@ func _bar(col: Color, h: int) -> ProgressBar:
 	b.max_value = 1.0
 	b.step = 0.001
 	b.custom_minimum_size = Vector2(0, h)
-	b.add_theme_stylebox_override("background", _flat(Color(0.03, 0.03, 0.05, 0.85), 4, Color("3d3947"), 1))
+	b.add_theme_stylebox_override("background", _flat(Color(0.03, 0.03, 0.05, 0.85), 4, Color("5c4a2e"), 1))
 	b.add_theme_stylebox_override("fill", _flat(col, 4))
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return b
 
-func _stat_box(title: String, col: Color) -> Array:
-	var v := VBoxContainer.new()
-	v.custom_minimum_size = Vector2(150, 0)
-	v.alignment = BoxContainer.ALIGNMENT_END
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var top := HBoxContainer.new()
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var t := _label(title, 12, DIM)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(t)
-	var val := _label("", 16, PARCH)
-	top.add_child(val)
-	v.add_child(top)
-	var b := _bar(col, 18)
-	v.add_child(b)
-	return [v, b, val]
-
 func _skill_box(id: String) -> Control:
 	var S: Dictionary = game.hero.SK[id]
 	var slot: int = game.hero.ORDER.find(id)
-	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(98, 84)
-	p.add_theme_stylebox_override("panel", _flat(PANEL, 8, Color("3d3947"), 1))
+	var p := Panel.new()
+	p.custom_minimum_size = Vector2(66, 66)
+	p.add_theme_stylebox_override("panel", _flat(Color(0.12, 0.105, 0.1, 1.0), 4, Color("5c4a2e"), 1))
 	p.tooltip_text = "%s: %s" % [S.name, S.txt]
 	p.gui_input.connect(func(ev):
 		# Maus oder Finger. Ein zweiter Finger kommt nur als Berührung an (der erste hält die Figur in Bewegung),
@@ -248,37 +338,32 @@ func _skill_box(id: String) -> Control:
 			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 8.8
 			game.hero.auto_aim = true
 			game.hero.cast(id))
-	var cdr := ColorRect.new()
-	cdr.color = Color(0, 0, 0, 0.62)
-	cdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cdr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cdr.scale.y = 0.0
-	var v := VBoxContainer.new()
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	var top := HBoxContainer.new()
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.alignment = BoxContainer.ALIGNMENT_CENTER
-	top.add_theme_constant_override("separation", 4)
 	var ic := TextureRect.new()
-	ic.texture = Klassen.icon(id, 48)
+	ic.texture = Klassen.icon(id, 64)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.custom_minimum_size = Vector2(26, 26)
+	ic.position = Vector2(14, 11)
+	ic.size = Vector2(38, 38)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_child(ic)
-	var k := _label(Klassen.keys()[slot], 16, GOLD)
-	top.add_child(k)
-	v.add_child(top)
-	var n := _label(S.name, 11, PARCH)
-	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	n.custom_minimum_size = Vector2(86, 0)
-	v.add_child(n)
-	var c := _label(("%d %s" % [S.cost, Spiel.CLS[Spiel.cls].res]) if S.cost > 0 else "", 10, DIM)
-	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(c)
-	p.add_child(v)
+	p.add_child(ic)
+	var cdr := ColorRect.new()
+	cdr.color = Color(0, 0, 0, 0.66)
+	cdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cdr.position = Vector2(1, 1)
+	cdr.size = Vector2(64, 64)
+	cdr.scale.y = 0.0
 	p.add_child(cdr)
+	var k := _label(Klassen.keys()[slot], 12, GOLD)
+	k.position = Vector2(5, 1)
+	k.add_theme_constant_override("outline_size", 4)
+	k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	p.add_child(k)
+	var c := _label(str(int(S.cost)) if S.cost > 0 else "", 11, DIM)
+	c.position = Vector2(0, 46)
+	c.size = Vector2(62, 16)
+	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	c.add_theme_constant_override("outline_size", 4)
+	c.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	p.add_child(c)
 	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k}
 	return p
 
@@ -292,10 +377,16 @@ func mouse_over_ui() -> bool:
 
 func refresh() -> void:
 	var h: Hero = game.hero
-	bar_hp.value = h.hp / h.max_hp
-	l_hp.text = str(int(ceil(h.hp)))
-	bar_en.value = h.en / 100.0
-	l_en.text = str(int(h.en))
+	orb_hp.value = h.hp / h.max_hp
+	orb_hp.set_text(str(int(ceil(h.hp))))
+	orb_en.value = h.en / 100.0
+	orb_en.set_text(str(int(h.en)))
+	if game.orte.dirty or not game.orte.buffs.is_empty():
+		game.orte.dirty = false
+		_quests()
+	if Spiel.herz != herz_alt:
+		herz_alt = Spiel.herz
+		waage.queue_redraw()
 	bar_xp.value = Spiel.xp / Daten.xp_need(Spiel.lvl)
 	l_lvl.text = "Stufe %d" % Spiel.lvl
 	if tasche_btn:
@@ -307,21 +398,11 @@ func refresh() -> void:
 		var u: Dictionary = skill_ui[id]
 		u.cd.scale.y = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
 		if id != "potion" and S.cost > 0:
-			u.sub.text = "%d %s" % [h.cost_of(id), Spiel.CLS[Spiel.cls].res]
+			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor else Color.WHITE
 		if id == "potion":
-			u.sub.text = "noch %d" % h.pots
-	var p: float = float(game.kills) / maxf(1.0, game.total)
-	bar_track.value = p
-	if game.gate:
-		l_track.text = "Die Pforte steht offen. Tritt hinein, wenn du so weit bist."
-	elif game.boss_awake:
-		l_track.text = "%s ist hier." % game.boss.K.name
-	elif p >= 0.6:
-		l_track.text = "Der Hüter der Stunde wartet: %s." % game.boss.K.name
-	else:
-		l_track.text = "Isfet zurückgedrängt: %d %%" % int(p * 100.0)
+			u.sub.text = "×%d" % h.pots
 	if boss_box.visible:
 		bar_boss.value = game.boss.hp / game.boss.max_hp
 	if l_fps.visible:
@@ -350,7 +431,7 @@ func banner(text: String, small := "", secs := 3.5) -> void:
 # Fundmeldung mit Symbol (höchstens fünf, ältere fallen heraus)
 func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) -> void:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _flat(Color(0.067, 0.063, 0.086, 0.92), 8, Color("3d3947"), 1))
+	p.add_theme_stylebox_override("panel", _flat(Color(0.067, 0.063, 0.086, 0.92), 8, Color("5c4a2e"), 1))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
@@ -388,18 +469,63 @@ func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) 
 	tw.tween_property(p, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(p.queue_free)
 
-func toast(text: String) -> void:
+func toast(text: String, secs := 2.2, col := PARCH) -> void:
 	l_toast.text = text
+	l_toast.add_theme_color_override("font_color", col)
 	if toast_tw:
 		toast_tw.kill()
 	toast_tw = create_tween()
 	toast_tw.tween_property(l_toast, "modulate:a", 1.0, 0.2)
-	toast_tw.tween_interval(2.2)
+	toast_tw.tween_interval(secs)
 	toast_tw.tween_property(l_toast, "modulate:a", 0.0, 0.6)
 
+# dein Ba spricht leise über der Leiste
+func whisper(text: String) -> void:
+	toast(text, 7.0, TEAL)
+
 # ---------------------------------------------------------------- Fenster
+# Gespräch oder Entscheidung: Absätze, darunter die Antworten (Tasten 1 bis 9; Esc nimmt die letzte: gehen, liegen lassen)
+func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array) -> void:
+	var v := _sheet(0.5, 680)
+	v.add_child(_para(stamp, 13, GOLD))
+	v.add_child(_para(title, 28, PARCH))
+	if sub != "":
+		v.add_child(_para(sub, 14, DIM))
+	for p in paras:
+		if p != "":
+			v.add_child(_para(p, 16, PARCH))
+	var cbs := []
+	var i := 0
+	for o in opts:
+		i += 1
+		var cb: Callable = o[1]
+		var b := _button(("  %d    %s  " % [i, o[0]]) if not game.touch and opts.size() > 1 else "  %s  " % o[0], opts.size() == 1, cb)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_override("font", f_text)
+		b.add_theme_font_size_override("font_size", 18)
+		v.add_child(b)
+		cbs.append(cb)
+		if opts.size() == 1:
+			primary = cb
+			primary_btn = b
+			b.grab_focus()
+	if opts.size() > 1:
+		secondary = cbs[-1]
+	dialog_opts = cbs
+	_pass_all(v)
+
+func press_option(i: int) -> bool:
+	if i < 0 or i >= dialog_opts.size():
+		return false
+	var f: Callable = dialog_opts[i]
+	_close()
+	f.call()
+	return true
+
 func _close() -> void:
 	bag_open = false
+	dialog_opts = []
+
 	tree_open = false
 	if overlay:
 		overlay.queue_free()
@@ -411,7 +537,8 @@ func _close() -> void:
 func _button(text: String, main: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.add_theme_font_size_override("font_size", 17)
+	b.add_theme_font_override("font", f_zier)
+	b.add_theme_font_size_override("font_size", 15)
 	b.custom_minimum_size = Vector2(0, 46)
 	if main:
 		b.add_theme_stylebox_override("normal", _flat(GOLD, 8))
@@ -422,7 +549,7 @@ func _button(text: String, main: bool, cb: Callable) -> Button:
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
 			b.add_theme_color_override(c, Color("14110c"))
 	else:
-		b.add_theme_stylebox_override("normal", _flat(Color(0, 0, 0, 0), 8, Color("3d3947"), 1))
+		b.add_theme_stylebox_override("normal", _flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
 		b.add_theme_stylebox_override("hover", _flat(Color(1, 1, 1, 0.06), 8, DIM, 1))
 		b.add_theme_color_override("font_color", PARCH)
 	var m := MarginContainer.new()
@@ -484,7 +611,7 @@ func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 	mc.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(minf(width, get_viewport().get_visible_rect().size.x - 32.0), 0)
-	panel.add_theme_stylebox_override("panel", _flat(Color(PANEL, 0.8) if titel else (PANEL if dim < 0.99 else Color(0, 0, 0, 0)), 10, Color("3d3947"), 1 if dim < 0.99 or titel else 0))
+	panel.add_theme_stylebox_override("panel", _flat(Color(PANEL, 0.8) if titel else (PANEL if dim < 0.99 else Color(0, 0, 0, 0)), 10, Color("5c4a2e"), 1 if dim < 0.99 or titel else 0))
 	center.add_child(panel)
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
@@ -545,7 +672,7 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	for s in stats:
 		var p := PanelContainer.new()
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("3d3947"), 1))
+		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("5c4a2e"), 1))
 		var pv := VBoxContainer.new()
 		pv.add_child(_label("  " + s[0], 20, PARCH))
 		pv.add_child(_label("  " + s[1].to_upper(), 11, DIM))
@@ -622,6 +749,11 @@ func _input(ev: InputEvent) -> void:
 		return
 	if overlay == null or not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return
+	if not dialog_opts.is_empty() and ev.keycode >= KEY_1 and ev.keycode <= KEY_9 and ev.keycode - KEY_1 < dialog_opts.size():
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		press_option(ev.keycode - KEY_1)
+		return
 	if ev.keycode == KEY_E or ev.keycode == KEY_ENTER or ev.keycode == KEY_KP_ENTER:
 		get_viewport().set_input_as_handled()
 		if primary.is_valid() and not (primary_btn and primary_btn.disabled):
@@ -640,7 +772,7 @@ func show_chest(stamp: String, title: String, lines: Array, note: String, take: 
 	v.add_child(_para(title, 26, PARCH))
 	for ln in lines:
 		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("3d3947"), 1))
+		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("5c4a2e"), 1))
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 10)
 		p.add_child(h)
@@ -686,7 +818,7 @@ func _class_card(c: String) -> Control:
 	b.focus_mode = Control.FOCUS_NONE
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size = Vector2(0, 92 if game.touch else 146)
-	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("3d3947"), 3 if on else 1))
+	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("5c4a2e"), 3 if on else 1))
 	b.add_theme_stylebox_override("hover", _flat(Color("2a2731"), 8, C.col, 2))
 	b.add_theme_stylebox_override("pressed", _flat(Color("2a2731"), 8, C.col, 3))
 	var h := HBoxContainer.new()
@@ -722,7 +854,7 @@ func _hour_pick() -> Control:
 	row.add_theme_constant_override("separation", 8)
 	row.add_child(_label("STUNDE  ", 12, DIM))
 	for step in [-1, 1]:
-		var b := _button("  ◀  " if step < 0 else "  ▶  ", false, func(): pass)
+		var b := _button("  ‹  " if step < 0 else "  ›  ", false, func(): pass)
 		for c in b.pressed.get_connections():
 			b.pressed.disconnect(c.callable)
 		var st: int = step
@@ -751,7 +883,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.0", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
@@ -762,7 +894,7 @@ func _render_intro() -> void:
 
 func _intro_story(v: VBoxContainer) -> void:
 	v.add_child(_para("Die Nebelmark ist das letzte Land vor dem Westen. Ihr Nebel steigt aus der Duat, der Unterwelt, durch die Re jede Nacht in seiner Barke fährt. Seit dem Herbst kommt der Morgen später. Unten steht die Waage still: Kein Herz wird mehr gegen die Feder der Maat gewogen.", 15, PARCH))
-	v.add_child(_para("Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Unterwegs liegen die verstreuten Seiten aus dem Buch des Thot.", 15, DIM))
+	v.add_child(_para("Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. Warum gerade dir, haben sie nicht gesagt. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs aufhebst und was du liegen lässt, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
 
 func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:

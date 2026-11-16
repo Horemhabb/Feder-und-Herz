@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung
+# Herz und Feder · 3D-Fassung 2.0
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -132,6 +132,58 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
   lässt sich jede schon erreichte Stunde noch einmal betreten.
 - Der Startbildschirm zeigt das Titelbild der Nebelmark (X01, Sandtor bei Nacht, `ui/titel.webp`) hinter einem Verlauf, wie in der 2D-Fassung.
 - Die Figur wirft im Licht der eigenen Laterne keinen Schatten mehr (vorher lag ein dunkler Fleck um sie).
+
+## Fassung 2.0
+
+Vorbild für Licht und Stimmung sind die alten Dungeon-Spiele mit Blick von oben: kühles Grundlicht, in dem man alles
+erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
+
+- **Licht und Kulisse:** Die erste Stunde war fast einfarbig dunkelblau, und Geröllhaufen verdeckten die Figur. Jetzt
+  scheint draußen der Mond, jede Dungeon-Art hat ihre eigene Farbe (`LICHT` in `scripts/main.gd`), und die Kulisse ist
+  ägyptisch und aus Grundformen gebaut (`scripts/deko.gd`): Obelisken mit goldener Spitze, Anubis-Wächter, sitzende
+  Kolosse, Palmen, eine Oase mit Wasserbecken, Säulenstümpfe, Sarkophage, Felsen in passender Größe. Ein gepflasterter
+  Prozessionsweg führt vom Start durch das Tor bis zur Kapelle des Hüters.
+- **Feuerschalen:** In jeder Stunde stehen erloschene Feuerschalen. Wer sie berührt, entzündet sie mit dem Funken des Re:
+  Die Gegend wird hell, die Karte deckt sich auf, die Figur heilt etwas. Brennen alle, ist der Hüter geschwächt.
+- **Schreine:** Sachmet (Schaden), Thot (Erfahrung), Isis (Heilung), Bastet (Tempo), Hathor (Fundchance) geben für
+  eine Weile ihren Segen.
+- **Seelenkrüge:** In ihnen schlagen die Herzen, die der Sammler genommen hat. Freilassen oder plündern.
+- **Herzwaage:** Das Spiel heißt „Herz und Feder“, und jetzt wiegt es auch. Entscheidungen, Feuerschalen und Krüge machen
+  das eigene Herz leichter (Maat) oder schwerer (Isfet). Ein leichtes Herz lässt die Laterne weiter leuchten und bringt
+  mehr Erfahrung, ein schweres schlägt härter zu und findet mehr Scherben. Die kleine Waage über der Leiste zeigt den Stand.
+- **Quests und Gespräche:** Am Eingang jeder Stunde wartet eine Figur (Senu am Tor, die Schnitterin Merit, der Schreiber
+  Chaemwese, ein erloschener Stern, der alte Richter, Isis, Selket …), erzählt ihren Teil und bittet um ein Fundstück.
+  Wer es findet, entscheidet, was damit geschieht. Das Questbuch oben links führt die Aufgaben der Stunde.
+- **Geschichte:** Der Laternenträger ist im Herbst gestorben und weiß es nicht. Der Sammler war einer der 42 Richter und
+  hat die Waage aus Mitleid angehalten. Nach der fünften Stunde wird das eigene Herz als erstes wieder gewogen, am Tor
+  des Ostens fällt das Urteil: drei Enden je nach Herz. Texte in `scripts/geschichte.gd`.
+- **Oberfläche:** Lebens- und Kraftkugel wie in der 2D-Fassung (`scripts/kugel.gd`), Fähigkeiten dazwischen in einer
+  Leiste mit Bronzerand, Zierschrift Cinzel und Textschrift EB Garamond (beide frei, OFL, `ui/fonts/`).
+- **Musik:** je ein eigenes Stück für die Stunden 2 bis 5; die Stücke einer Stunde wechseln sich alle anderthalb Minuten ab.
+- Logik der Orte und Aufgaben: `scripts/orte.gd`. Der Spieltest prüft sie mit.
+
+### Sparsam mit der Maschine (nach Empfehlungen der Godot-Doku und anderer Entwickler)
+
+Umgesetzt:
+- **Schatten im Browser kleiner und weicher gerechnet** (`project.godot`, Einträge mit `.web`): Der Browser auf dem iPhone
+  gilt für Godot nicht als „mobil“ und bekam bisher die Einstellungen für große Rechner (Schattenbilder mit 4096 Punkten).
+- **Mondschatten in einem Durchgang** statt in vier Stufen (`SHADOW_ORTHOGONAL`).
+- **Ferne Lichter aus:** Der Renderer rechnet höchstens 32 Lichter. Lichter weiter als 44 m von der Kamera schaltet
+  `main.gd › _spar_tick` ab, sonst könnten in großen Stunden einzelne Fackeln ausfallen.
+- **Ferne, schlafende Gegner stehen still** (keine Bewegung, keine Animation), bis die Figur auf 48 m heran ist.
+- **Ecken der Fenster auf Handys ohne Kantenglättung:** Geglättete runde Ecken haben auf iPhones in Einzelfällen den
+  Grafikkontext gekostet (Godot-Fehlerbericht 105945).
+- **Farbtafeln der Modelle verkleinert:** Die 24 Farbtafeln der Figuren und Requisiten (als Datei je 14 KB) wurden als
+  Texturen mit 1024 Punkten eingelesen und belegten 32 MB im Paket. Jetzt mit 512 Punkten (`process/size_limit` in den
+  `.import`-Dateien unter `models/`): 8 MB. Das Paket schrumpft von 75 auf 51 MB, der Grafikspeicher wird ebenso entlastet.
+- Schon vorher: Texturen im Grafikspeicher komprimiert (ETC2 fürs Handy), 3D-Auflösung auf dem Handy 60 %, Mauern und
+  Böden je Abschnitt zu einem Körper zusammengefasst, Web-Export ohne Threads und ohne Erweiterungen.
+
+Bewusst noch nicht umgesetzt (jeweils mit Risiko oder Aufwand):
+- Physik mit 30 statt 60 Schritten je Sekunde und Zwischenbildern: spart Rechenzeit, ändert aber das Laufgefühl.
+- Shader vorab hinter der Ladetafel aufwärmen: nähme den ersten Rucklern (erste Feuerschale, erster Treffer) die Spitze.
+- Das Paket ist noch rund 51 MB groß. Den größten Teil machen jetzt die fünf Reliefkarten der Stein- und Bodentexturen
+  aus (je 2,8 MB in zwei Formaten).
 
 ## Was noch Platzhalter ist
 

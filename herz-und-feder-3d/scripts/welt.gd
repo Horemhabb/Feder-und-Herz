@@ -49,6 +49,7 @@ func bauen() -> void:
 	_edges()
 	_rugs()
 	_obstacles()
+	_deko()
 	_sconces()
 	for c in k.chests:
 		g._chest(cell_pos(c.p), c.tier)
@@ -59,6 +60,8 @@ func bauen() -> void:
 		g.astar.set_point_solid(g._sub(pos), true)
 		g.breakables.append({"n": n, "body": body, "sub": g._sub(pos), "pos": pos})
 	g.start_pos = cell_pos(k.start)
+	for st in k.sites:
+		g.add_site(st.kind, cell_pos(st.p), st.v)
 	_packs()
 	g.boss = g._spawn("boss", cell_pos(k.lair), 99, "", g.hdef)
 	g.boss.home_face = atan2(k.start.x - k.lair.x, k.start.y - k.lair.y)
@@ -68,24 +71,42 @@ func bauen() -> void:
 
 # ---------------------------------------------------------------- Boden
 func _ground() -> void:
-	var gm: StandardMaterial3D = g.surf(look.ground)
-	var e := Vector2(Karte.GW * C + 60.0, Karte.GH * C + 60.0) / 2.0
+	# Gelände als Gitter mit Farbflecken (hellere Verwehungen, dunklere Senken): der Sand wirkt nicht wie eine Tapete.
+	# Im Dungeon liegt es im Dunkeln: nur eine Ahnung von Sand zwischen den Mauern.
+	var gm: StandardMaterial3D = g.surf(look.ground).duplicate()
+	gm.vertex_color_use_as_albedo = true
+	gm.albedo_color = Color(0.3, 0.27, 0.24) if k.indoor else Color(0.86, 0.74, 0.56)
+	var per: float = g.surf(look.ground).get_meta("period")
+	var noise := FastNoiseLite.new()
+	noise.seed = randi()
+	noise.frequency = 0.035
+	var fine := FastNoiseLite.new()
+	fine.seed = randi()
+	fine.frequency = 0.16
+	var pad := 16
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var per: float = gm.get_meta("period")
-	g._quad(st, Vector3(-e.x, 0, e.y), Vector3(e.x, 0, e.y), Vector3(e.x, 0, -e.y), Vector3(-e.x, 0, -e.y), Vector3.UP,
-		Vector2(-e.x, e.y) / per, Vector2(e.x, e.y) / per, Vector2(e.x, -e.y) / per, Vector2(-e.x, -e.y) / per)
+	var col := func(x: float, z: float) -> Color:
+		var n: float = noise.get_noise_2d(x, z) * 0.75 + fine.get_noise_2d(x, z) * 0.25
+		var v := clampf(0.82 + n * 0.55, 0.5, 1.25)
+		return Color(v, v * (0.97 + n * 0.06), v * (0.92 - n * 0.1))
+	for cy in range(-pad, Karte.GH + pad):
+		for cx in range(-pad, Karte.GW + pad):
+			var x0 := cx * C
+			var z0 := cy * C
+			var pts := [Vector3(x0, 0, z0 + C), Vector3(x0 + C, 0, z0 + C), Vector3(x0 + C, 0, z0), Vector3(x0, 0, z0)]
+			for i in [0, 2, 1, 0, 3, 2]:
+				var p: Vector3 = pts[i]
+				st.set_normal(Vector3.UP)
+				st.set_color(col.call(p.x, p.z))
+				st.set_uv(Vector2(p.x, p.z) / per)
+				st.add_vertex(p)
 	st.set_material(gm)
 	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	if k.indoor:
-		# im Dungeon liegt das Gelände im Dunkeln: nur eine Ahnung von Sand zwischen den Mauern
-		var dark := gm.duplicate()
-		dark.albedo_color = gm.albedo_color * 0.25
-		mi.material_override = dark
 	g.add_child(mi)
-	mi.global_position = Vector3(Karte.GW * C / 2.0, -0.12, Karte.GH * C / 2.0)
+	mi.global_position = Vector3(0, -0.05, 0)
 
 func _floors() -> void:
 	var parts := {}
@@ -99,6 +120,8 @@ func _floors() -> void:
 				name = look.room if f == 0 else look.path
 			elif f == 2:
 				name = "pflaster"
+			elif f == 3:
+				name = "weg"
 			else:
 				continue   # Freiland: das Gelände trägt den Sand
 			var key := "%s|%d|%d" % [name, x / FELD, y / FELD]
@@ -194,13 +217,15 @@ func _obstacles() -> void:
 		var pos := cell_pos(o.p)
 		var r: float = o.r * C
 		match o.kind:
-			"rock", "ruin":
-				var n: Node3D = g._piece("rubble_large" if o.kind == "rock" else "rubble_half", pos, randf() * TAU, Vector3.ONE * clampf(r * 1.3, 0.6, 2.2))
-				n.set_meta("deko", true)
+			"rock":
+				Deko.fels(g, pos, clampf(r * 1.05, 0.6, 1.7), _rock_tint())
+			"ruin":
+				var lying := randf() < 0.4
+				Deko.stumpf(g, pos, randf_range(0.9, 2.6) if not lying else randf_range(1.2, 1.8), lying)
 			"needle", "star":
 				_needle(pos, r, Color(0.56, 0.89, 0.88) if o.kind == "needle" else Color(0.75, 0.6, 1.0))
 			"tomb":
-				g._piece("trunk_large_A", pos, randf() * TAU, Vector3.ONE * clampf(r * 1.4, 0.7, 1.6))
+				Deko.sarkophag(g, pos, randf() * TAU)
 			"d":
 				if o.v == 9:
 					_column(pos, r)
@@ -209,6 +234,41 @@ func _obstacles() -> void:
 		var body: StaticBody3D = g._box(pos, Vector3(r * 1.5, 1.6, r * 1.5))
 		body.collision_layer = LOW_LAYER if o.kind != "needle" and o.kind != "star" and r < 0.6 else 1
 		g.astar.set_point_solid(g._sub(pos), true)
+
+func _rock_tint() -> Color:
+	var c := Color(g.hdef.pal.rockL)
+	return Color(c.r * 1.9, c.g * 1.8, c.b * 1.6)
+
+# Kulisse mit Körper (Obelisken, Wächter, Palmen) und die Becken der Oase
+func _deko() -> void:
+	for d in k.deko:
+		var pos := cell_pos(d.p)
+		var size := Vector3(1.2, 3.0, 1.2)
+		match d.kind:
+			"obelisk":
+				Deko.obelisk(g, pos)
+			"anubis":
+				Deko.anubis(g, pos, d.face)
+				size = Vector3(1.8, 2.0, 1.8)
+			"koloss":
+				Deko.koloss(g, pos, d.face)
+				size = Vector3(2.0, 3.0, 2.2)
+			"palme":
+				Deko.palme(g, pos, d.face)
+				size = Vector3(0.5, 3.0, 0.5)
+		var body: StaticBody3D = g._box(pos, size)
+		body.collision_layer = LOW_LAYER if d.kind == "palme" else 1
+		g.astar.set_point_solid(g._sub(pos), true)
+	for p in k.pools:
+		var pos := cell_pos(p.p)
+		var r: float = p.r * C
+		Deko.becken(g, pos, r)
+		var body: StaticBody3D = g._box(pos, Vector3(r * 1.5, 1.0, r * 1.5))
+		body.collision_layer = LOW_LAYER
+		for dy in range(-3, 4):
+			for dx in range(-3, 4):
+				if Vector2(dx, dy).length() <= p.r + 0.3:
+					g.astar.set_point_solid(g._sub(pos + Vector3(dx * C, 0, dy * C)), true)
 
 func _needle(pos: Vector3, r: float, col: Color) -> void:
 	# Glasnadel aus dem Sand: schräg, kühl leuchtend, ohne eigenes Licht

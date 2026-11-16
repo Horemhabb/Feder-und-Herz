@@ -9,6 +9,7 @@ const VOL := {
 	"amb_wind": -15.0, "amb_drone": -17.0,
 	# Musik nach Messung: im Spiel etwa 25 dB unter Vollaussteuerung, hinter den Geräuschen
 	"mus_titel": -11.0, "mus_wueste": -9.0, "mus_duat": -11.0, "mus_kampf": -6.0,
+	"mus_felder": -9.0, "mus_grab": -3.0, "mus_rosetau": -14.0, "mus_hoehle": -9.0,
 	"vo_chapter": -1.0, "vo_boss": -1.0, "vo_epi": -1.0, "vo_death": -1.0,
 }
 const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3}
@@ -21,6 +22,9 @@ var voice: AudioStreamPlayer
 var muted := false
 var mus: Array = []        # zwei Spieler für die Musik, damit ein Stück ins nächste überblendet
 var mus_name := ""
+var mus_list: Array = []   # Stücke der Stunde: wechseln sich alle anderthalb Minuten ab, damit sich 30 Sekunden nicht endlos wiederholen
+var mus_i := 0
+var mus_t := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -114,6 +118,22 @@ func say(name: String) -> void:
 	voice.volume_db = VOL.get(name, -2.0)
 	voice.play()
 
+# Musik der Stunde: mehrere Stücke im Wechsel
+func music_set(names: Array, fade := 2.0) -> void:
+	mus_list = names.filter(func(n): return _stream(n) != null)
+	mus_i = 0
+	mus_t = 0.0
+	music(mus_list[0] if not mus_list.is_empty() else "", fade)
+
+func _process(delta: float) -> void:
+	if mus_list.size() < 2 or not mus_list.has(mus_name):
+		return
+	mus_t += delta
+	if mus_t > 90.0:
+		mus_t = 0.0
+		mus_i = (mus_i + 1) % mus_list.size()
+		music(mus_list[mus_i], 4.0)
+
 # Musik wechseln (Titel, Wüste, Duat, Kampf): das neue Stück blendet in 2 s ein, das alte aus. Fehlt die Datei, bleibt es still.
 func music(name: String, fade := 2.0) -> void:
 	if name == mus_name:
@@ -123,10 +143,10 @@ func music(name: String, fade := 2.0) -> void:
 	var old: AudioStreamPlayer = mus[0]
 	var neu: AudioStreamPlayer = mus[1]
 	mus.reverse()
-	var tw := create_tween().set_parallel(true)
 	if old.playing:
+		var tw := create_tween()
 		tw.tween_property(old, "volume_db", -60.0, fade)
-		tw.chain().tween_callback(old.stop)
+		tw.tween_callback(old.stop)
 	if s == null:
 		return
 	if s is AudioStreamOggVorbis:
