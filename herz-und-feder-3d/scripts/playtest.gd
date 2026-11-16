@@ -1,0 +1,162 @@
+extends Node
+# Spieltest (Start mit „-- --playtest“): spielt echte Eingaben ein, also Tasten, Mausbewegung und Klicks in Echtzeit,
+# genau der Weg, den ein Mensch nimmt. Prüft Start, Laufen, Fähigkeiten, Niederlage, Rückkehr, Pforte und Neustart.
+
+var ok := 0
+var bad := 0
+
+func g() -> Node:
+	return get_tree().current_scene
+
+func wait(s: float) -> void:
+	await get_tree().create_timer(s, true, false, true).timeout
+
+func key(code: int, hold := 0.08) -> void:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = true
+	Input.parse_input_event(e)
+	await wait(hold)
+	var r := InputEventKey.new()
+	r.keycode = code
+	r.physical_keycode = code
+	r.pressed = false
+	Input.parse_input_event(r)
+	await wait(0.05)
+
+func mouse(logical: Vector2, button := 0, pressed := true) -> void:
+	# Spielkoordinaten (1600 x 900) in Fensterpunkte umrechnen: eingespielte Ereignisse erwarten Fensterpunkte
+	Input.warp_mouse(logical)
+	var pos: Vector2 = get_viewport().get_final_transform() * logical
+	var m := InputEventMouseMotion.new()
+	m.position = pos
+	m.global_position = pos
+	Input.parse_input_event(m)
+	if button != 0:
+		var b := InputEventMouseButton.new()
+		b.position = pos
+		b.global_position = pos
+		b.button_index = button
+		b.pressed = pressed
+		Input.parse_input_event(b)
+
+func check(what: String, cond: bool) -> void:
+	if cond: ok += 1
+	else: bad += 1
+	print(("  ok      " if cond else "  FEHLER  ") + what)
+
+func shot(tag: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://test_out"))
+	get_viewport().get_texture().get_image().save_png("res://test_out/pt_%s.png" % tag)
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	run.call_deferred()
+
+func run() -> void:
+	await wait(1.6)
+	var G := g()
+	check("Tafel liegt über dem Spiel, Spiel steht", G.hud.overlay != null and get_tree().paused and not G.started)
+	await key(KEY_E)
+	await wait(0.4)
+	check("E gibt das Spiel frei", G.started and not get_tree().paused and G.hud.overlay == null)
+	var h: Hero = G.hero
+	var p0 := h.global_position
+	await key(KEY_D, 0.9)
+	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
+	p0 = h.global_position
+	var vs := get_viewport().get_visible_rect().size
+	mouse(vs * Vector2(0.35, 0.62), MOUSE_BUTTON_LEFT, true)
+	await wait(1.0)
+	mouse(vs * Vector2(0.35, 0.62), MOUSE_BUTTON_LEFT, false)
+	check("gehaltene linke Maustaste läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
+	shot("laufen")
+	# Fähigkeiten und Schalter
+	h.en = 100.0
+	for k in [[KEY_1, "whirl"], [KEY_2, "dash"], [KEY_3, "oath"], [KEY_4, "udjat"]]:
+		await key(k[0])
+		check("Taste %s löst %s aus" % [OS.get_keycode_string(k[0]), Hero.SKILLS[k[1]].name], h.cd[k[1]] > 0.0)
+		await wait(0.7)
+	var en0 := h.en
+	mouse(vs * Vector2(0.6, 0.4), MOUSE_BUTTON_RIGHT, true)
+	await wait(0.1)
+	mouse(vs * Vector2(0.6, 0.4), MOUSE_BUTTON_RIGHT, false)
+	check("rechte Maustaste: Strahl des Re", h.en < en0)
+	h.hp = 50.0
+	await wait(0.5)
+	await key(KEY_Q)
+	check("Q trinkt Rotbier", h.hp > 60.0 and h.pots == 3)
+	await key(KEY_F)
+	check("F zeigt die Bildrate", G.hud.l_fps.visible)
+	await key(KEY_G)
+	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
+	await key(KEY_G)
+	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
+	await key(KEY_M)
+	check("M schaltet den Ton aus", G.sfx.muted)
+	await key(KEY_M)
+	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
+	var foe: Foe = G.foes.filter(func(f): return f.kind == "minion")[0]
+	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
+	G.cam_pos = h.global_position
+	await wait(0.6)
+	var sp: Vector2 = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
+	mouse(sp, MOUSE_BUTTON_LEFT, true)
+	await wait(2.5)
+	mouse(sp, MOUSE_BUTTON_LEFT, false)
+	check("Klick auf Gegner schlägt zu (Leben %d von %d)" % [int(foe.hp), int(foe.max_hp)], foe.hp < foe.max_hp)
+	check("Zeit läuft nach dem Treffer normal weiter", is_equal_approx(Engine.time_scale, 1.0))
+	shot("angriff")
+	# Niederlage und Rückkehr
+	h.pots = 0
+	h.inv = 0.0
+	h.hp = 3.0
+	var t0 := Time.get_ticks_msec()
+	while not h.dead and Time.get_ticks_msec() - t0 < 25000:
+		h.inv = 0.0
+		await wait(0.2)
+	check("die Figur kann fallen", h.dead)
+	await wait(2.6)
+	check("Fenster nach der Niederlage erscheint", G.hud.overlay != null and get_tree().paused)
+	shot("niederlage")
+	await key(KEY_E)
+	await wait(0.5)
+	var awake: int = G.foes.filter(func(f): return f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING).size()
+	check("Rückkehr: Figur lebt, steht am Start, Spiel läuft", not h.dead and h.hp == h.max_hp and not get_tree().paused and h.global_position.distance_to(G.start_pos) < 1.0)
+	check("Rückkehr: kein Gegner ist mehr wach (%d)" % awake, awake == 0)
+	await wait(2.0)
+	check("zwei Sekunden später greift am Start niemand an", h.hp == h.max_hp)
+	shot("rueckkehr")
+	# Hüter fällen, Pforte, „Noch bleiben“, dann durchgehen mit Mausklick, Ende, Neustart
+	G.boss.hit(99999.0, h.global_position)
+	await wait(3.6)
+	check("Pforte steht", G.gate != null)
+	h.global_position = G.gate.global_position + Vector3(0.5, 0, 1.0)
+	await wait(0.8)
+	check("Pforte fragt", G.hud.overlay != null and get_tree().paused)
+	shot("pforte")
+	await key(KEY_ESCAPE)
+	await wait(0.4)
+	check("Esc: noch bleiben, Spiel läuft weiter", G.hud.overlay == null and not get_tree().paused)
+	await wait(0.8)
+	check("die Pforte fragt nicht sofort wieder", G.hud.overlay == null)
+	h.global_position = G.gate.global_position + Vector3(9, 0, 9)
+	await wait(0.5)
+	h.global_position = G.gate.global_position + Vector3(0.5, 0, 1.0)
+	await wait(0.8)
+	check("nach dem Weggehen fragt sie wieder", G.hud.overlay != null)
+	var b: Button = G.hud.primary_btn
+	var c := b.get_global_rect().get_center()
+	mouse(c, MOUSE_BUTTON_LEFT, true)
+	await wait(0.1)
+	mouse(c, MOUSE_BUTTON_LEFT, false)
+	await wait(1.3)
+	check("Mausklick auf „Durch die Pforte gehen“ zeigt die Schlusstafel", G.hud.overlay != null and G.hud.primary_btn != null and "vorn" in G.hud.primary_btn.text)
+	shot("ende")
+	await key(KEY_ENTER)
+	await wait(2.5)
+	var G2 := g()
+	check("„Noch einmal von vorn“ lädt die Stunde neu", G2 != null and G2 != G and not G2.started and G2.hud.overlay != null and G2.kills == 0)
+	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
+	get_tree().quit()
