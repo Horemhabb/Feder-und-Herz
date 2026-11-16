@@ -31,6 +31,8 @@ var secondary: Callable
 var primary_btn: Button
 var banner_tw: Tween
 var toast_tw: Tween
+var bag_open := false
+var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
 var l_quer: Label          # Hinweis, das Handy quer zu halten
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
@@ -53,7 +55,7 @@ func _ready() -> void:
 	l_track = _label("", 13, DIM)
 	l_track.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tl.add_child(l_track)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik hoch/niedrig · M Ton", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Beutel · V Vollbild", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -63,16 +65,19 @@ func _ready() -> void:
 		# ohne Tastatur: Grafik, Ton und Bildrate als Knöpfe
 		var row := HBoxContainer.new()
 		row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		row.position = Vector2(-330, 38)
-		row.custom_minimum_size = Vector2(310, 0)
+		row.position = Vector2(-470, 38)
+		row.custom_minimum_size = Vector2(450, 0)
 		row.alignment = BoxContainer.ALIGNMENT_END
-		row.add_theme_constant_override("separation", 8)
-		for t in [["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]:
+		row.add_theme_constant_override("separation", 6)
+		var knoepfe := [["Beutel", func(): game.toggle_bag()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
+		if game.can_fullscreen:
+			knoepfe.insert(0, ["Vollbild", func(): game.toggle_fullscreen()])
+		for t in knoepfe:
 			var b := Button.new()
 			b.text = t[0]
 			b.focus_mode = Control.FOCUS_NONE
 			b.add_theme_font_size_override("font_size", 13)
-			b.custom_minimum_size = Vector2(84, 40)
+			b.custom_minimum_size = Vector2(86, 40)
 			b.add_theme_stylebox_override("normal", _flat(PANEL, 8, Color("3d3947"), 1))
 			b.add_theme_stylebox_override("hover", _flat(PANEL, 8, Color("3d3947"), 1))
 			b.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, DIM, 1))
@@ -305,6 +310,7 @@ func toast(text: String) -> void:
 
 # ---------------------------------------------------------------- Fenster
 func _close() -> void:
+	bag_open = false
 	if overlay:
 		overlay.queue_free()
 		overlay = null
@@ -341,7 +347,7 @@ func _taste(text: String) -> String:
 	# auf dem Handy gibt es keine Tasten: den Hinweis in eckigen Klammern weglassen
 	if not game.touch:
 		return text
-	return text.replace("[E]  ", "").replace("[Esc]  ", "")
+	return text.replace("[E]  ", "").replace("[Esc]  ", "").replace("[I]  ", "")
 
 func _sheet(dim: float, width: float) -> VBoxContainer:
 	_close()
@@ -380,6 +386,8 @@ func show_chapter(no: String, name: String, lead: String, brief: String, btn: St
 	v.add_child(_para(name, 46, PARCH, true))
 	v.add_child(_para(lead, 20, PARCH, true))
 	v.add_child(_para(brief, 16, DIM, true))
+	if chapter_note != "":
+		v.add_child(_para(chapter_note, 14, TEAL, true))
 	var row := CenterContainer.new()
 	primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
 	primary_btn.disabled = true
@@ -423,6 +431,45 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	secondary = stay
 	primary_btn.grab_focus()
 
+func show_bag() -> void:
+	var h: Hero = game.hero
+	var v := _sheet(0.8, 520)
+	bag_open = true
+	v.add_child(_para("BEUTEL", 13, GOLD))
+	v.add_child(_para("Was du bei dir trägst", 26, PARCH))
+	var rows := [
+		["Rotbier der Sachmet", "%d von 4" % h.pots, "Q: heilt dich. Besiegte lassen manchmal eines fallen."],
+		["Münzen", str(game.gold), "Aus dem Beutel der Besiegten. Noch ohne Verwendung: Händler folgen später."],
+		["Besiegte Ruhelose", "%d von %d" % [game.kills, game.total], ""],
+		["Leben", "%d von %d" % [int(ceil(h.hp)), int(h.max_hp)], ""],
+	]
+	for r in rows:
+		var p := PanelContainer.new()
+		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("3d3947"), 1))
+		var pv := VBoxContainer.new()
+		var top := HBoxContainer.new()
+		var n := _label("  " + r[0], 17, PARCH)
+		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top.add_child(n)
+		top.add_child(_label(r[1] + "  ", 17, GOLD))
+		pv.add_child(top)
+		if r[2] != "":
+			pv.add_child(_para("  " + r[2], 12, DIM))
+		p.add_child(pv)
+		v.add_child(p)
+	var cb := func(): get_tree().paused = false
+	var btns := HBoxContainer.new()
+	primary_btn = _button(_taste("  Schließen  [I]  "), true, cb)
+	btns.add_child(primary_btn)
+	v.add_child(btns)
+	primary = cb
+	secondary = cb
+	primary_btn.grab_focus()
+
+func close_bag() -> void:
+	_close()
+	get_tree().paused = false
+
 func show_dead(text: String, cb: Callable) -> void:
 	var v := _sheet(0.8, 560)
 	v.add_child(_para("IN DER DUAT", 13, GOLD))
@@ -444,6 +491,11 @@ func press_primary() -> bool:
 	return true
 
 func _input(ev: InputEvent) -> void:
+	if bag_open and ev is InputEventKey and ev.pressed and not ev.echo and (ev.keycode == KEY_I or ev.keycode == KEY_TAB):
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		close_bag()
+		return
 	if overlay == null or not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return
 	if ev.keycode == KEY_E or ev.keycode == KEY_ENTER or ev.keycode == KEY_KP_ENTER:
