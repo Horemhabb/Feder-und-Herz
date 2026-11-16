@@ -88,7 +88,7 @@ func run() -> void:
 			await wait(0.1)
 			warte += 0.1
 		await key(k[0])
-		check("Taste %s löst %s aus" % [OS.get_keycode_string(k[0]), Hero.SKILLS[k[1]].name], h.cd[k[1]] > 0.0)
+		check("Taste %s löst %s aus" % [OS.get_keycode_string(k[0]), h.SK[k[1]].name], h.cd[k[1]] > 0.0)
 		await wait(0.7)
 	var en0 := h.en
 	mouse(vs * Vector2(0.6, 0.4), MOUSE_BUTTON_RIGHT, true)

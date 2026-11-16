@@ -47,14 +47,12 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
 
 | Taste | Wirkung |
 |---|---|
-| W A S D oder linke Maustaste halten | laufen |
+| W A S D oder linke Maustaste halten | laufen (steht ein Gegner in Reichweite und du tust nichts, greift die Figur von selbst an) |
 | Linke Maustaste auf einen Gegner | hinlaufen und zuschlagen |
 | Umschalt + linke Maustaste | auf der Stelle zuschlagen |
-| 1 | Falkenkreis (Rundumschlag) |
-| 2 | Sturz des Falken (Sprung zum Mauszeiger) |
-| 3 | Eid der Maat (stärker und zäher für 6 Sekunden) |
-| 4 | Blick des Udjat (betäubt alles ringsum) |
-| Rechte Maustaste | Strahl des Re |
+| 1 2 3 4 | Fähigkeiten der Klasse, gezielt auf den Mauszeiger (auf dem Handy: Knöpfe unten, sie zielen selbst) |
+| Rechte Maustaste | fünfte Fähigkeit der Klasse |
+| K | Fähigkeitenbaum |
 | Q | Rotbier der Sachmet (heilt) |
 | F | Bildrate anzeigen |
 | G | Grafik hoch/niedrig (ohne Schatten und Glühen) |
@@ -90,7 +88,22 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - **Tasche**: acht Ausrüstungsplätze, Werte, Material, 32 Plätze, Vergleich mit dem Angelegten (▲), Anlegen,
   Aufwerten bis +5, Neuwürfeln eines Affixes, Wegwerfen, „Alles Gewöhnliche wegwerfen“, Grabräuber, Buch des Thot.
 
-Noch offen: Etappe 2 (vier Klassen, Fähigkeitenbaum), Etappe 3 (alle Gegnerarten und Hüter), Etappe 4 (zwölf Stunden,
+### Etappe 2: vier Klassen und Fähigkeitenbaum
+
+| Klasse | Modell (KayKit) | Standardangriff | 1 · 2 · 3 · 4 · rechte Maustaste |
+|---|---|---|---|
+| Eidträger | Ritter mit Zweihänder | Hieb | Falkenkreis · Sturz des Falken · Eid der Maat · Blick des Udjat · Strahl des Re |
+| Priester des Schu | Barbar ohne Waffe | Faustfolge, jeder dritte Schlag weiter und härter | Fäuste des Month · Schritt des Schu · Kreis des Ka · Gebs Lachen · Atem des Schu |
+| Wüstenjägerin | Schurkin mit Armbrust (statt Bogen), Fuchs als leuchtender Geist | Pfeil | Neiths Fächer · Sprung der Gazelle · Upuauts Hatz · Sieben Pfeile der Sachmet · Pfeil der Neith |
+| Sternleserin | Magierin mit Stab | Funke, durchschlägt einmal | Zorn des Seth · Schritt durch die Duat · Seschats Maß · Hu, das Machtwort · Fallender Stern der Nut |
+
+- Klassenwahl auf dem Startbildschirm mit den gemalten Porträts der 2D-Fassung; Symbole der Fähigkeiten aus dem Original.
+- **Fähigkeitenbaum** (K, auf dem Handy „Fähigk.“): ein Punkt je Stufe, fünf Ränge je Fähigkeit (+12 % Stärke,
+  Hilfsfähigkeiten −6 % Abklingzeit), ab Rang 2 Wucht oder Eile, sechs dauerhafte Stärken, ein Schlüsselstein je
+  Klasse ab 8 verteilten Punkten, Zurücksetzen für 10 + 3 × Stufe Scherben.
+- Daten in `scripts/klassen.gd`; Klassentest: `godot --path . -- --neu --klasse=jaegerin --klassentest`.
+
+Noch offen: Etappe 3 (alle Gegnerarten und Hüter), Etappe 4 (zwölf Stunden,
 Kartengenerator, Karte, Stundenwahl).
 
 ## Was noch Platzhalter ist
@@ -100,7 +113,7 @@ Kartengenerator, Karte, Stundenwahl).
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** gibt es keine. Die ElevenLabs-Anbindung dieser Sitzung erzeugt Geräusche und Sprache, aber keine Musik;
   als Ersatz läuft ein dunkler Klangteppich.
-- Fähigkeitenbaum, die drei übrigen Klassen, die übrigen Gegnerarten und die Stunden 2 bis 12 folgen in den
+- Die übrigen Gegnerarten und die Stunden 2 bis 12 folgen in den
   nächsten Etappen. Bis dahin beginnt nach der Pforte die erste Stunde von vorn, die Figur behält alles.
 
 ## Für Entwickler

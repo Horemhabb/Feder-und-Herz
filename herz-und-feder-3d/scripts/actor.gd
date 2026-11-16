@@ -3,7 +3,7 @@ class_name Actor extends CharacterBody3D
 # Die Modelle (KayKit, CC0) schauen entlang +Z. Animationsnamen stehen nur in den ANIM-Tabellen
 # von Held und Gegner, damit ein anderes Modell später nur ein Tausch ist.
 
-const LOOPS := ["Idle", "2H_Melee_Idle", "Running_A", "Running_B", "Walking_A", "Walking_D_Skeletons", "Idle_Combat", "Spellcasting", "2H_Melee_Attack_Spinning"]
+const LOOPS := ["Unarmed_Idle", "2H_Ranged_Aiming", "Idle", "2H_Melee_Idle", "Running_A", "Running_B", "Walking_A", "Walking_D_Skeletons", "Idle_Combat", "Spellcasting", "2H_Melee_Attack_Spinning"]
 
 var game: Node
 var model: Node3D

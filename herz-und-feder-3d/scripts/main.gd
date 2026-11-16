@@ -59,6 +59,12 @@ var loot: Array = []          # Beute am Boden
 var chests: Array = []        # {"n", "lid", "tier", "open", "label"}
 var breakables: Array = []    # Fässer und Kisten: {"n", "body", "sub"}
 var chests_open := 0
+var shots: Array = []         # Geschosse der Figur: {"n", "v", "life", "r", "mult", "pierce", "push", "gen", "stun", "hit"}
+var zones: Array = []         # Flächen: Pfeilregen, Seschats Maß
+var pet: Node3D               # der Fuchs der Jägerin, vorerst als leuchtender Geist
+var pet_t := 0.0              # bis zum nächsten Biss
+var pet_rage := 0.0           # Upuauts Hatz: schnelleres Beißen
+var pet_tgt: Foe
 var full_t := 0.0             # „Tasche voll“ höchstens alle 4 Sekunden melden
 var can_fullscreen := true    # im Browser: kann diese Seite Vollbild? (iPhone-Safari kann es nicht)
 var total := 0
@@ -92,6 +98,8 @@ func _ready() -> void:
 	hero.game = self
 	add_child(hero)
 	hero.global_position = start_pos
+	if hero.C.get("pet", false):
+		_build_pet()
 	cam = Camera3D.new()
 	cam.fov = 30.0
 	cam.far = 200.0
@@ -129,6 +137,10 @@ func _ready() -> void:
 		hud.show_chapter(TXT.no, TXT.name, TXT.lead, TXT.brief, "Eintreten", func(): begin())
 		sfx.say("vo_chapter")
 	if autotest == null:
+		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
+			var kt: Node = load("res://scripts/klassentest.gd").new()
+			kt.name = "Klassentest"
+			get_tree().root.add_child.call_deferred(kt)
 		if "--playtest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Playtest"):
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
@@ -145,9 +157,9 @@ func begin() -> void:
 	hud.banner(TXT.name, TXT.no)
 
 # Startbildschirm: neue Figur oder weiterspielen. Danach baut sich die Stunde mit den gewählten Werten neu auf.
-func start_game(neu: bool, d: int, hardcore: bool) -> void:
+func start_game(neu: bool, d: int, hardcore: bool, cls := "ermittler") -> void:
 	if neu:
-		Spiel.neue_figur("ermittler", d, hardcore)
+		Spiel.neue_figur(cls, d, hardcore)
 	elif d != Spiel.diff:
 		Spiel.diff = d
 		Spiel.speichern()
@@ -744,18 +756,19 @@ func hero_slam(c: Vector3, r: float, mult: float, push: float) -> void:
 	smash_around(c, r)
 	_impact(n, c)
 
-func hero_udjat(c: Vector3, r: float) -> void:
-	ring_fx(c, r, Color(0.78, 0.45, 0.95))
+func hero_ring(c: Vector3, r: float, mult: float, stun_t: float, col: Color) -> void:
+	ring_fx(c, r, col)
 	shake = maxf(shake, 0.4)
 	for f in live_foes():
 		if (f.global_position - c).length() < r + f.radius:
-			hero.deal(f, 2.2, 3.0, 2.2)
+			hero.deal(f, mult, 3.0, stun_t)
 	smash_around(c, r)
-	for b in bolts:
-		b.n.queue_free()
-	bolts.clear()
+	for i in range(bolts.size() - 1, -1, -1):
+		if (bolts[i].n.global_position - c).length() < r + 1.0 and not bolts[i].get("hero", false):
+			bolts[i].n.queue_free()
+			bolts.remove_at(i)
 
-func hero_beam(h: Hero) -> void:
+func hero_beam(h: Hero, mult := 1.25) -> void:
 	var from := h.global_position + Vector3(0, 1.5, 0)
 	var dir := h.forward()
 	var length := 18.0
@@ -769,7 +782,7 @@ func hero_beam(h: Hero) -> void:
 		rel.y = 0
 		var along := rel.dot(dir)
 		if along > 0.0 and along < length and (rel - dir * along).length() < 0.9 + f.radius:
-			h.deal(f, 1.25, 3.0)
+			h.deal(f, mult, 3.0)
 			n += 1
 	var m := MeshInstance3D.new()
 	var bm := BoxMesh.new()
@@ -789,6 +802,321 @@ func hero_beam(h: Hero) -> void:
 	tw.tween_callback(m.queue_free)
 	if n > 0:
 		shake = maxf(shake, 0.2)
+
+# ---------------------------------------------------------------- Fähigkeiten der Klassen (04-combat.js › cast)
+func _auto_target() -> Foe:
+	var best: Foe = null
+	var bd := hero.reach() - 0.24
+	for f in live_foes():
+		if hero.ranged() and f.state != Foe.St.FIGHT:
+			continue
+		var d: float = (f.global_position - hero.global_position).length() - f.radius
+		if d < bd and sees(hero.global_position, f.global_position):
+			bd = d
+			best = f
+	return best
+
+func toggle_tree() -> void:
+	if not started or hero.dead:
+		return
+	if hud.tree_open:
+		sfx.play("ui")
+		hud.close_bag()
+	elif hud.overlay == null and not get_tree().paused:
+		sfx.play("ui")
+		get_tree().paused = true
+		hud.show_tree()
+
+# Kegel vor der Figur (Gebs Lachen): Schaden, Rückstoß, Betäubung und Markierung
+func hero_cone(h: Hero, reach: float, half_angle: float, mult: float, push: float, stun_t: float, mark: float) -> void:
+	var n := 0
+	for f in live_foes():
+		var d: Vector3 = f.global_position - h.global_position
+		d.y = 0
+		if d.length() < reach + f.radius and (d.length() < 1.2 or h.forward().angle_to(d.normalized()) < half_angle):
+			if f.kind != "boss":
+				f.mark_t = mark
+			h.deal(f, mult, push, stun_t)
+			n += 1
+	ring_fx(h.global_position + h.forward() * reach * 0.5, reach * 0.5, Color(0.94, 0.9, 0.8))
+	smash_around(h.global_position + h.forward() * 2.0, 2.6)
+	_impact(n, h.global_position + h.forward() * 2.0)
+
+# Markierte zerbersten, wenn sie fallen, und reißen Nachbarn mit (Kettenreaktion möglich)
+func _mark_burst(f: Foe) -> void:
+	var c := f.global_position
+	ring_fx(c, 4.6, Color(0.94, 0.75, 0.45))
+	shake = maxf(shake, 0.3)
+	sfx.play_at("hit", c, 0.1)
+	for o in live_foes():
+		if o != f and (o.global_position - c).length() < 4.6 + o.radius:
+			hero.deal(o, 1.5, 5.0, 0.0, 0.0, false)
+
+# Zorn des Seth: springt von Gegner zu Gegner
+func hero_chain(h: Hero, at: Vector3, mult: float) -> void:
+	var first: Foe = null
+	var bd := INF
+	for f in live_foes():
+		if (f.global_position - h.global_position).length() < 18.8 and sees(h.global_position, f.global_position):
+			var d: float = (f.global_position - at).length()
+			if d < bd:
+				bd = d
+				first = f
+	if first == null:
+		_bolt_line(h.global_position + Vector3(0, 1.5, 0), _spot_ahead(h, 8.0) + Vector3(0, 1.0, 0))
+		return
+	var hit := []
+	var cur: Foe = first
+	var from := h.global_position + Vector3(0, 1.5, 0)
+	for i in 6:
+		_bolt_line(from, cur.global_position + Vector3(0, 1.2, 0))
+		h.deal(cur, mult, 1.2)
+		hit.append(cur)
+		from = cur.global_position + Vector3(0, 1.2, 0)
+		var nxt: Foe = null
+		var nd := 7.6
+		for f in live_foes():
+			if hit.has(f):
+				continue
+			var d: float = (f.global_position - cur.global_position).length()
+			if d < nd:
+				nd = d
+				nxt = f
+		if nxt == null:
+			break
+		cur = nxt
+	sfx.play_at("bolt", first.global_position, 0.1)
+
+func _spot_ahead(h: Hero, d: float) -> Vector3:
+	return h.global_position + h.forward() * d
+
+func _bolt_line(a: Vector3, b: Vector3) -> void:
+	var m := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	var len := (b - a).length()
+	bm.size = Vector3(0.12, 0.12, len)
+	m.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.89, 0.72, 1.0, 0.95)
+	m.material_override = mat
+	add_child(m)
+	m.global_position = (a + b) / 2.0
+	if len > 0.01:
+		m.look_at(b, Vector3.UP if absf((b - a).normalized().y) < 0.99 else Vector3.RIGHT)
+	var tw := create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.25)
+	tw.tween_callback(m.queue_free)
+
+# Geschosse der Figur: Pfeile, Funken, Atem des Schu. pierce: so viele weitere Gegner, -1 = alle
+func spawn_shot(h: Hero, dir: Vector3, o: Dictionary) -> void:
+	var m := MeshInstance3D.new()
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var col: Color = o.get("col", Color.WHITE)
+	mat.albedo_color = col
+	if col.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var r: float = o.get("r", 0.2)
+	match o.get("kind", "orb"):
+		"arrow":
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.07, 0.07, 0.9)
+			m.mesh = bm
+		"wave":
+			var bm := BoxMesh.new()
+			bm.size = Vector3(r * 2.6, 0.5, 0.35)
+			m.mesh = bm
+		_:
+			var sm := SphereMesh.new()
+			sm.radius = maxf(0.14, r)
+			sm.height = maxf(0.28, r * 2.0)
+			sm.radial_segments = 10
+			sm.rings = 5
+			m.mesh = sm
+	m.material_override = mat
+	add_child(m)
+	var d := Vector3(dir.x, 0, dir.z).normalized()
+	m.global_position = h.global_position + Vector3(0, 1.3, 0) + d * 0.6
+	m.look_at(m.global_position + d, Vector3.UP)
+	shots.append({"n": m, "v": d * float(o.get("speed", 20.0)), "life": float(o.get("life", 0.6)), "r": r, "mult": float(o.get("mult", 1.0)),
+		"pierce": int(o.get("pierce", 0)), "push": float(o.get("push", 3.6)), "gen": float(o.get("gen", 0.0)), "stun": float(o.get("stun", 0.0)), "hit": []})
+
+func _shots_tick(delta: float) -> void:
+	for i in range(shots.size() - 1, -1, -1):
+		var b: Dictionary = shots[i]
+		b.life -= delta
+		var n: Node3D = b.n
+		var p0 := n.global_position
+		n.global_position += b.v * delta
+		var gone: bool = b.life <= 0.0 or not sees(p0 - Vector3(0, 1.2, 0), n.global_position - Vector3(0, 1.2, 0))
+		if not gone:
+			for f in live_foes():
+				if b.hit.has(f):
+					continue
+				var d: Vector3 = n.global_position - f.global_position
+				d.y = 0
+				if d.length() < f.radius + b.r + 0.2:
+					hero.deal(f, b.mult, b.push, b.stun, b.gen if b.hit.is_empty() else 0.0)
+					b.hit.append(f)
+					spark(n.global_position, Color(1.0, 0.9, 0.7))
+					if b.pierce >= 0 and b.hit.size() > b.pierce:
+						gone = true
+						break
+		if gone:
+			n.queue_free()
+			shots.remove_at(i)
+
+# Flächen: Sieben Pfeile der Sachmet (Schaden in Takten) und Seschats Maß (verlangsamt, schwacher Schaden)
+func add_zone(c: Vector3, r: float, t: float, every: float, mult: float, slow: float, col: Color) -> void:
+	var m := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r
+	cm.bottom_radius = r
+	cm.height = 0.05
+	cm.radial_segments = 40
+	cm.rings = 1
+	m.mesh = cm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(col, 0.22)
+	m.material_override = mat
+	add_child(m)
+	m.global_position = c + Vector3(0, 0.08, 0)
+	zones.append({"n": m, "mat": mat, "c": c, "r": r, "t": t, "t0": t, "every": every, "next": 0.0, "mult": mult, "slow": slow, "col": col})
+
+func _zones_tick(delta: float) -> void:
+	for i in range(zones.size() - 1, -1, -1):
+		var z: Dictionary = zones[i]
+		z.t -= delta
+		z.next -= delta
+		for f in live_foes():
+			if (f.global_position - z.c).length() < z.r + f.radius:
+				if z.slow > 0.0:
+					f.slow_t = 0.2
+				if z.next <= 0.0:
+					hero.deal(f, z.mult, 0.3, 0.0, 0.0, false)
+		if z.next <= 0.0:
+			z.next = z.every
+			if z.slow <= 0.0:
+				for k in 4:
+					var a := randf() * TAU
+					spark(z.c + Vector3(sin(a), 0, cos(a)) * randf() * z.r + Vector3(0, 0.3, 0), z.col)
+		z.mat.albedo_color.a = 0.22 * clampf(z.t / 0.4, 0.0, 1.0)
+		if z.t <= 0.0:
+			z.n.queue_free()
+			zones.remove_at(i)
+
+# Fallender Stern der Nut: Vorwarnung, dann Einschlag
+func meteor(c: Vector3, r: float, mult: float) -> void:
+	warn_fx(c, r, 0.7)
+	get_tree().create_timer(0.7, false).timeout.connect(func():
+		ring_fx(c, r, Color(1.0, 0.84, 0.37))
+		spark(c + Vector3(0, 0.8, 0), Color(1.0, 0.84, 0.37))
+		shake = maxf(shake, 0.7)
+		sfx.play_at("hit", c, 0.05)
+		for f in live_foes():
+			if (f.global_position - c).length() < r + f.radius:
+				hero.deal(f, mult, 7.0)
+		smash_around(c, r))
+
+# ---------------------------------------------------------------- Der Fuchs der Jägerin (05-update.js › Begleittier)
+func _build_pet() -> void:
+	pet = Node3D.new()
+	var m := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.28
+	sm.height = 0.5
+	sm.radial_segments = 12
+	sm.rings = 6
+	m.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.82, 0.5)
+	m.material_override = mat
+	m.position.y = 0.55
+	pet.add_child(m)
+	for k in 2:
+		var ear := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.14, 0.28, 0.06)
+		ear.mesh = pm
+		ear.material_override = mat
+		ear.position = Vector3(-0.12 + 0.24 * k, 0.86, 0.0)
+		pet.add_child(ear)
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.75, 0.4)
+	l.light_energy = 1.0
+	l.omni_range = 3.0
+	l.position.y = 0.7
+	pet.add_child(l)
+	add_child(pet)
+	pet.global_position = hero.global_position + Vector3(-1.2, 0, 1.2)
+
+func hetz_target(at: Vector3) -> Foe:
+	if pet == null:
+		return null
+	var best: Foe = null
+	var bd := INF
+	for f in live_foes():
+		if (f.global_position - hero.global_position).length() < 20.8:
+			var d: float = (f.global_position - at).length()
+			if d < bd:
+				bd = d
+				best = f
+	return best
+
+func pet_hetz(at: Vector3, pw: float) -> void:
+	var t := hetz_target(at)
+	if t == null:
+		return
+	pet_tgt = t
+	pet_rage = 5.0
+	pet.global_position = t.global_position + (pet.global_position - t.global_position).normalized() * (t.radius + 0.4)
+	hero.deal(t, 3.0 * pw, 4.8, 0.0, 0.0, false)
+	ring_fx(t.global_position, 1.6, Color(1.0, 0.75, 0.4))
+	# feindliche Tiere in der Nähe fliehen (nicht die Elite)
+	for f in live_foes():
+		if f.K.get("animal", false) and f.elite == "" and (f.global_position - pet.global_position).length() < 11.2:
+			f.fear_t = 4.0
+
+func _pet_tick(delta: float) -> void:
+	if pet == null:
+		return
+	pet_rage -= delta
+	pet_t -= delta
+	var hp_ := hero.global_position
+	if pet_tgt and (pet_tgt.state == Foe.St.DEAD or (pet_tgt.global_position - hp_).length() > 17.6):
+		pet_tgt = null
+	var t: Foe = pet_tgt
+	if t == null:
+		var bd := 12.0
+		for f in live_foes():
+			if f.state == Foe.St.FIGHT:
+				var d: float = (f.global_position - hp_).length()
+				if d < bd:
+					bd = d
+					t = f
+	var goal: Vector3 = hp_ - hero.forward() * 1.8 + Vector3(sin(hero.face + 1.6), 0, cos(hero.face + 1.6)) * 0.8
+	if t:
+		goal = t.global_position
+	var d := goal - pet.global_position
+	d.y = 0
+	var reach := (t.radius + 0.8) if t else 0.3
+	if d.length() > reach:
+		pet.global_position += d.normalized() * minf(d.length() - reach * 0.8, 11.2 * delta)
+	pet.look_at(pet.global_position + Vector3(d.x, 0, d.z + 0.001), Vector3.UP)
+	pet.get_child(0).position.y = 0.55 + absf(sin(Time.get_ticks_msec() * 0.012)) * 0.12
+	var key := Spiel.has_key() and hero.cls == "jaegerin"
+	if t and d.length() <= reach + 0.2 and pet_t <= 0.0:
+		pet_t = (0.4 if pet_rage > 0.0 else 0.85) * (0.7 if key else 1.0)
+		hero.deal(t, 0.45 * (2.0 if key else 1.0), 0.8, 0.0, 0.0, false)
+		spark(t.global_position + Vector3(0, 0.8, 0), Color(1.0, 0.8, 0.5))
+	var far := (pet.global_position - hp_).length()
+	if far > 28.8 or (far > 10.4 and not sees(pet.global_position, hp_)):
+		pet.global_position = hp_ - hero.forward() * 1.2
 
 func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float) -> void:
 	var l := OmniLight3D.new()
@@ -810,6 +1138,8 @@ func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float) -> void:
 	bolts.append({"n": l, "v": dir * speed, "dmg": dmg, "life": 3.2})
 
 func on_foe_dead(f: Foe) -> void:
+	if f.mark_t > 0.0 and f != boss:
+		_mark_burst(f)
 	_drops(f)
 	if Spiel.has_leg("leech") and not hero.dead:
 		hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * 0.03)
@@ -1110,7 +1440,7 @@ func on_hero_dead() -> void:
 	sfx.say("vo_death")
 	get_tree().paused = true
 	if Spiel.hc:
-		hud.show_dead("Hardcore: Eidträger, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.lvl, "ersten Stunde"], func(): restart(false), "Neue Figur anlegen")
+		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, "ersten Stunde"], func(): restart(false), "Neue Figur anlegen")
 		return
 	hud.show_dead(TXT.dead, func():
 		sfx.hush()
@@ -1124,6 +1454,8 @@ func on_hero_dead() -> void:
 			b.n.queue_free()
 		bolts.clear()
 		hero.revive(start_pos)
+		if pet:
+			pet.global_position = start_pos + Vector3(-1.2, 0, 1.2)
 		cam_pos = start_pos
 		get_tree().paused = false)
 
@@ -1313,11 +1645,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
-			KEY_1: hero.aim = mouse_ground(); hero.cast("whirl")
-			KEY_2: hero.aim = mouse_ground(); hero.cast("dash")
-			KEY_3: hero.cast("oath")
-			KEY_4: hero.cast("udjat")
+			KEY_1, KEY_2, KEY_3, KEY_4:
+				hero.aim = mouse_ground()
+				hero.auto_aim = false
+				hero.cast(hero.ORDER[ev.keycode - KEY_1])
 			KEY_Q: hero.cast("potion")
+			KEY_K: toggle_tree()
 			KEY_F: hud.toggle_fps()
 			KEY_G: set_low(not low_gfx)
 			KEY_V: toggle_fullscreen()
@@ -1327,7 +1660,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		tap_t = 0.3
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 		hero.aim = mouse_ground()
-		hero.cast("beam")
+		hero.auto_aim = false
+		hero.cast(hero.ORDER[4])
 
 func set_low(low: bool, still := false) -> void:
 	low_gfx = low
@@ -1351,6 +1685,9 @@ func _physics_process(delta: float) -> void:
 	shot_gap -= delta
 	_loot_tick(delta)
 	_chest_tick()
+	_shots_tick(delta)
+	_zones_tick(delta)
+	_pet_tick(delta)
 	if autotest == null:
 		# Eingabe: WASD läuft (zur Kamera gedreht), linke Maustaste gehalten läuft zum Zeiger oder greift an
 		var v := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -1369,7 +1706,7 @@ func _physics_process(delta: float) -> void:
 			var tgt := foe_near(mg, 1.6)
 			var to := mg - hero.global_position
 			to.y = 0
-			if tgt and (tgt.global_position - hero.global_position).length() < 3.2 + tgt.radius:
+			if tgt and (tgt.global_position - hero.global_position).length() < hero.reach() - 0.1 + tgt.radius and (not hero.ranged() or sees(hero.global_position, tgt.global_position)):
 				hero.aim = tgt.global_position
 				hero.attack()
 				dir = Vector3.ZERO
@@ -1383,6 +1720,12 @@ func _physics_process(delta: float) -> void:
 				dir = Vector3.ZERO
 			elif to.length() > 0.8:
 				dir = to.normalized()
+		elif dir == Vector3.ZERO:
+			# Auto-Angriff ohne Eingabe (05-update.js): nächster Gegner in Reichweite und Sicht
+			var af := _auto_target()
+			if af:
+				hero.aim = af.global_position
+				hero.attack()
 		hero.want_dir = dir
 	# höchstens zwei Nahkämpfer greifen zugleich an, die anderen lauern
 	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai == "melee")

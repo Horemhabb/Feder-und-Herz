@@ -1,21 +1,15 @@
 class_name Hero extends Actor
-# Der Eidträger: Zweihänder, Laterne mit dem Funken des Re. Werte und Fähigkeiten stammen aus der Webfassung.
+# Die Figur des Spielers in einer der vier Klassen (klassen.gd): Eidträger, Priester des Schu, Wüstenjägerin, Sternleserin.
+# Standardangriff und Fähigkeiten folgen 04-combat.js › basicAttack und cast; Entfernungen sind aus Weltpixeln in Meter
+# umgerechnet (Daten.PX). Alle tragen die Laterne mit dem Funken des Re.
 
-const ANIM := {
-	"idle": "2H_Melee_Idle", "run": "Running_A", "atk_a": "2H_Melee_Attack_Slice", "atk_b": "2H_Melee_Attack_Chop",
-	"whirl": "2H_Melee_Attack_Spin", "dash": "Dodge_Forward", "oath": "Cheer", "udjat": "Spellcast_Raise",
-	"beam": "Spellcast_Shoot", "potion": "Use_Item", "hit": "Hit_A", "death": "Death_A",
-}
 const SPEED := 6.4
-const SKILLS := {
-	"whirl": {"name": "Falkenkreis", "key": "1", "cost": 25, "cd": 0.5, "txt": "Rundumschlag um dich herum."},
-	"dash": {"name": "Sturz des Falken", "key": "2", "cost": 0, "cd": 5.0, "txt": "Sprung zum Ziel mit Aufprall."},
-	"oath": {"name": "Eid der Maat", "key": "3", "cost": 0, "cd": 18.0, "txt": "6 Sekunden mehr Schaden, weniger erlittener Schaden."},
-	"udjat": {"name": "Blick des Udjat", "key": "4", "cost": 0, "cd": 14.0, "txt": "Betäubt alles im Umkreis und löscht Geschosse."},
-	"beam": {"name": "Strahl des Re", "key": "RM", "cost": 14, "cd": 0.35, "txt": "Licht aus der Laterne, das mehrere Gegner durchschlägt."},
-	"potion": {"name": "Rotbier der Sachmet", "key": "Q", "cost": 0, "cd": 1.0, "txt": "Heilt dich."},
-}
-const ORDER := ["whirl", "dash", "oath", "udjat", "beam", "potion"]
+
+var cls := "ermittler"
+var C: Dictionary          # Klassendaten
+var ANIM: Dictionary       # Animationsnamen des Modells
+var SK := {}               # Fähigkeiten dieser Klasse
+var ORDER: Array = []      # Tasten 1–4, rechte Maustaste, Rotbier
 
 var en := 60.0
 var pots: int:   # Rotbier gehört zur Figur und überdauert den Neustart einer Stunde
@@ -25,34 +19,45 @@ var hits := 0            # Standardangriffe gezählt (Fäuste des Namenlosen: je
 var skin_t := 0.0        # Haut des Mehen: bis zum nächsten abgeprallten Treffer
 var cd := {}
 var busy := 0.0          # so lange läuft eine Aktion, die das Laufen sperrt
+var busy_basic := false  # die laufende Aktion ist nur ein Standardangriff: Fähigkeiten dürfen ihn unterbrechen
 var pending: Array = []  # geplante Treffer: [Zeit, Callable]
 var combo := 0
-var oath_t := 0.0
+var oath_t := 0.0        # Eid der Maat
+var mantra_t := 0.0      # Kreis des Ka
 var inv := 1.5
 var dash_t := 0.0
 var dash_dir := Vector3.ZERO
+var dash_slam := Vector2.ZERO   # Aufprall am Ende eines Sprungs: Radius, Stärke (0 = ohne Schaden)
+var casts := 0           # gewirkte Fähigkeiten (Wort des Thot: jede fünfte ist frei)
 var step_t := 0.0
 var vel := Vector3.ZERO
 var lantern: OmniLight3D
 var aura: OmniLight3D
 var want_dir := Vector3.ZERO   # Eingabe: Laufrichtung
 var aim := Vector3.ZERO        # Eingabe: Punkt unter dem Mauszeiger
-var base_dmg := 13.0
+var auto_aim := false          # die Fähigkeit kam von einem Knopf: Sprünge ohne Schaden weichen vom Gegner weg
 
 func _ready() -> void:
-	setup("res://models/chars/Knight.glb", 1.0, 0.55)
+	cls = Spiel.cls if Klassen.CLS.has(Spiel.cls) else "ermittler"
+	C = Klassen.CLS[cls]
+	ANIM = C.anim
+	ORDER = Klassen.order(cls)
+	for id in ORDER:
+		SK[id] = Klassen.SK[id]
+		cd[id] = 0.0
+	setup("res://models/chars/%s.glb" % C.model, 1.0, 0.55)
 	collision_layer = 2
 	collision_mask = 1 | 4
 	apply_stats(true)
-	# nur der Zweihänder bleibt in der Hand
-	for n in ["1H_Sword_Offhand", "Badge_Shield", "Rectangle_Shield", "Round_Shield", "Spike_Shield", "1H_Sword"]:
-		var c := model.find_child(n, true, false)
-		if c:
-			c.visible = false
+	for n in Klassen.WEAPONS:
+		if not C.keep.has(n):
+			var c := model.find_child(n, true, false)
+			if c:
+				c.visible = false
 	lantern = OmniLight3D.new()
 	lantern.light_color = Color(1.0, 0.78, 0.48)
 	lantern.light_energy = 3.2
-	lantern.omni_range = 16.0
+	lantern.omni_range = 16.0 * Spiel.S.cone
 	lantern.omni_attenuation = 1.3
 	lantern.shadow_enabled = true
 	lantern.position = Vector3(0, 2.6, 0)
@@ -67,11 +72,9 @@ func _ready() -> void:
 	ear.position = Vector3(0, 1.6, 0)
 	add_child(ear)
 	ear.make_current()
-	for k in ORDER:
-		cd[k] = 0.0
 	play(ANIM.idle)
 
-# Werte aus Stufe und Ausrüstung übernehmen (nach Anlegen, Aufwerten, Stufenaufstieg). full: volles Leben
+# Werte aus Stufe, Ausrüstung und Baum übernehmen. full: volles Leben
 func apply_stats(full := false) -> void:
 	var ratio := hp / max_hp if max_hp > 0.0 else 1.0
 	max_hp = float(Spiel.S.max_hp)
@@ -79,8 +82,14 @@ func apply_stats(full := false) -> void:
 	if lantern:
 		lantern.omni_range = 16.0 * Spiel.S.cone
 
-# Schaden an einem Gegner nach 04-combat.js › hit: Krit, Lampe der Maat, Sonnenrichter, Eid, Lebensraub, Harpune des Horus
-func deal(f: Foe, mult: float, push := 6.0, stun_t := 0.0, gen := 0.0) -> void:
+func reach() -> float:
+	return C.range
+
+func ranged() -> bool:
+	return C.basic == "shot" or C.basic == "spark"
+
+# Schaden an einem Gegner nach 04-combat.js › hit: Krit, Lampe der Maat, Sonnenrichter, Eid, Speer des Seth, Lebensraub
+func deal(f: Foe, mult: float, push := 6.0, stun_t := 0.0, gen := 0.0, loh := true) -> void:
 	if f.state == Foe.St.DEAD:
 		return
 	var S: Dictionary = Spiel.S
@@ -94,22 +103,38 @@ func deal(f: Foe, mult: float, push := 6.0, stun_t := 0.0, gen := 0.0) -> void:
 		amt *= 1.6
 	if oath_t > 0.0:
 		amt *= 1.3
+	if f.elite != "" or f.kind == "boss":
+		amt *= 1.0 + 0.08 * Spiel.pas("jaeger")
 	f.hit(amt, global_position, push, stun_t, crit)
 	if crit and Spiel.has_leg("critres"):
 		en = minf(100.0, en + 5.0)
-	if S.loh > 0.0 and not dead:
+	if loh and S.loh > 0.0 and not dead:
 		hp = minf(max_hp, hp + S.loh)
 	if gen > 0.0:
 		en = minf(100.0, en + gen)
 
+func _free_cast(id: String) -> bool:
+	# Wort des Thot: die nächste Fähigkeit ist die fünfte
+	return cls == "forensiker" and Spiel.has_key() and id != "potion" and (casts + 1) % 5 == 0
+
 func cost_of(id: String) -> float:
-	var c: float = SKILLS[id].cost
-	return c * 0.5 if id == ORDER[0] and Spiel.has_leg("s1") else c
+	if _free_cast(id):
+		return 0.0
+	var c: float = SK[id].cost
+	if id == ORDER[0] and Spiel.has_leg("s1"):
+		c *= 0.5
+	if Spiel.aug(id) == "eile":
+		c *= 0.75
+	return c
 
 func cd_of(id: String) -> float:
-	var c: float = SKILLS[id].cd
+	var c: float = SK[id].cd
 	if (id == ORDER[1] and Spiel.has_leg("s2")) or (id == ORDER[3] and Spiel.has_leg("s4")):
-		return c * 0.5
+		c *= 0.5
+	if Spiel.aug(id) == "eile":
+		c *= 0.75
+	if SK[id].util:
+		c *= 1.0 - 0.06 * Spiel.rank(id)
 	return c
 
 func _physics_process(delta: float) -> void:
@@ -122,7 +147,10 @@ func _physics_process(delta: float) -> void:
 	skin_t -= delta
 	inv -= delta
 	oath_t -= delta
-	aura.light_energy = move_toward(aura.light_energy, 2.2 if oath_t > 0.0 else 0.0, delta * 6.0)
+	if mantra_t > 0.0:
+		mantra_t -= delta
+		hp = minf(max_hp, hp + max_hp * 0.04 * delta)
+	aura.light_energy = move_toward(aura.light_energy, 2.2 if oath_t > 0.0 or mantra_t > 0.0 else 0.0, delta * 6.0)
 	lantern.light_energy = 3.2 + sin(Time.get_ticks_msec() * 0.011) * 0.12 + sin(Time.get_ticks_msec() * 0.023) * 0.06
 	# geplante Treffer
 	for i in range(pending.size() - 1, -1, -1):
@@ -138,7 +166,8 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		if dash_t <= 0.0:
 			collision_mask = 1 | 4
-			game.hero_slam(global_position, 3.4, 1.4, 9.0)
+			if dash_slam.y > 0.0:
+				game.hero_slam(global_position, dash_slam.x, dash_slam.y, 9.0)
 		turn(delta)
 		return
 	var target := Vector3.ZERO
@@ -164,57 +193,122 @@ func _physics_process(delta: float) -> void:
 			step_t = 0.1
 
 func can(id: String) -> bool:
-	if dead or busy > 0.0 or dash_t > 0.0 or stun > 0.0 or cd[id] > 0.0:
+	if dead or (busy > 0.0 and not busy_basic) or dash_t > 0.0 or stun > 0.0 or not cd.has(id) or cd[id] > 0.0:
 		return false
 	if id == "potion":
 		return pots > 0 and hp < max_hp
+	if id == "hetz" and game.hetz_target(aim) == null:
+		return false
 	return en >= cost_of(id)
 
+# ---------------------------------------------------------------- Standardangriff (04-combat.js › basicAttack)
 func attack() -> bool:
-	# Standardangriff: abwechselnd Schnitt und Hieb, trifft im Bogen vor der Figur
 	if dead or busy > 0.0 or dash_t > 0.0 or stun > 0.0:
 		return false
 	look_to(aim)
+	busy_basic = true
 	combo += 1
 	hits += 1
 	var heavy := Spiel.has_leg("heavy") and hits % 4 == 0
-	var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
+	var hm := (2.0 if heavy else 1.0) * (1.0 + 0.08 * Spiel.pas("hieb"))
+	var st := 0.6 if heavy else 0.0
 	var tempo: float = Spiel.S.rate / 1.75
-	var sp := (2.1 if combo % 2 == 1 else 2.5) * tempo
-	play(a, sp, 0.08, true)
-	busy = anim_len(a) / sp * 0.78
 	vel = Vector3.ZERO
-	game.sfx.play("swing", 0.1)
-	var m := (1.0 if combo % 2 == 1 else 1.25) * (2.0 if heavy else 1.0)
-	pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, m, 6.0, true, 0.6 if heavy else 0.0)])
+	match C.basic:
+		"melee":
+			var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
+			var sp := (2.1 if combo % 2 == 1 else 2.5) * tempo
+			play(a, sp, 0.08, true)
+			busy = anim_len(a) / sp * 0.78
+			game.sfx.play("swing", 0.1)
+			var m := (1.0 if combo % 2 == 1 else 1.25) * hm
+			pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, m, 6.0, true, st)])
+		"combo":
+			# Priester: jeder dritte Schlag weiter, härter, mit Rückstoß
+			var third := combo % 3 == 0
+			var a: String = ANIM.atk_c if third else (ANIM.atk_a if combo % 3 == 1 else ANIM.atk_b)
+			var sp := (1.9 if third else 2.6) * tempo
+			play(a, sp, 0.06, true)
+			busy = anim_len(a) / sp * (0.7 if third else 0.6)
+			game.sfx.play("swing", 0.1)
+			var m := (1.9 if third else 1.0) * hm
+			var r: float = C.range * (1.6 if third else 1.0)
+			pending.append([anim_len(a) / sp * 0.4, func():
+				game.hero_arc(self, r, 1.35 if third else 1.05, m, 6.0 if third else 3.0, true, st)
+				if third:
+					game.shake = maxf(game.shake, 0.15)
+					if Spiel.has_key():
+						en = minf(100.0, en + 10.0)
+						hp = minf(max_hp, hp + max_hp * 0.02)])
+		"shot":
+			# Jägerin: Pfeil, durchschlägt nicht, +4 Instinkt beim ersten Treffer
+			play(ANIM.atk_a, 2.2 * tempo, 0.06, true)
+			busy = 0.8 / Spiel.S.rate
+			game.sfx.play("swing", 0.1, -4.0)
+			pending.append([0.1, func(): game.spawn_shot(self, forward(), {"speed": 28.8, "r": 0.16, "life": 0.6, "mult": hm, "pierce": 0, "col": Color(0.85, 1.0, 0.85), "gen": 4.0, "stun": st, "kind": "arrow"})])
+		"spark":
+			# Sternleserin: Funke, durchschlägt einmal
+			play(ANIM.atk_a, 2.4 * tempo, 0.06, true)
+			busy = 0.8 / Spiel.S.rate
+			game.sfx.play("bolt", 0.1, -6.0)
+			pending.append([0.12, func(): game.spawn_shot(self, forward(), {"speed": 21.6, "r": 0.24, "life": 0.7, "mult": 0.95 * hm, "pierce": 1, "col": Color(0.85, 0.6, 1.0), "gen": 4.0, "stun": st})])
 	return true
+
+# ---------------------------------------------------------------- Fähigkeiten (04-combat.js › cast)
+func _jump(max_d: float, r: float, mult: float) -> void:
+	# Sprung zum Ziel; ohne Schaden und vom Knopf aus weg vom nächsten Gegner (03 jump)
+	var d := flat(aim - global_position)
+	if auto_aim and mult <= 0.0:
+		var near: Foe = game.foe_near(global_position, 7.0)
+		if near:
+			d = flat(global_position - near.global_position)
+	if d.length() < 0.01:
+		d = forward()
+	look_to(global_position + d)
+	var dist := clampf(d.length(), 2.4, max_d) if not (auto_aim and mult <= 0.0) else max_d
+	dash_dir = d.normalized()
+	dash_t = dist / 30.0
+	dash_slam = Vector2(r, mult)
+	inv = maxf(inv, dash_t + 0.45)
+	collision_mask = 1
+	play(ANIM.get(ORDER[1], "Dodge_Forward"), 1.6, 0.05, true)
+	game.sfx.play("dash")
+
+func _clamp_aim(max_d: float) -> Vector3:
+	var d := flat(aim - global_position)
+	if d.length() > max_d:
+		d = d.normalized() * max_d
+	return global_position + d
 
 func cast(id: String) -> bool:
 	if not can(id):
 		return false
+	var free := _free_cast(id)
+	busy_basic = false
+	busy = 0.0
 	en -= cost_of(id)
 	cd[id] = cd_of(id)
+	if id != "potion":
+		casts += 1
+	var pw := Spiel.sk_pow(id) * (1.5 if free else 1.0)
+	var upw := Spiel.sk_upw(id)
+	if free:
+		game.ring_fx(global_position, 1.6, Color(0.95, 0.82, 0.3))
+		game.sfx.play("oath", 0.05, -6.0)
 	match id:
+		# Eidträger
 		"whirl":
 			play(ANIM.whirl, 2.0, 0.08, true)
 			busy = 0.55
 			vel = Vector3.ZERO
 			game.sfx.play("whirl")
-			pending.append([0.2, func(): game.hero_slam(global_position, 4.4, 1.7, 8.0); game.ring_fx(global_position, 4.4, Color(1.0, 0.72, 0.3))])
+			pending.append([0.2, func(): game.hero_slam(global_position, 4.4, 1.7 * pw, 8.0); game.ring_fx(global_position, 4.4, Color(1.0, 0.72, 0.3))])
 		"dash":
-			look_to(aim)
-			var d := flat(aim - global_position)
-			var dist := clampf(d.length(), 3.0, 13.0)
-			dash_dir = forward()
-			dash_t = dist / 30.0
-			inv = maxf(inv, dash_t + 0.25)
-			collision_mask = 1
-			play(ANIM.dash, 1.6, 0.05, true)
-			game.sfx.play("dash")
+			_jump(13.0, 3.4, 1.4 * pw)
 		"oath":
 			play(ANIM.oath, 1.6, 0.1, true)
 			busy = 0.5
-			oath_t = 6.0
+			oath_t = 6.0 * upw
 			game.sfx.play("oath")
 			game.ring_fx(global_position, 3.0, Color(1.0, 0.85, 0.3))
 		"udjat":
@@ -222,14 +316,112 @@ func cast(id: String) -> bool:
 			busy = 0.5
 			vel = Vector3.ZERO
 			game.sfx.play("udjat")
-			pending.append([0.22, func(): game.hero_udjat(global_position, 7.0)])
+			pending.append([0.22, func(): game.hero_ring(global_position, 7.0, 2.2 * pw, 2.2, Color(0.78, 0.45, 0.95))])
 		"beam":
 			look_to(aim)
 			play(ANIM.beam, 2.4, 0.08, true)
 			busy = 0.32
 			vel = Vector3.ZERO
 			game.sfx.play("beam")
-			pending.append([0.12, func(): game.hero_beam(self)])
+			pending.append([0.12, func(): game.hero_beam(self, 1.25 * pw)])
+		# Priester des Schu
+		"flurry":
+			look_to(aim)
+			busy = 0.62
+			vel = Vector3.ZERO
+			for i in 5:
+				pending.append([0.11 * i, func():
+					play(ANIM.flurry, 3.2, 0.03, true)
+					game.sfx.play("swing", 0.15, -3.0)
+					game.hero_arc(self, 3.7, 0.9, 0.62 * pw, 1.2, false)])
+		"step":
+			_jump(10.0, 3.0, 1.1 * pw)
+		"mantra":
+			play(ANIM.mantra, 1.6, 0.1, true)
+			busy = 0.45
+			mantra_t = 7.0 * upw
+			game.sfx.play("oath")
+			game.ring_fx(global_position, 7.2, Color(0.94, 0.9, 0.8))
+		"palm":
+			look_to(aim)
+			play(ANIM.palm, 1.8, 0.06, true)
+			busy = 0.45
+			vel = Vector3.ZERO
+			game.sfx.play("whirl")
+			pending.append([0.18, func(): game.hero_cone(self, 6.0, 0.95, 3.2 * pw, 8.0, 0.5, 6.0)])
+		"wave":
+			look_to(aim)
+			play(ANIM.wave, 2.2, 0.06, true)
+			busy = 0.35
+			vel = Vector3.ZERO
+			game.sfx.play("beam", 0.1, -2.0)
+			pending.append([0.1, func(): game.spawn_shot(self, forward(), {"speed": 20.8, "r": 0.64, "life": 0.42, "mult": 2.0 * pw, "pierce": -1, "col": Color(0.92, 0.95, 1.0, 0.7), "push": 9.0, "kind": "wave"})])
+		# Wüstenjägerin
+		"salve":
+			look_to(aim)
+			play(ANIM.salve, 2.4, 0.06, true)
+			busy = 0.35
+			vel = Vector3.ZERO
+			game.sfx.play("swing", 0.1)
+			pending.append([0.1, func():
+				for off in [-0.36, -0.18, 0.0, 0.18, 0.36]:
+					var a: float = face + off
+					game.spawn_shot(self, Vector3(sin(a), 0, cos(a)), {"speed": 28.0, "r": 0.16, "life": 0.6, "mult": 1.15 * pw, "pierce": 0, "col": Color(0.6, 0.95, 0.65), "kind": "arrow"})])
+		"roll":
+			_jump(9.2 * upw, 0.0, 0.0)
+		"hetz":
+			look_to(aim)
+			play(ANIM.hetz, 1.8, 0.1, true)
+			busy = 0.3
+			game.sfx.play("udjat", 0.1, -4.0)
+			game.pet_hetz(aim, pw)
+		"rain":
+			var c := _clamp_aim(16.8)
+			look_to(c)
+			play(ANIM.rain, 2.0, 0.06, true)
+			busy = 0.35
+			vel = Vector3.ZERO
+			game.sfx.play("swing", 0.1)
+			game.add_zone(c, 5.0, 3.2, 0.35, 0.85 * pw, 0.0, Color(0.6, 0.95, 0.65))
+		"pierce":
+			look_to(aim)
+			play(ANIM.pierce, 2.0, 0.06, true)
+			busy = 0.4
+			vel = Vector3.ZERO
+			game.sfx.play("bolt")
+			game.shake = maxf(game.shake, 0.12)
+			pending.append([0.12, func(): game.spawn_shot(self, forward(), {"speed": 34.4, "r": 0.32, "life": 0.8, "mult": 3.2 * pw, "pierce": -1, "col": Color(0.9, 1.0, 0.9), "push": 4.0, "kind": "arrow"})])
+		# Sternleserin
+		"chain":
+			look_to(aim)
+			play(ANIM.chain, 2.6, 0.06, true)
+			busy = 0.3
+			vel = Vector3.ZERO
+			pending.append([0.1, func(): game.hero_chain(self, aim, 1.6 * pw)])
+		"blink":
+			_blink(13.2 * upw)
+		"glass":
+			var c := _clamp_aim(17.6)
+			look_to(c)
+			play(ANIM.glass, 1.8, 0.08, true)
+			busy = 0.4
+			vel = Vector3.ZERO
+			game.sfx.play("udjat", 0.1, -6.0)
+			game.add_zone(c, 5.6, 5.0 * upw, 0.5, 0.35 * (1.0 + 0.12 * Spiel.rank(id)), 1.0, Color(0.56, 0.89, 0.88))
+		"nova":
+			play(ANIM.nova, 1.8, 0.08, true)
+			busy = 0.45
+			vel = Vector3.ZERO
+			game.sfx.play("udjat")
+			pending.append([0.2, func(): game.hero_ring(global_position, 8.4, 1.8 * pw, 2.6, Color(0.56, 0.89, 0.88))])
+		"meteor":
+			var c := _clamp_aim(18.4)
+			look_to(c)
+			play(ANIM.meteor, 2.0, 0.08, true)
+			busy = 0.45
+			vel = Vector3.ZERO
+			game.sfx.play("bolt", 0.1, -2.0)
+			game.meteor(c, 4.6, 4.5 * pw)
 		"potion":
 			pots -= 1
 			hp = minf(max_hp, hp + max_hp * (1.0 if Spiel.has_leg("potion") else 0.6))
@@ -239,7 +431,33 @@ func cast(id: String) -> bool:
 			game.float_text(global_position, "+ Rotbier", Color(0.5, 0.9, 0.55))
 	return true
 
-# Erlittener Schaden nach 04-combat.js › hurt: Haut des Mehen, Dornen, Rüstung und Klasse, Eid der Maat
+func _blink(max_d: float) -> void:
+	# Schritt durch die Duat: sofort versetzt, endet vor Mauern
+	var d := flat(aim - global_position)
+	if auto_aim:
+		var near: Foe = game.foe_near(global_position, 7.0)
+		if near:
+			d = flat(global_position - near.global_position).normalized() * max_d
+	if d.length() < 0.01:
+		d = forward() * max_d
+	if d.length() > max_d:
+		d = d.normalized() * max_d
+	var to := global_position
+	var steps := int(d.length() / 0.5)
+	for i in range(1, steps + 1):
+		var p := global_position + d * (float(i) / steps)
+		if not game.walkable(global_position, p):
+			break
+		to = p
+	game.ring_fx(global_position, 1.4, Color(0.75, 0.42, 0.88))
+	global_position = to
+	look_to(global_position + d)
+	model.rotation.y = face
+	inv = maxf(inv, 0.3)
+	game.ring_fx(global_position, 1.4, Color(0.75, 0.42, 0.88))
+	game.sfx.play("dash", 0.1, -2.0)
+
+# Erlittener Schaden nach 04-combat.js › hurt: Haut des Mehen, Dornen, Rüstung und Klasse, Eid, Kreis des Ka, Wahr an Stimme
 func hurt(amount: float, from: Vector3, src: Foe = null) -> void:
 	if dead or inv > 0.0:
 		return
@@ -250,7 +468,13 @@ func hurt(amount: float, from: Vector3, src: Foe = null) -> void:
 		return
 	if src and Spiel.S.thorns > 0.0 and src.state != Foe.St.DEAD:
 		src.hit(Spiel.S.thorns, global_position, 0.0)
-	var a: float = amount * (1.0 - Spiel.S.red) * randf_range(0.9, 1.1) * (0.8 if oath_t > 0.0 else 1.0)
+	var a: float = amount * (1.0 - Spiel.S.red) * randf_range(0.9, 1.1)
+	if oath_t > 0.0:
+		a *= 0.8
+	if mantra_t > 0.0:
+		a *= 0.7
+	if cls == "ermittler" and Spiel.has_key() and hp < max_hp * 0.35:
+		a *= 0.7
 	hp -= a
 	flash()
 	kb += flat(global_position - from).normalized() * 4.0
@@ -273,6 +497,8 @@ func revive(pos: Vector3) -> void:
 	pots = maxi(pots, 2)
 	busy = 0.0
 	stun = 0.0
+	oath_t = 0.0
+	mantra_t = 0.0
 	kb = Vector3.ZERO
 	vel = Vector3.ZERO
 	global_position = pos

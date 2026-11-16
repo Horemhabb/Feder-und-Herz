@@ -35,6 +35,9 @@ var spd := 4.0
 var xp := 10.0
 var w := 1.0
 var elite := ""        # "", "flink", "zaeh" oder "wild"
+var slow_t := 0.0      # Seschats Maß: kriechen mit 40 % Tempo
+var mark_t := 0.0      # Gebs Lachen: zerbirst beim Tod
+var fear_t := 0.0      # Upuauts Hatz: Tiere fliehen
 var disp_name := ""
 
 func init(k: String, pos: Vector3, p: int, el := "") -> void:
@@ -114,6 +117,9 @@ func wake(delay := 0.0) -> void:
 
 func _physics_process(delta: float) -> void:
 	tick_common(delta)
+	slow_t -= delta
+	mark_t -= delta
+	fear_t -= delta
 	var h: Hero = game.hero
 	match state:
 		St.DEAD:
@@ -145,7 +151,16 @@ func _physics_process(delta: float) -> void:
 	var d := to.length()
 	var dirn := to / maxf(d, 0.001)
 	var move := Vector3.ZERO
-	var speed: float = spd
+	var speed: float = spd * (0.4 if slow_t > 0.0 else 1.0)
+	if fear_t > 0.0 and stun <= 0.0:
+		# fliehen, ohne anzugreifen
+		velocity = -dirn * spd * 1.15 + kb
+		face = atan2(-dirn.x, -dirn.z)
+		play(ANIM.run)
+		move_and_slide()
+		global_position.y = 0.0
+		turn(delta, 9.0)
+		return
 	if stun > 0.0:
 		velocity = kb
 		move_and_slide()

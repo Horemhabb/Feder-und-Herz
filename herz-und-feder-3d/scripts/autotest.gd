@@ -112,16 +112,16 @@ func _physics_process(delta: float) -> void:
 		if h.hp < h.max_hp * 0.45:
 			h.cast("potion")
 		if near >= 3:
-			h.cast("udjat")
+			h.cast(h.ORDER[3])
 		if near >= 2 and h.en >= 40:
-			if h.cast("whirl") and burst == 0 and n < 60: burst = 9
+			if h.cast(h.ORDER[0]) and burst == 0 and n < 60: burst = 9
 		if foe == game.boss and awake:
-			h.cast("oath")
+			h.cast(h.ORDER[2])
 		if awake and dist > 7.0 and dist < 12.0 and game.walkable(h.global_position, target):
-			h.cast("dash")
+			h.cast(h.ORDER[1])
 		if awake and dist > 5.0 and dist < 15.0 and h.en > 55 and game.sees(h.global_position, target):
-			h.cast("beam")
-		if dist < 3.0 + foe.radius:
+			h.cast(h.ORDER[4])
+		if dist < h.reach() - 0.3 + foe.radius and (not h.ranged() or game.sees(h.global_position, target)):
 			h.want_dir = Vector3.ZERO
 			if h.attack() and t > 8.0 and burst == 0 and n < 40:
 				burst = 9   # Folgebilder: Hieb

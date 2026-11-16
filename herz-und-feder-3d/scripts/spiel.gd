@@ -6,10 +6,9 @@ extends Node
 const DATEI := "user://spielstand.json"
 const VERSION := 1
 
-# Klassen (01-data.js › CLS). Bis Etappe 2 ist nur der Eidträger spielbar.
-const CLS := {
-	"ermittler": {"name": "Eidträger", "res": "Eidkraft", "hp": 1.2, "red": 0.15, "spd": 1.0, "regen": 4.0},
-}
+# Klassen, Fähigkeiten und Baum stehen in klassen.gd
+var CLS: Dictionary:
+	get: return Klassen.CLS
 
 var cls := "ermittler"
 var lvl := 1
@@ -25,6 +24,7 @@ var fall := 1         # laufende Stunde (1, 2, … über alle Nächte)
 var max_fall := 1
 var muted := false
 var item_id := 1
+var tree := {"r": {}, "a": {}, "p": {}, "key": false}   # Fähigkeitenbaum: Ränge, Wucht/Eile, Passive, Schlüsselstein
 var pots := Daten.POTS   # Rotbier: wird nicht gespeichert, wie in der 2D-Fassung
 var neu := 0             # neue Teile seit dem letzten Blick in die Tasche
 var hat_stand := false   # liegt ein Spielstand vor?
@@ -37,10 +37,15 @@ func _ready() -> void:
 	if "--neu" in OS.get_cmdline_user_args():
 		loeschen()
 	laden()
+	# Testläufe: „-- --klasse=jaegerin“ legt eine frische Figur dieser Klasse an
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--klasse="):
+			neue_figur(a.substr(9), diff, false)
 	calc()
 
 func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	cls = c if CLS.has(c) else "ermittler"
+	tree = {"r": {}, "a": {}, "p": {}, "key": false}
 	lvl = 1
 	xp = 0.0
 	eq = {}
@@ -89,14 +94,14 @@ func calc() -> void:
 	var dmg: float = ((Daten.it_dmg(w) if w else 4) + 3.0 + lvl * 1.2) * 1.2 * (1.0 + a.dmgPct / 100.0)
 	S = {
 		"dmg": dmg,
-		"max_hp": round((110.0 + lvl * 20.0 + a.hp) * C.hp),
+		"max_hp": round((110.0 + lvl * 20.0 + a.hp) * C.hp * (1.0 + 0.06 * pas("zaeh"))),
 		"armor": armor,
 		"red": 1.0 - (1.0 - armor / (armor + 100.0)) * (1.0 - C.red),
-		"crit": minf(60.0, 5.0 + a.crit + (15.0 if legs.has("star") else 0.0)),
+		"crit": minf(60.0, 5.0 + a.crit + (15.0 if legs.has("star") else 0.0) + 2.0 * pas("scharf")),
 		"crit_dmg": 50.0 + a.critDmg,
-		"speed": C.spd * (1.0 + minf(45.0, a.speed + (15.0 if legs.has("caravan") else 0.0)) / 100.0),
+		"speed": C.spd * (1.0 + minf(45.0, a.speed + (15.0 if legs.has("caravan") else 0.0) + 3.0 * pas("flink")) / 100.0),
 		"rate": 1.75 * (1.0 + a.as / 100.0),
-		"regen": C.regen + a.regen,
+		"regen": C.regen + a.regen + pas("kraft"),
 		"loh": float(a.loh),
 		"thorns": float(a.thorns),
 		"xp_mul": 1.0 + a.xp / 100.0,
@@ -106,6 +111,86 @@ func calc() -> void:
 		"legs": legs,
 		"a": a,
 	}
+
+# ---------------------------------------------------------------- Fähigkeitenbaum (01-data.js › treeSpent, treePoints, respecCost)
+func pas(id: String) -> int:
+	return int(tree.p.get(id, 0))
+
+func rank(id: String) -> int:
+	return int(tree.r.get(id, 0))
+
+func aug(id: String) -> String:
+	return String(tree.a.get(id, ""))
+
+func tree_spent() -> int:
+	var n := 0
+	for k in tree.r:
+		n += int(tree.r[k])
+	for k in tree.p:
+		n += int(tree.p[k])
+	return n + tree.a.size() + (1 if tree.key else 0)
+
+func tree_points() -> int:
+	return lvl - tree_spent()
+
+func respec_cost() -> int:
+	return 10 + 3 * lvl
+
+func has_key() -> bool:
+	return bool(tree.key)
+
+# Stärke einer Fähigkeit: 12 % je Rang, Wucht 25 % (Hilfsfähigkeiten werden nicht stärker, sondern schneller bereit)
+func sk_pow(id: String) -> float:
+	if Klassen.SK[id].util:
+		return 1.0
+	return 1.0 + 0.12 * rank(id) + (0.25 if aug(id) == "wucht" else 0.0)
+
+# Wirkdauer oder Weite einer Hilfsfähigkeit
+func sk_upw(id: String) -> float:
+	return 1.25 if aug(id) == "wucht" else 1.0
+
+func tree_rank_up(id: String) -> bool:
+	if tree_points() <= 0 or rank(id) >= Klassen.SK_RANKS:
+		return false
+	tree.r[id] = rank(id) + 1
+	calc()
+	speichern()
+	return true
+
+func tree_aug(id: String, a: String) -> bool:
+	# die erste Wahl kostet einen Punkt, Umwählen ist frei
+	if rank(id) < 2:
+		return false
+	if aug(id) == "":
+		if tree_points() <= 0:
+			return false
+	tree.a[id] = a
+	speichern()
+	return true
+
+func tree_passive(id: String) -> bool:
+	if tree_points() <= 0 or pas(id) >= Klassen.SK_RANKS:
+		return false
+	tree.p[id] = pas(id) + 1
+	calc()
+	speichern()
+	return true
+
+func tree_key() -> bool:
+	if tree.key or tree_points() <= 0 or tree_spent() < Klassen.KEY_NEED:
+		return false
+	tree.key = true
+	speichern()
+	return true
+
+func respec() -> bool:
+	if shards < respec_cost() or tree_spent() == 0:
+		return false
+	shards -= respec_cost()
+	tree = {"r": {}, "a": {}, "p": {}, "key": false}
+	calc()
+	speichern()
+	return true
 
 # Ein aufgehobener Gegenstand: in einen leeren Platz anlegen, sonst in die Tasche. Rückgabe: "angelegt", "tasche" oder "voll".
 func take_item(it: Dictionary) -> String:
@@ -190,7 +275,7 @@ func xp_gain(v: float) -> bool:
 # ---------------------------------------------------------------- Spielstand
 func speichern() -> void:
 	var d := {"v": VERSION, "fall": fall, "lvl": lvl, "xp": xp, "eq": eq, "bag": bag, "muted": muted, "itemId": item_id,
-		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall}
+		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree}
 	var f := FileAccess.open(DATEI, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -241,5 +326,22 @@ func laden() -> void:
 			var i := int(v)
 			if i >= 0 and i < Daten.EVID.size() and not evid.has(i):
 				evid.append(i)
+	tree = {"r": {}, "a": {}, "p": {}, "key": false}
+	var t = d.get("tree")
+	if t is Dictionary:
+		var mine: Array = Klassen.order(cls)
+		if t.get("r") is Dictionary:
+			for k in t.r:
+				if mine.has(k) and k != "potion":
+					tree.r[k] = clampi(int(t.r[k]), 0, Klassen.SK_RANKS)
+		if t.get("a") is Dictionary:
+			for k in t.a:
+				if tree.r.get(k, 0) >= 2 and Klassen.AUGS.has(t.a[k]):
+					tree.a[k] = String(t.a[k])
+		if t.get("p") is Dictionary:
+			for pd in Klassen.PASSIVES:
+				if t.p.has(pd.id):
+					tree.p[pd.id] = clampi(int(t.p[pd.id]), 0, Klassen.SK_RANKS)
+		tree.key = bool(t.get("key", false))
 	pots = Daten.POTS
 	hat_stand = true
