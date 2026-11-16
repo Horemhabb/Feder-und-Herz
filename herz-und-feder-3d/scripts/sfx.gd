@@ -1,12 +1,15 @@
 class_name Sfx extends Node
-# Ton: Geräusche von ElevenLabs (audio/*.ogg). Lautstärken stehen hier an einer Stelle.
+# Ton: Geräusche von ElevenLabs (audio/*.ogg), Musik von Gomo Sounds (audio/mus_*.ogg). Lautstärken stehen hier an einer Stelle.
 # Geräusche des Helden spielen ohne Ort, Geräusche von Gegnern und Fackeln mit Ort im Raum.
 
 const VOL := {
 	"step": -13.0, "swing": -9.0, "hit": -4.0, "hurt": -5.0, "whirl": -5.0, "dash": -6.0, "oath": -6.0, "udjat": -4.0,
 	"beam": -7.0, "potion": -6.0, "boss_appear": -3.0, "gate": -4.0, "ui": -10.0, "bolt": -8.0, "hero_die": -3.0,
 	"victory": -5.0, "skel_wake": -6.0, "skel_die": -5.0, "skel_attack": -9.0, "torch": -14.0,
-	"amb_wind": -15.0, "amb_drone": -17.0, "vo_chapter": -1.0, "vo_boss": -1.0, "vo_epi": -1.0, "vo_death": -1.0,
+	"amb_wind": -15.0, "amb_drone": -17.0,
+	# Musik nach Messung: im Spiel etwa 25 dB unter Vollaussteuerung, hinter den Geräuschen
+	"mus_titel": -11.0, "mus_wueste": -9.0, "mus_duat": -11.0, "mus_kampf": -6.0,
+	"vo_chapter": -1.0, "vo_boss": -1.0, "vo_epi": -1.0, "vo_death": -1.0,
 }
 const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3}
 
@@ -16,6 +19,8 @@ var pool3: Array = []
 var loops := {}
 var voice: AudioStreamPlayer
 var muted := false
+var mus: Array = []        # zwei Spieler für die Musik, damit ein Stück ins nächste überblendet
+var mus_name := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -33,6 +38,11 @@ func _ready() -> void:
 		pool3.append(p3)
 	voice = AudioStreamPlayer.new()
 	add_child(voice)
+	for i in 2:
+		var m := AudioStreamPlayer.new()
+		m.volume_db = -80.0
+		add_child(m)
+		mus.append(m)
 
 func _stream(key: String) -> AudioStream:
 	if not streams.has(key):
@@ -103,6 +113,29 @@ func say(name: String) -> void:
 	voice.stream = s
 	voice.volume_db = VOL.get(name, -2.0)
 	voice.play()
+
+# Musik wechseln (Titel, Wüste, Duat, Kampf): das neue Stück blendet in 2 s ein, das alte aus. Fehlt die Datei, bleibt es still.
+func music(name: String, fade := 2.0) -> void:
+	if name == mus_name:
+		return
+	mus_name = name
+	var s := _stream(name) if name != "" else null
+	var old: AudioStreamPlayer = mus[0]
+	var neu: AudioStreamPlayer = mus[1]
+	mus.reverse()
+	var tw := create_tween().set_parallel(true)
+	if old.playing:
+		tw.tween_property(old, "volume_db", -60.0, fade)
+		tw.chain().tween_callback(old.stop)
+	if s == null:
+		return
+	if s is AudioStreamOggVorbis:
+		s.loop = true
+	neu.stream = s
+	neu.volume_db = -50.0
+	neu.play()
+	var tw2 := create_tween()
+	tw2.tween_property(neu, "volume_db", VOL.get(name, -12.0), fade)
 
 func hush() -> void:
 	voice.stop()
