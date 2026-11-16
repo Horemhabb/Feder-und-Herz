@@ -19,6 +19,25 @@ entpacken, `HerzUndFeder.exe` doppelklicken. Windows warnt bei unbekannten Progr
 3. Godot starten, „Importieren“ wählen, die Datei `project.godot` in diesem Ordner auswählen.
 4. Beim ersten Öffnen bereitet Godot die Modelle vor (etwa eine Minute). Danach **F5** drücken.
 
+## Mac, Windows und Web (auch iPhone)
+
+Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, **Windows**, **Web** und Linux.
+
+- **Selbst bauen:** In Godot „Projekt → Exportieren“, Voreinstellung wählen, „Projekt exportieren“.
+  Beim ersten Mal bietet Godot an, die Exportvorlagen herunterzuladen (rund 1,2 GB).
+  Von der Befehlszeile: `godot --path . --export-release macOS` (oder `Windows`, `Web`). Die Ergebnisse landen in `build/`.
+- **Mac:** `build/HerzUndFeder-Mac.zip` entpacken. Das Programm ist nicht bei Apple angemeldet. Beim ersten Start
+  deshalb Rechtsklick auf das Programm und „Öffnen“ wählen, oder in den Systemeinstellungen unter
+  „Datenschutz & Sicherheit“ auf „Dennoch öffnen“ klicken.
+- **Web:** Der Ordner `build/web/` muss von einem Webserver über https ausgeliefert werden; ein Doppelklick auf
+  `index.html` genügt nicht. Zum Ausprobieren am eigenen Rechner: `python3 -m http.server` in `build/web/`
+  und dann `http://localhost:8000` öffnen.
+- **iPhone und iPad:** die Web-Adresse in Safari öffnen und das Gerät quer halten. Über „Teilen → Zum Home-Bildschirm“
+  läuft das Spiel im Vollbild. Auf Geräten mit Berührungsbildschirm startet es von selbst im **Handy-Modus**:
+  größere Anzeige, Knöpfe für Grafik, Ton und Bildrate, niedrige Grafik und geringere 3D-Auflösung.
+  Finger halten heißt laufen, Gegner antippen heißt angreifen, Fähigkeiten unten antippen (auch mit dem zweiten Finger im Laufen).
+  Am Rechner lässt sich der Handy-Modus mit `godot --path . -- --touch` ansehen.
+
 ## Steuerung
 
 | Taste | Wirkung |
@@ -63,6 +82,8 @@ entpacken, `HerzUndFeder.exe` doppelklicken. Windows warnt bei unbekannten Progr
 - `scripts/actor.gd`, `hero.gd`, `foe.gd`: Figuren. `scripts/hud.gd`: Anzeige. `scripts/sfx.gd`: Ton.
 - Testmodus: `godot --path . -- --autotest` lässt einen Bot die Stunde durchspielen und speichert Bilder nach `test_out/`.
 - Rundgang: `godot --path . -- --autotest --rundgang` setzt die Figur an feste Stellen (Start, Gang, Halle, Gruft …) und macht je ein Bild, auch mit niedriger Grafik.
+- Mauern und Sockel, die nie absinken, fasst `main.gd` je Material zu einem einzigen Körper zusammen (`_fest`, `_fest_bauen`).
+  Das spart Zeichenaufrufe, vor allem beim Schattenwurf.
 - `tools/hol_godot.sh` lädt Godot 4.7.2 für Linux (zum Testen ohne Bildschirm).
 
 ### Stein- und Bodentexturen

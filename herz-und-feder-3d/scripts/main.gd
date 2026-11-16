@@ -57,6 +57,7 @@ var deaths := 0
 var clock := 0.0
 var started := false
 var low_gfx := false
+var touch := false   # Handy oder Tablet im Browser: größere Anzeige, Knöpfe statt Tasten, sparsame Grafik
 var hold_attack := false
 var cam_pos := Vector3.ZERO
 var autotest: Node
@@ -87,9 +88,16 @@ func _ready() -> void:
 	cam_pos = hero.global_position
 	_place_cam(1.0)
 	cam.make_current()
+	touch = "--touch" in OS.get_cmdline_user_args() or OS.has_feature("web_android") or OS.has_feature("web_ios") \
+		or (OS.has_feature("web") and DisplayServer.is_touchscreen_available())
+	if touch:
+		get_window().content_scale_factor = 1.5   # Schrift und Knöpfe anderthalbmal so groß: mit dem Finger treffbar
 	hud = Hud.new()
 	hud.game = self
 	add_child(hud)
+	if touch:
+		auto_low_done = true
+		set_low(true, true)
 	sfx.loop("amb_wind")
 	sfx.loop("amb_drone")
 	get_tree().paused = true
@@ -140,12 +148,15 @@ const SURF := {
 	"sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68), "pflaster"],
 	"sand_aussen": ["t09_sand", 6.0, Color(0.45, 0.40, 0.35), ""],
 }
+const FELD := 3          # Kantenlänge eines Abschnitts in Zellen, zu dem feste Steine und Boden zusammengefasst werden
 const WALL_SINK := 2.8   # so tief sinkt eine verdeckende Mauer ein (von 4 m bleiben 1,2 m)
 # Gruftraum des Hüters (Zellen x 11–15, z 1–4): dunkler Granit statt Sandstein
 const CRYPT := Rect2i(11, 1, 5, 4)
 
 var mats := {}
 var block_meshes := {}
+var fest := {}          # Steine, die sich nie bewegen, je Material gesammelt: am Ende ein Körper statt hunderter
+var spark_meshes := {}  # Funkenform je Farbe, damit nicht jeder Treffer ein neues Material anlegt
 
 func surf(name: String) -> StandardMaterial3D:
 	if mats.has(name):
@@ -211,9 +222,37 @@ func _block_mesh(size: Vector3, mat: StandardMaterial3D, uoff: float) -> ArrayMe
 	block_meshes[key] = m
 	return m
 
-func _block(surf_name: String, pos: Vector3, size: Vector3, rot := 0.0, uoff := 0.0, sims := false) -> Node3D:
+func _fest(surf_name: String, mesh: ArrayMesh, xf: Transform3D) -> void:
+	# Abschnitte von FELD x FELD Zellen: klein genug, dass die Kamera ferne Abschnitte gar nicht zeichnet und
+	# jeden Abschnitt nur wenige Lichter treffen (der Renderer rechnet höchstens acht Lichter je Körper)
+	var key := "%s|%d|%d" % [surf_name, floori(xf.origin.x / (CELL * FELD)), floori(xf.origin.z / (CELL * FELD))]
+	if not fest.has(key):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		fest[key] = [st, surf_name]
+	fest[key][0].append_from(mesh, 0, xf)
+
+func _fest_bauen() -> void:
+	# die festen Steine eines Materials je Abschnitt als ein Körper: ein Zeichenaufruf (und einer je Schattenwurf) statt vieler
+	for k in fest:
+		var st: SurfaceTool = fest[k][0]
+		st.set_material(surf(fest[k][1]))
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.name = "Fest_" + k.replace("|", "_")
+		add_child(mi)
+	fest.clear()
+
+func _block(surf_name: String, pos: Vector3, size: Vector3, rot := 0.0, uoff := 0.0, sims := false, steht := false) -> Node3D:
 	# Halter am Fußpunkt; der Stein selbst ist ein Kind, damit das Absenken nur die Höhe des Halters ändert.
 	# sims: helleres, überstehendes Gesims obendrauf, wie an ägyptischen Tempelmauern
+	# steht: der Stein sinkt nie ab (niedrige Mauern, Sockel) und wird mit seinesgleichen zusammengefasst
+	if steht:
+		var xf := Transform3D(Basis(Vector3.UP, rot), pos)
+		_fest(surf_name, _block_mesh(size, surf(surf_name), uoff), xf)
+		if sims:
+			_fest(surf_name + "_sims", _block_mesh(Vector3(size.x + 0.1, 0.32, size.z + 0.36), surf(surf_name + "_sims"), uoff + 0.13), xf.translated_local(Vector3(0, size.y, 0)))
+		return null
 	var holder := Node3D.new()
 	holder.position = pos
 	holder.rotation.y = rot
@@ -244,9 +283,18 @@ func _probe(pos: Vector3, size: Vector3, vis: Node3D) -> void:
 	add_child(b)
 
 func _floor_mesh(cells: Array, surf_name: String) -> void:
-	# alle Bodenzellen einer Sorte als eine Fläche: ein einziger Zeichenaufruf, Muster läuft nahtlos durch
-	if cells.is_empty():
-		return
+	# Bodenzellen einer Sorte je Abschnitt als eine Fläche: wenige Zeichenaufrufe, Muster läuft nahtlos durch.
+	# Abschnitte statt einer einzigen Fläche, weil der Renderer je Körper höchstens acht Lichter rechnet.
+	var teile := {}
+	for c in cells:
+		var k := Vector2i(c.x / FELD, c.y / FELD)
+		if not teile.has(k):
+			teile[k] = []
+		teile[k].append(c)
+	for k in teile:
+		_floor_teil(teile[k], surf_name)
+
+func _floor_teil(cells: Array, surf_name: String) -> void:
 	var mat := surf(surf_name)
 	var p: float = mat.get_meta("period")
 	var st := SurfaceTool.new()
@@ -358,7 +406,7 @@ func _build_world() -> void:
 				var low: bool = e[3]
 				# Versatz der Steinlagen je nach Lage: Mauerstücke wirken nicht wie Stempel
 				var uoff: float = [0.0, 0.5, 0.25, 0.75][(cx * 3 + cz * 5) % 4] if e[1] != 0 else [0.0, 0.5, 0.25, 0.75][(cz * 3 + cx) % 4]
-				var wn := _block("granit" if crypt else "sandstein", wp, Vector3(CELL, 1.2 if low else 4.0, 1.0), e[2], uoff, true)
+				var wn := _block("granit" if crypt else "sandstein", wp, Vector3(CELL, 1.2 if low else 4.0, 1.0), e[2], uoff, true, low)
 				_box(wp, Vector3(CELL, 4.0, 1.0), e[2], null if low else wn)
 				if not low and (cx * 5 + cz * 3) % 3 == 0 and torches.size() < 16:
 					_torch(wp + Vector3(-e[0], 0, -e[1]) * 0.55 + Vector3(0, 2.4, 0), e[2])
@@ -397,12 +445,13 @@ func _build_world() -> void:
 					if CRYPT.has_point(q) and is_floor(q.x, q.y):
 						in_crypt = true
 				var pp := Vector3(vx * CELL, 0, vz * CELL)
-				var pn := _block("granit" if in_crypt else "sandstein", pp, Vector3(1.3, 1.5 if low else 4.5, 1.3), 0.0, 0.37, true)
+				var pn := _block("granit" if in_crypt else "sandstein", pp, Vector3(1.3, 1.5 if low else 4.5, 1.3), 0.0, 0.37, true, low)
 				if not low:
 					pn.set_meta("pfeiler", true)
 					_probe(pp, Vector3(1.3, 4.5, 1.3), pn)
 	for k in floors:
 		_floor_mesh(floors[k], k)
+	_fest_bauen()
 	total = foes.size() - 1
 	# Irrende Ba: Lichter, die gegen den Wind ziehen
 	for i in 7:
@@ -442,8 +491,8 @@ func _column(p: Vector3) -> void:
 	col.material_override = mat
 	col.position = p + Vector3(0, 2.0, 0)
 	add_child(col)
-	_block("granit", p, Vector3(1.7, 0.35, 1.7), 0.0, 0.1)
-	_block("granit", p + Vector3(0, 3.7, 0), Vector3(1.6, 0.4, 1.6), 0.0, 0.6)
+	_block("granit", p, Vector3(1.7, 0.35, 1.7), 0.0, 0.1, false, true)
+	_block("granit", p + Vector3(0, 3.7, 0), Vector3(1.6, 0.4, 1.6), 0.0, 0.6, false, true)
 	# Feuerschale obendrauf: sonst bleibt die Gruft des Hüters fast schwarz
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.6, 0.3)
@@ -841,14 +890,18 @@ func spark(pos: Vector3, col: Color) -> void:
 	p.initial_velocity_min = 2.5
 	p.initial_velocity_max = 5.5
 	p.gravity = Vector3(0, -12, 0)
-	var sm := SphereMesh.new()
-	sm.radius = 0.06
-	sm.height = 0.12
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = col
-	sm.material = mat
-	p.mesh = sm
+	if not spark_meshes.has(col):
+		var sm := SphereMesh.new()
+		sm.radius = 0.06
+		sm.height = 0.12
+		sm.radial_segments = 8
+		sm.rings = 4
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = col
+		sm.material = mat
+		spark_meshes[col] = sm
+	p.mesh = spark_meshes[col]
 	add_child(p)
 	p.global_position = pos
 	get_tree().create_timer(0.8).timeout.connect(p.queue_free)
@@ -897,18 +950,20 @@ func _unhandled_input(ev: InputEvent) -> void:
 		hero.aim = mouse_ground()
 		hero.cast("beam")
 
-func set_low(low: bool) -> void:
+func set_low(low: bool, still := false) -> void:
 	low_gfx = low
 	hero.lantern.shadow_enabled = not low
 	moon.shadow_enabled = not low
 	env.glow_enabled = not low
-	get_viewport().scaling_3d_scale = 0.7 if low else 1.0
+	# Handys haben sehr dichte Bildschirme (bis dreifach): dort die 3D-Auflösung stärker senken
+	get_viewport().scaling_3d_scale = (0.6 if touch else 0.7) if low else 1.0
 	# Stein ohne Reliefkarte und ohne anisotrope Filterung: weniger Texturzugriffe je Bildpunkt
 	for m in mats.values():
 		if m:
 			m.normal_enabled = not low and m.normal_texture != null
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if low else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
+	if not still:
+		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 
 func _physics_process(delta: float) -> void:
 	if not started:

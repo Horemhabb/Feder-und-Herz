@@ -31,6 +31,8 @@ var secondary: Callable
 var primary_btn: Button
 var banner_tw: Tween
 var toast_tw: Tween
+var l_quer: Label          # Hinweis, das Handy quer zu halten
+var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -51,16 +53,46 @@ func _ready() -> void:
 	l_track = _label("", 13, DIM)
 	l_track.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tl.add_child(l_track)
-	var hint := _label("W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik hoch/niedrig · M Ton", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik hoch/niedrig · M Ton", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
 	hint.custom_minimum_size = Vector2(540, 0)
 	root.add_child(hint)
+	if game.touch:
+		# ohne Tastatur: Grafik, Ton und Bildrate als Knöpfe
+		var row := HBoxContainer.new()
+		row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		row.position = Vector2(-330, 38)
+		row.custom_minimum_size = Vector2(310, 0)
+		row.alignment = BoxContainer.ALIGNMENT_END
+		row.add_theme_constant_override("separation", 8)
+		for t in [["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]:
+			var b := Button.new()
+			b.text = t[0]
+			b.focus_mode = Control.FOCUS_NONE
+			b.add_theme_font_size_override("font_size", 13)
+			b.custom_minimum_size = Vector2(84, 40)
+			b.add_theme_stylebox_override("normal", _flat(PANEL, 8, Color("3d3947"), 1))
+			b.add_theme_stylebox_override("hover", _flat(PANEL, 8, Color("3d3947"), 1))
+			b.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, DIM, 1))
+			b.add_theme_color_override("font_color", PARCH)
+			b.pressed.connect(t[1])
+			row.add_child(b)
+		root.add_child(row)
+		l_quer = _label("Bitte das Gerät quer halten.", 30, PARCH)
+		l_quer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		l_quer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l_quer.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l_quer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l_quer.add_theme_stylebox_override("normal", _flat(Color(0.02, 0.02, 0.04, 0.96), 0))
+		l_quer.z_index = 50
+		l_quer.visible = false
+		root.add_child(l_quer)
 	l_fps = _label("", 12, GOLD)
 	l_fps.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	l_fps.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	l_fps.position = Vector2(-260, 56)
+	l_fps.position = Vector2(-260, 86 if game.touch else 56)
 	l_fps.custom_minimum_size = Vector2(240, 0)
 	l_fps.visible = false
 	root.add_child(l_fps)
@@ -172,8 +204,14 @@ func _skill_box(id: String) -> Control:
 	p.add_theme_stylebox_override("panel", _flat(PANEL, 8, Color("3d3947"), 1))
 	p.tooltip_text = "%s: %s" % [S.name, S.txt]
 	p.gui_input.connect(func(ev):
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and not get_tree().paused:
-			game.hero.aim = game.hero.global_position + game.hero.forward() * 6.0
+		# Maus oder Finger. Ein zweiter Finger kommt nur als Berührung an (der erste hält die Figur in Bewegung),
+		# der erste Finger meldet sich als beides: darum je Bild nur einmal auslösen.
+		var tap: bool = (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed)
+		if tap and not get_tree().paused and tap_frame != Engine.get_process_frames():
+			tap_frame = Engine.get_process_frames()
+			# der Zeiger liegt auf dem Knopf, nicht auf einem Ziel: auf den nächsten Gegner zielen, sonst nach vorn
+			var near: Foe = game.foe_near(game.hero.global_position, 12.0)
+			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 6.0
 			game.hero.cast(id))
 	var cdr := ColorRect.new()
 	cdr.color = Color(0, 0, 0, 0.62)
@@ -198,6 +236,11 @@ func _skill_box(id: String) -> Control:
 	p.add_child(cdr)
 	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k}
 	return p
+
+func _process(_d: float) -> void:
+	if l_quer:
+		var vs := get_viewport().get_visible_rect().size
+		l_quer.visible = vs.y > vs.x
 
 func mouse_over_ui() -> bool:
 	return overlay != null or get_viewport().gui_get_hovered_control() != null
@@ -294,6 +337,12 @@ func _button(text: String, main: bool, cb: Callable) -> Button:
 		f.call())
 	return b
 
+func _taste(text: String) -> String:
+	# auf dem Handy gibt es keine Tasten: den Hinweis in eckigen Klammern weglassen
+	if not game.touch:
+		return text
+	return text.replace("[E]  ", "").replace("[Esc]  ", "")
+
 func _sheet(dim: float, width: float) -> VBoxContainer:
 	_close()
 	overlay = ColorRect.new()
@@ -332,7 +381,7 @@ func show_chapter(no: String, name: String, lead: String, brief: String, btn: St
 	v.add_child(_para(lead, 20, PARCH, true))
 	v.add_child(_para(brief, 16, DIM, true))
 	var row := CenterContainer.new()
-	primary_btn = _button("  %s  [E]  " % btn, true, cb)
+	primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
 	primary_btn.disabled = true
 	row.add_child(primary_btn)
 	v.add_child(row)
@@ -366,9 +415,9 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	v.add_child(_para("Die Pforte bleibt offen, solange du willst.", 13, DIM))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
-	primary_btn = _button("  Durch die Pforte gehen  [E]  ", true, go)
+	primary_btn = _button(_taste("  Durch die Pforte gehen  [E]  "), true, go)
 	btns.add_child(primary_btn)
-	btns.add_child(_button("  Noch bleiben  [Esc]  ", false, stay))
+	btns.add_child(_button(_taste("  Noch bleiben  [Esc]  "), false, stay))
 	v.add_child(btns)
 	primary = go
 	secondary = stay
@@ -380,7 +429,7 @@ func show_dead(text: String, cb: Callable) -> void:
 	v.add_child(_para("Du wurdest überwältigt.", 28, PARCH))
 	v.add_child(_para(text + " Deine Kraft kehrt zurück.", 16, PARCH))
 	var btns := HBoxContainer.new()
-	primary_btn = _button("  Zurück in die Stunde  [E]  ", true, cb)
+	primary_btn = _button(_taste("  Zurück in die Stunde  [E]  "), true, cb)
 	btns.add_child(primary_btn)
 	v.add_child(btns)
 	primary = cb

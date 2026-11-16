@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://nfg6jgl7xjjo"
 path.s3tc="res://.godot/imported/t06_pflaster.jpg-1cdd95b82c30f4133d5fd499244e5488.s3tc.ctex"
+path.etc2="res://.godot/imported/t06_pflaster.jpg-1cdd95b82c30f4133d5fd499244e5488.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://textures/t06_pflaster.jpg"
-dest_files=["res://.godot/imported/t06_pflaster.jpg-1cdd95b82c30f4133d5fd499244e5488.s3tc.ctex"]
+dest_files=["res://.godot/imported/t06_pflaster.jpg-1cdd95b82c30f4133d5fd499244e5488.s3tc.ctex", "res://.godot/imported/t06_pflaster.jpg-1cdd95b82c30f4133d5fd499244e5488.etc2.ctex"]
 
 [params]
 
