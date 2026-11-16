@@ -130,6 +130,7 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - **Karte** oben rechts: Mauern, Rudel (gelb), wache Gegner (rot), Truhen, Pforte und Figur; im Dungeon nur, was du schon gesehen hast.
 - Die **Pforte** führt in die nächste Stunde. **Stundenwahl**: im Startbildschirm (◀ ▶) und in der Tasche („Stunde wechseln“)
   lässt sich jede schon erreichte Stunde noch einmal betreten.
+- Der Startbildschirm zeigt das Titelbild der Nebelmark (X01, Sandtor bei Nacht, `ui/titel.webp`) hinter einem Verlauf, wie in der 2D-Fassung.
 - Die Figur wirft im Licht der eigenen Laterne keinen Schatten mehr (vorher lag ein dunkler Fleck um sie).
 
 ## Was noch Platzhalter ist
