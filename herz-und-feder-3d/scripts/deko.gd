@@ -332,6 +332,7 @@ static func entzuenden(g: Node, s: Dictionary) -> void:
 	s.n.add_child(l)
 	l.position = Vector3(0, 2.6, 0)
 	g.torches.append({"l": l, "ph": randf() * 10.0, "e": 3.0})
+	g.lichter.append(l)
 	var tw: Tween = g.create_tween()
 	tw.tween_property(l, "light_energy", 3.0, 0.8)
 

@@ -134,7 +134,7 @@ func _tint(n: Node, c: Color) -> void:
 func setup() -> void:
 	quests = [{"id": "hueter", "titel": "Hüter der Stunde", "text": "", "done": false}]
 	if not npc.is_empty():
-		quests.append({"id": "relikt", "titel": G.quest, "text": "Sprich mit %s." % G.wer, "done": false})
+		quests.append({"id": "relikt", "titel": G.quest, "text": "Sprich mit %s." % G.get("mit", G.wer), "done": false})
 	if count("feuer") > 0:
 		quests.append({"id": "feuer", "titel": "Licht des Re", "text": "", "done": false})
 	if count("krug") > 0:
@@ -158,10 +158,12 @@ func _update_quests() -> void:
 	var q := quest("feuer")
 	if not q.is_empty():
 		q.done = count("feuer", true) >= count("feuer")
+		q["kurz"] = "%d/%d" % [count("feuer", true), count("feuer")]
 		q.text = "Alle Feuerschalen brennen. Der Hüter scheut das Licht." if q.done else "Entzünde die Feuerschalen: %d von %d. Brennen alle, ist der Hüter geschwächt." % [count("feuer", true), count("feuer")]
 	q = quest("krug")
 	if not q.is_empty():
 		q.done = count("krug", true) >= count("krug")
+		q["kurz"] = "%d/%d" % [count("krug", true), count("krug")]
 		q.text = "Kein Herz ist mehr gefangen." if q.done else "In Seelenkrügen schlagen Herzen: %d von %d gefunden." % [count("krug", true), count("krug")]
 	dirty = true
 
@@ -237,6 +239,7 @@ func tick(delta: float) -> void:
 	var txt := hueter_text()
 	if q.text != txt:
 		q.text = txt
+		q["kurz"] = "Pforte offen" if game.gate else ("im Kampf" if game.boss_awake else "%d %%" % int(100.0 * game.kills / maxf(1.0, game.total)))
 		q.done = game.gate != null
 		dirty = true
 

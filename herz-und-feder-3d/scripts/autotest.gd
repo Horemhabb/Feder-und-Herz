@@ -18,6 +18,7 @@ var every := 5.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://test_out"))
+	FileAccess.open("res://test_out/.gdignore", FileAccess.WRITE)   # Testbilder nicht als Spielgrafik einlesen
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--max="): max_t = float(a.substr(6))
 		if a.begins_with("--every="): every = float(a.substr(8))
@@ -145,6 +146,8 @@ func rundgang() -> void:
 	for f in game.foes:
 		f.process_mode = Node.PROCESS_MODE_DISABLED
 	var k: Karte = game.karte
+	game.orte.auto = false
+	game.freeze_foes = true
 	print("RUNDGANG %s · %s · %s · Räume %d · Rudel %d · Truhen %d · Fackeln %d" % [Stunden.case_no(Spiel.fall), game.hdef.name,
 		k.kind if k.indoor else "Freiland", k.rooms.size(), k.spots.size(), k.chests.size(), game.torches.size()])
 	var spots := [[k.start, "start", false]]
@@ -167,7 +170,12 @@ func rundgang() -> void:
 		game.hero.global_position = Welt.cell_pos(s[0])
 		game.cam_pos = game.hero.global_position
 		game.hero.want_dir = Vector3.ZERO
-		await get_tree().create_timer(1.5).timeout
+		await get_tree().create_timer(1.0).timeout
+		if get_tree().paused:
+			# eine Truhe hat sich geöffnet: Fenster schließen, weiter
+			game.hud._close()
+			get_tree().paused = false
+		await get_tree().create_timer(0.5).timeout
 		shot("rundgang_%d_%s" % [Spiel.fall, s[1]])
 	print("RUNDGANG fertig: %d Bilder" % n)
 	get_tree().quit()

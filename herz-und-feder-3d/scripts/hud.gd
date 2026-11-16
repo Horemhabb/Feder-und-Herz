@@ -267,8 +267,12 @@ func _quests() -> void:
 		quest_box.remove_child(c)
 		c.queue_free()
 	for q in game.orte.quests:
-		var t := _label(("✓ " if q.done else "◆ ") + q.titel.to_upper(), 12, DIM if q.done else GOLD)
-		quest_box.add_child(t)
+		# (nur Zeichen, die die Zierschrift selbst hat: im Browser fehlen sonst Sonderzeichen)
+		var kurz: String = q.get("kurz", "")
+		var head: String = "• " + q.titel.to_upper() + (" · ERLEDIGT" if q.done else ("   " + kurz if game.touch and kurz != "" else ""))
+		quest_box.add_child(_label(head, 12, DIM if q.done else GOLD))
+		if game.touch and (q.done or kurz != ""):
+			continue   # auf dem Handy knapp: eine Zeile je Aufgabe
 		var l := _label(q.text, 13, Color(DIM, 0.75) if q.done else PARCH)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(330, 0)
@@ -299,6 +303,10 @@ func _flat(col: Color, radius := 6, border := Color(0, 0, 0, 0), bw := 0) -> Sty
 	s.set_corner_radius_all(radius)
 	s.border_color = border
 	s.set_border_width_all(bw)
+	if game.touch:
+		# auf iPhone und iPad haben geglättete runde Ecken in manchen Fällen den Grafikkontext gekostet (Godot-Fehler 105945)
+		s.anti_aliasing = false
+		s.corner_detail = 1
 	return s
 
 func _bar(col: Color, h: int) -> ProgressBar:
@@ -846,7 +854,7 @@ func _hour_pick() -> Control:
 	row.add_theme_constant_override("separation", 8)
 	row.add_child(_label("STUNDE  ", 12, DIM))
 	for step in [-1, 1]:
-		var b := _button("  ◀  " if step < 0 else "  ▶  ", false, func(): pass)
+		var b := _button("  ‹  " if step < 0 else "  ›  ", false, func(): pass)
 		for c in b.pressed.get_connections():
 			b.pressed.disconnect(c.callable)
 		var st: int = step

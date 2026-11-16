@@ -8,6 +8,9 @@ const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "mod
 const DEAD_TXT := "Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort."
 var karte: Karte               # die generierte Stunde (karte.gd), gebaut von welt.gd
 var karte_ui: KarteAnzeige
+var lichter: Array = []        # feste Lichter der Stunde: weit entfernte werden abgeschaltet (der Renderer rechnet höchstens 32)
+var spar_t := 0.0
+var freeze_foes := false       # der Rundgang hält die Gegner selbst an
 var orte: Orte                 # Feuerschalen, Schreine, Seelenkrüge, Figur, Fundstück und das Questbuch der Stunde
 
 var hero: Hero
@@ -75,6 +78,8 @@ func _ready() -> void:
 	_build_env()
 	_build_world()
 	orte.setup()
+	for l in find_children("*", "OmniLight3D", true, false):
+		lichter.append(l)
 	hero = Hero.new()
 	hero.game = self
 	add_child(hero)
@@ -371,6 +376,8 @@ func _build_env() -> void:
 	moon.rotation_degrees = Vector3(-52, -35, 0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 70.0
+	# ein Schattenbild statt vier Stufen: bei dieser Kamera reicht das, und jedes Stück wird nur einmal mehr gezeichnet
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	add_child(moon)
 	# Aufhellung von der Kameraseite, ohne Schatten: Figuren heben sich vom Boden ab
 	var fill := DirectionalLight3D.new()
@@ -1663,6 +1670,7 @@ func _physics_process(delta: float) -> void:
 	_loot_tick(delta)
 	_chest_tick()
 	orte.tick(delta)
+	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)
 	_pet_tick(delta)
@@ -1753,7 +1761,27 @@ func _physics_process(delta: float) -> void:
 			gate_ask = false
 			_ask_gate()
 
+# Sparen: Lichter jenseits des Bildes abschalten (alle 0,3 s), schlafende Gegner weit weg anhalten (auch ihre Animation)
+func _spar_tick() -> void:
+	var c := cam_pos
+	for l in lichter:
+		if is_instance_valid(l):
+			l.visible = l.global_position.distance_squared_to(c) < 44.0 * 44.0
+
+func _foes_sleep_far() -> void:
+	if freeze_foes:
+		return
+	var c := hero.global_position
+	for f in foes:
+		var far: bool = f.state == Foe.St.SLEEP and f.global_position.distance_squared_to(c) > 48.0 * 48.0
+		if far != (f.process_mode == Node.PROCESS_MODE_DISABLED):
+			f.process_mode = Node.PROCESS_MODE_DISABLED if far else Node.PROCESS_MODE_INHERIT
+
 func _process(delta: float) -> void:
+	spar_t -= delta
+	if spar_t <= 0.0 and hero:
+		spar_t = 0.3
+		_spar_tick()
 	shake = maxf(0.0, shake - delta * 2.2)
 	_place_cam(minf(1.0, delta * 6.0))
 	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte

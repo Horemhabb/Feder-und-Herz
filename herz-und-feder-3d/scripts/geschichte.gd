@@ -48,7 +48,7 @@ const H := [
 		"ba": "Lies die Wände nicht. Was fehlt, ist das Wichtige.",
 	},
 	{   # 4 · Rosetau
-		"wer": "Ein Erloschener", "titel": "einst ein Unvergänglicher Stern", "model": "Mage", "tint": Color(0.6, 0.7, 0.85),
+		"wer": "Ein Erloschener", "mit": "dem Erloschenen", "titel": "einst ein Unvergänglicher Stern", "model": "Mage", "tint": Color(0.6, 0.7, 0.85),
 		"gruss": ["Du trägst Licht. Halt es nicht so hoch. Es tut weh, sich zu erinnern.",
 			"Wir waren die Sterne, die niemals untergehen. Wir zogen die Barke über Sokars Sand. Dann kam einer und sagte: Gebt mir eure Herzen, und ihr werdet nie gewogen. Wir wussten nicht, dass ein Stern ohne Herz erlischt."],
 		"fragen": [["Wer war das?", "Er trug den Schurz eines Richters. Einer der Zweiundvierzig. Er weinte, als er die Krüge verschloss. Das habe ich nie verstanden."],
@@ -60,7 +60,7 @@ const H := [
 		"ba": "Sieh nicht nach oben. Da ist nichts mehr.",
 	},
 	{   # 5 · Die Höhle des Sokar
-		"wer": "Ein alter Richter", "titel": "der Schatten des Sammlers", "model": "Mage", "tint": Color(0.75, 0.55, 0.95),
+		"wer": "Ein alter Richter", "mit": "dem alten Richter", "titel": "der Schatten des Sammlers", "model": "Mage", "tint": Color(0.75, 0.55, 0.95),
 		"gruss": ["Setz dich, Laternenträger. Du bist weit gegangen für jemanden, der im Herbst gestorben ist.",
 			"Ja. Am Fieber, wie die halbe Stadt. Die Priester haben dich gewaschen und gesalbt und dir die Laterne in die Hände gelegt, bevor du kalt warst. Nur Tote kommen durch das Tor, und nur wer es nicht weiß, geht ohne Furcht. Sie haben dich benutzt. Ich benutze niemanden. Ich bewahre."],
 		"fragen": [["Warum hast du die Waage angehalten?", "Ich saß zweiundvierzigtausend Nächte zu Gericht. Ich habe gesehen, wie die Fresserin Herzen verschlang, die nur müde waren, nicht böse. Eines davon gehörte meiner Tochter. Da stand ich auf. Seitdem wird niemand mehr verschlungen. Nenn mir eine größere Gnade."],
@@ -94,7 +94,7 @@ const H := [
 		"ba": "Sieben Stunden hat er gesagt. Hier ist die, vor der die Klagefrauen warnen.",
 	},
 	{   # 8 · Die Grüfte der Götter
-		"wer": "Der Große Kater", "titel": "Re in seiner Gestalt von Heliopolis", "model": "Barbarian", "tint": Color(1.0, 0.8, 0.5),
+		"wer": "Der Große Kater", "mit": "dem Großen Kater", "titel": "Re in seiner Gestalt von Heliopolis", "model": "Barbarian", "tint": Color(1.0, 0.8, 0.5),
 		"gruss": ["Du riechst nach Zedernöl und Natron. Frisch balsamiert. Wie nett.",
 			"Wenn ich an den Grüften vorüberfahre, antwortet es von drinnen: wie ein Kater, wie ein Schwarm Bienen, wie ein Stier. Aus einer Gruft kommt kein Laut mehr. Ich mag keine Stille. Stille ist, was Apophis übrig lässt."],
 		"fragen": [["Warum hilfst du nicht selbst?", "Ich bin die Sonne, Kind. Ich bin alt, es ist Nacht, und ich bin auf dem Weg, wieder jung zu werden. Bis dahin bin ich auf Leute mit Laternen angewiesen."]],
@@ -105,7 +105,7 @@ const H := [
 		"ba": "Hör hin. Es klingt wie ein Kater. So soll es klingen.",
 	},
 	{   # 9 · Die Ruderer
-		"wer": "Der elfte Ruderer", "titel": "auf der Bank neben der leeren", "model": "Knight", "tint": Color(0.7, 0.8, 1.0),
+		"wer": "Der elfte Ruderer", "mit": "dem elften Ruderer", "titel": "auf der Bank neben der leeren", "model": "Knight", "tint": Color(0.7, 0.8, 1.0),
 		"gruss": ["Elf Ruder. Zähl nach, wenn du willst. Ich habe die ganze Nacht nichts anderes getan.",
 			"Der Zwölfte saß neben mir, seit es die Barke gibt. Sein Ba ist ausgeflogen und hat die Bank nicht wiedergefunden. Jetzt irrt er als Licht durch die Gänge und schlägt nach allem, was ihn ruft."],
 		"fragen": [["Erkennt er dich noch?", "Er erkennt sein Ruder. Mehr braucht ein Ruderer nicht zu erkennen."]],
@@ -127,7 +127,7 @@ const H := [
 		"ba": "Du hattest ein Grab. Vergiss das nicht. Jemand hat dich gewaschen.",
 	},
 	{   # 11 · Die Feuergruben
-		"wer": "Die mit dem Messer", "titel": "Göttin am Rand der Grube", "model": "Rogue", "tint": Color(1.0, 0.55, 0.4),
+		"wer": "Die mit dem Messer", "mit": "der Göttin mit dem Messer", "titel": "Göttin am Rand der Grube", "model": "Rogue", "tint": Color(1.0, 0.55, 0.4),
 		"gruss": ["Nicht so nah an den Rand. Die Hitze nimmt, was sie kriegen kann.",
 			"Hier endet, wer gegen die Ordnung stand. Es gefällt mir nicht. Es muss mir nicht gefallen. Eine ist herausgekrochen, und ich verstehe sie gut, aber wenn die Grube nicht hält, hält gar nichts."],
 		"fragen": [["Der Sammler nannte das Grausamkeit.", "Der Sammler hat recht. Und er hat tausend Sterne gelöscht und die Sonne angehalten, um recht zu behalten. Gnade ohne Ordnung ist auch nur ein Feuer."]],

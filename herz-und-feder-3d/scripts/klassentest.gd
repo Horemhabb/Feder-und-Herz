@@ -53,7 +53,13 @@ func run() -> void:
 	h.apply_stats(true)
 	# Standardangriff
 	var target := near_group(G)
+	# auf einen Fleck mit freier Schusslinie (die Karte ist jedes Mal anders)
 	h.global_position = target + Vector3(h.reach() * 0.6, 0, 0)
+	for k in 12:
+		var cand0: Vector3 = target + Vector3(sin(k * 0.52), 0, cos(k * 0.52)) * minf(h.reach() * 0.6, 5.0)
+		if G.walkable(target, cand0) and G.sees(cand0, target):
+			h.global_position = cand0
+			break
 	G.cam_pos = h.global_position
 	await wait(0.5)
 	var f0 := harm(G)
@@ -85,7 +91,8 @@ func run() -> void:
 		h.busy = 0.0
 		h.cd[id] = 0.0
 		await wait(0.3)
-		h.aim = target
+		var nf: Foe = G.foe_near(h.global_position, 12.0)   # Gegner bewegen sich: auf den jetzt nächsten zielen
+		h.aim = nf.global_position if nf else target
 		h.auto_aim = false
 		var before := harm(G)
 		var p0 := h.global_position
@@ -103,6 +110,15 @@ func run() -> void:
 			"glass":
 				check("%s legt eine Fläche, die verlangsamt" % name, G.zones.size() > 0 or harm(G) > before)
 			_:
+				if harm(G) <= before:
+					# verzögerte Flächen können ein laufendes Ziel verfehlen: ein zweiter Versuch auf den jetzt nächsten Gegner
+					nf = G.foe_near(h.global_position, 12.0)
+					h.aim = nf.global_position if nf else target
+					h.en = 100.0
+					h.busy = 0.0
+					h.cd[id] = 0.0
+					h.cast(id)
+					await wait(1.6)
 				check("%s trifft (%.0f Schaden)" % [name, harm(G) - before], harm(G) > before)
 	# Fähigkeitenbaum
 	Spiel.tree = {"r": {}, "a": {}, "p": {}, "key": false}
