@@ -1,0 +1,5 @@
+.godot/
+.godot-bin/
+*.tmp
+build/
+test_out/

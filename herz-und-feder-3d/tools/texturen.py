@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+# Bereitet die Higgsfield-Texturen fürs Spiel auf: lädt das Original (2048 px PNG), glättet die Kachelnaht,
+# verkleinert auf 1024 px, speichert als JPG nach textures/ und erzeugt eine Normalenkarte (Relief im Fackellicht).
+# Die Originale kommen nicht ins Repo.
+#
+#   python3 tools/texturen.py            alle Texturen, deren Adresse unten eingetragen ist
+#   python3 tools/texturen.py t09_sand   nur eine
+#
+# Neue Textur (z. B. T09 Wüstensand): Dateinamen unten bei QUELLEN eintragen, Skript laufen lassen,
+# Godot einmal öffnen (oder mit --import) – main.gd verwendet die Datei dann von selbst.
+import os, sys, urllib.request, io
+import numpy as np
+from PIL import Image, ImageFilter
+
+BASIS = "https://d8j0ntlcm91z4.cloudfront.net/user_3LJxksl6mkxq6rOcdzCctuGsHul/"
+QUELLEN = {
+	"w01_sandstein": "hf_20261115_211612_0104a296-1c14-45cf-b6b8-c4e0f2b4e626.png",
+	"w02_granit":    "hf_20261116_003035_2c675696-8c43-4535-9511-bf9da91a5e0e.png",
+	"t06_pflaster":  "hf_20261116_041040_d6dca7d0-df40-44c4-acfb-0b7f4289acb6.png",
+	"t07_gruft":     "hf_20261116_052916_39a49fef-54af-4ec2-b1a9-783e8efaf672.png",
+	"t09_sand":      "hf_20261116_080638_9e45fbfc-61a4-48fd-b21e-f10590c7a1ac.png",
+}
+GROESSE = 1024
+NAHT = 6   # Pixel beiderseits der Naht, die überblendet werden (im 2048er Original)
+
+ZIEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "textures")
+
+
+def naht_glätten(a: np.ndarray) -> np.ndarray:
+	# Naht in die Bildmitte rollen, dort einen schmalen Streifen weich verwischen (Gewicht fällt nach außen ab),
+	# zurückrollen. So verschwindet die harte Pixelkante, ohne dass das Bild sichtbar unscharf wird.
+	n = a.shape[0]
+	r = np.roll(np.roll(a, n // 2, 0), n // 2, 1).astype(np.float32)
+	blur = np.asarray(Image.fromarray(r.astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.5))).astype(np.float32)
+	idx = np.arange(n)
+	w = np.clip(1.0 - np.abs(idx - (n // 2 - 0.5)) / NAHT, 0, 1)
+	wx = w[None, :, None]
+	wy = w[:, None, None]
+	wmax = np.maximum(wx, wy)
+	r = r * (1 - wmax) + blur * wmax
+	r = np.roll(np.roll(r, -(n // 2), 0), -(n // 2), 1)
+	return np.clip(r, 0, 255).astype(np.uint8)
+
+
+def kachelbar_verkleinern(a: np.ndarray, groesse: int) -> Image.Image:
+	# ringsum mit dem gegenüberliegenden Rand auffüllen, verkleinern, wieder beschneiden: kein dunkler Rand durchs Filtern
+	p = 32
+	t = np.pad(a, ((p, p), (p, p), (0, 0)), mode="wrap")
+	f = groesse / a.shape[0]
+	im = Image.fromarray(t).resize((round(t.shape[1] * f), round(t.shape[0] * f)), Image.LANCZOS)
+	q = round(p * f)
+	return im.crop((q, q, q + groesse, q + groesse))
+
+
+def normalenkarte(im: Image.Image, staerke: float = 2.2) -> Image.Image:
+	# Höhe aus der Helligkeit geschätzt (Fugen dunkel = tief); kachelbar über np.roll
+	h = np.asarray(im.convert("L").filter(ImageFilter.GaussianBlur(1.2))).astype(np.float32) / 255.0
+	dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
+	dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
+	nx = -dx * staerke * 8
+	ny = dy * staerke * 8   # OpenGL-Konvention (Y nach oben), wie Godot sie erwartet
+	nz = np.ones_like(h)
+	l = np.sqrt(nx * nx + ny * ny + nz * nz)
+	n = np.stack([nx / l, ny / l, nz / l], -1)
+	return Image.fromarray(((n * 0.5 + 0.5) * 255).astype(np.uint8))
+
+
+def naht_mass(a: np.ndarray) -> str:
+	g = a.astype(np.float32).mean(2)
+	h = np.abs(g[:, 0] - g[:, -1]).mean() / np.abs(np.diff(g, axis=1)).mean()
+	v = np.abs(g[0, :] - g[-1, :]).mean() / np.abs(np.diff(g, axis=0)).mean()
+	return "links/rechts %.2f, oben/unten %.2f" % (h, v)
+
+
+def main() -> None:
+	Image.MAX_IMAGE_PIXELS = None
+	wahl = sys.argv[1:] or list(QUELLEN)
+	os.makedirs(ZIEL, exist_ok=True)
+	for name in wahl:
+		datei = QUELLEN.get(name, "")
+		if not datei:
+			print(f"{name}: keine Adresse eingetragen, übersprungen")
+			continue
+		with urllib.request.urlopen(BASIS + datei) as r:
+			a = np.asarray(Image.open(io.BytesIO(r.read())).convert("RGB"))
+		vorher = naht_mass(a)
+		a = naht_glätten(a)
+		im = kachelbar_verkleinern(a, GROESSE)
+		nachher = naht_mass(np.asarray(im))
+		im.save(os.path.join(ZIEL, name + ".jpg"), quality=88, optimize=True)
+		normalenkarte(im).save(os.path.join(ZIEL, name + "_n.jpg"), quality=92, optimize=True)
+		print(f"{name}: Naht vorher {vorher} · nachher {nachher}")
+
+
+if __name__ == "__main__":
+	main()

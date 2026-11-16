@@ -1,0 +1,355 @@
+<title>Herz und Feder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Das Spielfeld füllt den ganzen Bildschirm. Darüber liegt die Anzeige: oben Stunde, Fortschritt und Karte,
+   unten Lebenskugel, Fähigkeitenleiste und Fokuskugel. Die Welt liegt im Dunkeln, nur der Laternenkegel zeigt, was da ist.
+   Ein einziger, dunkler Look (Nacht über der Duat), darum keine helle Variante. */
+:root {
+  --night: #08080d; --moss: #14131a; --panel: #17161c; --panel2: #211f27; --line: #3d3947;
+  --parch: #ece3cb; --dim: #a39c8e; --lantern: #e8b04a; --spectral: #8fe3e0; --blood: #c8443a; --blood-d: #5a1a16; --focus: #3f7fd6; --focus-d: #152c52;
+  --c0: #b9b3a0; --c1: #6fa8ff; --c2: #f2d04b; --c3: #ff8a3c; --good: #7ad08a; --bad: #e0705f;
+  --font-title: "Cinzel", "Palatino Linotype", Georgia, serif;
+  --font-ui: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--night); color: var(--parch); font-family: var(--font-ui); font-size: 14px; overflow: hidden; overscroll-behavior: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+kbd { font: inherit; font-size: .72em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--dim); background: var(--night); }
+:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+#game { position: relative; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+/* Anzeige über dem Spielfeld */
+.hud { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.hud button, .hud .skills { pointer-events: auto; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.case { min-width: 0; max-width: 300px; text-shadow: 0 1px 3px #000; }
+.case-no { font-size: .72rem; letter-spacing: .18em; color: var(--lantern); }
+.case-name { font-family: var(--font-title); font-size: 1.05rem; line-height: 1.2; text-wrap: balance; }
+.track { height: 7px; margin-top: 6px; border: 1px solid var(--line); background: rgba(8, 8, 13, .7); border-radius: 4px; overflow: hidden; }
+.track span { display: block; height: 100%; width: 0; background: var(--spectral); }
+.track-l { font-size: .72rem; color: var(--dim); margin-top: 3px; }
+.tools { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+#mini { width: 132px; height: 100px; border: 1px solid var(--line); border-radius: 6px; background: rgba(8, 8, 13, .72); }
+.tbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 300px; }
+.tbtn { background: rgba(23, 22, 28, .88); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; min-height: 36px; }
+.tbtn.has-new { border-color: var(--lantern); color: var(--lantern); }
+.boss { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(420px, calc(100% - 660px)); text-align: center; text-shadow: 0 1px 3px #000; }
+@media (max-width: 1100px) { .boss { top: 168px; width: min(420px, calc(100% - 32px)); } }
+.boss-n { font-family: var(--font-title); font-size: 1rem; letter-spacing: .06em; }
+.boss-bar { height: 12px; border: 1px solid var(--line); border-radius: 6px; background: rgba(8, 8, 13, .8); overflow: hidden; margin-top: 4px; }
+.boss-bar span { display: block; height: 100%; background: linear-gradient(90deg, #7b3fa8, #c06be0); }
+.banner { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); text-align: center; font-family: var(--font-title); font-size: clamp(1rem, 4.6vw, 1.35rem);
+  text-shadow: 0 2px 8px #000, 0 0 2px #000; text-wrap: balance; animation: banner 3.2s ease forwards; }
+.banner small { display: block; font-family: var(--font-ui); font-size: .78rem; letter-spacing: .14em; color: var(--lantern); margin-bottom: 4px; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, 8px); } 12%, 78% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+.bottom { display: flex; align-items: flex-end; justify-content: center; gap: 10px; }
+.orb { position: relative; width: 78px; height: 78px; flex: none; border-radius: 50%; border: 2px solid var(--line); overflow: hidden; background: var(--night); box-shadow: 0 2px 10px #000; }
+.orb span { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; transition: height .15s linear; }
+.orb.hp span { background: linear-gradient(180deg, var(--blood), var(--blood-d)); }
+.orb.en span { background: linear-gradient(180deg, var(--focus), var(--focus-d)); }
+.orb b { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; font-size: .85rem; text-shadow: 0 1px 2px #000; font-variant-numeric: tabular-nums; }
+.bar { display: flex; flex-direction: column; gap: 4px; align-items: stretch; min-width: 0; }
+.skills { display: flex; gap: 6px; }
+.sk { position: relative; width: 56px; height: 56px; padding: 0; border: 2px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; flex: none; touch-action: none; }
+.sk svg { width: 100%; height: 100%; display: block; }
+.sk .cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(8, 8, 13, .78); }
+.sk kbd { position: absolute; right: 3px; bottom: 2px; border: 0; background: rgba(8, 8, 13, .7); color: var(--parch); }
+.sk.poor { border-color: var(--blood-d); filter: saturate(.3) brightness(.7); }
+.sk.potion { border-color: #6a2f2a; }
+.sk.gap { margin-left: 8px; }
+.buffs { display: flex; gap: 6px; justify-content: center; min-height: 18px; font-size: .7rem; color: var(--lantern); text-shadow: 0 1px 2px #000; }
+.sk .pots { position: absolute; left: 4px; top: 2px; font-size: .78rem; font-weight: 600; text-shadow: 0 1px 2px #000; }
+.xp { height: 5px; border: 1px solid var(--line); border-radius: 3px; background: rgba(8, 8, 13, .7); overflow: hidden; }
+.xp span { display: block; height: 100%; width: 0; background: var(--lantern); }
+.lvl { font-size: .7rem; color: var(--dim); text-align: center; text-shadow: 0 1px 2px #000; }
+
+/* Fenster: Lagebericht, Tasche, Niederlage */
+.veil { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; overflow-y: auto; background: rgba(5, 5, 10, .84);
+  padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sheet { width: min(640px, 100%); margin: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 40px #000; }
+.stamp { font-size: .72rem; letter-spacing: .2em; color: var(--lantern); }
+h1 { font-family: var(--font-title); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.6rem); margin: 0; line-height: 1.05; }
+h2 { font-family: var(--font-title); font-weight: 500; font-size: 1.3rem; margin: 0; }
+h3 { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin: 0; font-weight: 600; }
+.sheet p { margin: 0; line-height: 1.55; max-width: 62ch; }
+.note { color: var(--dim); font-size: .85rem; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.keys div { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.keys ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: .85rem; color: var(--dim); }
+.keys b { color: var(--parch); font-weight: 600; }
+.classes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin-top: 8px; }
+.cls img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; display: block; }
+.cls { text-align: left; background: var(--panel2); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cls[aria-pressed="true"] { border-color: var(--cc); box-shadow: 0 0 0 2px var(--cc) inset; }
+.cls b { font-family: var(--font-title); font-size: 1.05rem; color: var(--cc); }
+.cls small { color: var(--dim); font-size: .72rem; letter-spacing: .04em; }
+.cls span { font-size: .82rem; line-height: 1.4; }
+.ico { display: block; width: 78%; aspect-ratio: 1; background: url("art/icons.webp") 0 0 / 600% 600% no-repeat; }
+.sheet.wide { width: min(860px, 100%); }
+.tgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.tcard { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tcard.on { border-color: var(--lantern); }
+.thead { display: flex; gap: 10px; align-items: center; }
+.thead > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.thead b { font-family: var(--font-title); font-size: 1rem; }
+.thead small { color: var(--dim); font-size: .72rem; }
+.tic { width: 40px; height: 40px; flex: none; border: 1px solid var(--line); border-radius: 6px; background: var(--night); }
+.tic svg { width: 100%; height: 100%; display: block; }
+.tcard p { font-size: .8rem; color: var(--dim); line-height: 1.4; }
+.pips { display: flex; gap: 3px; } .pips i { width: 14px; height: 6px; border-radius: 2px; background: var(--line); } .pips i.f { background: var(--lantern); }
+.plus { width: 40px; height: 40px; flex: none; border: 1px solid var(--lantern); border-radius: 8px; background: none; color: var(--lantern); font-size: 1.2rem; font-weight: 600; }
+.plus:disabled, .aug:disabled, .ghost:disabled { opacity: .35; cursor: default; }
+.aug { flex: 1; font-size: .78rem; padding: 6px 8px; min-height: 36px; }
+.aug[aria-pressed="true"] { border-color: var(--lantern); color: var(--lantern); box-shadow: 0 0 0 1px var(--lantern) inset; }
+.mats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.mats span { display: inline-flex; align-items: center; gap: 6px; } .mats .ico { width: 26px; }
+.affb { background: none; border: 0; padding: 2px 0; text-align: left; display: flex; gap: 8px; align-items: center; width: 100%; min-height: 30px; }
+.affb i { font-style: normal; color: var(--lantern); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.falls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fps { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 8px; z-index: 4; font-size: .72rem; color: var(--dim); background: rgba(8, 8, 13, .7); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.toasts { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: 112px; z-index: 4; display: flex; flex-direction: column; gap: 6px; width: min(300px, calc(100% - 180px)); pointer-events: none; }
+.toast { display: flex; gap: 10px; align-items: center; background: rgba(17, 16, 22, .9); border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--line)); border-radius: 8px; padding: 6px 10px 6px 6px; box-shadow: 0 4px 14px #000; animation: toastIn .25s ease-out; transition: opacity .5s, transform .5s; }
+.toast.out { opacity: 0; transform: translateX(-16px); }
+.toast .ti { width: 40px; height: 40px; flex: none; border-radius: 6px; background-color: var(--night); display: grid; place-items: center; }
+.toast .ti .ico { width: 100%; }
+.toast div { min-width: 0; display: flex; flex-direction: column; }
+.toast b { font-family: var(--font-title); font-size: .95rem; color: var(--tc, var(--parch)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast small { font-size: .72rem; color: var(--dim); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.toast small.up { color: var(--good); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.sheet.chest { width: min(480px, 100%); }
+.chestList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.chestList li { display: flex; gap: 12px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--tc, var(--line)); border-radius: 8px; padding: 6px 10px 6px 6px; }
+.chestList .ti { width: 52px; height: 52px; flex: none; border-radius: 6px; background: var(--night); display: grid; place-items: center; }
+.chestList .ti .ico { width: 100%; }
+.chestList div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.chestList b { font-family: var(--font-title); color: var(--tc, var(--parch)); }
+.chestList small { font-size: .75rem; color: var(--dim); }
+.chestList small.up { color: var(--good); }
+.gateStats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+@media (max-width: 520px) { .gateStats { grid-template-columns: repeat(2, 1fr); } }
+.gateStats li { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; gap: 1px; }
+.gateStats b { font-family: var(--font-title); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.gateStats small { font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.gateNext { border-left: 3px solid var(--spectral); padding: 2px 0 2px 12px; display: flex; flex-direction: column; gap: 3px; }
+.gateNext small { font-size: .68rem; letter-spacing: .16em; color: var(--spectral); }
+.gateNext b { font-family: var(--font-title); font-size: 1.1rem; font-weight: 500; }
+.gateNext span { font-size: .88rem; line-height: 1.5; color: var(--dim); }
+.fade { position: absolute; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; overflow-y: auto; background: #05050a; opacity: 0; transition: opacity .9s ease;
+  padding: 24px max(20px, env(safe-area-inset-right, 0px)) 24px max(20px, env(safe-area-inset-left, 0px)); }
+.fade.on { opacity: 1; }
+.fade.cut { transition: none; }
+.fade:not(.on) { pointer-events: none; }
+.chap { width: min(580px, 100%); margin: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; opacity: 0; transform: translateY(10px); transition: opacity .8s ease .15s, transform .8s ease .15s; }
+.chap.on { opacity: 1; transform: none; }
+.chap h2 { font-size: clamp(1.7rem, 6.4vw, 2.5rem); font-weight: 700; line-height: 1.1; text-wrap: balance; }
+.chap p { margin: 0; line-height: 1.6; max-width: 52ch; text-wrap: pretty; }
+.chap .lead { font-family: var(--font-title); font-size: 1.08rem; color: var(--parch); }
+.chap .brief { color: var(--dim); font-size: .92rem; }
+.chap .go { align-self: center; margin-top: 6px; }
+.chap .go:disabled { opacity: .35; }
+@media (prefers-reduced-motion: reduce) { .fade, .chap { transition-duration: .01s; transition-delay: 0s; } }
+@media (max-width: 520px) {
+  .toasts { top: auto; bottom: 150px; width: calc(100% - 32px); gap: 4px; }
+  .toast { padding: 4px 8px 4px 4px; } .toast .ti { width: 32px; height: 32px; } .toast b { font-size: .85rem; } .toast small { -webkit-line-clamp: 1; }
+  .tbtn kbd { display: none; } .tbtn { padding: 4px 8px; min-height: 32px; font-size: .8rem; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; transition: none; } }
+.dif[aria-pressed="true"] { border-color: var(--lantern); color: var(--lantern); box-shadow: 0 0 0 1px var(--lantern) inset; }
+.hc { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--dim); margin-top: 8px; min-height: 32px; }
+.hc input { width: 18px; height: 18px; accent-color: var(--lantern); }
+.go { align-self: flex-start; background: var(--lantern); color: #1a1206; border: 0; border-radius: 8px; padding: 12px 20px; font-weight: 600; min-height: 44px; }
+.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; min-height: 40px; }
+.link { background: none; border: 0; padding: 4px 0; color: var(--dim); text-decoration: underline; text-align: left; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.eq { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.evid { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: .85rem; }
+.evid li { border-left: 3px solid var(--line); padding-left: 10px; color: var(--dim); }
+.evid li.got { border-color: var(--lantern); color: var(--parch); }
+.evid b { display: block; font-weight: 600; }
+.bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.bag .note { grid-column: 1 / -1; }
+.it { position: relative; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 8px; background: var(--panel2); padding: 0; display: grid; place-items: center; min-width: 0; }
+.it svg { width: 62%; height: 62%; }
+.it.sel { box-shadow: 0 0 0 2px var(--parch); }
+.it.empty { border-style: dashed; color: var(--dim); font-size: .68rem; }
+.it .up { position: absolute; top: 1px; right: 4px; font-size: .8rem; color: var(--good); }
+.eq .it { aspect-ratio: auto; height: 64px; flex-direction: column; }
+.eq small { font-size: .62rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 4px 14px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.stats span { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dotted var(--line); padding: 2px 0; }
+.stats b { font-weight: 600; }
+.detail { background: var(--night); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px; min-height: 96px; }
+.detail .nm { font-family: var(--font-title); font-size: 1.1rem; }
+.detail ul { margin: 0; padding: 0; list-style: none; font-size: .85rem; display: flex; flex-direction: column; gap: 2px; }
+.detail .pow { color: var(--c3); }
+.good { color: var(--good); } .bad { color: var(--bad); }
+@media (max-width: 520px) {
+  .orb { width: 50px; height: 50px; } .orb b { font-size: .7rem; }
+  .sk { width: 44px; height: 44px; } .skills { gap: 4px; } .bottom { gap: 4px 6px; flex-wrap: wrap; justify-content: space-between; } .bar { order: 3; flex: 1 1 100%; align-items: center; } .sk.gap { margin-left: 2px; }
+  #mini { width: 96px; height: 72px; } .case { max-width: 190px; } .case-name { font-size: .92rem; }
+  .sheet { padding: 16px; } .eq .it { height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) { .banner { animation-duration: 3.2s; animation-timing-function: step-end; } .orb span { transition: none; } }
+</style>
+
+<div id="game">
+  <canvas id="cv" aria-label="Spielfeld"></canvas>
+  <div class="hud">
+    <div class="top">
+      <div class="case">
+        <div class="case-no" id="caseNo">ERSTE STUNDE</div>
+        <div class="case-name" id="caseName"></div>
+        <div class="track" role="img" aria-label="Fortschritt in der Stunde"><span id="trackFill"></span></div>
+        <div class="track-l" id="trackL"></div>
+      </div>
+      <div class="tools">
+        <canvas id="mini" width="264" height="200" aria-label="Karte der Stunde"></canvas>
+        <div class="tbtns"><button class="tbtn" id="treeBtn" type="button">Fähigkeiten <kbd>K</kbd></button><button class="tbtn" id="invBtn" type="button">Tasche <kbd>I</kbd></button><button class="tbtn" id="muteBtn" type="button">Ton an</button></div>
+      </div>
+    </div>
+    <div class="boss" id="boss" hidden><div class="boss-n" id="bossN"></div><div class="boss-bar"><span id="bossFill"></span></div></div>
+    <div class="bottom">
+      <div class="orb hp" role="img" aria-label="Leben"><span id="hpFill"></span><b id="hpTxt"></b></div>
+      <div class="bar">
+        <div class="buffs" id="buffs"></div>
+        <div class="skills" id="skills"></div>
+        <div class="xp" role="img" aria-label="Erfahrung"><span id="xpFill"></span></div>
+        <div class="lvl" id="lvlTxt"></div>
+      </div>
+      <div class="orb en" role="img" aria-label="Fokus"><span id="enFill"></span><b id="enTxt"></b></div>
+    </div>
+  </div>
+  <div id="bannerBox"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="fps" id="fps" hidden></div>
+
+  <div class="veil" id="intro">
+    <div class="sheet">
+      <div class="stamp">ZWÖLF STUNDEN DURCH DIE DUAT</div>
+      <h1>Herz und Feder</h1>
+      <p>Die Nebelmark ist das letzte Land vor dem Westen. Ihr Nebel steigt aus der Duat, der Unterwelt, durch die Re jede Nacht in seiner Barke fährt: zwölf Stunden lang, bis zum Morgen. Seit dem Herbst kommt der Morgen später. Über Sandtor ziehen Lichter gegen den Wind, aus den Dünen steigt Schlangenvolk herauf, und in den Gräbern liegen die Toten wach.</p>
+      <p>Unten steht die Waage still. Kein Herz wird mehr gegen die Feder der Maat gewogen, kein Toter wird gerechtfertigt, und niemand zieht die Barke über den Sand. Wo Maat schweigt, wächst Isfet, und in der Tiefe wartet Apophis darauf, dass die Sonne ausbleibt.</p>
+      <p>Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. In ihr brennt ein Funke des Re. Steig hinab, Stunde um Stunde, kämpf dich durch die Brut des Apophis und finde heraus, wer die Waage angehalten hat. Unterwegs liegen die verstreuten Seiten aus dem Buch des Thot.</p>
+      <div id="classPick">
+        <h3>Wähle deine Klasse</h3>
+        <div class="classes" id="classBox"></div>
+      </div>
+      <div id="fallPick">
+        <h3>Stunde wählen</h3>
+        <div class="falls" id="fallBox"></div>
+        <p class="note" id="fallNote" style="margin-top: 6px"></p>
+      </div>
+      <div id="gfxPick">
+        <h3>Grafik</h3>
+        <div class="row" id="gfxBox" style="margin-top: 8px"></div>
+        <p class="note" id="gfxNote" style="margin-top: 6px"></p>
+      </div>
+      <div id="diffPick">
+        <h3>Schwierigkeit</h3>
+        <div class="row" id="diffBox" style="margin-top: 8px"></div>
+        <p class="note" id="diffNote" style="margin-top: 6px"></p>
+        <label class="hc" id="hcLabel"><input type="checkbox" id="hcBox"> Hardcore: Stirbt die Figur, ist sie verloren.</label>
+      </div>
+      <div class="keys">
+        <div><h3>Maus und Tastatur</h3><ul>
+          <li><b>Linke Maustaste halten:</b> laufen, auf Gegner: angreifen</li>
+          <li><b>Rechte Maustaste:</b> zweite Angriffsfähigkeit</li>
+          <li><b>1 2 3 4:</b> Fähigkeiten, gezielt auf den Mauszeiger</li>
+          <li><b>Q:</b> Rotbier (heilt) · <b>I:</b> Tasche · <b>K:</b> Fähigkeitenbaum · <b>M:</b> Ton · <b>W A S D:</b> laufen</li>
+          <li><b>F:</b> Bildrate anzeigen · <b>G:</b> Grafikstufe wechseln</li>
+        </ul></div>
+        <div><h3>Finger</h3><ul>
+          <li><b>Halten:</b> laufen · <b>auf Gegner tippen:</b> angreifen</li>
+          <li><b>Knöpfe unten:</b> Fähigkeiten, zielen von selbst</li>
+          <li>Steht ein Gegner in Reichweite, greifst du von allein an.</li>
+        </ul></div>
+      </div>
+      <p class="note">Neu in 1.1: Das Spiel heißt jetzt „Herz und Feder“. Jede Karte ist eine Stunde der Nacht. Fällt ihr Hüter, wächst eine Pforte aus dem Boden; sie fragt, bevor sie dich weiterträgt. Elite-Gegner und Hüter tragen Seiten aus dem Buch des Thot, die Stück für Stück die Geschichte erzählen. Ruckelt es, stell bei „Grafik“ auf Niedrig oder drück G.</p>
+      <div class="row"><button class="go" id="startBtn" type="button">Die Nacht betreten</button><span class="note" id="resumeNote"></span></div>
+      <button class="link" id="newCharBtn" type="button" hidden>Neue Figur anlegen (der Spielstand wird gelöscht)</button>
+    </div>
+  </div>
+
+  <div class="veil" id="inv" hidden>
+    <div class="sheet">
+      <div class="row" style="justify-content: space-between"><h2>Ausrüstung</h2><button class="ghost" id="invClose" type="button">Schließen <kbd>I</kbd></button></div>
+      <div class="eq" id="eqBox"></div>
+      <div class="stats" id="statBox"></div>
+      <h3>Material</h3>
+      <div class="mats" id="matBox"></div>
+      <div class="row" style="justify-content: space-between"><h3 id="bagTitle">Tasche</h3><button class="link" id="junkBtn" type="button">Alles Gewöhnliche wegwerfen</button></div>
+      <div class="bag" id="bagBox"></div>
+      <div class="detail" id="detail"><span class="note">Tipp ein Teil an, um es anzusehen.</span></div>
+      <div class="row"><button class="ghost" id="gambleBtn" type="button"></button><span class="note" id="gambleNote"></span></div>
+      <h3 id="evidTitle">Buch des Thot</h3>
+      <ul class="evid" id="evidBox"></ul>
+      <div class="row"><button class="ghost" id="fallBtn" type="button">Stunde wechseln (zum Farmen)</button></div>
+      <div class="row"><button class="link" id="resetBtn" type="button">Neue Figur anlegen (Spielstand löschen)</button><span id="resetAsk" hidden><button class="ghost" id="resetYes" type="button">Ja, zur Klassenauswahl</button> <button class="link" id="resetNo" type="button">Abbrechen</button></span></div>
+    </div>
+  </div>
+
+  <div class="veil" id="tree" hidden>
+    <div class="sheet wide">
+      <div class="row" style="justify-content: space-between"><h2>Fähigkeitenbaum</h2><button class="ghost" id="treeClose" type="button">Schließen <kbd>K</kbd></button></div>
+      <p id="treePts"></p>
+      <div class="tgrid" id="treeSk"></div>
+      <h3>Dauerhafte Stärken</h3>
+      <div class="tgrid" id="treePa"></div>
+      <div class="row"><button class="ghost" id="respecBtn" type="button"></button><span class="note">Setzt alle Punkte zurück, damit du sie neu verteilen kannst.</span></div>
+    </div>
+  </div>
+
+  <div class="veil" id="chestPop" hidden>
+    <div class="sheet chest">
+      <div class="stamp" id="chestStamp">FUND</div>
+      <h2 id="chestTitle">Truhe</h2>
+      <ul class="chestList" id="chestList"></ul>
+      <p class="note" id="chestNote"></p>
+      <div class="row"><button class="go" id="chestTake" type="button">Alles nehmen <kbd>E</kbd></button><button class="ghost" id="chestLeave" type="button">Liegen lassen <kbd>Esc</kbd></button></div>
+    </div>
+  </div>
+
+  <div class="veil" id="gate" hidden>
+    <div class="sheet chest">
+      <div class="stamp" id="gateStamp">VOLLENDET</div>
+      <h2 id="gateTitle"></h2>
+      <p id="gateEpi"></p>
+      <ul class="gateStats" id="gateStats"></ul>
+      <div class="gateNext"><small id="gateNextNo"></small><b id="gateNext"></b><span id="gateLead"></span></div>
+      <p class="note" id="gateNote"></p>
+      <div class="row"><button class="go" id="gateGo" type="button">Durch die Pforte gehen <kbd>E</kbd></button><button class="ghost" id="gateStay" type="button">Noch bleiben <kbd>Esc</kbd></button></div>
+    </div>
+  </div>
+
+  <div class="veil" id="dead" hidden>
+    <div class="sheet">
+      <div class="stamp">IN DER DUAT</div>
+      <h2>Du wurdest überwältigt.</h2>
+      <p id="deadTxt"></p>
+      <button class="go" id="reviveBtn" type="button">Zurück in die Stunde</button>
+    </div>
+  </div>
+
+  <div class="fade" id="fade" hidden>
+    <div class="chap" id="chap">
+      <div class="stamp" id="chapNo"></div>
+      <h2 id="chapName"></h2>
+      <p class="lead" id="chapLead"></p>
+      <p class="brief" id="chapBrief"></p>
+      <button class="go" id="chapGo" type="button">Eintreten <kbd>E</kbd></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+/*JS*/
+})();
+</script>

@@ -1,0 +1,269 @@
+<title>Erhebungsbogen Nebelmark</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: ein Behördenformular in einer Spalte. Oben der Aktenkopf mit Stempel, darunter acht Abschnitte (A bis H),
+   jede Frage mit ihrem Aktenzeichen. Unten klebt eine Leiste mit Speicherstand und dem Knopf zum Abschließen. */
+:root {
+  --paper: #e8ebe3; --sheet: #f4f6f0; --ink: #1c2226; --dim: #5a646a; --rule: #b9c0b6; --stamp: #a8322a; --stamp-soft: #f0d9d5;
+  --pick: #1f4f6e; --pick-soft: #d5e3ec; --ok: #2f6b45; --on: #ffffff;
+  --font-head: "Special Elite", "Courier New", Courier, monospace;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --paper: #14181a; --sheet: #1c2124; --ink: #e4e7df; --dim: #9aa5a8; --rule: #3a4347; --stamp: #e0776c; --stamp-soft: #3d2320; --pick: #8cc1e0; --pick-soft: #1d3442; --ok: #7cc795; --on: #10161a; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --paper: #14181a; --sheet: #1c2124; --ink: #e4e7df; --dim: #9aa5a8; --rule: #3a4347; --stamp: #e0776c; --stamp-soft: #3d2320; --pick: #8cc1e0; --pick-soft: #1d3442; --ok: #7cc795; --on: #10161a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 20px 110px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+button, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--pick); outline-offset: 2px; }
+.head { border-bottom: 3px double var(--ink); padding-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.office { font-family: var(--font-mono); font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+h1 { font-family: var(--font-head); font-weight: 400; font-size: clamp(1.7rem, 6vw, 2.5rem); margin: 0; line-height: 1.1; text-wrap: balance; }
+.stamp { align-self: flex-start; font-family: var(--font-head); color: var(--stamp); border: 2px solid var(--stamp); padding: 3px 10px 1px; transform: rotate(-2deg); letter-spacing: .08em; font-size: .9rem; }
+.lead { margin: 0; max-width: 62ch; }
+.lead + .lead { color: var(--dim); font-size: .92rem; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .92rem; }
+a { color: var(--pick); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc a { font-family: var(--font-mono); font-size: .78rem; text-decoration: none; border: 1px solid var(--rule); padding: 4px 8px; border-radius: 3px; color: var(--ink); background: var(--sheet); }
+.toc a b { color: var(--stamp); }
+section { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+h2 { font-family: var(--font-head); font-weight: 400; font-size: 1.3rem; margin: 0; display: flex; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+h2 span { color: var(--stamp); }
+.sec-note { margin: -8px 0 0; color: var(--dim); font-size: .9rem; }
+.q { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.q-top { display: flex; gap: 10px; align-items: baseline; }
+.q-id { font-family: var(--font-mono); font-size: .78rem; color: var(--dim); flex: none; width: 2.2em; }
+.q-text { font-weight: 600; text-wrap: pretty; }
+.q-hint, .q-pre { margin: 0 0 0 calc(2.2em + 10px); font-size: .86rem; color: var(--dim); }
+.q-pre { color: var(--stamp); font-family: var(--font-mono); font-size: .74rem; letter-spacing: .04em; }
+.opts { margin-left: calc(2.2em + 10px); display: flex; flex-wrap: wrap; gap: 6px; }
+.opts.col { flex-direction: column; align-items: stretch; }
+.opt { text-align: left; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; padding: 7px 11px; min-height: 40px; line-height: 1.35; }
+.opt[aria-pressed="true"] { background: var(--pick-soft); border-color: var(--pick); box-shadow: inset 3px 0 0 var(--pick); }
+.opt small { display: block; color: var(--dim); font-size: .82rem; }
+.scale { margin-left: calc(2.2em + 10px); display: flex; flex-direction: column; gap: 4px; }
+.scale-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 360px; }
+.scale .opt { text-align: center; font-family: var(--font-mono); padding: 7px 0; }
+.scale-ends { display: flex; justify-content: space-between; gap: 12px; font-size: .82rem; color: var(--dim); max-width: 360px; }
+.scale-ends span:last-child { text-align: right; }
+textarea { margin-left: calc(2.2em + 10px); width: calc(100% - 2.2em - 10px); min-height: 78px; resize: vertical; background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; padding: 8px 10px; line-height: 1.45; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--sheet); border-top: 2px solid var(--ink);
+  padding-block: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bar-in { max-width: 760px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.count { font-family: var(--font-mono); font-size: .8rem; flex: 1 1 180px; min-width: 0; }
+.count b { font-size: 1rem; }
+.state { display: block; color: var(--dim); }
+.state.ok { color: var(--ok); }
+.btn { background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; padding: 9px 14px; min-height: 42px; font-weight: 600; }
+.btn.main { background: var(--ink); color: var(--paper); }
+.done-note { background: var(--stamp-soft); border: 1.5px solid var(--stamp); border-radius: 4px; padding: 12px 14px; }
+.done-note p { margin: 0; }
+#copyBox { width: 100%; min-height: 120px; font-family: var(--font-mono); font-size: .78rem; margin: 0; }
+@media (max-width: 520px) { .count { flex-basis: 100%; } .bar .btn { flex: 1 1 0; padding-inline: 8px; } .wrap { padding-bottom: 170px; } .q-hint, .q-pre, .opts, .scale { margin-left: 0; } textarea { margin-left: 0; width: 100%; } section { padding: 14px 12px; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="office">Amt für Ungeklärtes · Außenstelle Nebelmark · Formblatt U-7</div>
+    <h1>Erhebungsbogen zum Spiel</h1>
+    <div class="stamp">NUR FÜR DEN DIENSTGEBRAUCH</div>
+    <p class="lead">Mit diesem Bogen legen wir fest, was aus dem Prototyp werden soll: Welt, Klassen, Kampf, Beute, Aussehen und Rahmen. Deine Antworten speichern sich von selbst. Du kannst jederzeit aufhören und später weitermachen.</p>
+    <p class="lead">Keine Frage ist Pflicht. Wo du unsicher bist, nimm „Entscheide du“ oder lass die Frage aus. Was du im Chat schon gesagt hast, ist vorausgewählt und lässt sich ändern. Abschnitt H füllst du am besten aus, nachdem du den Prototyp gespielt hast.</p>
+    <div class="links"><a href="https://claude.ai/artifact/R162kc1yWUkrvksiurmNwn">Zum Prototyp „Akte Nebelmark“</a></div>
+    <nav class="toc" id="toc" aria-label="Abschnitte"></nav>
+  </header>
+  <div id="form"></div>
+  <div class="done-note" id="doneNote" hidden><p><b>Bogen abgeschlossen.</b> Schreib im Chat „Fragebogen fertig“. Dann lese ich deine Antworten und mache daraus den Bauplan. Du kannst weiter ändern, es speichert sich wie bisher.</p></div>
+  <div id="copyWrap" hidden><p class="lead">Falls das Speichern nicht klappt: Kopiere diesen Text und füge ihn im Chat ein.</p><textarea id="copyBox" readonly aria-label="Antworten als Text"></textarea></div>
+</div>
+<div class="bar">
+  <div class="bar-in">
+    <div class="count"><b id="countN">0</b> von <span id="countAll">0</span> beantwortet<span class="state" id="state" role="status">Wird geladen …</span></div>
+    <button class="btn" id="copyBtn" type="button">Antworten kopieren</button>
+    <button class="btn main" id="doneBtn" type="button">Bogen abschließen</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const DU = "Entscheide du";
+// t: single (eine Antwort), multi (mehrere), scale (1 bis 5), text. pre: Vorauswahl aus dem Chat.
+const SECTIONS = [
+  { id: "A", title: "Welt und Ton", note: "Die Welt soll irgendwo zwischen Akte X und Herr der Ringe liegen. Hier legen wir fest, wo genau.", qs: [
+    { t: "scale", q: "Wie viel Fantasy, wie viel Ungeklärtes?", lo: "fast reine Fantasy mit etwas Unheimlichem", hi: "fast reine Ermittler-Geschichte mit etwas Fantasy" },
+    { t: "single", q: "In welcher Zeit spielt es?", o: ["Mittelalterliche Fantasywelt, in der das Unerklärliche auftaucht (Lichter am Himmel, Verschwundene, Vertuschung)", "Unsere 1990er: Ermittler stoßen auf ein Tor in eine Fantasywelt", "Eine Fantasywelt, die technisch in den 1990ern angekommen ist: Elben mit Aktenordnern, Zwerge mit Funkgeräten", DU] },
+    { t: "single", q: "Was steckt hinter dem Rätsel?", o: ["Etwas von außerhalb der Welt (Besucher von den Sternen)", "Etwas Uraltes aus der Welt selbst, das erwacht", "Eine Verschwörung der Mächtigen (Rat der Zauberer, Krone, das eigene Amt)", "Alles drei verwoben, die Wahrheit bleibt lange offen", DU] },
+    { t: "scale", q: "Wie ernst ist der Ton?", lo: "düster und ernst", hi: "trockener Humor, Augenzwinkern" },
+    { t: "scale", q: "Wie gruselig darf es werden?", lo: "kaum", hi: "echter Horror" },
+    { t: "multi", q: "Was aus Akte X muss hinein?", o: ["Ein Duo aus Skeptikerin und Gläubigem", "Vertuschung durch die eigene Behörde", "Einzelfälle („Monster der Woche“)", "Ein großer roter Faden über alle Fälle", "Ein Informant im Schatten", "Akten, Vermerke, geschwärzte Stellen", "Taschenlampen im Dunkeln", "Das Gefühl, dass die Wahrheit irgendwo da draußen ist"] },
+    { t: "multi", q: "Was aus Herr der Ringe muss hinein?", o: ["Alte Völker (Elben, Zwerge und andere)", "Eine lange Reise durch wechselnde Landschaften", "Uralte Ruinen und vergessene Reiche", "Ein großes Böses im Hintergrund", "Gefährten", "Lieder, Sagen und Karten", "Ein mächtiger Gegenstand", "Große Schlachten"] },
+    { t: "single", q: "Der Arbeitstitel ist „Akte Nebelmark“. Passt er noch, jetzt wo es in die Wüste geht?", o: ["Ja, bleibt so (die Nebelmark ist die Grenzprovinz, dahinter liegt die Wüste)", "Lieber ein Wüstenname, zum Beispiel „Akte Aschmeer“", "Ich habe eine eigene Idee (siehe nächstes Feld)", DU] },
+    { t: "text", q: "Namen und Ideen, die du schon im Kopf hast (Titel, Orte, Figuren, Szenen)" },
+  ] },
+  { id: "B", title: "Klassen und Figur", note: "Der Prototyp hat drei Klassen zum Ausprobieren. Hier geht es darum, welche es am Ende gibt.", qs: [
+    { t: "single", q: "Wie viele Klassen soll die erste richtige Fassung haben?", pre: "3 (wie im Prototyp)", o: ["1, dafür sehr gut gemacht", "2", "3 (wie im Prototyp)", "4 bis 5 wie in Diablo", DU] },
+    { t: "multi", q: "Welche Klassen reizen dich?", hint: "In Klammern steht, woran sie in Diablo 3 und 4 erinnern.", o: ["Grenzermittler: Nahkampf mit Klinge und Laterne (Barbar, Kreuzritter)", "Spurenleserin: Armbrust, Fallen, Ausweichen (Dämonenjägerin, Jägerin)", "Runenforensiker: Blitz, Glas, fallende Sterne (Zauberin)", "Medium: ruft Geister und Tote als Diener (Totenbeschwörer)", "Zwergischer Feldtechniker: Geschütztürme, Sprengsätze, Geräte", "Wüstenmönch: Fäuste, Kombos, Auren (Mönch)", "Gestaltwandler der Nomaden: Tierformen, Sandsturm (Druide)"] },
+    { t: "single", q: "Wie entsteht deine Figur?", o: ["Klasse wählen, Name eingeben, fertig (wie Diablo 3)", "Klasse wählen und Aussehen anpassen (wie Diablo 4)", "Feste Hauptfigur mit eigener Geschichte", DU] },
+    { t: "single", q: "Gibt es einen Begleiter?", o: ["Nein, allein", "Ein Partner, der kommentiert und widerspricht, aber nicht kämpft", "Ein Begleiter, der mitkämpft (wie die Gefolgsleute in Diablo 3)", "Mehrere zur Auswahl, jeder mit eigener Sicht auf den Fall", DU] },
+    { t: "single", q: "Fähigkeiten freischalten: eher Diablo 3 oder Diablo 4?", o: ["Diablo 3: Fähigkeiten und Runen kommen mit den Stufen, jederzeit frei tauschbar", "Diablo 4: Fertigkeitenbaum mit Punkten, Umlernen kostet etwas", "Mischung: wenige Punkte, aber frei tauschbar", DU] },
+    { t: "text", q: "Was soll sich bei deiner Lieblingsklasse besonders gut anfühlen?" },
+  ] },
+  { id: "C", title: "Kampf", qs: [
+    { t: "scale", q: "Wie schnell ist der Kampf?", lo: "langsam und überlegt (Diablo 1 und 2)", hi: "sehr schnell, ganze Bildschirme voller Gegner (Diablo 3 auf hoher Stufe)" },
+    { t: "scale", q: "Wie schwer soll es sein?", lo: "entspannt", hi: "fordernd, Fehler werden bestraft" },
+    { t: "single", q: "Wie viele Fähigkeiten gleichzeitig?", o: ["Standardangriff und 4 Fähigkeiten (wie im Prototyp)", "6 wie in Diablo 3 und 4: zwei auf der Maus, vier auf Tasten", DU] },
+    { t: "multi", q: "Was davon gehört für dich zum Diablo-Gefühl?", o: ["Wucht: Treffer, die man spürt", "Gegnermassen", "Beute, die aus Gegnern platzt", "Legendäre Teile, die Fähigkeiten verändern", "Elite-Rudel mit besonderen Eigenschaften", "Große Endgegner mit Phasen", "Immer stärker werden", "Ausweichen und Stellungsspiel (Diablo 4)", "Die Stadt als Ruhepunkt"] },
+    { t: "single", q: "Was passiert beim Tod?", o: ["Nichts geht verloren, am Kontrollpunkt weiter (wie jetzt)", "Etwas geht verloren (Gold, Haltbarkeit der Ausrüstung)", "Zusätzlich ein Hardcore-Modus: tot ist tot", DU] },
+    { t: "single", q: "Schwierigkeitsstufen wie „Qual“ (Diablo 3) oder „Weltstufen“ (Diablo 4)?", o: ["Ja, mehr Risiko für mehr Beute", "Nein, eine Schwierigkeit, die mit mir wächst", DU] },
+    { t: "text", q: "Was hat dich an Diablo 3 oder 4 gestört? Das lassen wir weg." },
+  ] },
+  { id: "D", title: "Beute und Fortschritt", note: "Du hast gesagt: eine Vielzahl von Gegenständen zum Aufsammeln. Hier steht, wie weit das gehen soll.", qs: [
+    { t: "scale", q: "Wie viel Beute fällt?", pre: 5, lo: "wenig, jedes Teil zählt", hi: "Beuteregen, viel zum Aussortieren" },
+    { t: "multi", q: "Welche Arten von Funden soll es geben?", pre: ["Waffen und Rüstung auf vielen Plätzen", "Währung (Gold, Splitter)", "Beweisstücke und Akten, die die Geschichte erzählen"], o: ["Waffen und Rüstung auf vielen Plätzen", "Währung (Gold, Splitter)", "Beweisstücke und Akten, die die Geschichte erzählen", "Edelsteine zum Einsetzen", "Materialien zum Herstellen und Verbessern", "Tränke und Elixiere", "Runen oder Siegel, die Fähigkeiten verändern", "Schmuck und Kleidung nur fürs Aussehen", "Schlüssel und Karten für besondere Gebiete"] },
+    { t: "multi", q: "Welche Systeme gehören in die erste richtige Fassung?", o: ["Seltenheitsstufen (gewöhnlich bis legendär)", "Legendäre Kräfte", "Sets, die zusammen stärker sind (Diablo 3)", "Aspekte: legendäre Kräfte herauslösen und auf andere Teile setzen (Diablo 4)", "Schmied: herstellen und verbessern", "Eigenschaften neu würfeln", "Hehler: Währung gegen unbekannte Teile (wie im Prototyp)", "Truhe im Stützpunkt", "Händler"] },
+    { t: "single", q: "Wie ist die Tasche aufgebaut?", o: ["Jedes Teil ein Feld (wie im Prototyp und in Diablo 4)", "Teile sind verschieden groß (wie in Diablo 2 und 3)", DU] },
+    { t: "single", q: "Was kommt nach der Geschichte?", o: ["Nichts, durchspielen und fertig", "Endlose, immer schwerere Fälle (wie die Portale in Diablo 3)", "Beides: erst die Geschichte, dann endlose Fälle", DU] },
+    { t: "single", q: "Fortschritt nach der höchsten Stufe?", o: ["Paragon-Stufen: kleine Boni ohne Ende (Diablo 3)", "Ein Paragon-Brett mit Wegen und Glyphen (Diablo 4)", "Braucht es nicht", DU] },
+    { t: "single", q: "Wie hoch geht die Stufe ungefähr?", o: ["20", "40", "60 bis 70 wie in Diablo", DU] },
+    { t: "text", q: "Welche Gegenstände wünschst du dir? Gern mit Namen und was sie können." },
+  ] },
+  { id: "E", title: "Aufbau und Schauplätze", qs: [
+    { t: "single", q: "Wie ist das Spiel gegliedert?", o: ["Akte mit fester Geschichte, einer nach dem anderen (Diablo 3)", "Eine offene Welt mit Gebieten, die man frei bereist (Diablo 4)", "Einzelfälle, die man im Amt von der Pinnwand wählt", "Hauptgeschichte in Akten, dazu frei wählbare Nebenfälle", DU] },
+    { t: "single", q: "Wie entstehen die Gebiete?", o: ["Jedes Mal zufällig erzeugt (wie im Prototyp)", "Fest gebaut, immer gleich", "Feste Oberwelt, zufällige Verliese (wie Diablo 3 und 4)", DU] },
+    { t: "multi", q: "Welche Schauplätze soll es geben?", pre: ["Wüste bei Nacht mit Dünen und Glasnadeln"], hint: "Die Wüste ist gesetzt. Kreuze an, was dazukommen soll.", o: ["Wüste bei Nacht mit Dünen und Glasnadeln", "Wüste am Tag: Hitze, Sandsturm, Luftspiegelungen", "Oase und Karawanserei als Stützpunkt", "Versunkene Stadt unter dem Sand", "Grabkammern und Katakomben", "Salzpfanne mit Einschlagkratern", "Schlucht mit Felsenstadt", "Versiegelte Zwergenstollen", "Elbisches Observatorium auf dem Tafelberg", "Archivkeller des Amts", "Das abgestürzte Etwas", "Später: Moor, Wald, Gebirge, Küste"] },
+    { t: "single", q: "Gibt es einen Stützpunkt wie die Städte in Diablo?", o: ["Ja: Karawanserei mit Händler, Schmied, Truhe und Auftraggebern", "Nur ein Menü zwischen den Fällen", "Später", DU] },
+    { t: "single", q: "Wie lang ist eine Sitzung?", o: ["5 bis 10 Minuten", "20 bis 30 Minuten", "Eine Stunde und mehr"] },
+    { t: "single", q: "Wie wird die Geschichte erzählt?", o: ["Über Akten und Fundstücke zum Lesen (wie die Beweisstücke im Prototyp)", "Kurze Gespräche mit Porträts", "Mit Stimmen, die von einer KI gesprochen werden", "Möglichst wenig, ich will spielen", DU] },
+    { t: "text", q: "Eine Szene oder ein Ort, den du unbedingt im Spiel sehen willst" },
+  ] },
+  { id: "F", title: "Aussehen, Klang und KI-Bilder", note: "Du willst das Higgsfield-Abo für das Projekt nutzen. Diese Antworten entscheiden, was wir damit erzeugen.", qs: [
+    { t: "single", q: "Welcher Stil?", hint: "Realistische 3D-Grafik wie in Diablo 3 und 4 ist im Browser und allein nicht machbar. Die anderen Wege sind es.", o: ["Düster gemalt wie Diablo 2: gemalte Böden, Figuren als gemalte Einzelbilder", "Pixelart wie ein Spiel aus den 1990ern", "Düstere Graphic Novel: harte Schatten, wenige Farben", "Einfache 3D-Formen (Low Poly)", "Erst einmal bei Formen bleiben, bis das Spiel Spaß macht", DU] },
+    { t: "single", q: "Welche Kamera?", o: ["Schräg von oben wie Diablo", "Gerade von oben (wie im Prototyp)", DU] },
+    { t: "scale", q: "Wie dunkel ist die Welt?", hint: "Im Prototyp ist fast alles dunkel und nur der Laternenkegel zeigt, was da ist.", lo: "hell und übersichtlich", hi: "fast alles liegt im Dunkeln" },
+    { t: "multi", q: "Wofür sollen KI-Werkzeuge eingesetzt werden?", o: ["Bilder der Klassen", "Gegner und Endgegner", "Böden, Felsen, Ruinen", "Symbole für Gegenstände", "Porträts für Gespräche", "Titelbild und Ladebilder", "Kurze Filme (Vorspann, Auftritt des Endgegners)", "Musik", "Stimmen"] },
+    { t: "single", q: "Welche Musik?", o: ["Düstere Klangflächen und Synthesizer (Akte X)", "Orchester und Folk mit orientalischem Einschlag (Fantasy, Wüste)", "Beides gemischt", "Keine Musik, nur Geräusche"] },
+    { t: "single", q: "Sollen sich Figuren richtig bewegen (laufen, zuschlagen) oder reichen Einzelbilder, die gleiten und kippen?", hint: "Laufanimationen aus KI-Bildern sind schwierig und kosten viel Zeit. Einzelbilder gehen schnell.", o: ["Einzelbilder reichen fürs Erste", "Richtige Animationen sind mir wichtig, auch wenn es länger dauert", DU] },
+    { t: "text", q: "Bilder, Filme oder Spiele, deren Aussehen du magst" },
+  ] },
+  { id: "G", title: "Rahmen", qs: [
+    { t: "multi", q: "Worauf spielst du?", o: ["Computer im Browser", "iPad", "iPhone", "Mit Gamepad"] },
+    { t: "single", q: "Welche Steuerung am Computer?", o: ["Maus halten zum Laufen wie in Diablo", "W A S D zum Laufen, Maus zum Zielen", "Beides anbieten (wie im Prototyp)"] },
+    { t: "single", q: "Für wen ist das Spiel?", pre: "Zunächst nur für mich", o: ["Zunächst nur für mich", "Später auch für Freunde", "Irgendwann veröffentlichen"] },
+    { t: "single", q: "Wie viel Zeit hast du pro Woche zum Testen und Mitentscheiden?", o: ["Unter einer Stunde", "1 bis 3 Stunden", "3 bis 6 Stunden", "Mehr"] },
+    { t: "single", q: "Was ist die erste Etappe?", o: ["Ein Fall, der sich richtig gut anfühlt: eine Klasse fertig, ein Gebiet mit Bildern, ein Endgegner", "Ein ganzer Akt mit fünf Fällen, dafür gröber", "Erst viele Systeme grob, Bilder später", DU] },
+    { t: "scale", q: "Was ist dir wichtiger?", lo: "Spielmechanik und Beute", hi: "Geschichte und Welt" },
+    { t: "text", q: "Was muss das Spiel können, damit du sagst: Das ist meins?" },
+  ] },
+  { id: "H", title: "Rückmeldung zum Prototyp", note: "Bitte erst ausfüllen, wenn du den Prototyp gespielt hast.", qs: [
+    { t: "multi", q: "Welche Klassen hast du gespielt?", o: ["Grenzermittler", "Spurenleserin", "Runenforensiker"] },
+    { t: "single", q: "Welche hat am meisten Spaß gemacht?", o: ["Grenzermittler", "Spurenleserin", "Runenforensiker", "Alle ähnlich"] },
+    { t: "scale", q: "Wie fühlen sich Laufen und Angreifen an?", lo: "zäh", hi: "gut" },
+    { t: "single", q: "Wie ist das Tempo?", o: ["Zu langsam", "Passt", "Zu hektisch"] },
+    { t: "single", q: "Wie ist die Schwierigkeit?", o: ["Zu leicht", "Passt", "Zu schwer"] },
+    { t: "scale", q: "Dunkelheit und Laternenkegel", lo: "stören", hi: "großartig" },
+    { t: "single", q: "Wie ist die Beutemenge?", o: ["Zu wenig", "Passt", "Zu viel"] },
+    { t: "text", q: "Was hat am meisten Spaß gemacht?" },
+    { t: "text", q: "Was hat genervt oder gefehlt?" },
+  ] },
+];
+SECTIONS.forEach((s) => s.qs.forEach((q, i) => { q.id = s.id + (i + 1); }));
+const QS = SECTIONS.flatMap((s) => s.qs), QBY = Object.fromEntries(QS.map((q) => [q.id, q]));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const LS = "erhebungsbogen-nebelmark-v1";
+let ans = {}, done = false, touched = {}, ref = null, saving = false, dirty = false, timer = 0, loaded = false;
+QS.forEach((q) => { if (q.pre !== undefined) ans[q.id] = Array.isArray(q.pre) ? [...q.pre] : q.pre; });
+
+function has(q) { const v = ans[q.id]; return Array.isArray(v) ? v.length > 0 : typeof v === "string" ? v.trim() !== "" : typeof v === "number"; }
+function render() {
+  $("toc").innerHTML = SECTIONS.map((s) => `<a href="#sec${s.id}"><b>${s.id}</b> ${esc(s.title)}</a>`).join("");
+  $("form").innerHTML = SECTIONS.map((s) => `<section id="sec${s.id}" aria-labelledby="h${s.id}" style="margin-bottom:18px"><h2 id="h${s.id}"><span>${s.id}</span>${esc(s.title)}</h2>${s.note ? `<p class="sec-note">${esc(s.note)}</p>` : ""}${s.qs.map(qHTML).join("")}</section>`).join("");
+  sync();
+}
+function qHTML(q) {
+  let body;
+  if (q.t === "text") body = `<textarea id="in${q.id}" data-q="${q.id}" aria-labelledby="t${q.id}"></textarea>`;
+  else if (q.t === "scale") body = `<div class="scale"><div class="scale-row" role="group" aria-labelledby="t${q.id}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="opt" id="in${q.id}_${n}" data-q="${q.id}" data-v="${n}" aria-pressed="false">${n}</button>`).join("")}</div><div class="scale-ends"><span>1 = ${esc(q.lo)}</span><span>5 = ${esc(q.hi)}</span></div></div>`;
+  else body = `<div class="opts${q.o.some((o) => o.length > 34) ? " col" : ""}" role="group" aria-labelledby="t${q.id}">${q.o.map((o, i) => `<button type="button" class="opt" id="in${q.id}_${i}" data-q="${q.id}" data-i="${i}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`;
+  return `<div class="q"><div class="q-top"><span class="q-id">${q.id}</span><span class="q-text" id="t${q.id}">${esc(q.q)}${q.t === "multi" ? " (mehrere möglich)" : ""}</span></div>${q.pre !== undefined ? `<p class="q-pre" id="p${q.id}">AUS DEM CHAT ÜBERNOMMEN, ÄNDERBAR</p>` : ""}${q.hint ? `<p class="q-hint">${esc(q.hint)}</p>` : ""}${body}</div>`;
+}
+// Zeigt den Stand der Antworten in den Knöpfen und Feldern
+function sync() {
+  for (const q of QS) {
+    const v = ans[q.id];
+    if (q.t === "text") { const el = $("in" + q.id); if (el && document.activeElement !== el) el.value = typeof v === "string" ? v : ""; }
+    else if (q.t === "scale") [1, 2, 3, 4, 5].forEach((n) => $(`in${q.id}_${n}`).setAttribute("aria-pressed", String(v === n)));
+    else q.o.forEach((o, i) => $(`in${q.id}_${i}`).setAttribute("aria-pressed", String(q.t === "multi" ? Array.isArray(v) && v.includes(o) : v === o)));
+    const p = $("p" + q.id); if (p) p.hidden = !!touched[q.id];
+  }
+  $("countN").textContent = String(QS.filter(has).length); $("countAll").textContent = String(QS.length);
+  $("doneNote").hidden = !done; $("doneBtn").textContent = done ? "Abgeschlossen ✓" : "Bogen abschließen";
+}
+function change(id, v) { ans[id] = v; touched[id] = true; sync(); queue(); }
+$("form").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-q]"); if (!b) return; const q = QBY[b.dataset.q];
+  if (q.t === "scale") { const n = +b.dataset.v; change(q.id, ans[q.id] === n ? undefined : n); }
+  else if (q.t === "single") { const o = q.o[+b.dataset.i]; change(q.id, ans[q.id] === o ? undefined : o); }
+  else { const o = q.o[+b.dataset.i], cur = Array.isArray(ans[q.id]) ? ans[q.id] : []; change(q.id, cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]); }
+});
+$("form").addEventListener("input", (e) => { const t = e.target.closest("textarea[data-q]"); if (t) change(t.dataset.q, t.value.slice(0, 4000)); });
+
+// ---------- Speichern: im Konto (für Claude lesbar) und zusätzlich im Browser ----------
+const state = (txt, ok) => { $("state").textContent = txt; $("state").classList.toggle("ok", !!ok); };
+function payload() { const a = {}; for (const q of QS) if (has(q)) a[q.id] = ans[q.id]; return { v: 1, done, answers: a, touched: Object.keys(touched), updatedAt: Date.now() }; }
+function adopt(d) {
+  if (!d || typeof d !== "object" || !d.answers || typeof d.answers !== "object") return;
+  const next = {};
+  for (const q of QS) {
+    const v = d.answers[q.id]; if (v === undefined) continue;
+    if (q.t === "text" && typeof v === "string") next[q.id] = v;
+    else if (q.t === "scale" && [1, 2, 3, 4, 5].includes(v)) next[q.id] = v;
+    else if (q.t === "single" && q.o.includes(v)) next[q.id] = v;
+    else if (q.t === "multi" && Array.isArray(v)) next[q.id] = v.filter((x) => q.o.includes(x));
+  }
+  ans = next; done = d.done === true; touched = {}; (Array.isArray(d.touched) ? d.touched : Object.keys(next)).forEach((k) => { if (QBY[k]) touched[k] = true; });
+}
+function queue() { dirty = true; try { localStorage.setItem(LS, JSON.stringify(payload())); } catch (e) { /* ohne Browserspeicher weiter */ } clearTimeout(timer); timer = setTimeout(flush, 900); if (ref) state("Wird gespeichert …"); }
+async function flush() {
+  if (!ref || saving || !dirty || !loaded) return;
+  saving = true; dirty = false;
+  try { await ref.set(payload()); state("Gespeichert. Claude kann die Antworten lesen.", true); }
+  catch (e) { dirty = true; state("Speichern im Konto ging gerade nicht. Deine Antworten liegen im Browser. Nutze zur Sicherheit „Antworten kopieren“."); }
+  finally { saving = false; if (dirty && ref) timer = setTimeout(flush, 2500); }
+}
+async function init() {
+  let local = null; try { local = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { local = null; }
+  if (local) { adopt(local); sync(); }
+  try {
+    if (!window.claude || typeof window.claude.use !== "function") throw new Error("kein Konto");
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    const uid = db && user ? await user.id() : null; if (!uid) throw new Error("nicht angemeldet");
+    ref = db.doc("data/users/" + uid + "/interview");
+    const snap = await ref.get(), remote = snap.exists ? snap.data() : null;
+    if (remote && (!local || (remote.updatedAt || 0) >= (local.updatedAt || 0)) && !dirty) { adopt(remote); sync(); }
+    loaded = true;
+    if (dirty || (local && (!remote || (local.updatedAt || 0) > (remote.updatedAt || 0)))) { dirty = true; flush(); } else state(remote ? "Gespeichert. Claude kann die Antworten lesen." : "Bereit. Antworten speichern sich von selbst.", true);
+  } catch (e) { ref = null; state("Hier wird nur im Browser gespeichert. Nutze am Ende „Antworten kopieren“ und füge den Text im Chat ein."); }
+}
+function asText() {
+  const L = ["Erhebungsbogen Nebelmark" + (done ? " (abgeschlossen)" : " (noch offen)")];
+  for (const s of SECTIONS) { L.push("", `== ${s.id} ${s.title} ==`); for (const q of s.qs) if (has(q)) { const v = ans[q.id]; L.push(`${q.id} ${q.q}`, "   → " + (Array.isArray(v) ? v.join(" | ") : q.t === "scale" ? `${v} von 5 (1 = ${q.lo}, 5 = ${q.hi})` : String(v).trim()) + (q.pre !== undefined && !touched[q.id] ? " [Vorauswahl, nicht geändert]" : "")); } }
+  return L.join("\n");
+}
+$("copyBtn").addEventListener("click", async () => {
+  const txt = asText();
+  try { await navigator.clipboard.writeText(txt); state("Kopiert. Jetzt im Chat einfügen.", true); }
+  catch (e) { $("copyWrap").hidden = false; $("copyBox").value = txt; $("copyBox").focus(); $("copyBox").select(); state("Der Text steht unten und ist markiert. Jetzt kopieren."); }
+});
+$("doneBtn").addEventListener("click", () => { done = !done; sync(); queue(); if (done) $("doneNote").scrollIntoView({ behavior: "smooth", block: "center" }); });
+addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { clearTimeout(timer); flush(); } });
+render(); init();
+})();
+</script>
