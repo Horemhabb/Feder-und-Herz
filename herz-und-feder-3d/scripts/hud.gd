@@ -20,6 +20,10 @@ var f_zier: FontFile        # Cinzel: Titel, Stempel, Knöpfe
 var f_text: FontFile        # EB Garamond: Fließtext
 var dialog_opts: Array = [] # Antworten im Gesprächsfenster (Tasten 1 bis 9)
 var herz_alt := 999.0
+var ann_queue: Array = []   # Ankündigungen, die noch anstehen
+var ann_box: Control
+var punkt_btn: Button       # „Fähigkeitenpunkt frei“ über der Leiste
+var punkt_tw: Tween
 var skill_ui := {}
 var boss_box: Control
 var bar_boss: ProgressBar
@@ -176,7 +180,7 @@ func _ready() -> void:
 	root.add_child(toasts)
 	l_toast = _label("", 14, PARCH)
 	l_toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	l_toast.position = Vector2(-300, -196)
+	l_toast.position = Vector2(-300, -286)
 	l_toast.custom_minimum_size = Vector2(600, 0)
 	l_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l_toast.modulate.a = 0.0
@@ -184,14 +188,14 @@ func _ready() -> void:
 	# unten: Lebenskugel, Fähigkeitenleiste mit Herzwaage und Erfahrung, Kraftkugel
 	var bottom := HBoxContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	bottom.position = Vector2(-400, -142)
-	bottom.custom_minimum_size = Vector2(800, 134)
+	bottom.position = Vector2(-460, -188)
+	bottom.custom_minimum_size = Vector2(920, 180)
 	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
 	bottom.add_theme_constant_override("separation", 4)
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bottom)
 	orb_hp = Kugel.new()
-	orb_hp.setup(Color("c22a22"), "Leben", f_zier, 126.0)
+	orb_hp.setup(Color("c22a22"), "Leben", f_zier, 140.0)
 	orb_hp.size_flags_vertical = Control.SIZE_SHRINK_END
 	bottom.add_child(orb_hp)
 	var mid := VBoxContainer.new()
@@ -233,9 +237,28 @@ func _ready() -> void:
 	bar_xp = _bar(GOLD, 5)
 	mid.add_child(bar_xp)
 	orb_en = Kugel.new()
-	orb_en.setup(Spiel.CLS[Spiel.cls].rc, Spiel.CLS[Spiel.cls].res, f_zier, 126.0)
+	orb_en.setup(Spiel.CLS[Spiel.cls].rc, Spiel.CLS[Spiel.cls].res, f_zier, 140.0)
 	orb_en.size_flags_vertical = Control.SIZE_SHRINK_END
 	bottom.add_child(orb_en)
+	# freier Fähigkeitenpunkt: goldener Knopf mitten über der Leiste, pulsiert, öffnet den Baum
+	punkt_btn = Button.new()
+	punkt_btn.focus_mode = Control.FOCUS_NONE
+	punkt_btn.add_theme_font_override("font", f_zier)
+	punkt_btn.add_theme_font_size_override("font_size", 15)
+	punkt_btn.add_theme_stylebox_override("normal", _flat(GOLD, 8, Color("fff0c0"), 2))
+	punkt_btn.add_theme_stylebox_override("hover", _flat(GOLD.lightened(0.15), 8, Color("fff0c0"), 2))
+	punkt_btn.add_theme_stylebox_override("pressed", _flat(GOLD.darkened(0.15), 8, Color("fff0c0"), 2))
+	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
+		punkt_btn.add_theme_color_override(c, Color("14110c"))
+	punkt_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	punkt_btn.position = Vector2(-170, -244)
+	punkt_btn.custom_minimum_size = Vector2(340, 40)
+	punkt_btn.visible = false
+	punkt_btn.pressed.connect(func(): game.toggle_tree())
+	root.add_child(punkt_btn)
+	punkt_tw = create_tween().set_loops()
+	punkt_tw.tween_property(punkt_btn, "modulate", Color(1.25, 1.2, 1.0, 1.0), 0.7)
+	punkt_tw.tween_property(punkt_btn, "modulate", Color(0.85, 0.85, 0.85, 1.0), 0.7)
 
 # Herzwaage: links die Feder der Maat, rechts das Herz. Ein leichtes Herz steigt, ein schweres sinkt.
 func _draw_waage() -> void:
@@ -323,9 +346,12 @@ func _bar(col: Color, h: int) -> ProgressBar:
 func _skill_box(id: String) -> Control:
 	var S: Dictionary = game.hero.SK[id]
 	var slot: int = game.hero.ORDER.find(id)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var p := Panel.new()
-	p.custom_minimum_size = Vector2(66, 66)
-	p.add_theme_stylebox_override("panel", _flat(Color(0.12, 0.105, 0.1, 1.0), 4, Color("5c4a2e"), 1))
+	p.custom_minimum_size = Vector2(84, 84)
+	p.add_theme_stylebox_override("panel", _flat(Color(0.115, 0.1, 0.095, 1.0), 5, Color("7a5a26"), 2))
 	p.tooltip_text = "%s: %s" % [S.name, S.txt]
 	p.gui_input.connect(func(ev):
 		# Maus oder Finger. Ein zweiter Finger kommt nur als Berührung an (der erste hält die Figur in Bewegung),
@@ -338,34 +364,103 @@ func _skill_box(id: String) -> Control:
 			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 8.8
 			game.hero.auto_aim = true
 			game.hero.cast(id))
+	box.add_child(p)
+	# das Zeichen füllt den Platz: goldene Hieroglyphe auf der Steintafel der Klasse (scripts/glyphen.gd)
 	var ic := TextureRect.new()
-	ic.texture = Klassen.icon(id, 64)
+	ic.texture = Klassen.icon(id, 160)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.position = Vector2(14, 11)
-	ic.size = Vector2(38, 38)
+	ic.position = Vector2(2, 2)
+	ic.size = Vector2(80, 80)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(ic)
 	var cdr := ColorRect.new()
 	cdr.color = Color(0, 0, 0, 0.66)
 	cdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cdr.position = Vector2(1, 1)
-	cdr.size = Vector2(64, 64)
+	cdr.position = Vector2(2, 2)
+	cdr.size = Vector2(80, 80)
 	cdr.scale.y = 0.0
 	p.add_child(cdr)
-	var k := _label(Klassen.keys()[slot], 12, GOLD)
-	k.position = Vector2(5, 1)
-	k.add_theme_constant_override("outline_size", 4)
+	var k := _label(Klassen.keys()[slot], 13, PARCH)
+	k.position = Vector2(8, 4)
+	k.add_theme_constant_override("outline_size", 5)
 	k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	p.add_child(k)
-	var c := _label(str(int(S.cost)) if S.cost > 0 else "", 11, DIM)
-	c.position = Vector2(0, 46)
-	c.size = Vector2(62, 16)
+	var c := _label(str(int(S.cost)) if S.cost > 0 else "", 12, PARCH)
+	c.position = Vector2(0, 60)
+	c.size = Vector2(75, 18)
 	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	c.add_theme_constant_override("outline_size", 4)
+	c.add_theme_constant_override("outline_size", 5)
 	c.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	p.add_child(c)
-	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k}
-	return p
+	# noch nicht gelernt: Hinweis mit der Stufe
+	var lock := _label("", 12, GOLD)
+	lock.position = Vector2(0, 30)
+	lock.size = Vector2(84, 24)
+	lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lock.add_theme_constant_override("outline_size", 6)
+	lock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	p.add_child(lock)
+	var nm := _label(S.name, 10, DIM)
+	nm.custom_minimum_size = Vector2(84, 30)
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.add_theme_constant_override("line_spacing", -3)
+	nm.add_theme_constant_override("outline_size", 4)
+	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	box.add_child(nm)
+	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k, "icon": ic, "lock": lock, "name": nm, "need": Klassen.unlock_lvl(Spiel.cls, id)}
+	return box
+
+# Ankündigung in der Bildmitte oben: neue Fähigkeit, Stufenaufstieg, freier Punkt. Mehrere stehen nacheinander an.
+func announce(icon: Texture2D, stamp: String, title: String, text: String, secs := 6.0) -> void:
+	ann_queue.append([icon, stamp, title, text, secs])
+	if ann_box == null:
+		_announce_next()
+
+func _announce_next() -> void:
+	if ann_queue.is_empty():
+		ann_box = null
+		return
+	var a: Array = ann_queue.pop_front()
+	var p := PanelContainer.new()
+	var st := _flat(Color(0.07, 0.06, 0.06, 0.94), 8, Color("c9a04a"), 2)
+	st.set_content_margin_all(14)
+	st.shadow_color = Color(0, 0, 0, 0.6)
+	st.shadow_size = 10
+	p.add_theme_stylebox_override("panel", st)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	p.position = Vector2(-290, 262)   # unter dem Banner der Stunde, mitten im Blick
+	p.custom_minimum_size = Vector2(580, 0)
+	p.modulate.a = 0.0
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	if a[0]:
+		var ic := TextureRect.new()
+		ic.texture = a[0]
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.custom_minimum_size = Vector2(88, 88)
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(ic)
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	v.add_child(_label(a[1], 13, GOLD))
+	v.add_child(_label(a[2], 26, PARCH))
+	var t := _para(a[3], 14, PARCH)
+	v.add_child(t)
+	root.add_child(p)
+	ann_box = p
+	var tw := create_tween()
+	tw.tween_property(p, "modulate:a", 1.0, 0.35)
+	tw.tween_interval(a[4])
+	tw.tween_property(p, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(func():
+		p.queue_free()
+		_announce_next())
 
 func _process(_d: float) -> void:
 	if l_quer:
@@ -393,6 +488,10 @@ func refresh() -> void:
 		tasche_btn.add_theme_color_override("font_color", GOLD if Spiel.neu > 0 else PARCH)
 	if tree_btn:
 		tree_btn.add_theme_color_override("font_color", GOLD if Spiel.tree_points() > 0 else PARCH)
+	var pts: int = Spiel.tree_points()
+	punkt_btn.visible = pts > 0 and overlay == null
+	if pts > 0:
+		punkt_btn.text = ("%d Fähigkeitenpunkt%s frei" % [pts, "" if pts == 1 else "e"]) + ("" if game.touch else "  ·  Taste K")
 	for id in h.ORDER:
 		var S: Dictionary = h.SK[id]
 		var u: Dictionary = skill_ui[id]
@@ -400,7 +499,14 @@ func refresh() -> void:
 		if id != "potion" and S.cost > 0:
 			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
-		u.panel.modulate = Color(1, 1, 1, 0.45) if poor else Color.WHITE
+		var locked: bool = u.need > Spiel.lvl
+		u.panel.modulate = Color(1, 1, 1, 0.45) if poor and not locked else Color.WHITE
+		u.icon.modulate = Color(0.25, 0.25, 0.28, 0.7) if locked else Color.WHITE
+		u.lock.text = "AB STUFE %d" % u.need if locked else ""
+		u.name.modulate.a = 0.45 if locked else 1.0
+		if locked:
+			u.sub.text = ""
+			continue
 		if id == "potion":
 			u.sub.text = "×%d" % h.pots
 	if boss_box.visible:

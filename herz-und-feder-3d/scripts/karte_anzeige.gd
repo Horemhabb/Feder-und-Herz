@@ -126,6 +126,11 @@ func _draw() -> void:
 					draw_colored_polygon(PackedVector2Array([q + Vector2(0, -4), q + Vector2(4, 0), q + Vector2(0, 4), q + Vector2(-4, 0)]), Color(1.0, 0.85, 0.4))
 			"figur":
 				draw_circle(q, 2.5, Color(0.56, 0.89, 0.88))
+			"helfer":
+				draw_circle(q, 2.5, Color(0.8, 1.0, 0.6))
+			"such":
+				if not st.done and game.orte.helfer_talked:
+					draw_circle(q, 1.8, Color(0.95, 0.95, 0.85))
 	if game.gate:
 		draw_arc(_to_px(game.gate.global_position), 5.0, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5)
 	if game.hero:

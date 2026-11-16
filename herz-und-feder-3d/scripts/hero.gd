@@ -200,6 +200,8 @@ func _physics_process(delta: float) -> void:
 func can(id: String) -> bool:
 	if dead or (busy > 0.0 and not busy_basic) or dash_t > 0.0 or stun > 0.0 or not cd.has(id) or cd[id] > 0.0:
 		return false
+	if Klassen.unlock_lvl(cls, id) > Spiel.lvl:
+		return false   # noch nicht gelernt
 	if id == "potion":
 		return pots > 0 and hp < max_hp
 	if id == "hetz" and game.hetz_target(aim) == null:

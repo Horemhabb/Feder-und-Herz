@@ -107,6 +107,14 @@ static func order(cls: String) -> Array:
 	var C: Dictionary = CLS[cls]
 	return C.sk + [C.rmb, "potion"]
 
+# Ab welcher Stufe eine Fähigkeit zur Verfügung steht (Reihenfolge der Leiste: Tasten 1 bis 4, rechte Maustaste).
+# Die Figur beginnt mit zwei Fähigkeiten und lernt die übrigen in den ersten Stunden dazu.
+const UNLOCK := [1, 2, 3, 5, 1]
+
+static func unlock_lvl(cls: String, id: String) -> int:
+	var i: int = order(cls).find(id)
+	return UNLOCK[i] if i >= 0 and i < UNLOCK.size() else 1
+
 static func keys() -> Array:
 	return ["1", "2", "3", "4", "RM", "Q"]
 
@@ -118,7 +126,7 @@ static func icon(id: String, px := 64) -> Texture2D:
 	if _ic_cache.has(k):
 		return _ic_cache[k]
 	var img := Image.new()
-	var svg := '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56">%s</svg>' % SK[id].ic
+	var svg := Glyphen.svg(id, Glyphen.cls_of(id))   # goldene Hieroglyphe auf der Steintafel der Klasse
 	img.load_svg_from_string(svg, px / 56.0)
 	var t := ImageTexture.create_from_image(img)
 	_ic_cache[k] = t

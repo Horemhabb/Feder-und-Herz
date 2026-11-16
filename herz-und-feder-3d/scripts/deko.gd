@@ -419,3 +419,94 @@ static func relikt(g: Node, pos: Vector3) -> Dictionary:
 	n.add_child(l)
 	l.position = Vector3(0, 1.8, 0)
 	return {"n": n, "item": it, "light": l}
+
+# ---------------------------------------------------------------- Verlorenes der Leute: Tiere, Säcke, Kisten, Krüge
+static func _ball(parent: Node3D, r: Vector3, at: Vector3, m: StandardMaterial3D) -> void:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 10
+	sm.rings = 5
+	mi.mesh = sm
+	mi.material_override = m
+	mi.scale = r * 2.0
+	parent.add_child(mi)
+	mi.position = at
+
+static func _legs(parent: Node3D, w: float, l: float, h: float, m: StandardMaterial3D) -> void:
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			var mi := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.05
+			cm.bottom_radius = 0.04
+			cm.height = h
+			cm.radial_segments = 6
+			cm.rings = 1
+			mi.mesh = cm
+			mi.material_override = m
+			parent.add_child(mi)
+			mi.position = Vector3(sx * w, h / 2, sz * l)
+
+static func such(g: Node, pos: Vector3, ding: String) -> Dictionary:
+	var n := Node3D.new()
+	g.add_child(n)
+	n.global_position = pos
+	n.rotation.y = randf() * TAU
+	var tier := true
+	match ding:
+		"schaf", "ziege", "esel":
+			var wolle := mat("wolle", Color(0.92, 0.9, 0.84), 1.0) if ding == "schaf" else (mat("ziege", Color(0.5, 0.36, 0.24), 0.9) if ding == "ziege" else mat("esel", Color(0.5, 0.5, 0.52), 0.9))
+			var dunkel := mat("tierkopf", Color(0.14, 0.12, 0.11), 0.8)
+			var gr := 1.3 if ding == "esel" else 1.0
+			_ball(n, Vector3(0.36, 0.3, 0.52) * gr, Vector3(0, 0.62 * gr, 0), wolle)
+			_ball(n, Vector3(0.16, 0.17, 0.22) * gr, Vector3(0, 0.82 * gr, 0.56 * gr), dunkel if ding == "schaf" else wolle)
+			for sx in [-1.0, 1.0]:
+				_ball(n, Vector3(0.04, 0.12 if ding == "esel" else 0.05, 0.07) * gr, Vector3(sx * 0.13, (1.02 if ding == "esel" else 0.9) * gr, 0.5 * gr), dunkel)
+			_legs(n, 0.2 * gr, 0.3 * gr, 0.4 * gr, dunkel)
+		"katze":
+			var fell := mat("katze", Color(0.78, 0.6, 0.36), 0.9)
+			_ball(n, Vector3(0.14, 0.16, 0.2), Vector3(0, 0.2, 0), fell)
+			_ball(n, Vector3(0.11, 0.11, 0.11), Vector3(0, 0.42, 0.14), fell)
+			for sx in [-1.0, 1.0]:
+				_ball(n, Vector3(0.035, 0.07, 0.03), Vector3(sx * 0.07, 0.54, 0.14), fell)
+			_ball(n, Vector3(0.03, 0.03, 0.18), Vector3(0, 0.16, -0.3), fell)
+		"sack", "korb":
+			tier = false
+			var stoff := mat("sack", Color(0.62, 0.5, 0.32), 1.0) if ding == "sack" else mat("korb", Color(0.55, 0.4, 0.2), 1.0)
+			_ball(n, Vector3(0.36, 0.3, 0.3), Vector3(0, 0.3, 0), stoff)
+			_ball(n, Vector3(0.14, 0.12, 0.14), Vector3(0, 0.62, 0), stoff)
+		"kiste":
+			tier = false
+			var s := _begin()
+			box(s, Vector3(0.8, 0.4, 0.45), Vector3.ZERO)
+			box(s, Vector3(0.5, 0.06, 0.06), Vector3(0, 0.52, 0))
+			for sx in [-0.22, 0.22]:
+				box(s, Vector3(0.05, 0.14, 0.05), Vector3(sx, 0.4, 0))
+			var mi := MeshInstance3D.new()
+			mi.mesh = _commit([[s, mat("holz", Color(0.45, 0.3, 0.16), 0.9)]])
+			n.add_child(mi)
+		"krug":
+			tier = false
+			var ton := mat("ton", Color(0.72, 0.42, 0.26), 0.8)
+			_ball(n, Vector3(0.28, 0.38, 0.28), Vector3(0, 0.4, 0), ton)
+			var hals := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.13
+			cm.bottom_radius = 0.1
+			cm.height = 0.3
+			cm.radial_segments = 8
+			cm.rings = 1
+			hals.mesh = cm
+			hals.material_override = ton
+			n.add_child(hals)
+			hals.position = Vector3(0, 0.86, 0)
+	# ein leiser Schein, damit man es im Dunkeln findet
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.95, 0.75)
+	l.light_energy = 0.9
+	l.omni_range = 3.5
+	n.add_child(l)
+	l.position = Vector3(0, 1.3, 0)
+	return {"n": n, "tier": tier, "light": l}

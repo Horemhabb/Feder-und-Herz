@@ -20,7 +20,7 @@ var pool3: Array = []
 var loops := {}
 var voice: AudioStreamPlayer
 var muted := false
-var mus: Array = []        # zwei Spieler für die Musik, damit ein Stück ins nächste überblendet
+var mus: Array = []        # zwei Spieler für die Musik: [0] spielt, [1] ist frei oder blendet aus
 var mus_name := ""
 var mus_list: Array = []   # Stücke der Stunde: wechseln sich alle anderthalb Minuten ab, damit sich 30 Sekunden nicht endlos wiederholen
 var mus_i := 0
@@ -118,44 +118,81 @@ func say(name: String) -> void:
 	voice.volume_db = VOL.get(name, -2.0)
 	voice.play()
 
-# Musik der Stunde: mehrere Stücke im Wechsel
+# ---------------------------------------------------------------- Musik
+# Die Musik liegt hinter allem anderen: gut 7 dB unter den Geräuschen, und sobald die Erzählstimme spricht, weicht sie
+# weitere 9 dB zurück. Sie spielt auch nicht pausenlos: Nach einem Stück bleibt es eine Weile still (nur Wind und Raum),
+# dann setzt das nächste ein. Im Hüterkampf läuft sie durch.
+const MUS_TRIM := -7.0     # alle Stücke gemeinsam leiser
+const MUS_DUCK := -9.0     # zusätzlich, solange die Stimme spricht
+const MUS_PLAY := 75.0     # so lange spielt ein Stück der Stunde
+const MUS_REST := 40.0     # so lange ist danach Ruhe
+
+var mus_gain := [0.0, 0.0]       # Blende je Spieler, 0 bis 1
+var mus_want := [0.0, 0.0]
+var mus_rate := [0.5, 0.5]       # Blendgeschwindigkeit je Sekunde
+var mus_key := ["", ""]          # Name des Stücks je Spieler (für die Lautstärke)
+var mus_duck := 0.0
+var mus_rest := false
+
 func music_set(names: Array, fade := 2.0) -> void:
 	mus_list = names.filter(func(n): return _stream(n) != null)
 	mus_i = 0
 	mus_t = 0.0
+	mus_rest = false
 	music(mus_list[0] if not mus_list.is_empty() else "", fade)
 
-func _process(delta: float) -> void:
-	if mus_list.size() < 2 or not mus_list.has(mus_name):
-		return
-	mus_t += delta
-	if mus_t > 90.0:
-		mus_t = 0.0
-		mus_i = (mus_i + 1) % mus_list.size()
-		music(mus_list[mus_i], 4.0)
-
-# Musik wechseln (Titel, Wüste, Duat, Kampf): das neue Stück blendet in 2 s ein, das alte aus. Fehlt die Datei, bleibt es still.
+# Musik wechseln: das neue Stück blendet ein, das alte aus. Leerer Name: nur ausblenden. Fehlt die Datei, bleibt es still.
 func music(name: String, fade := 2.0) -> void:
 	if name == mus_name:
 		return
 	mus_name = name
 	var s := _stream(name) if name != "" else null
-	var old: AudioStreamPlayer = mus[0]
-	var neu: AudioStreamPlayer = mus[1]
-	mus.reverse()
-	if old.playing:
-		var tw := create_tween()
-		tw.tween_property(old, "volume_db", -60.0, fade)
-		tw.tween_callback(old.stop)
+	# Spieler 0 ist der laufende, Spieler 1 der freie; danach tauschen sie die Rollen
+	mus_want[0] = 0.0
+	mus_rate[0] = 1.0 / maxf(0.1, fade)
 	if s == null:
 		return
+	mus.reverse()
+	mus_gain.reverse()
+	mus_want.reverse()
+	mus_rate.reverse()
+	mus_key.reverse()
 	if s is AudioStreamOggVorbis:
 		s.loop = true
-	neu.stream = s
-	neu.volume_db = -50.0
-	neu.play()
-	var tw2 := create_tween()
-	tw2.tween_property(neu, "volume_db", VOL.get(name, -12.0), fade)
+	var p: AudioStreamPlayer = mus[0]
+	p.stream = s
+	p.volume_db = -60.0
+	p.play()
+	mus_gain[0] = 0.0
+	mus_want[0] = 1.0
+	mus_rate[0] = 1.0 / maxf(0.1, fade)
+	mus_key[0] = name
+
+func _process(delta: float) -> void:
+	# Blenden und Zurückweichen vor der Stimme
+	mus_duck = move_toward(mus_duck, MUS_DUCK if voice.playing else 0.0, delta * 18.0)
+	for i in 2:
+		var p: AudioStreamPlayer = mus[i]
+		if not p.playing:
+			continue
+		mus_gain[i] = move_toward(mus_gain[i], mus_want[i], delta * mus_rate[i])
+		if mus_gain[i] <= 0.0 and mus_want[i] <= 0.0:
+			p.stop()
+			continue
+		p.volume_db = VOL.get(mus_key[i], -12.0) + MUS_TRIM + mus_duck + linear_to_db(maxf(0.001, mus_gain[i]))
+	# Wechsel der Stücke einer Stunde mit Pausen dazwischen
+	if mus_list.is_empty() or (mus_name != "" and not mus_list.has(mus_name)):
+		return
+	mus_t += delta
+	if not mus_rest and mus_t > MUS_PLAY:
+		mus_t = 0.0
+		mus_rest = true
+		music("", 6.0)
+	elif mus_rest and mus_t > MUS_REST:
+		mus_t = 0.0
+		mus_rest = false
+		mus_i = (mus_i + 1) % mus_list.size()
+		music(mus_list[mus_i], 6.0)
 
 func hush() -> void:
 	voice.stop()

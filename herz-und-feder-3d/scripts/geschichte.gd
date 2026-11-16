@@ -150,6 +150,64 @@ const H := [
 	},
 ]
 
+# ---------------------------------------------------------------- Leute und ihre Sorgen
+# Neben der großen Geschichte gibt es in jeder Stunde jemanden mit einem ganz gewöhnlichen Kummer: Der Hirte sucht seine
+# Schafe, die Bäuerin ihre Saatsäcke, das Kind die Kätzchen. Drei Dinge liegen oder laufen irgendwo in der Stunde herum.
+# ding: schaf, esel, ziege (Tiere) · sack, korb (Säcke) · kiste (Werkzeug) · krug (Wasser) · katze
+const LEUTE := [
+	{"wer": "Djau", "titel": "Schafhirte aus Sandtor", "model": "Barbarian", "ding": "schaf", "was": "Schafe", "eins": "Ein Schaf",
+		"gruss": "Du da, mit der Lampe! Hast du meine Schafe gesehen? Drei Stück. Die Lichter am Himmel haben sie erschreckt, und weg waren sie. Ohne die Schafe brauche ich gar nicht erst heimzukommen.",
+		"fund": "Es sieht dich vorwurfsvoll an und trottet dann von selbst zum Hirten zurück.",
+		"dank": "Alle drei, auch die Dicke! Ich habe nicht viel, aber das hier habe ich im Sand gefunden. Nimm es, du kannst es besser brauchen."},
+	{"wer": "Ipi", "titel": "Bäuerin", "model": "Rogue", "ding": "sack", "was": "Saatsäcke", "eins": "Ein Sack Gerste",
+		"gruss": "Die Biester haben mir die Saat verschleppt. Drei Säcke Gerste. Wenn die weg sind, gibt es nächstes Jahr kein Brot, ganz gleich in welcher Welt.",
+		"fund": "Schwer, aber heil. Du stellst ihn so hin, dass Ipi ihn vom Weg aus sieht.",
+		"dank": "Das reicht für ein ganzes Feld. Hier, das lag zwischen den Halmen. Ich kann damit nichts anfangen."},
+	{"wer": "Hori", "titel": "Steinmetz", "model": "Barbarian", "ding": "kiste", "was": "Werkzeugkisten", "eins": "Eine Werkzeugkiste",
+		"gruss": "Ich habe mein Werkzeug fallen lassen, als die Toten aufstanden. Hättest du auch. Meißel, Schlegel, Lot: drei Kisten. Ohne Werkzeug bin ich nur ein Mann mit starken Armen.",
+		"fund": "Kupfermeißel, sauber geschliffen. Wer so mit Werkzeug umgeht, will es wiederhaben.",
+		"dank": "Nichts fehlt. Sogar das Lot hängt noch gerade. Das hier habe ich aus einer Wand gebrochen, bevor ich wusste, wem sie gehört. Nimm du es."},
+	{"wer": "Tia", "titel": "Wasserträgerin", "model": "Rogue", "ding": "krug", "was": "Wasserkrüge", "eins": "Ein Wasserkrug",
+		"gruss": "Hier gibt es kein Wasser, also habe ich meines mitgebracht. Drei Krüge. Dann kam so ein graues Ding auf mich zu, ich bin gerannt, und jetzt stehen die Krüge irgendwo da drin.",
+		"fund": "Noch voll, noch kühl. Du trinkst einen Schluck. Das wird sie dir verzeihen.",
+		"dank": "Du hast daraus getrunken, das sehe ich. Macht nichts, dafür ist es da. Hier, das habe ich unterwegs aufgelesen."},
+	{"wer": "Nefru", "titel": "ein Kind", "model": "Mage", "klein": true, "ding": "katze", "was": "Kätzchen", "eins": "Ein Kätzchen",
+		"gruss": "Meine Katze hat Junge gekriegt, und die sind weggelaufen. Drei. Die Katze sucht auch schon, aber sie kann nicht so gut zählen.",
+		"fund": "Es faucht dich an, so gut es kann, und läuft dann mit steilem Schwanz nach Hause.",
+		"dank": "Eins, zwei, drei! Die Katze sagt danke. Sie hat dir was mitgebracht. Ich glaube, es war mal eine Maus, aber das hier glänzt mehr."},
+	{"wer": "Chui", "titel": "Eseltreiber", "model": "Barbarian", "ding": "esel", "was": "Esel", "eins": "Ein Esel",
+		"gruss": "Meine Esel sind klüger als ich. Als es hier unheimlich wurde, sind sie weggelaufen. Ich bin geblieben. Drei Stück, graue.",
+		"fund": "Er lässt sich lange bitten. Dann geht er, als wäre es seine eigene Idee gewesen.",
+		"dank": "Da sind sie ja, die Schlauköpfe. Hier, das hing an einem Sattel. Meins ist es nicht."},
+	{"wer": "Meni", "titel": "Fischer", "model": "Rogue", "ding": "korb", "was": "Reusen", "eins": "Eine Reuse",
+		"gruss": "Seit das Wasser weg ist, fange ich nichts mehr. Aber die Reusen will ich trotzdem zurück. Drei habe ich ausgelegt. Man hofft ja.",
+		"fund": "Leer, natürlich. Aber ordentlich geflochten.",
+		"dank": "Wenn das Wasser zurückkommt, bin ich bereit. In einer war das hier. Kein Fisch, aber immerhin."},
+	{"wer": "Baket", "titel": "Bäckerin", "model": "Rogue", "ding": "korb", "was": "Brotkörbe", "eins": "Ein Brotkorb",
+		"gruss": "Ich wollte den Leuten in den Grüften Brot bringen. Dann hat etwas gebrüllt, und ich habe die Körbe fallen lassen. Drei Körbe. Das Brot ist noch gut, wenn du dich beeilst.",
+		"fund": "Es riecht nach Kümmel. Du nimmst nichts davon. Fast nichts.",
+		"dank": "Es fehlt eine Ecke. Ich sage nichts. Hier, das hat mir jemand statt Bezahlung gegeben."},
+	{"wer": "Senbi", "titel": "Zimmermann der Barke", "model": "Barbarian", "ding": "kiste", "was": "Werkzeugkisten", "eins": "Eine Werkzeugkiste",
+		"gruss": "Die Ruderbänke knarren, und ich komme nicht an mein Werkzeug. Drei Kisten, irgendwo in den Gängen. Zwölf Ruderer auf losen Bänken, das geht nicht gut.",
+		"fund": "Dechsel, Bohrer, Holznägel. Alles da.",
+		"dank": "Jetzt hält die Bank auch den Dicksten. Das hier lag unter einer Planke. Seit wie lange, will ich gar nicht wissen."},
+	{"wer": "Iti", "titel": "Wäscherin", "model": "Rogue", "ding": "korb", "was": "Wäschekörbe", "eins": "Ein Wäschekorb",
+		"gruss": "Ich wasche seit vierzig Jahren am Ufer, und noch nie ist mir die Wäsche weggeschwommen. Heute gleich drei Körbe. Leinen von guten Leuten!",
+		"fund": "Nass, aber sauber. Du wringst nichts aus. Das macht sie lieber selbst.",
+		"dank": "Kein Hemd fehlt. Das hier war in einer Tasche eingenäht. Den Besitzer gibt es nicht mehr, glaube ich."},
+	{"wer": "Pepi", "titel": "Ziegenjunge", "model": "Mage", "klein": true, "ding": "ziege", "was": "Ziegen", "eins": "Eine Ziege",
+		"gruss": "Die Ziegen mögen das Feuer nicht. Ich auch nicht. Drei sind mir ausgebüxt. Mein Vater zählt jeden Abend nach.",
+		"fund": "Sie versucht, an deinem Gurt zu knabbern, und springt dann davon, Richtung Junge.",
+		"dank": "Drei! Vater merkt nichts. Das hier hat die Braune ausgespuckt. Du kannst es haben."},
+	{"wer": "Henut", "titel": "Nachbarin", "model": "Rogue", "ding": "katze", "was": "Katzen", "eins": "Eine Katze",
+		"gruss": "Bald geht die Sonne auf, und meine drei Katzen sind noch draußen. Sie kommen sonst immer vor dem Morgen heim. Heute ist nichts wie sonst.",
+		"fund": "Sie tut, als hätte sie dich nicht gesehen, und geht dann sehr würdevoll nach Hause.",
+		"dank": "Alle drei vor Sonnenaufgang. So gehört sich das. Hier, das hat eine von ihnen angeschleppt."},
+]
+
+static func leute(n: int) -> Dictionary:
+	return LEUTE[Stunden.hour_of(n) - 1]
+
 static func def(n: int) -> Dictionary:
 	return H[Stunden.hour_of(n) - 1]
 

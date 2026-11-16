@@ -14,7 +14,7 @@ const GOETTER := [
 	{"id": "bastet", "name": "Bastet", "col": Color(1.0, 0.85, 0.4), "txt": "Lauftempo +25 %", "dur": 60.0},
 	{"id": "hathor", "name": "Hathor", "col": Color(1.0, 0.6, 0.85), "txt": "Fundchance +60 %", "dur": 90.0},
 ]
-const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": ""}
+const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": ""}
 
 var game: Node
 var G: Dictionary            # Geschichte dieser Stunde
@@ -28,10 +28,15 @@ var boss_weak := 0           # so oft wurde der Hüter schon geschwächt
 var t := 0.0
 var ba_done := {}
 var npc := {}
+var L: Dictionary            # der Mensch mit der Sorge in dieser Stunde (Geschichte.LEUTE)
+var helfer := {}
+var helfer_talked := false
+var helfer_paid := false
 var auto := true             # Tests schalten das Auslösen bei Berührung zeitweise ab
 
 func _ready() -> void:
 	G = Geschichte.def(Spiel.fall)
+	L = Geschichte.leute(Spiel.fall)
 	Spiel.segen = {}
 	Spiel.calc()
 
@@ -60,13 +65,24 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			s["vis"] = Deko.relikt(game, pos)
 			text = G.relikt
 		"figur":
-			s["vis"] = _build_npc(pos)
+			s["vis"] = _build_npc(pos, G.model, G.tint, true, 1.0)
 			text = G.wer
 			col = Color(0.56, 0.89, 0.88)
 			size = Vector3(0.9, 2.0, 0.9)
 			npc = s
-	game._box(pos, size)
-	game.astar.set_point_solid(game._sub(pos), true)
+		"helfer":
+			s["vis"] = _build_npc(pos, L.model, Color.WHITE, false, 0.72 if L.get("klein", false) else 1.0)
+			text = L.wer
+			col = Color(0.85, 0.95, 0.7)
+			size = Vector3(0.9, 2.0, 0.9)
+			helfer = s
+		"such":
+			s["vis"] = Deko.such(game, pos, L.ding)
+			text = L.eins
+			col = Color(0.95, 0.95, 0.85)
+	if kind != "such":
+		game._box(pos, size)
+		game.astar.set_point_solid(game._sub(pos), true)
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -76,14 +92,15 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 	l.pixel_size = 0.0055
 	l.visible = false
 	game.add_child(l)
-	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" else 2.3, 0)
+	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" or kind == "helfer" else (1.7 if kind == "such" else 2.3), 0)
 	s["label"] = l
 	sites.append(s)
 
-func _build_npc(pos: Vector3) -> Dictionary:
-	var n: Node3D = load("res://models/chars/%s.glb" % G.model).instantiate()
+func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: float) -> Dictionary:
+	var n: Node3D = load("res://models/chars/%s.glb" % model).instantiate()
 	game.add_child(n)
 	n.global_position = pos
+	n.scale = Vector3.ONE * scl
 	var to: Vector3 = game.start_pos - pos
 	n.rotation.y = atan2(to.x, to.z)
 	var ap: AnimationPlayer = n.find_child("AnimationPlayer", true, false)
@@ -98,11 +115,13 @@ func _build_npc(pos: Vector3) -> Dictionary:
 		var c := n.find_child(w, true, false)
 		if c:
 			c.visible = false
-	_tint(n, G.tint)
+	# Gestalten der Duat leuchten in ihrer Farbe; gewöhnliche Leute sehen aus wie Leute
+	if geist:
+		_tint(n, tint)
 	var l := OmniLight3D.new()
-	l.light_color = G.tint
-	l.light_energy = 1.4
-	l.omni_range = 6.0
+	l.light_color = tint if geist else Color(1.0, 0.85, 0.6)
+	l.light_energy = 1.4 if geist else 0.9
+	l.omni_range = 6.0 if geist else 4.5
 	n.add_child(l)
 	l.position = Vector3(0, 2.2, 0)
 	var mark := Label3D.new()
@@ -110,7 +129,7 @@ func _build_npc(pos: Vector3) -> Dictionary:
 	mark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	mark.font_size = 120
 	mark.outline_size = 16
-	mark.modulate = Color(1.0, 0.8, 0.3)
+	mark.modulate = Color(1.0, 0.8, 0.3) if geist else Color(0.8, 1.0, 0.6)
 	mark.pixel_size = 0.006
 	n.add_child(mark)
 	mark.position = Vector3(0, 3.7, 0)
@@ -132,13 +151,15 @@ func _tint(n: Node, c: Color) -> void:
 
 # nach dem Bau der Welt: das Questbuch der Stunde
 func setup() -> void:
-	quests = [{"id": "hueter", "titel": "Hüter der Stunde", "text": "", "done": false}]
+	quests = [{"id": "hueter", "titel": "Der Hüter", "text": "", "done": false}]
+	if not helfer.is_empty():
+		quests.append({"id": "leute", "titel": "%ss %s" % [L.wer, L.was], "text": "Sprich mit %s am Eingang." % L.wer, "done": false})
 	if not npc.is_empty():
 		quests.append({"id": "relikt", "titel": G.quest, "text": "Sprich mit %s." % G.get("mit", G.wer), "done": false})
 	if count("feuer") > 0:
-		quests.append({"id": "feuer", "titel": "Licht des Re", "text": "", "done": false})
+		quests.append({"id": "feuer", "titel": "Feuerschalen", "text": "", "done": false})
 	if count("krug") > 0:
-		quests.append({"id": "krug", "titel": "Die Gefangenen", "text": "", "done": false})
+		quests.append({"id": "krug", "titel": "Seelenkrüge", "text": "", "done": false})
 	_update_quests()
 
 func count(kind: String, only_done := false) -> int:
@@ -159,12 +180,21 @@ func _update_quests() -> void:
 	if not q.is_empty():
 		q.done = count("feuer", true) >= count("feuer")
 		q["kurz"] = "%d/%d" % [count("feuer", true), count("feuer")]
-		q.text = "Alle Feuerschalen brennen. Der Hüter scheut das Licht." if q.done else "Entzünde die Feuerschalen: %d von %d. Brennen alle, ist der Hüter geschwächt." % [count("feuer", true), count("feuer")]
+		q.text = "Alle brennen. Der Hüter ist geschwächt." if q.done else "Entzünde sie: %d von %d. Brennen alle, ist der Hüter schwächer." % [count("feuer", true), count("feuer")]
 	q = quest("krug")
 	if not q.is_empty():
 		q.done = count("krug", true) >= count("krug")
 		q["kurz"] = "%d/%d" % [count("krug", true), count("krug")]
-		q.text = "Kein Herz ist mehr gefangen." if q.done else "In Seelenkrügen schlagen Herzen: %d von %d gefunden." % [count("krug", true), count("krug")]
+		q.text = "Alle Krüge sind geöffnet." if q.done else "Freilassen oder plündern: %d von %d." % [count("krug", true), count("krug")]
+	q = quest("leute")
+	if not q.is_empty():
+		var n := count("such", true)
+		q["kurz"] = "%d/%d" % [n, count("such")]
+		q.done = n >= count("such")
+		if q.done:
+			q.text = "Alle gefunden. %s wartet am Eingang." % L.wer if not helfer_paid else "%s ist glücklich." % L.wer
+		elif helfer_talked or n > 0:
+			q.text = "Finde die %s: %d von %d." % [L.was, n, count("such")]
 	dirty = true
 
 func hueter_text() -> String:
@@ -174,8 +204,8 @@ func hueter_text() -> String:
 	if game.boss_awake:
 		return "%s ist hier." % game.boss.K.name
 	if p >= 0.6:
-		return "Der Hüter wartet: %s." % game.boss.K.name
-	return "Dränge Isfet zurück (%d %%), dann stellt sich der Hüter." % int(p * 100.0)
+		return "%s wartet auf dich." % game.boss.K.name
+	return "Besiege Gegner (%d %%), dann zeigt sich der Hüter." % int(p * 100.0)
 
 # ---------------------------------------------------------------- Ablauf
 func tick(delta: float) -> void:
@@ -199,7 +229,17 @@ func tick(delta: float) -> void:
 				if not s.done:
 					s.vis.item.rotation.y = t * 1.6
 					s.vis.item.position.y = 1.35 + sin(t * 2.0) * 0.08
-		if not frei or s.done and s.kind != "figur":
+		if s.kind == "such" and not s.done and s.vis.tier:
+			# Tiere stehen nicht still
+			s.vis.n.position.y = absf(sin(t * 2.4 + s.v * 1.7)) * 0.06
+			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004
+		if not frei or s.done and s.kind != "figur" and s.kind != "helfer":
+			continue
+		if s.kind == "helfer":
+			if not helfer_talked and dist < 3.2 and not s.asked:
+				s.asked = true
+				talk_helfer()
+				return
 			continue
 		if s.kind == "figur":
 			if not talked and dist < 3.2 and not s.asked:
@@ -209,6 +249,8 @@ func tick(delta: float) -> void:
 			continue
 		if dist < 1.9 and not s.asked:
 			match s.kind:
+				"such":
+					_found(s)
 				"feuer":
 					_light(s)
 				"schrein":
@@ -248,6 +290,61 @@ func ba(key: String, text: String) -> void:
 		return
 	ba_done[key] = true
 	game.hud.whisper("Dein Ba flüstert: „%s“" % text)
+
+# ---------------------------------------------------------------- Leute und ihre Sorgen
+func _found(s: Dictionary) -> void:
+	s.done = true
+	s.vis.light.light_energy = 0.0
+	game.sfx.play("ui", 0.1)
+	game.float_text(s.pos + Vector3(0, 1.4, 0), L.eins, Color(0.85, 0.95, 0.7), 1.1)
+	game.hud.toast(L.fund, 4.5)
+	# Tiere laufen heim, Dinge werden aufgehoben: beides verschwindet
+	var n: Node3D = s.vis.n
+	var tw := n.create_tween()
+	if s.vis.tier and not helfer.is_empty():
+		var to: Vector3 = (helfer.pos - s.pos).normalized() * 5.0
+		n.rotation.y = atan2(to.x, to.z)
+		tw.tween_property(n, "global_position", s.pos + to, 1.4)
+		tw.parallel().tween_property(n, "scale", Vector3.ONE * 0.05, 1.4).set_ease(Tween.EASE_IN)
+	else:
+		tw.tween_property(n, "scale", Vector3.ONE * 0.05, 0.4)
+	tw.tween_callback(func(): n.visible = false)
+	_update_quests()
+	if quest("leute").done:
+		game.hud.banner("%s wartet am Eingang auf dich." % L.wer, "ALLE %s GEFUNDEN" % L.was.to_upper(), 4.5)
+		_weigh(3.0)
+		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.2):
+			game._level_up()
+		if not helfer.is_empty():
+			helfer.vis.mark.visible = true
+
+func near_helfer() -> bool:
+	return not helfer.is_empty() and (helfer.pos - game.hero.global_position).length() < 4.0
+
+func talk_helfer() -> void:
+	if helfer.is_empty() or game.hero.dead or game.hud.overlay != null:
+		return
+	get_tree().paused = true
+	game.sfx.play("ui")
+	helfer.vis.mark.visible = false
+	var q := quest("leute")
+	var ende := func():
+		get_tree().paused = false
+		helfer_talked = true
+		_update_quests()
+	if q.done and not helfer_paid:
+		var lohn := func():
+			get_tree().paused = false
+			helfer_paid = true
+			var n := Spiel.fall
+			game.drop("shard", helfer.pos, 20 + 10 * n)
+			game.drop_item(helfer.pos, Spiel.new_item(n + 1, 2))
+			_update_quests()
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.dank], [["Danke.", lohn]])
+	elif helfer_paid:
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["%s winkt dir zu." % L.wer], [["Gehen", ende]])
+	else:
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.gruss], [["„Ich halte die Augen offen.“", ende]])
 
 func near_npc() -> bool:
 	return not npc.is_empty() and (npc.pos - game.hero.global_position).length() < 4.0

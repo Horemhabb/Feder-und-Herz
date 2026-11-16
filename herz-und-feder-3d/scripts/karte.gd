@@ -412,6 +412,26 @@ func _place_sites() -> void:
 				v += 1
 				i += 1
 				break
+	# drei verlorene Dinge der Leute, verstreut über die Stunde (nicht direkt am Start)
+	var rest := places.filter(func(pl): return pl.c.distance_to(start) > 8.0)
+	rest.shuffle()
+	var found := 0
+	for pl in rest + rest:
+		if found >= 3:
+			break
+		for t in 30:
+			var p := Vector2(pl.x + randf() * pl.w, pl.y + randf() * pl.h)
+			if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 3.0):
+				sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": "such", "v": found})
+				found += 1
+				break
+	# der Mensch mit der Sorge steht ebenfalls am Eingang
+	for t in 120:
+		var a := randf() * TAU
+		var p := start + Vector2(cos(a), sin(a)) * randf_range(2.6, 4.6)
+		if found >= 3 and in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 2.4):
+			sites.append({"p": p, "kind": "helfer", "v": 0})
+			break
 	# das Fundstück liegt weit hinten
 	places.reverse()
 	for pl in places:

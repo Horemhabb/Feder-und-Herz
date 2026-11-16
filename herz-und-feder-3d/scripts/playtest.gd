@@ -83,6 +83,16 @@ func run() -> void:
 	check("gehaltene linke Maustaste läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
 	shot("laufen")
 	# Fähigkeiten und Schalter
+	# Fähigkeiten werden mit den Stufen gelernt und groß angekündigt
+	check("auf Stufe 1 sind zwei Fähigkeiten gelernt, die übrigen zeigen ihre Stufe", h.can("whirl") and not h.can("dash") and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2" and G.hud.skill_ui["beam"].lock.text == "")
+	while Spiel.lvl < 5:
+		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl)):
+			G._level_up()
+	await wait(0.3)
+	check("Aufstieg: Ankündigung in der Bildmitte, weitere stehen an (%d)" % G.hud.ann_queue.size(), G.hud.ann_box != null and G.hud.ann_queue.size() >= 3)
+	check("freie Punkte: goldener Knopf über der Leiste", G.hud.punkt_btn.visible and ("%d Fähigkeitenpunkt" % Spiel.tree_points()) in G.hud.punkt_btn.text and Spiel.tree_points() >= 4)
+	check("auf Stufe 5 sind alle Fähigkeiten gelernt", G.hud.skill_ui["udjat"].lock.text == "" and Klassen.unlock_lvl("ermittler", "udjat") == 5)
+	shot("aufstieg")
 	h.en = 100.0
 	for k in [[KEY_1, "whirl"], [KEY_2, "dash"], [KEY_3, "oath"], [KEY_4, "udjat"]]:
 		# Abwarten, bis die Figur wieder handeln darf (kein Hieb, keine Betäubung): sonst prüft der Test den Zufall
@@ -164,6 +174,7 @@ func run() -> void:
 		return l[n] if n < l.size() else {}
 	Spiel.herz = 0.0
 	O.auto = true
+	O.helfer_talked = true   # der Mensch am Eingang spricht erst in seinem eigenen Abschnitt
 	var fs: Dictionary = site.call("feuer")
 	var lights: int = G.torches.size()
 	h.global_position = fs.pos + Vector3(1.3, 0, 0)
@@ -185,11 +196,12 @@ func run() -> void:
 	var k2: Dictionary = site.call("krug", 1)
 	hz = Spiel.herz
 	var nl: int = G.loot.size()
+	var sh1: int = Spiel.shards
 	h.global_position = k2.pos + Vector3(1.3, 0, 0)
 	await wait(0.5)
 	await key(KEY_2)
 	await wait(0.3)
-	check("Taste 2 plündert den Krug: schwerer, Beute fällt", k2.done and Spiel.herz < hz and G.loot.size() > nl)
+	check("Taste 2 plündert den Krug: schwerer, Beute fällt", k2.done and Spiel.herz < hz and (G.loot.size() > nl or Spiel.shards > sh1))
 	var k3: Dictionary = site.call("krug", 2)
 	h.global_position = k3.pos + Vector3(1.3, 0, 0)
 	await wait(0.5)
@@ -219,6 +231,33 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(0.3)
 	check("Entscheidung für Maat: Herz leichter, Hüter geschwächt, gemerkt", Spiel.herz > hz and G.boss.hp < boss_hp and Spiel.wahl.get("1", "") == "maat" and not get_tree().paused)
+	# Leute und ihre Sorgen: der Hirte und seine drei Schafe
+	O.helfer_talked = false
+	O.helfer.asked = false
+	h.global_position = O.helfer.pos + Vector3(2.0, 0, 0)
+	await wait(0.5)
+	check("ein Mensch am Eingang bittet um Hilfe (%s, %s)" % [O.L.wer, O.L.was], G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == 1)
+	shot("hirte")
+	await key(KEY_E)
+	await wait(0.3)
+	check("danach steht die Suche im Questbuch", O.helfer_talked and not get_tree().paused and "0 von 3" in O.quest("leute").text)
+	hz = Spiel.herz
+	for i in 3:
+		var su: Dictionary = site.call("such", i)
+		h.global_position = su.pos + Vector3(1.2, 0, 0)
+		await wait(0.5)
+	check("alle drei gefunden: Aufgabe erledigt, Herz leichter", O.quest("leute").done and O.count("such", true) == 3 and Spiel.herz > hz)
+	nl = G.loot.size()
+	sh1 = Spiel.shards
+	var bag1: int = Spiel.bag.size() + Spiel.eq.size()
+	h.global_position = O.helfer.pos + Vector3(2.0, 0, 0)
+	await wait(0.4)
+	await key(KEY_E)
+	await wait(0.4)
+	check("E beim Menschen: Dank im Gespräch", G.hud.overlay != null and G.hud.dialog_opts.size() == 1)
+	await key(KEY_E)
+	await wait(0.3)
+	check("zum Dank gibt es Lohn", O.helfer_paid and (G.loot.size() > nl or Spiel.shards > sh1 or Spiel.bag.size() + Spiel.eq.size() > bag1) and not get_tree().paused)
 	Spiel.herz = 30.0
 	Spiel.calc()
 	var cone: float = Spiel.S.cone
