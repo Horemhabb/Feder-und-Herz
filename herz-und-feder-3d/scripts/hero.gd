@@ -18,7 +18,11 @@ const SKILLS := {
 const ORDER := ["whirl", "dash", "oath", "udjat", "beam", "potion"]
 
 var en := 60.0
-var pots := 4
+var pots: int:   # Rotbier gehört zur Figur und überdauert den Neustart einer Stunde
+	get: return Spiel.pots
+	set(v): Spiel.pots = v
+var hits := 0            # Standardangriffe gezählt (Fäuste des Namenlosen: jeder vierte trifft doppelt)
+var skin_t := 0.0        # Haut des Mehen: bis zum nächsten abgeprallten Treffer
 var cd := {}
 var busy := 0.0          # so lange läuft eine Aktion, die das Laufen sperrt
 var pending: Array = []  # geplante Treffer: [Zeit, Callable]
@@ -39,8 +43,7 @@ func _ready() -> void:
 	setup("res://models/chars/Knight.glb", 1.0, 0.55)
 	collision_layer = 2
 	collision_mask = 1 | 4
-	max_hp = 156.0
-	hp = max_hp
+	apply_stats(true)
 	# nur der Zweihänder bleibt in der Hand
 	for n in ["1H_Sword_Offhand", "Badge_Shield", "Rectangle_Shield", "Round_Shield", "Spike_Shield", "1H_Sword"]:
 		var c := model.find_child(n, true, false)
@@ -68,9 +71,46 @@ func _ready() -> void:
 		cd[k] = 0.0
 	play(ANIM.idle)
 
-func dmg(mult := 1.0) -> float:
-	var crit := randf() < 0.05
-	return base_dmg * mult * randf_range(0.9, 1.1) * (1.3 if oath_t > 0.0 else 1.0) * (1.5 if crit else 1.0)
+# Werte aus Stufe und Ausrüstung übernehmen (nach Anlegen, Aufwerten, Stufenaufstieg). full: volles Leben
+func apply_stats(full := false) -> void:
+	var ratio := hp / max_hp if max_hp > 0.0 else 1.0
+	max_hp = float(Spiel.S.max_hp)
+	hp = max_hp if full else clampf(max_hp * ratio, 1.0, max_hp)
+	if lantern:
+		lantern.omni_range = 16.0 * Spiel.S.cone
+
+# Schaden an einem Gegner nach 04-combat.js › hit: Krit, Lampe der Maat, Sonnenrichter, Eid, Lebensraub, Harpune des Horus
+func deal(f: Foe, mult: float, push := 6.0, stun_t := 0.0, gen := 0.0) -> void:
+	if f.state == Foe.St.DEAD:
+		return
+	var S: Dictionary = Spiel.S
+	var crit: bool = randf() * 100.0 < S.crit
+	var amt: float = S.dmg * mult * randf_range(0.9, 1.1) * ((1.0 + S.crit_dmg / 100.0) if crit else 1.0)
+	if Spiel.has_leg("lantern"):
+		var to := flat(f.global_position - global_position)
+		if to.length() > 0.01 and forward().angle_to(to.normalized()) < 0.5:
+			amt *= 1.25
+	if Spiel.has_leg("sun") and f.K.get("undead", false):
+		amt *= 1.6
+	if oath_t > 0.0:
+		amt *= 1.3
+	f.hit(amt, global_position, push, stun_t, crit)
+	if crit and Spiel.has_leg("critres"):
+		en = minf(100.0, en + 5.0)
+	if S.loh > 0.0 and not dead:
+		hp = minf(max_hp, hp + S.loh)
+	if gen > 0.0:
+		en = minf(100.0, en + gen)
+
+func cost_of(id: String) -> float:
+	var c: float = SKILLS[id].cost
+	return c * 0.5 if id == ORDER[0] and Spiel.has_leg("s1") else c
+
+func cd_of(id: String) -> float:
+	var c: float = SKILLS[id].cd
+	if (id == ORDER[1] and Spiel.has_leg("s2")) or (id == ORDER[3] and Spiel.has_leg("s4")):
+		return c * 0.5
+	return c
 
 func _physics_process(delta: float) -> void:
 	tick_common(delta)
@@ -78,7 +118,8 @@ func _physics_process(delta: float) -> void:
 		return
 	for k in cd:
 		cd[k] = maxf(0.0, cd[k] - delta)
-	en = minf(100.0, en + 4.0 * delta)
+	en = minf(100.0, en + Spiel.S.regen * delta)
+	skin_t -= delta
 	inv -= delta
 	oath_t -= delta
 	aura.light_energy = move_toward(aura.light_energy, 2.2 if oath_t > 0.0 else 0.0, delta * 6.0)
@@ -102,7 +143,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var target := Vector3.ZERO
 	if busy <= 0.0 and stun <= 0.0:
-		target = want_dir * SPEED
+		target = want_dir * SPEED * Spiel.S.speed
 		if want_dir.length() > 0.1:
 			face = atan2(want_dir.x, want_dir.z)
 	vel = vel.move_toward(target, delta * (60.0 if target.length() > 0.1 else 80.0))
@@ -113,7 +154,7 @@ func _physics_process(delta: float) -> void:
 	if busy <= 0.0:
 		var sp := vel.length()
 		if sp > 0.6:
-			play(ANIM.run, clampf(sp / SPEED, 0.5, 1.0) * 1.25)
+			play(ANIM.run, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
 				step_t = 0.31
@@ -127,7 +168,7 @@ func can(id: String) -> bool:
 		return false
 	if id == "potion":
 		return pots > 0 and hp < max_hp
-	return en >= SKILLS[id].cost
+	return en >= cost_of(id)
 
 func attack() -> bool:
 	# Standardangriff: abwechselnd Schnitt und Hieb, trifft im Bogen vor der Figur
@@ -135,21 +176,24 @@ func attack() -> bool:
 		return false
 	look_to(aim)
 	combo += 1
+	hits += 1
+	var heavy := Spiel.has_leg("heavy") and hits % 4 == 0
 	var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
-	var sp := 2.1 if combo % 2 == 1 else 2.5
+	var tempo: float = Spiel.S.rate / 1.75
+	var sp := (2.1 if combo % 2 == 1 else 2.5) * tempo
 	play(a, sp, 0.08, true)
 	busy = anim_len(a) / sp * 0.78
 	vel = Vector3.ZERO
 	game.sfx.play("swing", 0.1)
-	pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, 1.0 if combo % 2 == 1 else 1.25, 6.0, true)])
+	var m := (1.0 if combo % 2 == 1 else 1.25) * (2.0 if heavy else 1.0)
+	pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, m, 6.0, true, 0.6 if heavy else 0.0)])
 	return true
 
 func cast(id: String) -> bool:
 	if not can(id):
 		return false
-	var S: Dictionary = SKILLS[id]
-	en -= S.cost
-	cd[id] = S.cd
+	en -= cost_of(id)
+	cd[id] = cd_of(id)
 	match id:
 		"whirl":
 			play(ANIM.whirl, 2.0, 0.08, true)
@@ -188,17 +232,25 @@ func cast(id: String) -> bool:
 			pending.append([0.12, func(): game.hero_beam(self)])
 		"potion":
 			pots -= 1
-			hp = minf(max_hp, hp + max_hp * 0.45)
+			hp = minf(max_hp, hp + max_hp * (1.0 if Spiel.has_leg("potion") else 0.6))
 			play(ANIM.potion, 1.8, 0.1, true)
 			busy = 0.45
 			game.sfx.play("potion")
 			game.float_text(global_position, "+ Rotbier", Color(0.5, 0.9, 0.55))
 	return true
 
-func hurt(amount: float, from: Vector3) -> void:
+# Erlittener Schaden nach 04-combat.js › hurt: Haut des Mehen, Dornen, Rüstung und Klasse, Eid der Maat
+func hurt(amount: float, from: Vector3, src: Foe = null) -> void:
 	if dead or inv > 0.0:
 		return
-	var a := amount * randf_range(0.9, 1.1) * 0.85 * (0.8 if oath_t > 0.0 else 1.0)
+	if Spiel.has_leg("skin") and skin_t <= 0.0:
+		skin_t = 8.0
+		game.float_text(global_position, "abgeprallt", Color(0.6, 0.9, 1.0))
+		game.sfx.play("ui", 0.05)
+		return
+	if src and Spiel.S.thorns > 0.0 and src.state != Foe.St.DEAD:
+		src.hit(Spiel.S.thorns, global_position, 0.0)
+	var a: float = amount * (1.0 - Spiel.S.red) * randf_range(0.9, 1.1) * (0.8 if oath_t > 0.0 else 1.0)
 	hp -= a
 	flash()
 	kb += flat(global_position - from).normalized() * 4.0

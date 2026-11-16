@@ -57,7 +57,14 @@ func _ready() -> void:
 func run() -> void:
 	await wait(1.6)
 	var G := g()
-	check("Tafel liegt über dem Spiel, Spiel steht", G.hud.overlay != null and get_tree().paused and not G.started)
+	check("Startbildschirm liegt über dem Spiel, Spiel steht", G.hud.overlay != null and get_tree().paused and not G.started)
+	check("ohne Spielstand: Startbildschirm im Modus „Neue Figur“", G.hud.intro_new and not Spiel.hat_stand)
+	await key(KEY_E)
+	await wait(2.0)
+	G = g()
+	check("neue Figur angelegt und gespeichert (Stufe 1, Normal)", Spiel.hat_stand and Spiel.lvl == 1 and Spiel.diff == 0)
+	check("danach die Tafel der Stunde", G.hud.overlay != null and get_tree().paused and not G.started)
+	await wait(1.0)
 	await key(KEY_E)
 	await wait(0.4)
 	check("E gibt das Spiel frei", G.started and not get_tree().paused and G.hud.overlay == null)
@@ -102,25 +109,51 @@ func run() -> void:
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
 	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
-	# Beutel
-	G.gold = 7
+	# Beute, Tasche, Anlegen, Aufwerten
+	var opfer: Foe = G.foes.filter(func(f): return f.kind == "minion")[1]
+	var xp0 := Spiel.xp + Spiel.lvl * 100000.0
+	opfer.hit(99999.0, h.global_position)
+	await wait(0.6)
+	check("ein besiegter Gegner gibt Erfahrung", Spiel.xp + Spiel.lvl * 100000.0 > xp0)
+	var n_loot: int = G.loot.size()
+	G.drop_item(h.global_position, Spiel.new_item(1, 2, {"slot": "ring"}), h.global_position + Vector3(0.5, 0, 0))
+	G.drop("shard", h.global_position, 5, "", h.global_position + Vector3(0, 0, 0.5))
+	G.drop("mat", h.global_position, 20, "staub", h.global_position + Vector3(-0.5, 0, 0))
+	var sh0 := Spiel.shards
+	await wait(1.0)
+	check("Beute wird beim Darüberstehen aufgehoben (Scherben %d -> %d)" % [sh0, Spiel.shards], Spiel.shards >= sh0 + 5 and G.loot.size() <= n_loot)
+	check("ein Ring für den leeren Platz wird direkt angelegt", Spiel.eq.has("ring"))
+	var ring: Dictionary = Spiel.eq.ring
+	Spiel.bag.append(Spiel.new_item(1, 1, {"slot": "ruestung"}))
 	await key(KEY_I)
 	await wait(0.3)
-	check("I öffnet den Beutel, Spiel steht", G.hud.bag_open and get_tree().paused and G.hud.overlay != null)
-	shot("beutel")
+	check("I öffnet die Tasche, Spiel steht", G.hud.bag_open and get_tree().paused and G.hud.overlay != null)
+	shot("tasche")
+	Spiel.equip(Spiel.bag.size() - 1)
+	h.apply_stats()
+	check("Anlegen einer Rüstung erhöht die Rüstung", Spiel.S.armor > 0)
+	var st0: int = Spiel.mats.staub
+	check("Aufwerten kostet Fayencestaub und hebt die Stufe", Spiel.upgrade(ring) and int(ring.up) == 1 and Spiel.mats.staub == st0 - 3)
 	await key(KEY_I)
 	await wait(0.3)
-	check("I schließt den Beutel, Spiel läuft", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
+	check("I schließt die Tasche, Spiel läuft", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
 	await key(KEY_I)
 	await wait(0.3)
 	await key(KEY_ESCAPE)
 	await wait(0.3)
-	check("Esc schließt den Beutel", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
-	var opfer: Foe = G.foes.filter(func(f): return f.kind == "minion")[1]
-	var g0: int = G.gold
-	opfer.hit(99999.0, h.global_position)
+	check("Esc schließt die Tasche", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
+	# Truhe: öffnet sich bei Berührung, „Alles nehmen“ (E)
+	var ch: Dictionary = G.chests[0]
+	var bag0 := Spiel.bag.size() + Spiel.eq.size()
+	h.global_position = ch.pos + Vector3(1.4, 0, 0)
 	await wait(0.6)
-	check("ein besiegter Gegner lässt Münzen fallen (%d -> %d)" % [g0, G.gold], G.gold > g0)
+	check("Truhe öffnet sich bei Berührung und zeigt den Fund", ch.open and G.hud.overlay != null and get_tree().paused)
+	shot("truhe")
+	await key(KEY_E)
+	await wait(0.4)
+	check("„Alles nehmen“ legt den Fund in die Tasche", Spiel.bag.size() + Spiel.eq.size() > bag0 and not get_tree().paused)
+	check("Spielstand liegt vor und enthält die Ausrüstung", FileAccess.file_exists(Spiel.DATEI) and FileAccess.get_file_as_string(Spiel.DATEI).contains(String(ring.name)))
+	h.global_position = G.start_pos
 	var foe: Foe = G.foes.filter(func(f): return f.kind == "minion")[0]
 	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
 	G.cam_pos = h.global_position
@@ -133,15 +166,18 @@ func run() -> void:
 	await wait(0.25)   # der Trefferstopp dauert 0,05 s und darf beim Prüfen vorbei sein
 	# Handy: ein Fingertipp, der im selben Bild losgelassen wird, muss trotzdem treffen
 	G.touch = true
-	var hp_vor := foe.hp
-	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
+	# ein unverletzter Gegner: der vorige kann durch kritische Treffer schon gefallen sein
+	var ziel: Foe = G.foes.filter(func(f): return f.kind == "minion" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp)[0]
+	var hp_vor := ziel.hp
+	h.global_position = ziel.global_position + Vector3(2.2, 0, 2.2)
+	G.cam_pos = h.global_position
 	await wait(0.6)
-	var tp: Vector2 = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
+	var tp: Vector2 = G.cam.unproject_position(ziel.global_position + Vector3(0, 1.0, 0))
 	mouse(tp, MOUSE_BUTTON_LEFT, true)
 	mouse(tp, MOUSE_BUTTON_LEFT, false)
 	await wait(1.0)
 	G.touch = false
-	check("Handy: kurzer Fingertipp auf einen Gegner schlägt zu", foe.hp < hp_vor)
+	check("Handy: kurzer Fingertipp auf einen Gegner schlägt zu", ziel.hp < hp_vor)
 	check("Zeit läuft nach dem Treffer normal weiter", is_equal_approx(Engine.time_scale, 1.0))
 	shot("angriff")
 	# Niederlage und Rückkehr

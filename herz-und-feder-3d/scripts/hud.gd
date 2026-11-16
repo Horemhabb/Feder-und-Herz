@@ -33,6 +33,10 @@ var banner_tw: Tween
 var toast_tw: Tween
 var bag_open := false
 var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
+var toasts: VBoxContainer   # Fundmeldungen links oben (07-ui.js › toast)
+var bar_xp: ProgressBar
+var l_lvl: Label
+var tasche_btn: Button
 var l_quer: Label          # Hinweis, das Handy quer zu halten
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
@@ -55,7 +59,7 @@ func _ready() -> void:
 	l_track = _label("", 13, DIM)
 	l_track.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tl.add_child(l_track)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Beutel · V Vollbild", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Tasche · V Vollbild", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -69,7 +73,7 @@ func _ready() -> void:
 		row.custom_minimum_size = Vector2(450, 0)
 		row.alignment = BoxContainer.ALIGNMENT_END
 		row.add_theme_constant_override("separation", 6)
-		var knoepfe := [["Beutel", func(): game.toggle_bag()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
+		var knoepfe := [["Tasche", func(): game.toggle_bag()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
 		if game.can_fullscreen:
 			knoepfe.insert(0, ["Vollbild", func(): game.toggle_fullscreen()])
 		for t in knoepfe:
@@ -84,6 +88,8 @@ func _ready() -> void:
 			b.add_theme_color_override("font_color", PARCH)
 			b.pressed.connect(t[1])
 			row.add_child(b)
+			if t[0] == "Tasche":
+				tasche_btn = b
 		root.add_child(row)
 		l_quer = _label("Bitte das Gerät quer halten.", 30, PARCH)
 		l_quer.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -131,6 +137,23 @@ func _ready() -> void:
 	l_banner.add_theme_constant_override("outline_size", 6)
 	l_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	banner_box.add_child(l_banner)
+	toasts = VBoxContainer.new()
+	toasts.position = Vector2(18, 112)
+	toasts.custom_minimum_size = Vector2(330, 0)
+	toasts.add_theme_constant_override("separation", 6)
+	toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(toasts)
+	# Erfahrung: dünne Leiste unter der Fähigkeitenleiste, daneben die Stufe
+	bar_xp = _bar(GOLD, 5)
+	bar_xp.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	bar_xp.position = Vector2(-300, -11)
+	bar_xp.custom_minimum_size = Vector2(600, 5)
+	bar_xp.size = Vector2(600, 5)
+	root.add_child(bar_xp)
+	l_lvl = _label("", 11, DIM)
+	l_lvl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	l_lvl.position = Vector2(310, -16)
+	root.add_child(l_lvl)
 	l_toast = _label("", 14, PARCH)
 	l_toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	l_toast.position = Vector2(-300, -170)
@@ -256,11 +279,17 @@ func refresh() -> void:
 	l_hp.text = str(int(ceil(h.hp)))
 	bar_en.value = h.en / 100.0
 	l_en.text = str(int(h.en))
+	bar_xp.value = Spiel.xp / Daten.xp_need(Spiel.lvl)
+	l_lvl.text = "Stufe %d" % Spiel.lvl
+	if tasche_btn:
+		tasche_btn.add_theme_color_override("font_color", GOLD if Spiel.neu > 0 else PARCH)
 	for id in Hero.ORDER:
 		var S: Dictionary = Hero.SKILLS[id]
 		var u: Dictionary = skill_ui[id]
-		u.cd.scale.y = clampf(h.cd[id] / S.cd, 0.0, 1.0)
-		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < S.cost
+		u.cd.scale.y = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
+		if id != "potion" and S.cost > 0:
+			u.sub.text = "%d %s" % [h.cost_of(id), Spiel.CLS[Spiel.cls].res]
+		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor else Color.WHITE
 		if id == "potion":
 			u.sub.text = "noch %d" % h.pots
@@ -298,6 +327,47 @@ func banner(text: String, small := "", secs := 3.5) -> void:
 	banner_tw.tween_property(banner_box, "modulate:a", 1.0, 0.5)
 	banner_tw.tween_interval(secs)
 	banner_tw.tween_property(banner_box, "modulate:a", 0.0, 0.9)
+
+# Fundmeldung mit Symbol (höchstens fünf, ältere fallen heraus)
+func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) -> void:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _flat(Color(0.067, 0.063, 0.086, 0.92), 8, Color("3d3947"), 1))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	p.add_child(h)
+	var bar := ColorRect.new()
+	bar.color = col
+	bar.custom_minimum_size = Vector2(3, 0)
+	h.add_child(bar)
+	if icon >= 0:
+		var tr := TextureRect.new()
+		tr.texture = Daten.icon(icon)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.custom_minimum_size = Vector2(36, 36)
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		h.add_child(tr)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var t := _label(title, 14, col)
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	t.clip_text = true
+	v.add_child(t)
+	if sub != "":
+		var sl := _label(sub, 11, Color("7ad08a") if sub.contains("▲") else DIM)
+		sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(sl)
+	h.add_child(v)
+	toasts.add_child(p)
+	while toasts.get_child_count() > 5:
+		var o := toasts.get_child(0)
+		toasts.remove_child(o)
+		o.queue_free()
+	var tw := p.create_tween()
+	tw.tween_interval(secs)
+	tw.tween_property(p, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(p.queue_free)
 
 func toast(text: String) -> void:
 	l_toast.text = text
@@ -355,11 +425,22 @@ func _sheet(dim: float, width: float) -> VBoxContainer:
 	overlay.color = Color(0.02, 0.02, 0.04, dim)
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(overlay)
+	var sc := ScrollContainer.new()
+	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	overlay.add_child(sc)
+	var mc := MarginContainer.new()
+	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right", "top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + side, 16)
+	sc.add_child(mc)
 	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mc.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(width, 0)
+	panel.custom_minimum_size = Vector2(minf(width, get_viewport().get_visible_rect().size.x - 32.0), 0)
 	panel.add_theme_stylebox_override("panel", _flat(PANEL if dim < 0.99 else Color(0, 0, 0, 0), 10, Color("3d3947"), 1 if dim < 0.99 else 0))
 	center.add_child(panel)
 	var m := MarginContainer.new()
@@ -369,7 +450,18 @@ func _sheet(dim: float, width: float) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	m.add_child(v)
+	_pass_all.call_deferred(overlay)
 	return v
+
+# Fenster rollen per Finger nur, wenn die Berührung beim Rollbereich ankommt: alle Flächen darin reichen sie weiter
+# (Knöpfe lösen trotzdem aus). Die Abdeckung selbst bleibt dicht, damit nichts ins Spiel durchgeht.
+func _pass_all(n: Node) -> void:
+	if not is_instance_valid(n):
+		return
+	for c in n.get_children():
+		if c is Control and not (c is ScrollContainer) and c.mouse_filter == Control.MOUSE_FILTER_STOP:
+			c.mouse_filter = Control.MOUSE_FILTER_PASS
+		_pass_all(c)
 
 func _para(text: String, size: int, col: Color, center := false) -> Label:
 	var l := _label(text, size, col)
@@ -432,51 +524,26 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	primary_btn.grab_focus()
 
 func show_bag() -> void:
-	var h: Hero = game.hero
-	var v := _sheet(0.8, 520)
+	var v := _sheet(0.86, 880)
 	bag_open = true
-	v.add_child(_para("BEUTEL", 13, GOLD))
-	v.add_child(_para("Was du bei dir trägst", 26, PARCH))
-	var rows := [
-		["Rotbier der Sachmet", "%d von 4" % h.pots, "Q: heilt dich. Besiegte lassen manchmal eines fallen."],
-		["Münzen", str(game.gold), "Aus dem Beutel der Besiegten. Noch ohne Verwendung: Händler folgen später."],
-		["Besiegte Ruhelose", "%d von %d" % [game.kills, game.total], ""],
-		["Leben", "%d von %d" % [int(ceil(h.hp)), int(h.max_hp)], ""],
-	]
-	for r in rows:
-		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("3d3947"), 1))
-		var pv := VBoxContainer.new()
-		var top := HBoxContainer.new()
-		var n := _label("  " + r[0], 17, PARCH)
-		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		top.add_child(n)
-		top.add_child(_label(r[1] + "  ", 17, GOLD))
-		pv.add_child(top)
-		if r[2] != "":
-			pv.add_child(_para("  " + r[2], 12, DIM))
-		p.add_child(pv)
-		v.add_child(p)
+	var t := Tasche.new()
+	t.hud = self
+	t.game = game
+	v.add_child(t)
 	var cb := func(): get_tree().paused = false
-	var btns := HBoxContainer.new()
-	primary_btn = _button(_taste("  Schließen  [I]  "), true, cb)
-	btns.add_child(primary_btn)
-	v.add_child(btns)
-	primary = cb
 	secondary = cb
-	primary_btn.grab_focus()
 
 func close_bag() -> void:
 	_close()
 	get_tree().paused = false
 
-func show_dead(text: String, cb: Callable) -> void:
+func show_dead(text: String, cb: Callable, btn := "Zurück in die Stunde") -> void:
 	var v := _sheet(0.8, 560)
 	v.add_child(_para("IN DER DUAT", 13, GOLD))
 	v.add_child(_para("Du wurdest überwältigt.", 28, PARCH))
-	v.add_child(_para(text + " Deine Kraft kehrt zurück.", 16, PARCH))
+	v.add_child(_para(text + ("" if Spiel.hc else " Deine Kraft kehrt zurück."), 16, PARCH))
 	var btns := HBoxContainer.new()
-	primary_btn = _button(_taste("  Zurück in die Stunde  [E]  "), true, cb)
+	primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
 	btns.add_child(primary_btn)
 	v.add_child(btns)
 	primary = cb
@@ -508,3 +575,124 @@ func _input(ev: InputEvent) -> void:
 		var f := secondary
 		_close()
 		f.call()
+
+# Fund aus einer Truhe (07-ui.js › showChest): „Alles nehmen“ (E) oder „Liegen lassen“ (Esc)
+func show_chest(stamp: String, title: String, lines: Array, note: String, take: Callable, leave: Callable) -> void:
+	var v := _sheet(0.8, 500)
+	v.add_child(_para(stamp, 13, GOLD))
+	v.add_child(_para(title, 26, PARCH))
+	for ln in lines:
+		var p := PanelContainer.new()
+		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("3d3947"), 1))
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 10)
+		p.add_child(h)
+		var bar := ColorRect.new()
+		bar.color = ln[3]
+		bar.custom_minimum_size = Vector2(3, 0)
+		h.add_child(bar)
+		var tr := TextureRect.new()
+		tr.texture = Daten.icon(ln[0])
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.custom_minimum_size = Vector2(44, 44)
+		h.add_child(tr)
+		var tv := VBoxContainer.new()
+		tv.add_theme_constant_override("separation", 0)
+		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tv.add_child(_label(ln[1], 16, ln[3]))
+		if ln[2] != "":
+			tv.add_child(_label(ln[2], 11, Color("7ad08a") if String(ln[2]).contains("▲") else DIM))
+		h.add_child(tv)
+		v.add_child(p)
+	if note != "":
+		v.add_child(_para(note, 13, DIM))
+	var btns := HBoxContainer.new()
+	btns.add_theme_constant_override("separation", 10)
+	primary_btn = _button(_taste("  Alles nehmen  [E]  "), true, take)
+	btns.add_child(primary_btn)
+	btns.add_child(_button(_taste("  Liegen lassen  [Esc]  "), false, leave))
+	v.add_child(btns)
+	primary = take
+	secondary = leave
+	primary_btn.grab_focus()
+
+# Startbildschirm (07-ui.js › showIntro): neue Figur mit Schwierigkeit und Hardcore, oder weiterspielen
+var intro_new := false
+var intro_diff := 0
+var intro_hc := false
+
+func show_intro(force_new := false) -> void:
+	intro_new = force_new or not Spiel.hat_stand
+	intro_diff = Spiel.diff
+	intro_hc = false
+	_render_intro()
+
+func _render_intro() -> void:
+	var v := _sheet(1.0, 760)
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT", 13, GOLD))
+	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
+	if game.touch:
+		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
+		v.add_child(_para("Unten steht die Waage still. Steig mit der letzten Laterne aus Sandtor hinab, Stunde um Stunde, und finde heraus, wer sie angehalten hat.", 14, PARCH))
+	else:
+		_intro_story(v)
+	_intro_rest(v)
+
+func _intro_story(v: VBoxContainer) -> void:
+	v.add_child(_para("Die Nebelmark ist das letzte Land vor dem Westen. Ihr Nebel steigt aus der Duat, der Unterwelt, durch die Re jede Nacht in seiner Barke fährt. Seit dem Herbst kommt der Morgen später. Unten steht die Waage still: Kein Herz wird mehr gegen die Feder der Maat gewogen.", 15, PARCH))
+	v.add_child(_para("Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Unterwegs liegen die verstreuten Seiten aus dem Buch des Thot.", 15, DIM))
+
+func _intro_rest(v: VBoxContainer) -> void:
+	if not intro_new:
+		v.add_child(_para("Spielstand: %s%s, Stufe %d, %d von %d Seiten im Buch des Thot." % [Spiel.CLS[Spiel.cls].name, " (Hardcore)" if Spiel.hc else "", Spiel.lvl, Spiel.evid.size(), Daten.EVID.size()], 15, TEAL))
+	else:
+		if game.touch:
+			v.add_child(_para("Klasse: Eidträger, Nahkampf mit dem Zweihänder. (Die drei übrigen folgen.)", 13, DIM))
+		else:
+			v.add_child(_para("KLASSE", 12, DIM))
+			v.add_child(_para("Eidträger: Nahkampf mit dem Zweihänder. Hat auf die Feder der Maat geschworen, hält viel aus und steht mitten im Getümmel. (Die drei übrigen Klassen folgen.)", 14, PARCH))
+	if not game.touch:
+		v.add_child(_para("SCHWIERIGKEIT", 12, DIM))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for i in Daten.DIFF.size():
+		var b := _button("  %s  " % Daten.DIFF[i].name, i == intro_diff, func(): pass)
+		var idx := i
+		for c in b.pressed.get_connections():
+			b.pressed.disconnect(c.callable)
+		b.pressed.connect(func():
+			game.sfx.play("ui")
+			intro_diff = idx
+			_render_intro())
+		row.add_child(b)
+	v.add_child(row)
+	v.add_child(_para(Daten.DIFF[intro_diff].txt[0].to_upper() + Daten.DIFF[intro_diff].txt.substr(1) + "." + ("" if intro_new or intro_diff == Spiel.diff else " Die Stunde beginnt dann von vorn."), 13, DIM))
+	if intro_new:
+		var hc := CheckBox.new()
+		hc.text = "Hardcore: Stirbt die Figur, ist sie verloren."
+		hc.button_pressed = intro_hc
+		hc.add_theme_font_size_override("font_size", 14)
+		hc.add_theme_color_override("font_color", DIM)
+		hc.toggled.connect(func(on): intro_hc = on)
+		v.add_child(hc)
+	if chapter_note != "":
+		v.add_child(_para(chapter_note, 14, TEAL))
+	var btns := HBoxContainer.new()
+	btns.add_theme_constant_override("separation", 10)
+	var go := func(): game.start_game(intro_new, intro_diff, intro_hc)
+	primary_btn = _button(_taste("  %s  [E]  " % ("Die Nacht betreten" if intro_new else "Weiterspielen")), true, go)
+	btns.add_child(primary_btn)
+	if not intro_new:
+		var nb := _button("  Neue Figur anlegen  ", false, func(): pass)
+		for c in nb.pressed.get_connections():
+			nb.pressed.disconnect(c.callable)
+		nb.pressed.connect(func():
+			game.sfx.play("ui")
+			intro_new = true
+			_render_intro())
+		btns.add_child(nb)
+	v.add_child(btns)
+	if not intro_new:
+		v.add_child(_para("„Neue Figur anlegen“ löscht den Spielstand, sobald die neue Figur die Nacht betritt.", 12, Color(DIM, 0.7)))
+	primary = go
+	primary_btn.grab_focus()
