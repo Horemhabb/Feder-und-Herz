@@ -439,12 +439,35 @@ func _taste(text: String) -> String:
 		return text
 	return text.replace("[E]  ", "").replace("[Esc]  ", "").replace("[I]  ", "")
 
-func _sheet(dim: float, width: float) -> VBoxContainer:
+func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 	_close()
 	overlay = ColorRect.new()
 	overlay.color = Color(0.02, 0.02, 0.04, dim)
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(overlay)
+	if titel:
+		# Titelbild der Nebelmark (X01: Sandtor bei Nacht) hinter einem Verlauf von halb zu fast ganz dunkel, wie in der 2D-Fassung
+		var bild := TextureRect.new()
+		bild.texture = load("res://ui/titel.webp")
+		bild.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bild.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		bild.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bild.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(bild)
+		var g := Gradient.new()
+		g.set_color(0, Color(0.02, 0.02, 0.04, 0.5))
+		g.set_color(1, Color(0.02, 0.02, 0.04, 0.86))
+		var gt := GradientTexture2D.new()
+		gt.gradient = g
+		gt.fill_from = Vector2(0, 0)
+		gt.fill_to = Vector2(0, 1)
+		var schleier := TextureRect.new()
+		schleier.texture = gt
+		schleier.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		schleier.stretch_mode = TextureRect.STRETCH_SCALE
+		schleier.set_anchors_preset(Control.PRESET_FULL_RECT)
+		schleier.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(schleier)
 	var sc := ScrollContainer.new()
 	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -461,7 +484,7 @@ func _sheet(dim: float, width: float) -> VBoxContainer:
 	mc.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(minf(width, get_viewport().get_visible_rect().size.x - 32.0), 0)
-	panel.add_theme_stylebox_override("panel", _flat(PANEL if dim < 0.99 else Color(0, 0, 0, 0), 10, Color("3d3947"), 1 if dim < 0.99 else 0))
+	panel.add_theme_stylebox_override("panel", _flat(Color(PANEL, 0.8) if titel else (PANEL if dim < 0.99 else Color(0, 0, 0, 0)), 10, Color("3d3947"), 1 if dim < 0.99 or titel else 0))
 	center.add_child(panel)
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
@@ -727,7 +750,7 @@ func show_intro(force_new := false) -> void:
 	_render_intro()
 
 func _render_intro() -> void:
-	var v := _sheet(1.0, 760)
+	var v := _sheet(1.0, 760, true)
 	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
