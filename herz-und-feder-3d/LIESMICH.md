@@ -206,7 +206,11 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
   (mit „Neue 3D-Figuren“) das Nemes-Kopftuch mit Uräus: `models/chars/Eidtraeger_Nemes.glb`, gebaut mit
   `--gesicht=nemes`. Das Urteil der fünften Stunde erzählt es. Abgeleitet aus dem Spielstand (sechste Stunde erreicht),
   alte Spielstände brauchen kein neues Feld.
-- Schaukasten: Knopf „Tuch der Gewogenen“.
+- **Tuchfarbe nach dem Urteil:** leichtes Herz Lapis und Gold, schweres Herz Rot und Schwarz (die Farben des Seth), in der
+  Schwebe Leinen und Mondsilber. Das Urteil wird beim Durchschreiten der Pforte der fünften Stunde festgehalten
+  (`Spiel.urteil5`, im Spielstand); ältere Spielstände nehmen das jetzige Herz. Die Figur tauscht dafür nur ihre
+  Texturtafel (`models/chars/tuch_schwer.webp`, `tuch_schwebe.webp`, gebaut mit `--tuch=`).
+- Schaukasten: Knopf „Tuch“ schaltet aus → Lapis und Gold → Rot und Schwarz → Leinen und Silber.
 
 ### Fassung 2.3.2
 

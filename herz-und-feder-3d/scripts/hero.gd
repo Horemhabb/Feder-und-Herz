@@ -56,6 +56,8 @@ func _ready() -> void:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
+	if modell == C.get("neu_tuch", ""):
+		tuch_faerben(Geschichte.urteil_art())
 	collision_layer = 2
 	collision_mask = 1 | 4 | 32
 	apply_stats(true)
@@ -101,6 +103,23 @@ func _ready() -> void:
 	add_child(ear)
 	ear.make_current()
 	play(ANIM.idle)
+
+# Farbe des Tuchs nach dem Urteil: Die Kopftuch-Figur bringt Lapis und Gold mit; für „schwer“ und „schwebe“
+# tauscht sie ihre Texturtafel gegen eine, in der nur das Tuch anders gestreift ist (models/chars/tuch_*.webp).
+func tuch_faerben(art: String) -> void:
+	var pfad := "res://models/chars/tuch_%s.webp" % art
+	if art == "leicht" or not ResourceLoader.exists(pfad):
+		return
+	var tex: Texture2D = load(pfad)
+	for mi in meshes:
+		for i in mi.mesh.get_surface_count():
+			var m = mi.get_active_material(i)
+			if m is StandardMaterial3D:
+				var d: StandardMaterial3D = m.duplicate()
+				d.albedo_texture = tex
+				if d.emission_enabled and d.emission_texture:
+					d.emission_texture = tex
+				mi.set_surface_override_material(i, d)
 
 # Werte aus Stufe, Ausrüstung und Baum übernehmen. full: volles Leben
 func apply_stats(full := false) -> void:

@@ -34,7 +34,8 @@ var laterne: OmniLight3D
 var bew := 0
 var pause_t := 0.0
 var vergleich := false
-var tuch := false         # Tuch der Gewogenen (ab der sechsten Stunde)
+var tuch := ""            # Tuch der Gewogenen: "" (keins), "leicht", "schwer", "schwebe"
+const TUCH_NAME := {"": "aus", "leicht": "Lapis und Gold", "schwer": "Rot und Schwarz", "schwebe": "Leinen und Silber"}
 var frei := false
 var dreht := true
 var ziel := 0             # Kamera: 0 Überblick, 1 Eidträger, 2 Herzloser
@@ -310,7 +311,7 @@ func _anzeige() -> void:
 	reihe.add_child(knoepfe.ziel)
 	knoepfe.vgl = _knopf("  Vergleich mit alt: aus  ", func(): _vergleich(not vergleich))
 	reihe.add_child(knoepfe.vgl)
-	knoepfe.tuch = _knopf("  Tuch der Gewogenen: aus  ", func(): _tuch(not tuch))
+	knoepfe.tuch = _knopf("  Tuch: aus  ", func(): _tuch(["", "leicht", "schwer", "schwebe"][(["", "leicht", "schwer", "schwebe"].find(tuch) + 1) % 4]))
 	reihe.add_child(knoepfe.tuch)
 	knoepfe.dreh = _knopf("  Kamera: schwenkt  ", func(): _dreh(not dreht))
 	reihe.add_child(knoepfe.dreh)
@@ -323,10 +324,21 @@ func _ziel(z: int) -> void:
 	knoepfe.ziel.text = "  Blick: %s  " % ["Überblick", "Eidträger", "Herzloser"][z]
 
 # Eidträger mit oder ohne Nemes-Kopftuch: Modell tauschen, Ort, Blick, Laterne und Bewegung bleiben
-func _tuch(an: bool) -> void:
-	tuch = an
-	knoepfe.tuch.text = "  Tuch der Gewogenen: %s  " % ("an" if an else "aus")
-	var neu := _lade("Eidtraeger_Nemes" if an else "Eidtraeger", held.position)
+func _tuch(art: String) -> void:
+	tuch = art
+	knoepfe.tuch.text = "  Tuch: %s  " % TUCH_NAME[art]
+	var neu := _lade("Eidtraeger_Nemes" if art != "" else "Eidtraeger", held.position)
+	if art in ["schwer", "schwebe"]:
+		var tex: Texture2D = load("res://models/chars/tuch_%s.webp" % art)
+		for mi in neu.find_children("*", "MeshInstance3D", true, false):
+			for i in mi.mesh.get_surface_count():
+				var m = mi.get_active_material(i)
+				if m is StandardMaterial3D:
+					var d: StandardMaterial3D = m.duplicate()
+					d.albedo_texture = tex
+					if d.emission_enabled and d.emission_texture:
+						d.emission_texture = tex
+					mi.set_surface_override_material(i, d)
 	neu.rotation = held.rotation
 	laterne.reparent(neu, false)
 	held.queue_free()
@@ -446,11 +458,12 @@ func _process(delta: float) -> void:
 func _pruefbilder(ordner: String) -> void:
 	dreht = false
 	DirAccess.make_dir_recursive_absolute(ordner)
-	var folge := [["ueberblick", 0, 0, 0.0, false], ["tuch", 0, 1, -0.3, false], ["angriff", 3, 0, 0.5, false], ["eidtraeger", 0, 1, -0.5, false], ["herzloser", 0, 2, 0.6, false],
+	var folge := [["ueberblick", 0, 0, 0.0, false], ["tuch_leicht", 0, 1, -0.3, false], ["tuch_schwer", 0, 1, -0.3, false], ["tuch_schwebe", 0, 1, -0.3, false], ["angriff", 3, 0, 0.5, false], ["eidtraeger", 0, 1, -0.5, false], ["herzloser", 0, 2, 0.6, false],
 		["vergleich", 0, 0, 0.0, true], ["lauf", 2, 1, 0.9, false], ["besonders", 8, 0, -0.9, false]]
 	for f in folge:
-		if f[0] == "tuch" or (tuch and f[0] != "tuch"):
-			_tuch(f[0] == "tuch")
+		var art: String = f[0].trim_prefix("tuch_") if f[0].begins_with("tuch_") else ""
+		if art != tuch:
+			_tuch(art)
 		_vergleich(f[4])
 		_ziel(f[2])
 		winkel = f[3]

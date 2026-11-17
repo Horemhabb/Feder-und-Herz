@@ -17,6 +17,10 @@ TAFEL = sys.argv[3] if len(sys.argv) > 3 else ZIEL.replace(".glb", "_tafel.png")
 # gemalte Vorlage (Higgsfield-Bogen K11, 2048 Pixel): liefert Schuppen, Kragen, Leinen, Haut und Gesicht
 VORLAGE = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bilder", "K11_voll.webp")
 PORTRAET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ui", "portrait_ermittler.jpg")
+# Farbe des Tuchs nach dem Urteil der fünften Stunde: leicht (Lapis und Gold), schwer (Rot der Wüste und Schwarz),
+# schwebe (Leinen und Mondsilber)
+TUCH = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--tuch=")), "leicht")
+TUCH_FARBEN = {"leicht": ((196, 150, 70), (34, 52, 112)), "schwer": ((150, 36, 26), (26, 20, 20)), "schwebe": ((214, 206, 188), (110, 122, 140))}
 GESICHT = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--gesicht=")), "mischung")
 
 BEWEGUNGEN = ["Idle", "2H_Melee_Idle", "Walking_A", "Running_A", "2H_Melee_Attack_Slice", "2H_Melee_Attack_Chop", "2H_Melee_Attack_Spin",
@@ -232,7 +236,8 @@ def uebermalen():
         korn = np.asarray(gm.kachel(gm.flach(k.crop((1370, 470, 1470, 640)), 0.9), w, h, 160).convert("L")).astype(np.float32) / 255
         v = np.arange(h)[:, None].repeat(w, axis=1)
         gold = ((v // 12) % 2 == 0)
-        base = np.where(gold[..., None], np.array([196, 150, 70.0]), np.array([34, 52, 112.0]))
+        hell, dunkel = TUCH_FARBEN[TUCH]
+        base = np.where(gold[..., None], np.array(hell, dtype=float), np.array(dunkel, dtype=float))
         f = 0.75 + 0.6 * korn[..., None]
         gm.einsetzen(t, F["nemes"], Image.fromarray(np.clip(base * f, 0, 255).astype(np.uint8)))
     t.save(TAFEL)
