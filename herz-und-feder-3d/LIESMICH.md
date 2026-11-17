@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung 2.5
+# Herz und Feder · 3D-Fassung 2.6
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -199,6 +199,23 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Bildwirkung:** Vignette (der Bildrand dunkelt ab), Staub im Laternenlicht.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
+
+### Fassung 2.6: Die Welt der Stunden 2 bis 5
+
+- **Gemalte Oberflächen** (Higgsfield, Paket D, zweite Fassung): Lehmziegel und Stoppelfeld (Stunde 2), Hieroglyphenwand
+  (Stunde 3), Glasboden (Stunde 4), Höhlenfels und Geröll (Stunde 5), dazu der Fels im Freiland (F01). Eingetragen in
+  `tools/texturen.py`; das Skript lädt, glättet die Kachelnaht und erzeugt die Reliefkarte.
+- **Titelbild** X02 (`ui/titel.webp`), **Porträt** P01 für Senu (`ui/portraits/P01.webp`). P02 bis P10 fehlen noch:
+  als `ui/portraits/P02.webp` usw. ablegen, das Spiel zeigt sie dann von selbst.
+- **Atmosphäre je Stunde** (`welt.gd`, `_stimmung`): warmer Dunst und Spreu über den Feldern, Lichtschächte mit Staub im
+  Grab, kalter Dunst und Sternzeichen in Rosetau, violetter Dunst in der Höhle; im Freiland Dunst über dem Wasser und
+  Mondlicht auf den Obelisken.
+- **Krüge, Kisten, Körbe** statt Fässern (`Deko.requisit`), **feinere Palmen** mit Fiederblättern, geringeltem Stamm und
+  Datteln. Texturen dafür errechnet `tools/texturen_proz.py` (Ton, Holz, Palmrinde, Palmblatt, Korb).
+- **Kamera** 18 % näher (`NAH` in `main.gd`). **Schritte** deutlich leiser.
+- **Minikarte** durchsichtig: Mauerkanten in Gold, Böden als Hauch, Rahmen mit Rauten, die Figur als Pfeil in Blickrichtung.
+- Spielpaket 20,3 MB (die gemalten Texturen bringen 3 MB mit).
+- Noch aus der alten Kulisse: Truhen, Fackeln, Kerzen, Münzen, Schutt.
 
 ### Fassung 2.5: Alle Figuren aus der Figurenfabrik, halbe Ladezeit
 

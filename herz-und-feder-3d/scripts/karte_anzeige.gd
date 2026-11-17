@@ -66,11 +66,13 @@ func _paint() -> void:
 					for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 						if not karte.wall(x + d.x, y + d.y):
 							nb = true
-					col = Color(0.62, 0.58, 0.5, 0.95) if nb or not karte.indoor else Color(0, 0, 0, 0)
+					# Mauern: nur die Kante zum Begehbaren, in hellem Gold; massives Gestein bleibt durchsichtig
+					col = Color(0.98, 0.84, 0.52, 0.9) if nb else (Color(0, 0, 0, 0) if karte.indoor else Color(0.85, 0.72, 0.45, 0.28))
 					if karte.wh[i] < 50:
-						col = Color(0.45, 0.42, 0.36, 0.8)
+						col = Color(0.85, 0.72, 0.45, 0.5)
 				else:
-					col = Color(0.16, 0.15, 0.13, 0.7) if karte.indoor or karte.flr[i] != 0 else Color(0.12, 0.11, 0.1, 0.45)
+					# Böden: ein Hauch Sand; Wege und Räume etwas kräftiger
+					col = Color(0.92, 0.82, 0.6, 0.2) if karte.indoor or karte.flr[i] != 0 else Color(0.92, 0.82, 0.6, 0.07)
 			img.set_pixel(x, y, col)
 	tex.update(img)
 
@@ -85,9 +87,16 @@ func _seen_at(p: Vector3) -> bool:
 func _draw() -> void:
 	if karte == null:
 		return
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.03, 0.03, 0.05, 0.72))
+	# durchsichtig: nur ein dunkler Hauch, damit die Zeichen auf hellem Sand lesbar bleiben
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.02, 0.04, 0.2))
 	draw_texture_rect(tex, Rect2(Vector2.ZERO, size), false)
-	draw_rect(Rect2(Vector2.ZERO, size), Color("5c4a2e"), false, 1.0)
+	# Rahmen wie eine Kartusche: feine Doppellinie in Gold, Rauten in den Ecken
+	var gold := Color(0.9, 0.72, 0.36)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(gold, 0.85), false, 1.5)
+	draw_rect(Rect2(Vector2(4, 4), size - Vector2(8, 8)), Color(gold, 0.3), false, 1.0)
+	for e in [Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]:
+		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -6), e + Vector2(6, 0), e + Vector2(0, 6), e + Vector2(-6, 0)]), gold)
+		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -3), e + Vector2(3, 0), e + Vector2(0, 3), e + Vector2(-3, 0)]), Color(0.1, 0.08, 0.06))
 	var packs := {}
 	for f in game.foes:
 		if f.state == Foe.St.DEAD or f.hidden:
@@ -134,4 +143,10 @@ func _draw() -> void:
 	if game.gate:
 		draw_arc(_to_px(game.gate.global_position), 5.0, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5)
 	if game.hero:
-		draw_circle(_to_px(game.hero.global_position), 3.0, Color.WHITE)
+		# die Figur als Pfeil in Blickrichtung, mit weichem Schein
+		var hp := _to_px(game.hero.global_position)
+		var f: float = game.hero.face
+		var v := Vector2(sin(f), cos(f))
+		var q := Vector2(-v.y, v.x)
+		draw_circle(hp, 7.0, Color(1.0, 0.9, 0.6, 0.18))
+		draw_colored_polygon(PackedVector2Array([hp + v * 6.5, hp - v * 4.0 + q * 4.2, hp - v * 1.5, hp - v * 4.0 - q * 4.2]), Color(1.0, 0.97, 0.88))

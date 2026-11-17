@@ -197,25 +197,112 @@ static func fels(g: Node, pos: Vector3, r: float, tint: Color) -> Node3D:
 	if not cache.has("fels%d" % v):
 		cache["fels%d" % v] = _rock_mesh(1337 + v * 17)
 	var mi := _put(g, cache["fels%d" % v], pos + Vector3(0, r * 0.38, 0), randf() * TAU, Vector3(r, r * randf_range(0.75, 1.15), r))
-	mi.material_override = stone(g, "fels_%s" % tint.to_html(), "sandstein", tint)
+	mi.material_override = stone(g, "fels_%s" % tint.to_html(), "fels", tint)
 	return mi
 
-static func _frond() -> ArrayMesh:
+# Material mit eigener Textur, über alle drei Achsen gelegt (Requisiten und Palmen brauchen so keine eigenen UVs)
+static func tex_mat(key: String, datei: String, kachel := 1.0, tint := Color.WHITE, rough := 0.85) -> StandardMaterial3D:
+	if cache.has("tex_" + key):
+		return cache["tex_" + key]
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://textures/%s.jpg" % datei)
+	m.albedo_color = tint
+	var np := "res://textures/%s_n.jpg" % datei
+	if ResourceLoader.exists(np):
+		m.normal_enabled = true
+		m.normal_texture = load(np)
+	m.uv1_triplanar = true
+	m.uv1_scale = Vector3.ONE * kachel
+	m.roughness = rough
+	cache["tex_" + key] = m
+	return m
+
+# Drehteil aus gestapelten Kegelstümpfen: Profil [[Radius unten, Radius oben, Höhe], …]
+static func _dreh(st: SurfaceTool, profil: Array, at := Vector3.ZERO, s := 1.0, seg := 12) -> void:
+	var y := 0.0
+	for p in profil:
+		var cm := CylinderMesh.new()
+		cm.bottom_radius = p[0] * s
+		cm.top_radius = p[1] * s
+		cm.height = p[2] * s
+		cm.radial_segments = seg
+		cm.rings = 1
+		st.append_from(cm, 0, Transform3D(Basis(), at + Vector3(0, y + p[2] * s * 0.5, 0)))
+		y += p[2] * s
+
+const KRUG := [[0.10, 0.16, 0.06], [0.16, 0.36, 0.30], [0.36, 0.40, 0.22], [0.40, 0.30, 0.24], [0.30, 0.15, 0.14], [0.15, 0.13, 0.14], [0.13, 0.20, 0.05]]
+
+# Krüge, Kisten und Körbe (statt der Fässer der alten Kulisse); jede Form wird einmal gebaut und geteilt
+static func requisit(g: Node, art: String, pos: Vector3, rot := 0.0) -> MeshInstance3D:
+	var k := "req_" + art
+	if not cache.has(k):
+		var ton := tex_mat("ton", "p01_ton", 1.6)
+		var holz := tex_mat("holz", "p02_holz", 1.3)
+		var korb := tex_mat("korb", "p05_korb", 2.4)
+		var bronze := mat("bronze", Color(0.45, 0.3, 0.14), 0.5, Color.BLACK, 0.0, 0.7)
+		var a := _begin()
+		var b := _begin()
+		var c := _begin()
+		match art:
+			"amphore":
+				_dreh(a, KRUG, Vector3.ZERO, 1.0)
+				for sx in [-1, 1]:      # zwei Henkel
+					box(a, Vector3(0.05, 0.3, 0.07), Vector3(sx * 0.3, 0.8, 0))
+					box(a, Vector3(0.14, 0.05, 0.07), Vector3(sx * 0.24, 1.08, 0))
+				_dreh(c, [[0.4, 0.4, 0.035]], Vector3(0, 0.56, 0))     # bemalter Reif
+			"kruege":
+				_dreh(a, KRUG, Vector3(-0.3, 0, 0.12), 0.72)
+				_dreh(a, KRUG, Vector3(0.28, 0, 0.2), 0.6)
+				_dreh(a, KRUG, Vector3(0.02, 0, -0.3), 0.85)
+				_dreh(b, [[0.2, 0.2, 0.04]], Vector3(0.02, 0.98, -0.3), 0.85)   # Holzdeckel auf dem großen
+			"kiste":
+				box(b, Vector3(0.95, 0.6, 0.7), Vector3.ZERO)
+				box(b, Vector3(1.0, 0.1, 0.75), Vector3(0, 0.6, 0))
+				for sx in [-0.3, 0.3]:
+					box(c, Vector3(0.07, 0.72, 0.76), Vector3(sx, 0, 0))
+			"kisten":
+				box(b, Vector3(0.95, 0.6, 0.7), Vector3(-0.3, 0, 0))
+				box(b, Vector3(0.7, 0.5, 0.6), Vector3(0.55, 0, 0.2))
+				box(b, Vector3(0.75, 0.45, 0.6), Vector3(-0.1, 0.6, 0.05))
+				for sx in [-0.6, 0.0]:
+					box(c, Vector3(0.07, 0.62, 0.72), Vector3(sx, 0, 0))
+			_:
+				_dreh(a, [], Vector3.ZERO)
+		var teile := []
+		if art == "korb":
+			var kb := _begin()
+			_dreh(kb, [[0.34, 0.46, 0.5], [0.46, 0.48, 0.06], [0.48, 0.2, 0.12], [0.2, 0.06, 0.08]], Vector3.ZERO, 1.0, 14)
+			teile.append([kb, korb])
+		else:
+			var voll := {"amphore": [true, false, true], "kruege": [true, true, false], "kiste": [false, true, true], "kisten": [false, true, true]}
+			var alle := [[a, ton], [b, holz], [c, bronze]]
+			for i in 3:
+				if voll.get(art, [true, false, false])[i]:
+					teile.append(alle[i])
+		cache[k] = _commit(teile)
+	return _put(g, cache[k], pos, rot)
+
+# Palmwedel: Mittelrippe mit Fiederblättern zu beiden Seiten, zur Spitze hin hängend
+static func _frond(haengen := 1.0) -> ArrayMesh:
 	var st := _begin()
-	var n := 6
-	var prev_l := Vector3.ZERO
-	var prev_r := Vector3.ZERO
+	var n := 11
+	var pts := []
 	for i in n + 1:
 		var t := float(i) / n
-		var z := t * 2.7
-		var y := sin(t * 2.2) * 0.75 - t * t * 1.5
-		var w := 0.46 * sin(PI * clampf(t * 0.95 + 0.08, 0.0, 1.0))
-		var l := Vector3(-w, y - w * 0.35, z)
-		var r := Vector3(w, y - w * 0.35, z)
-		if i > 0:
-			_quad(st, prev_l, prev_r, r, l)
-		prev_l = l
-		prev_r = r
+		pts.append(Vector3(0, sin(t * 2.2) * 0.8 - t * t * 1.6 * haengen, t * 2.9))
+	for i in n:
+		var t := (i + 0.5) / n
+		var a: Vector3 = pts[i]
+		var b: Vector3 = pts[i + 1]
+		var l := 0.16 + 0.72 * sin(PI * clampf(t * 0.9 + 0.1, 0.0, 1.0))
+		for sx in [-1.0, 1.0]:
+			var ab := Vector3(sx * l, -l * 0.5 - 0.1, l * 0.28)
+			var spitze := a.lerp(b, 0.5) + ab
+			# Fieder als spitzes Blatt: an der Rippe breit, außen schmal
+			if sx > 0:
+				_quad(st, a, b, spitze + (b - a) * 0.12, spitze - (b - a) * 0.12)
+			else:
+				_quad(st, b, a, spitze - (b - a) * 0.12, spitze + (b - a) * 0.12)
 	return st.commit()
 
 static func palme(g: Node, pos: Vector3, rot: float) -> Node3D:
@@ -224,26 +311,41 @@ static func palme(g: Node, pos: Vector3, rot: float) -> Node3D:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 77 + v
 		var trunk := _begin()
-		var lean := Vector3(rng.randf_range(-0.16, 0.16), 0, rng.randf_range(-0.16, 0.16))
+		var lean := Vector3(rng.randf_range(-0.07, 0.07), 0, rng.randf_range(-0.07, 0.07))
 		var at := Vector3.ZERO
-		var segs := 5 + v
+		var segs := 10 + v * 2
 		for i in segs:
+			# jeder Ring unten etwas weiter als oben: die Narben alter Wedel
+			var r := 0.24 - 0.008 * i
 			var cm := CylinderMesh.new()
-			cm.top_radius = 0.2 - 0.012 * (i + 1)
-			cm.bottom_radius = 0.2 - 0.012 * i + 0.03
-			cm.height = 0.95
-			cm.radial_segments = 7
+			cm.top_radius = r - 0.02
+			cm.bottom_radius = r + 0.035
+			cm.height = 0.5
+			cm.radial_segments = 9
 			cm.rings = 1
-			trunk.append_from(cm, 0, Transform3D(Basis(), at + Vector3(0, 0.47, 0)))
-			at += Vector3(0, 0.9, 0) + lean * (i + 1) * 0.55
+			trunk.append_from(cm, 0, Transform3D(Basis(Vector3.UP, i * 0.7), at + Vector3(0, 0.25, 0)))
+			at += Vector3(0, 0.47, 0) + lean * (i + 1) * 0.3
 		var leaves := _begin()
-		var fr := _frond()
-		for i in 9:
-			var b := Basis(Vector3.UP, TAU * i / 9.0 + rng.randf() * 0.3) * Basis(Vector3.RIGHT, rng.randf_range(-0.5, -0.05))
-			leaves.append_from(fr, 0, Transform3D(b.scaled(Vector3.ONE * rng.randf_range(0.85, 1.15)), at))
-		var lm := mat("palmblatt", Color(0.12, 0.26, 0.13), 0.85)
+		var oben := _frond(0.75)
+		var unten := _frond(1.25)
+		for i in 8:
+			var b := Basis(Vector3.UP, TAU * i / 8.0 + rng.randf() * 0.3) * Basis(Vector3.RIGHT, rng.randf_range(-0.75, -0.4))
+			leaves.append_from(oben, 0, Transform3D(b.scaled(Vector3.ONE * rng.randf_range(0.8, 1.0)), at))
+		for i in 8:
+			var b := Basis(Vector3.UP, TAU * (i + 0.5) / 8.0 + rng.randf() * 0.3) * Basis(Vector3.RIGHT, rng.randf_range(-0.2, 0.15))
+			leaves.append_from(unten, 0, Transform3D(b.scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), at))
+		var lm: StandardMaterial3D = tex_mat("palmblatt", "p04_palmblatt", 1.2, Color(0.62, 0.78, 0.6))
 		lm.cull_mode = BaseMaterial3D.CULL_DISABLED
-		cache["palme%d" % v] = _commit([[trunk, mat("palmstamm", Color(0.42, 0.3, 0.19), 0.95)], [leaves, lm]])
+		# Datteln unter der Krone
+		var frucht := _begin()
+		for i in 3:
+			var sm := SphereMesh.new()
+			sm.radius = 0.16
+			sm.height = 0.34
+			sm.radial_segments = 6
+			sm.rings = 3
+			frucht.append_from(sm, 0, Transform3D(Basis(), at + Vector3(cos(i * 2.1) * 0.22, -0.3, sin(i * 2.1) * 0.22)))
+		cache["palme%d" % v] = _commit([[trunk, tex_mat("palmrinde", "p03_palmrinde", 1.4)], [leaves, lm], [frucht, mat("dattel", Color(0.5, 0.28, 0.1), 0.7)]])
 	return _put(g, cache["palme%d" % v], pos, rot)
 
 static func becken(g: Node, pos: Vector3, r: float) -> void:

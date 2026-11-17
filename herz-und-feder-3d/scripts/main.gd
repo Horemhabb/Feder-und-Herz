@@ -4,6 +4,7 @@ extends Node3D
 
 const CELL := Karte.CELL   # Meter je Kartenzelle
 var hdef: Dictionary           # die Stunde aus Stunden.def: Rudel, Hüter, Legendäre, Texte
+const NAH := 0.82
 const CHEST := [{"name": "Truhe", "model": "chest"}, {"name": "Eisentruhe", "model": "chest"}, {"name": "Prunktruhe", "model": "chest_gold"}]
 const DEAD_TXT := "Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort."
 var karte: Karte               # die generierte Stunde (karte.gd), gebaut von welt.gd
@@ -228,6 +229,12 @@ func cell_pos(cx: int, cz: int) -> Vector3:
 	return Vector3(cx * CELL + CELL / 2, 0, cz * CELL + CELL / 2)
 
 func _piece(name: String, pos: Vector3, rot := 0.0, scl := Vector3.ONE) -> Node3D:
+	# Fässer und Kisten der alten Kulisse sind seit 2.6 ägyptisch: Krüge, Holzkisten, Körbe (Deko.requisit)
+	var ersatz := {"barrel_large": "amphore", "barrel_small_stack": "kruege", "crates_stacked": "kisten", "box_large": "kiste", "trunk_large_A": "korb"}
+	if ersatz.has(name):
+		var q := Deko.requisit(self, ersatz[name], pos, rot)
+		q.scale = scl * 1.25
+		return q
 	var n: Node3D = load("res://models/dungeon/%s.glb" % name).instantiate()
 	n.position = pos
 	n.rotation.y = rot
@@ -249,12 +256,13 @@ const SURF := {
 	"sand_aussen": ["t09_sand", 6.0, Color(0.45, 0.40, 0.35), "", Color.WHITE],
 	"weg": ["t06_pflaster", 4.0, Color(1.25, 1.12, 0.92), "", Color.WHITE],
 	# Stunden 2–5 (Bildauftrag W03–W05, T10–T12): bis die Bilder da sind, getönte Verwandte
-	"lehm": ["w03_lehm", 6.0, Color(1.0, 0.95, 0.88), "sandstein", Color(0.78, 0.66, 0.50)],
-	"feld": ["t10_feld", 6.0, Color(0.9, 0.85, 0.78), "sand", Color(0.72, 0.66, 0.50)],
-	"grab": ["w04_grab", 6.0, Color(1.0, 0.95, 0.9), "sandstein", Color(1.0, 0.9, 0.74)],
+	"lehm": ["w03_lehm", 5.0, Color(0.9, 0.86, 0.8), "sandstein", Color(0.78, 0.66, 0.50)],
+	"feld": ["t10_feld", 6.0, Color(1.1, 1.05, 0.95), "sand", Color(0.72, 0.66, 0.50)],
+	"grab": ["w04_grab", 6.0, Color(0.92, 0.88, 0.84), "sandstein", Color(1.0, 0.9, 0.74)],
 	"glaswand": ["w02_granit", 6.0, Color(0.72, 0.84, 1.0), "", Color.WHITE],
 	"glas": ["t11_glas", 5.0, Color(0.9, 0.92, 1.0), "gruft", Color(0.66, 0.74, 0.88)],
 	"hoehle": ["w05_hoehle", 6.0, Color(0.95, 0.92, 1.0), "granit", Color(0.72, 0.64, 0.80)],
+	"fels": ["f01_fels", 5.0, Color(0.9, 0.86, 0.8), "sandstein", Color(1.0, 0.93, 0.80)],
 	"hoehlenboden": ["t12_hoehlenboden", 5.0, Color(0.9, 0.88, 0.92), "gruft", Color(0.78, 0.70, 0.74)],
 }
 
@@ -1696,7 +1704,7 @@ func _place_cam(delta: float, snap := false) -> void:
 	cam.fov = 30.0 if snap else lerpf(cam.fov, 33.5 if hueter else 30.0, 1.0 - exp(-delta * 2.0))
 	if staub:
 		staub.global_position = cam_pos + Vector3(0, 1.8, 0)
-	var off := Vector3(14.5, 27.0, 14.5)
+	var off := Vector3(14.5, 27.0, 14.5) * NAH   # seit 2.6 ein Stück näher: Figuren und Tracht sind besser zu erkennen
 	var sh := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.5
 	cam.global_position = cam_pos + off + sh
 	cam.look_at(cam_pos + Vector3(0, 1.0, 0) + sh * 0.5, Vector3.UP)

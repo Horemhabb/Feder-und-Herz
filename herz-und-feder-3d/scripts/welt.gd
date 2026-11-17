@@ -60,6 +60,7 @@ func bauen() -> void:
 		g.astar.set_point_solid(g._sub(pos), true)
 		g.breakables.append({"n": n, "body": body, "sub": g._sub(pos), "pos": pos})
 	g.start_pos = cell_pos(k.start)
+	_stimmung()
 	for st in k.sites:
 		g.add_site(st.kind, cell_pos(st.p), st.v)
 	_packs()
@@ -358,3 +359,34 @@ func _packs() -> void:
 				f.lead = lead
 				if lead == null:
 					lead = f
+
+# Atmosphäre je Stunde (2.6): Jede Art von Ort bekommt ihre eigene Luft. Alles Illusion aus Stimmung, bei „Grafik niedrig“ aus.
+func _stimmung() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = Spiel.fall * 977 + 5
+	if not k.indoor:
+		# Freiland: Dunst über dem Wasser, Mondlicht auf den Obelisken
+		for p in k.pools:
+			g.stimmung.append(Stimmung.nebel(g, cell_pos(p.p), (p.r + 2.5) * C * 2.0, Color(0.6, 0.72, 0.9), 0.3, 0.3))
+		for d in k.deko:
+			if d.kind == "obelisk":
+				g.stimmung.append(Stimmung.lichtstrahl(g, cell_pos(d.p), 9.0, 2.2, Color(0.7, 0.8, 1.0), 0.22, 0.2, 0.5))
+		return
+	for r in k.rooms:
+		if rng.randf() > 0.5:
+			continue
+		var p := cell_pos(Vector2(r.cx, r.cy))
+		var gr := minf(float(r.w), float(r.h)) * C
+		match k.kind:
+			"ruin":      # Felder von Wernes: warmer Dunst über dem Feld, Spreu im Licht
+				g.stimmung.append(Stimmung.nebel(g, p, gr * 1.1, Color(0.8, 0.7, 0.45), 0.26, 0.3))
+				g.stimmung.append(Stimmung.staub(g, p + Vector3(0, 1.6, 0), Vector3(gr * 0.7, 3.0, gr * 0.7), Color(1.0, 0.85, 0.5), 28))
+			"tomb":      # Grab des Königs: Licht fällt durch einen Schacht, Staub steht darin
+				g.stimmung.append(Stimmung.lichtstrahl(g, p, 8.0, 2.4, Color(1.0, 0.82, 0.5), 0.36, 0.2, rng.randf() * TAU))
+				g.stimmung.append(Stimmung.staub(g, p + Vector3(0, 2.5, 0), Vector3(2.4, 5.0, 2.4)))
+			"glass":     # Rosetau: kalter Dunst über dem Glas, erloschene Sternzeichen im Boden
+				g.stimmung.append(Stimmung.nebel(g, p, gr * 1.1, Color(0.5, 0.75, 0.9), 0.28, 0.25))
+				g.stimmung.append(Stimmung.runenkreis(g, p, minf(2.6, gr * 0.3), Color(0.45, 0.8, 1.0), 0.32, ["nova", "meteor", "glass", "blink", "chain", "nova", "meteor", "glass"]))
+			"vault":     # Höhle des Sokar: violetter Dunst, fahle Strahlen von den Krügen
+				g.stimmung.append(Stimmung.nebel(g, p, gr * 1.1, Color(0.62, 0.45, 0.85), 0.3, 0.3))
+				g.stimmung.append(Stimmung.lichtstrahl(g, p, 7.0, 1.6, Color(0.75, 0.6, 1.0), 0.26, 0.15, rng.randf() * TAU))
