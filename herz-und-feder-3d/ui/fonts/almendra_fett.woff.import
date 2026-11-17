@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://dd578kh2yaane"
-path="res://.godot/imported/cinzel.woff-6e7a4bf58a7fe02e58c3f28a4c6e13c1.fontdata"
+uid="uid://duf85j23yi7ne"
+path="res://.godot/imported/almendra_fett.woff-729898c38ddcd71eb826e40588b974c3.fontdata"
 
 [deps]
 
-source_file="res://ui/fonts/cinzel.woff"
-dest_files=["res://.godot/imported/cinzel.woff-6e7a4bf58a7fe02e58c3f28a4c6e13c1.fontdata"]
+source_file="res://ui/fonts/almendra_fett.woff"
+dest_files=["res://.godot/imported/almendra_fett.woff-729898c38ddcd71eb826e40588b974c3.fontdata"]
 
 [params]
 

@@ -26,6 +26,9 @@ var oath_t := 0.0        # Eid der Maat
 var mantra_t := 0.0      # Kreis des Ka
 var inv := 1.5
 var dash_t := 0.0
+var dash_speed := 30.0     # Tempo des laufenden Satzes (Fähigkeit 30, Ausweichschritt 15)
+var dodge_cd := 0.0        # bis zum nächsten Ausweichschritt
+var lunge := Vector3.ZERO  # Ausfallschritt beim Hieb
 var dash_dir := Vector3.ZERO
 var dash_slam := Vector2.ZERO   # Aufprall am Ende eines Sprungs: Radius, Stärke (0 = ohne Schaden)
 var casts := 0           # gewirkte Fähigkeiten (Wort des Thot: jede fünfte ist frei)
@@ -165,11 +168,14 @@ func _physics_process(delta: float) -> void:
 			pending.remove_at(i)
 			f.call()
 	busy -= delta
+	dodge_cd -= delta
+	lunge = lunge.move_toward(Vector3.ZERO, delta * 26.0)
 	if dash_t > 0.0:
 		dash_t -= delta
-		velocity = dash_dir * 30.0
+		velocity = dash_dir * dash_speed
 		move_and_slide()
 		if dash_t <= 0.0:
+			dash_speed = 30.0
 			collision_mask = 1 | 4 | 32
 			if dash_slam.y > 0.0:
 				game.hero_slam(global_position, dash_slam.x, dash_slam.y, 9.0)
@@ -181,7 +187,7 @@ func _physics_process(delta: float) -> void:
 		if want_dir.length() > 0.1:
 			face = atan2(want_dir.x, want_dir.z)
 	vel = vel.move_toward(target, delta * (60.0 if target.length() > 0.1 else 80.0))
-	velocity = vel + kb
+	velocity = vel + kb + lunge
 	move_and_slide()
 	global_position.y = 0.0
 	turn(delta)
@@ -196,6 +202,27 @@ func _physics_process(delta: float) -> void:
 		else:
 			play(ANIM.idle)
 			step_t = 0.1
+
+# Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
+# unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.
+func dodge() -> bool:
+	if dead or dodge_cd > 0.0 or dash_t > 0.0 or stun > 0.0:
+		return false
+	var d := want_dir if want_dir.length() > 0.1 else forward()
+	dash_dir = d.normalized()
+	face = atan2(dash_dir.x, dash_dir.z)
+	dash_speed = 15.0
+	dash_t = 0.2
+	dash_slam = Vector2.ZERO
+	dodge_cd = 0.9
+	busy = 0.0
+	busy_basic = false
+	lunge = Vector3.ZERO
+	inv = maxf(inv, 0.38)
+	collision_mask = 1 | 32
+	play("Dodge_Forward", 1.9, 0.05, true)
+	game.sfx.play("dash", 0.1, -5.0)
+	return true
 
 func can(id: String) -> bool:
 	if dead or (busy > 0.0 and not busy_basic) or dash_t > 0.0 or stun > 0.0 or not cd.has(id) or cd[id] > 0.0:
@@ -221,6 +248,8 @@ func attack() -> bool:
 	var st := 0.6 if heavy else 0.0
 	var tempo: float = Spiel.S.rate / 1.75
 	vel = Vector3.ZERO
+	if C.basic == "melee" or C.basic == "combo":
+		lunge = forward() * 3.4   # ein halber Schritt in den Hieb hinein
 	match C.basic:
 		"melee":
 			var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
@@ -510,3 +539,4 @@ func revive(pos: Vector3) -> void:
 	vel = Vector3.ZERO
 	global_position = pos
 	play(ANIM.idle, 1.0, 0.0, true)
+	reset_physics_interpolation()   # nicht vom Ort der Niederlage herübergleiten

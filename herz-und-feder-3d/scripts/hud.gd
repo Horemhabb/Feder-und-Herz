@@ -7,6 +7,11 @@ const DIM := Color("a39c8e")
 const GOLD := Color("e8b04a")
 const TEAL := Color("8fe3e0")
 const PANEL := Color(0.085, 0.075, 0.075, 0.95)
+# Tinte auf Papyrus: Fenster sind beschriebene Blätter. Überschriften stehen in rotem Ocker (die Rubriken der Schreiber).
+const INK := Color("2a1a0c")
+const INK_DIM := Color("6b5236")
+const RUBRIK := Color("8c2a14")
+const INK_TEAL := Color("1f5c5a")
 
 var game: Node
 var root: Control
@@ -16,8 +21,11 @@ var orb_en: Kugel
 var waage: Control          # Herzwaage: Feder links, Herz rechts
 var quest_box: VBoxContainer
 var l_buff: Label
-var f_zier: FontFile        # Cinzel: Titel, Stempel, Knöpfe
-var f_text: FontFile        # EB Garamond: Fließtext
+var f_zier: FontFile        # Almendra SC: Stempel in Kapitälchen, Knöpfe
+var f_text: FontFile        # Almendra: Fließtext, wie mit der Rohrfeder geschrieben
+var f_fett: FontFile        # Almendra fett: Titel
+var papier: Array = []      # Papyrus-Flächen: was darauf steht, wird mit Tinte geschrieben
+var ink_dirty := false
 var dialog_opts: Array = [] # Antworten im Gesprächsfenster (Tasten 1 bis 9)
 var herz_alt := 999.0
 var ann_queue: Array = []   # Ankündigungen, die noch anstehen
@@ -56,10 +64,22 @@ func _ready() -> void:
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	f_zier = load("res://ui/fonts/cinzel.woff")
-	f_text = load("res://ui/fonts/garamond.woff")
-	f_zier.fallbacks = [ThemeDB.fallback_font]
-	f_text.fallbacks = [ThemeDB.fallback_font]
+	f_zier = load("res://ui/fonts/almendra_sc.woff")
+	f_text = load("res://ui/fonts/almendra.woff")
+	f_fett = load("res://ui/fonts/almendra_fett.woff")
+	for f in [f_zier, f_text, f_fett]:
+		f.fallbacks = [ThemeDB.fallback_font]
+	get_tree().node_added.connect(_on_node_added)
+	# Vignette: der Bildrand dunkelt ab, der Blick bleibt bei der Figur
+	var vig := ColorRect.new()
+	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vsh := Shader.new()
+	vsh.code = "shader_type canvas_item;\nvoid fragment() {\n\tvec2 p = UV - 0.5;\n\tCOLOR = vec4(0.02, 0.015, 0.03, smoothstep(0.16, 0.72, dot(p, p) * 2.1) * 0.6);\n}\n"
+	var vm := ShaderMaterial.new()
+	vm.shader = vsh
+	vig.material = vm
+	root.add_child(vig)
 	var th := Theme.new()
 	th.default_font = f_text
 	th.default_font_size = 18
@@ -68,9 +88,8 @@ func _ready() -> void:
 	# oben links: Stunde, Name, Fortschritt
 	var tlp := PanelContainer.new()
 	tlp.position = Vector2(8, 6)
-	var tls := _flat(Color(0.03, 0.025, 0.03, 0.42), 6)
-	tls.set_content_margin_all(10)
-	tlp.add_theme_stylebox_override("panel", tls)
+	tlp.add_theme_stylebox_override("panel", _papyrus(16))
+	papier.append(tlp)
 	tlp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(tlp)
 	var tl := VBoxContainer.new()
@@ -88,7 +107,7 @@ func _ready() -> void:
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(quest_box)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen · Leertaste: ausweichen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -256,6 +275,21 @@ func _ready() -> void:
 	punkt_btn.visible = false
 	punkt_btn.pressed.connect(func(): game.toggle_tree())
 	root.add_child(punkt_btn)
+	if game.touch:
+		# Ausweichschritt für den Daumen, unten rechts
+		var ab := Button.new()
+		ab.text = "Ausweichen"
+		ab.focus_mode = Control.FOCUS_NONE
+		ab.add_theme_font_override("font", f_zier)
+		ab.add_theme_font_size_override("font_size", 14)
+		ab.add_theme_stylebox_override("normal", _flat(Color(0.065, 0.055, 0.06, 0.9), 8, Color("7a5a26"), 2))
+		ab.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, GOLD, 2))
+		ab.add_theme_color_override("font_color", PARCH)
+		ab.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		ab.position = Vector2(-150, -96)
+		ab.custom_minimum_size = Vector2(132, 78)
+		ab.pressed.connect(func(): game.hero.dodge())
+		root.add_child(ab)
 	punkt_tw = create_tween().set_loops()
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(1.25, 1.2, 1.0, 1.0), 0.7)
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(0.85, 0.85, 0.85, 1.0), 0.7)
@@ -313,12 +347,67 @@ func _label(t: String, size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = t
 	# Zierschrift für Titel und für Stempel in Großbuchstaben, sonst die Textschrift (zwei Punkt größer: sie läuft schmaler)
-	var zier: bool = size >= 22 or (t.length() > 2 and t == t.to_upper() and t != t.to_lower())
-	l.add_theme_font_override("font", f_zier if zier else f_text)
-	l.add_theme_font_size_override("font_size", size if zier else size + 2)
+	var stempel: bool = t.length() > 2 and t == t.to_upper() and t != t.to_lower()
+	l.add_theme_font_override("font", f_fett if size >= 22 else (f_zier if stempel else f_text))
+	l.add_theme_font_size_override("font_size", size + (0 if size >= 22 else (3 if stempel else 2)))
 	l.add_theme_color_override("font_color", col)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
+
+# Papyrusblatt als Fläche: gekreuzte Fasern, ausgefranster dunkler Rand (ui/papyrus.webp, erzeugt mit tools/papyrus.py)
+func _papyrus(margin := 26) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = load("res://ui/papyrus.webp")
+	sb.set_texture_margin_all(40)
+	sb.set_content_margin_all(margin)
+	return sb
+
+func _on_node_added(n: Node) -> void:
+	if n is Control and not papier.is_empty() and not ink_dirty:
+		ink_dirty = true
+		_ink_all.call_deferred()
+
+# Alles, was auf Papyrus steht, bekommt Tinte: helle Schrift wird dunkelbraun, Gold wird zur roten Rubrik.
+# Dunkle Einlagen (Felder für Gegenstände) behalten ihre helle Schrift.
+func _ink_all() -> void:
+	ink_dirty = false
+	papier = papier.filter(func(p): return is_instance_valid(p))
+	for p in papier:
+		_ink_walk(p, p)
+
+func _ink_color(c: Color) -> Color:
+	for pair in [[PARCH, INK], [DIM, INK_DIM], [GOLD, RUBRIK], [TEAL, INK_TEAL]]:
+		var k: Color = pair[0]
+		if absf(c.r - k.r) + absf(c.g - k.g) + absf(c.b - k.b) < 0.02:
+			return Color(pair[1], maxf(c.a, 0.75))
+	if c.get_luminance() > 0.5:
+		# unbekannte helle Farbe (Seltenheit eines Gegenstands): dunkler und satter, damit sie auf Papyrus lesbar ist
+		return Color.from_hsv(c.h, minf(1.0, c.s * 1.3 + 0.25), c.v * 0.4, maxf(c.a, 0.8))
+	return c
+
+func _ink_walk(n: Node, blatt: Node) -> void:
+	if n != blatt and (n is PanelContainer or n is Panel):
+		var sb: StyleBox = n.get_theme_stylebox("panel")
+		if sb is StyleBoxFlat and sb.bg_color.a > 0.5 and sb.bg_color.get_luminance() < 0.35:
+			return   # dunkle Einlage: bleibt, wie sie ist
+	if n is Button:
+		var nb: StyleBox = n.get_theme_stylebox("normal")
+		if nb is StyleBoxFlat and nb.bg_color.a > 0.5 and nb.bg_color.get_luminance() < 0.35:
+			return
+		var hb: StyleBox = n.get_theme_stylebox("hover")
+		if hb is StyleBoxFlat and hb.bg_color.a < 0.1 and hb.bg_color.get_luminance() > 0.9:
+			n.add_theme_stylebox_override("hover", _flat(Color(0.35, 0.2, 0.08, 0.14), 8, INK_DIM, 1))
+	if n is Control:
+		for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color", "font_hover_pressed_color"]:
+			if n.has_theme_color_override(key):
+				var c: Color = n.get_theme_color(key)
+				var m := _ink_color(c)
+				if m != c:
+					n.add_theme_color_override(key, m)
+		if n is Label and n.has_theme_constant_override("outline_size"):
+			n.add_theme_constant_override("outline_size", 0)
+	for ch in n.get_children():
+		_ink_walk(ch, blatt)
 
 func _flat(col: Color, radius := 6, border := Color(0, 0, 0, 0), bw := 0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -423,11 +512,8 @@ func _announce_next() -> void:
 		return
 	var a: Array = ann_queue.pop_front()
 	var p := PanelContainer.new()
-	var st := _flat(Color(0.07, 0.06, 0.06, 0.94), 8, Color("c9a04a"), 2)
-	st.set_content_margin_all(14)
-	st.shadow_color = Color(0, 0, 0, 0.6)
-	st.shadow_size = 10
-	p.add_theme_stylebox_override("panel", st)
+	p.add_theme_stylebox_override("panel", _papyrus(22))
+	papier.append(p)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	p.position = Vector2(-290, 262)   # unter dem Banner der Stunde, mitten im Blick
@@ -463,6 +549,8 @@ func _announce_next() -> void:
 		_announce_next())
 
 func _process(_d: float) -> void:
+	if ann_box and is_instance_valid(ann_box):
+		ann_box.visible = overlay == null   # Ankündigungen liegen nie über einem Fenster
 	if l_quer:
 		var vs := get_viewport().get_visible_rect().size
 		l_quer.visible = vs.y > vs.x
@@ -669,7 +757,7 @@ func _button(text: String, main: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.add_theme_font_override("font", f_zier)
-	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_font_size_override("font_size", 17)
 	b.custom_minimum_size = Vector2(0, 46)
 	if main:
 		b.add_theme_stylebox_override("normal", _flat(GOLD, 8))
@@ -742,7 +830,8 @@ func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 	mc.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(minf(width, get_viewport().get_visible_rect().size.x - 32.0), 0)
-	panel.add_theme_stylebox_override("panel", _flat(Color(PANEL, 0.8) if titel else (PANEL if dim < 0.99 else Color(0, 0, 0, 0)), 10, Color("5c4a2e"), 1 if dim < 0.99 or titel else 0))
+	panel.add_theme_stylebox_override("panel", _papyrus(14))
+	papier.append(panel)
 	center.add_child(panel)
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
@@ -967,7 +1056,7 @@ func _class_card(c: String) -> Control:
 	tr.custom_minimum_size = Vector2(60 if game.touch else 100, 0)
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(tr)
-	var l := _label(C.name, 13 if game.touch else 15, C.col if on else PARCH)
+	var l := _label(C.name, 11 if game.touch else 14, C.col if on else PARCH)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1014,7 +1103,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.0", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.2", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist

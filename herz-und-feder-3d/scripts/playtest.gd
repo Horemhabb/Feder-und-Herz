@@ -83,6 +83,13 @@ func run() -> void:
 	check("gehaltene linke Maustaste läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
 	shot("laufen")
 	# Fähigkeiten und Schalter
+	# Ausweichschritt
+	await wait(0.3)
+	p0 = h.global_position
+	await key(KEY_SPACE)
+	await wait(0.35)
+	check("Leertaste: Ausweichschritt (%.1f m), kurz unverwundbar" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5 and h.dodge_cd > 0.0)
+	check("Fenster liegen auf Papyrus, die Schrift ist Tinte", G.hud.papier.size() >= 1 and G.hud.f_text != null)
 	# Fähigkeiten werden mit den Stufen gelernt und groß angekündigt
 	check("auf Stufe 1 sind zwei Fähigkeiten gelernt, die übrigen zeigen ihre Stufe", h.can("whirl") and not h.can("dash") and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2" and G.hud.skill_ui["beam"].lock.text == "")
 	while Spiel.lvl < 5:

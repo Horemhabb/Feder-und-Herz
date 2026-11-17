@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://blbsblypiuscw"
-path="res://.godot/imported/garamond.woff-20e48e64eb4867a918251ff95d014f53.fontdata"
+uid="uid://halid8o3jp8p"
+path="res://.godot/imported/almendra.woff-0740d03ecd07f1ee72dedc9ca91949c1.fontdata"
 
 [deps]
 
-source_file="res://ui/fonts/garamond.woff"
-dest_files=["res://.godot/imported/garamond.woff-20e48e64eb4867a918251ff95d014f53.fontdata"]
+source_file="res://ui/fonts/almendra.woff"
+dest_files=["res://.godot/imported/almendra.woff-0740d03ecd07f1ee72dedc9ca91949c1.fontdata"]
 
 [params]
 

@@ -43,6 +43,8 @@ func run() -> void:
 		G = g()
 	var h: Hero = G.hero
 	G.orte.auto = false   # Orte lösen im Klassentest nicht aus (die Figur wird neben Gegner gesetzt)
+	for c in G.chests:
+		c.open = true     # Truhen ebenso: ein Fundfenster hielte das Spiel an
 	var cls := Spiel.cls
 	print("KLASSE ", cls, " (", Spiel.CLS[cls].name, ")")
 	check("die gewählte Klasse ist im Spiel", h.cls == cls and h.SK.size() == 6)
