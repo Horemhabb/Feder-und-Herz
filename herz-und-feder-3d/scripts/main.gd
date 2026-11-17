@@ -473,9 +473,9 @@ func _chest(pos: Vector3, tier: int) -> void:
 	var tr := Deko.truhe(self, pos, tier)
 	var n: Node3D = tr.n
 	n.rotation.y = PI
-	n.scale = Vector3.ONE * (1.25 if tier == 2 else 1.05)
+	n.scale = Vector3.ONE * (0.8 if tier == 2 else 0.66)   # 2.7.1: kleiner, die Truhen wirkten neben den Figuren übergroß
 	var lid: Node3D = tr.lid
-	var body := _box(pos, Vector3(1.4, 1.0, 1.0))
+	var body := _box(pos, Vector3(1.0, 0.8, 0.7))
 	var l := Label3D.new()
 	l.text = CHEST[tier].name
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED

@@ -125,6 +125,11 @@ static func icon(id: String, px := 64) -> Texture2D:
 	var k := "%s_%d" % [id, px]
 	if _ic_cache.has(k):
 		return _ic_cache[k]
+	# seit 2.7.1: Relief aus tools/symbole/symbole.py (Stein und Gold mit Licht); sonst das gezeichnete Zeichen
+	var bild := "res://ui/symbole/%s.webp" % id
+	if ResourceLoader.exists(bild):
+		_ic_cache[k] = load(bild)
+		return _ic_cache[k]
 	var img := Image.new()
 	var svg := Glyphen.svg(id, Glyphen.cls_of(id))   # goldene Hieroglyphe auf der Steintafel der Klasse
 	img.load_svg_from_string(svg, px / 56.0)
