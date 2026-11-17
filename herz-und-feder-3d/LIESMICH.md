@@ -200,6 +200,14 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.3.3: Das Tuch der Gewogenen
+
+- Nach der fünften Stunde ruft Thot den Namen des Laternenträgers und wiegt sein Herz. Seitdem trägt der Eidträger
+  (mit „Neue 3D-Figuren“) das Nemes-Kopftuch mit Uräus: `models/chars/Eidtraeger_Nemes.glb`, gebaut mit
+  `--gesicht=nemes`. Das Urteil der fünften Stunde erzählt es. Abgeleitet aus dem Spielstand (sechste Stunde erreicht),
+  alte Spielstände brauchen kein neues Feld.
+- Schaukasten: Knopf „Tuch der Gewogenen“.
+
 ### Fassung 2.3.2
 
 - **Gesicht des Eidträgers:** Sieben Wege ausprobiert (Einzelheiten in `WERKSTATT.md`, Abschnitt 3b). Gewählt: Gesicht aus

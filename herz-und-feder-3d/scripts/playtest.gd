@@ -394,5 +394,12 @@ func run() -> void:
 		champ.die()
 		await wait(0.8)
 		check("Champion (%s) besiegt: Ring und Name sind weg" % art, champ.elite_teile.size() == 2 and champ.elite_teile.all(func(n): return not n.visible))
+	# Tuch der Gewogenen: erst nach dem Urteil der fünften Stunde (sechste Stunde erreicht)
+	var mf := Spiel.max_fall
+	Spiel.max_fall = 5
+	var vorher := Geschichte.hat_tuch()
+	Spiel.max_fall = 6
+	check("Tuch der Gewogenen erst ab der sechsten Stunde", not vorher and Geschichte.hat_tuch() and Geschichte.urteil(5).contains("Tuch"))
+	Spiel.max_fall = mf
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()
