@@ -51,7 +51,11 @@ func _ready() -> void:
 		cd[id] = 0.0
 	# Werkstatt: Figur aus der Figurenfabrik (gleiche Knochen, gleiche Bewegungsnamen), sonst das bisherige Modell
 	neu3d = Spiel.neu3d and C.has("neu")
-	setup("res://models/chars/%s.glb" % (C.neu if neu3d else C.model), 1.12 if neu3d else 1.0, 0.55)
+	var modell: String = C.model
+	if neu3d:
+		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
+		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
+	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
 	collision_layer = 2
 	collision_mask = 1 | 4 | 32
 	apply_stats(true)
