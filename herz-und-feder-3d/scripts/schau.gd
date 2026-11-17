@@ -167,6 +167,18 @@ func _kammer() -> void:
 		s.n.add_child(fl)
 		fl.position = Vector3(0, 2.6, 0)
 		torches.append({"l": fl, "ph": randf() * 10.0, "e": 3.0})
+	# Grabbeigaben (seit 2.7 ägyptisch): die drei Truhen, Krüge, Kisten, Korb, Lämpchen, Schatz, Wandlampen
+	for i in 3:
+		var tr := Deko.truhe(self, Vector3(-1.5 + i * 1.5, 0.3, -3.9), i)
+		if i == 1:
+			tr.lid.rotation.x = -1.2
+	var stuecke := [["amphore", Vector3(4.2, 0, 3.4)], ["kruege", Vector3(5.6, 0, 2.6)], ["kisten", Vector3(-4.4, 0, 3.6)], ["korb", Vector3(-3.0, 0, 4.2)],
+		["lampen", Vector3(0, 0.3, -4.6)], ["schatz", Vector3(3.2, 0.3, -4.4)], ["waffen", Vector3(-3.2, 0.3, -4.4)]]
+	for st in stuecke:
+		Deko.requisit(self, st[0], st[1], 0.4).scale = Vector3.ONE * 1.25
+	for x in [-9.66, 9.66]:
+		var wl := Deko.wandlampe(self, Vector3(x, 2.4, 1.0), PI * 0.5 if x < 0 else -PI * 0.5)
+		Stimmung.flamme(wl, Vector3(0, 0.33, 0.42), 0.55, 0.42)
 	# Atmosphäre: alles Illusion, nichts davon rechnet der Renderer als Volumen
 	Stimmung.lichtstrahl(self, Vector3(0.4, 0, -4.6), 9.5, 3.4, Color(1.0, 0.84, 0.56), 0.5, 0.2, 0.4)
 	Stimmung.lichtstrahl(self, Vector3(-1.6, 0, -3.9), 9.0, 1.6, Color(1.0, 0.84, 0.56), 0.3, 0.2, 0.4)
@@ -475,7 +487,7 @@ func _pruefbilder(ordner: String) -> void:
 	dreht = false
 	DirAccess.make_dir_recursive_absolute(ordner)
 	# Name, Bewegung, Blick, Winkel, Held, Gegner, Tuch
-	var folge := [["ueberblick", 0, 0, 0.0, 0, 0, ""], ["tuch_leicht", 0, 1, -0.3, 0, 0, "leicht"], ["tuch_schwer", 0, 1, -0.3, 0, 0, "schwer"], ["tuch_schwebe", 0, 1, -0.3, 0, 0, "schwebe"],
+	var folge := [["ueberblick", 0, 0, 0.0, 0, 0, ""], ["beigaben", 0, 0, 0.0, 0, 0, ""], ["tuch_leicht", 0, 1, -0.3, 0, 0, "leicht"], ["tuch_schwer", 0, 1, -0.3, 0, 0, "schwer"], ["tuch_schwebe", 0, 1, -0.3, 0, 0, "schwebe"],
 		["priester", 4, 0, 0.3, 1, 1, ""], ["jaegerin", 0, 0, -0.3, 2, 2, ""], ["sternleserin", 3, 0, 0.2, 3, 3, ""], ["koloss", 4, 0, 0.0, 0, 4, ""], ["erloschener", 6, 0, 0.4, 3, 5, ""],
 		["h_priester", 0, 1, -0.4, 1, 1, ""], ["h_jaegerin", 0, 1, -0.4, 2, 2, ""], ["h_sternleserin", 0, 1, -0.4, 3, 3, ""],
 		["g_ruheloser", 0, 2, 0.5, 0, 1, ""], ["g_krieger", 0, 2, 0.5, 0, 2, ""], ["g_priesterin", 0, 2, 0.5, 0, 3, ""], ["g_koloss", 0, 2, 0.5, 0, 4, ""], ["g_erloschener", 0, 2, 0.5, 0, 5, ""]]

@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung 2.6
+# Herz und Feder · 3D-Fassung 2.7
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -200,6 +200,18 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.7: Keine fremde Kulisse mehr
+
+- **Truhen** wie aus einem Grab (`Deko.truhe`): Kasten auf Füßen, Deckel in Schreinform, Beschläge je nach Rang in Bronze,
+  Eisen oder Gold mit Lapis. Der Deckel klappt auf wie bisher.
+- **Wandlampen** (`Deko.wandlampe`): Bronzearm mit Ölschale und Shader-Flamme statt der Fackeln.
+- **Grabbeigaben** (`Deko.requisit`): Öllämpchen, Waffenständer mit Schild und Sichelschwert, Goldschatz, Bruchstein.
+- **Feuer** überall als Shader-Flamme statt Funken-Partikeln (auch die Feuerschalen): ruhiger, ein Zeichenaufruf,
+  in jedem Browser gleich.
+- **Der Ordner `models/dungeon` ist entfernt.** Im Spiel stammt jetzt nichts Sichtbares mehr aus den KayKit-Paketen;
+  von dort kommen nur noch Skelett und Bewegungen der Figuren (CC0).
+- Spielpaket 19,7 MB.
+
 ### Fassung 2.6: Die Welt der Stunden 2 bis 5
 
 - **Gemalte Oberflächen** (Higgsfield, Paket D, zweite Fassung): Lehmziegel und Stoppelfeld (Stunde 2), Hieroglyphenwand
@@ -215,7 +227,6 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Kamera** 18 % näher (`NAH` in `main.gd`). **Schritte** deutlich leiser.
 - **Minikarte** durchsichtig: Mauerkanten in Gold, Böden als Hauch, Rahmen mit Rauten, die Figur als Pfeil in Blickrichtung.
 - Spielpaket 20,3 MB (die gemalten Texturen bringen 3 MB mit).
-- Noch aus der alten Kulisse: Truhen, Fackeln, Kerzen, Münzen, Schutt.
 
 ### Fassung 2.5: Alle Figuren aus der Figurenfabrik, halbe Ladezeit
 
@@ -321,9 +332,6 @@ Bewusst noch nicht umgesetzt (jeweils mit Risiko oder Aufwand):
 
 ## Was noch Platzhalter ist
 
-- **Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus (die Figuren seit 2.5 nicht mehr).
-  Sie stehen für Bewegung, Licht und Ton, nicht für das endgültige Aussehen. Animationsnamen stehen nur in den
-  `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** kommt von Gomo Sounds (Spiel „Herz und Feder“ dort, vier Stücke à 30 s, nahtlos wiederholbar, „leicht utopisch, ein bisschen düster“):
   Titelthema (Startbildschirm), Wüstennacht (Freiland), Hallen der Duat (Dungeons), Hüterkampf. Dateien `audio/mus_*.ogg`,
   Lautstärken in `scripts/sfx.gd` (`VOL`), Überblenden mit `Sfx.music()`. Länger als 30 s erlaubt der kostenlose Gomo-Tarif nicht.
@@ -354,6 +362,6 @@ Bewusst noch nicht umgesetzt (jeweils mit Risiko oder Aufwand):
 
 ## Herkunft
 
-- Modelle: KayKit Adventurers, KayKit Skeletons, KayKit Dungeon Remastered von Kay Lousberg, Lizenz CC0.
+- Skelett und Bewegungen der Figuren: KayKit Adventurers und KayKit Skeletons von Kay Lousberg, Lizenz CC0. Alle Körper, Requisiten und Bauten baut das Projekt selbst.
 - Stein- und Bodentexturen: erzeugt mit Higgsfield.
 - Ton: erzeugt mit ElevenLabs (Sound Effects v2, Sprache mit der Stimme „Samuel Storm“).
