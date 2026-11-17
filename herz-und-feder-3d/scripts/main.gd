@@ -1509,6 +1509,9 @@ func _ask_gate() -> void:
 	hud.show_gate(Stunden.case_no(Spiel.fall) + " · VOLLENDET", hdef.name, epi, stats, "HINTER DER PFORTE · " + Stunden.case_no(n1), nd.name, nd.lead,
 		func():
 			sfx.hush()
+			if Stunden.hour_of(Spiel.fall) == 5:
+				# das Urteil steht fest: Es färbt das Tuch, das Thot dem Laternenträger umlegt
+				Spiel.urteil5 = "leicht" if Spiel.herz >= Geschichte.LEICHT else ("schwer" if Spiel.herz <= Geschichte.SCHWER else "schwebe")
 			go_hour(n1),
 		func():
 			sfx.hush()

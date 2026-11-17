@@ -401,5 +401,15 @@ func run() -> void:
 	Spiel.max_fall = 6
 	check("Tuch der Gewogenen erst ab der sechsten Stunde", not vorher and Geschichte.hat_tuch() and Geschichte.urteil(5).contains("Tuch"))
 	Spiel.max_fall = mf
+	# Tuchfarbe: das festgehaltene Urteil gilt, auch wenn sich das Herz danach ändert
+	var u0 := Spiel.urteil5
+	var h0 := Spiel.herz
+	Spiel.urteil5 = ""
+	var frei := Geschichte.urteil_art(30.0) == "leicht" and Geschichte.urteil_art(-30.0) == "schwer" and Geschichte.urteil_art(0.0) == "schwebe"
+	Spiel.urteil5 = "schwer"
+	Spiel.herz = 40.0
+	check("Tuchfarbe folgt dem Urteil der fünften Stunde", frei and Geschichte.urteil_art() == "schwer" and ResourceLoader.exists("res://models/chars/tuch_schwer.webp") and ResourceLoader.exists("res://models/chars/tuch_schwebe.webp"))
+	Spiel.urteil5 = u0
+	Spiel.herz = h0
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()

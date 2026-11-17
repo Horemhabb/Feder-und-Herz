@@ -242,6 +242,13 @@ static func herz_wirkung(h: float) -> String:
 static func hat_tuch() -> bool:
 	return Spiel.max_fall >= 6
 
+# Wie das Herz in der fünften Stunde gewogen wurde. Steht fest, sobald die Pforte durchschritten ist;
+# ältere Spielstände ohne diesen Eintrag nehmen das jetzige Herz.
+static func urteil_art(h: float = Spiel.herz) -> String:
+	if Spiel.urteil5 != "":
+		return Spiel.urteil5
+	return "leicht" if h >= LEICHT else ("schwer" if h <= SCHWER else "schwebe")
+
 # Urteil nach der fünften Stunde (die Waage bewegt sich wieder) und am Tor des Ostens (Ende der Nacht)
 static func urteil(n: int) -> String:
 	var h: float = Spiel.herz
@@ -250,8 +257,8 @@ static func urteil(n: int) -> String:
 		if h >= LEICHT:
 			return "Thot ruft einen Namen, und es ist deiner. Dein Herz liegt auf der Schale, und die Feder sinkt. Du bist tot, Laternenträger, das weißt du jetzt. Aber die Waage neigt sich zu dir. Bring die Barke zum Morgen, dann schreibt er es auf. Als du gehst, legt er dir ein Tuch um den Kopf, gestreift in Lapis und Gold, wie es die Könige im Westen tragen. „Wer gewogen wurde, geht nicht mehr barhäuptig.“"
 		if h <= SCHWER:
-			return "Thot ruft einen Namen, und es ist deiner. Die Schale mit deinem Herzen sinkt, und am Fuß der Waage hebt die Fresserin den Kopf. Thot legt die Hand auf die Schale. „Noch nicht. Die Barke braucht jede Hand. Sieben Stunden hast du, um leichter zu werden.“ Als du gehst, legt er dir ein Tuch um den Kopf, gestreift in Lapis und Gold, wie es die Könige im Westen tragen. „Wer gewogen wurde, geht nicht mehr barhäuptig.“"
-		return "Thot ruft einen Namen, und es ist deiner. Dein Herz liegt auf der Schale, und die Waage zittert und bleibt in der Schwebe. Thot wartet mit der Binse. „Sieben Stunden bis zum Morgen. Zeig mir bis dahin, wohin sie sich neigt.“ Als du gehst, legt er dir ein Tuch um den Kopf, gestreift in Lapis und Gold, wie es die Könige im Westen tragen. „Wer gewogen wurde, geht nicht mehr barhäuptig.“"
+			return "Thot ruft einen Namen, und es ist deiner. Die Schale mit deinem Herzen sinkt, und am Fuß der Waage hebt die Fresserin den Kopf. Thot legt die Hand auf die Schale. „Noch nicht. Die Barke braucht jede Hand. Sieben Stunden hast du, um leichter zu werden.“ Als du gehst, legt er dir ein Tuch um den Kopf, gestreift im Rot der Wüste und im Schwarz des Schlamms, die Farben des Seth. „Wer gewogen wurde, geht nicht mehr barhäuptig. Trag, was du bist.“"
+		return "Thot ruft einen Namen, und es ist deiner. Dein Herz liegt auf der Schale, und die Waage zittert und bleibt in der Schwebe. Thot wartet mit der Binse. „Sieben Stunden bis zum Morgen. Zeig mir bis dahin, wohin sie sich neigt.“ Als du gehst, legt er dir ein Tuch um den Kopf, gestreift in ungefärbtem Leinen und im Silber des Mondes. „Wer gewogen wurde, geht nicht mehr barhäuptig. Die Farbe kommt noch.“"
 	if hour == 12:
 		if h >= LEICHT:
 			return "DAS URTEIL: WAHR AN STIMME. Die Feder sinkt, dein Herz steigt. Thot schreibt deinen Namen in das Buch, und Schu hebt dich mit der Sonne über den Horizont. In Sandtor wird es Morgen. Im Norden, wo ein Platz am Himmel leer war, geht ein Stern auf, der nie mehr untergeht."
