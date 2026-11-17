@@ -182,6 +182,16 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
   Weg (die Zelle galt als belegt). Sie weicht jetzt auf die nächste freie Zelle aus (`main.gd › _free_cell`).
 - Die Aufgaben im Questbuch sind schlichter benannt (Der Hüter, Feuerschalen, Seelenkrüge).
 
+### Bilder aus dem Higgsfield-Auftrag der 2D-Fassung (K11–K14, G13–G18)
+
+- Die Bögen sind für Sprites der 2D-Fassung gemacht (vier Haltungen je Figur). In der 3D-Fassung bewegen sich echte
+  3D-Modelle, deshalb ersetzen die Bögen dort keine Figuren. Verwendet: die Standfigur jeder Klasse (K11–K14) groß in der
+  Tasche neben den Ausrüstungsplätzen (`ui/figur_<klasse>.webp`). Alle Bögen liegen verkleinert in `bilder/` (nicht im Export).
+- **Porträts in Gesprächen:** Das Gesprächsfenster zeigt links ein Porträt, sobald `ui/portraits/P01.webp` … `P10.webp`
+  vorliegen (P01–P05 die Figuren der Geschichte, P06–P10 die Leute der Stunden 1–5). Bis dahin sieht es aus wie bisher.
+  Der Auftrag dafür steht in `bilder/auftrag_3d_2.txt` (Block B), zusammen mit den noch offenen Oberflächen der
+  Stunden 2–5 (Block A) und zwei Puffern.
+
 ### Sparsam mit der Maschine (nach Empfehlungen der Godot-Doku und anderer Entwickler)
 
 Umgesetzt:

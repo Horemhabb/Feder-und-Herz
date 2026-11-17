@@ -109,14 +109,31 @@ func render() -> void:
 	top.add_child(t)
 	top.add_child(_knopf(hud._taste("  Schließen  [I]  "), false, func(): game.toggle_bag()))
 	add_child(top)
-	# Ausrüstung
+	# Ausrüstung, daneben die Figur der Klasse in ganzer Größe (gemalt, aus dem Bildauftrag K11–K14)
+	var eqrow := HBoxContainer.new()
+	eqrow.add_theme_constant_override("separation", 14)
+	var fig_path := "res://ui/figur_%s.webp" % Spiel.cls
+	if ResourceLoader.exists(fig_path):
+		var fp := PanelContainer.new()
+		var fs := hud._flat(Color(0.04, 0.035, 0.05, 0.9), 8, Color("5c4a2e"), 1)
+		fs.set_content_margin_all(6)
+		fp.add_theme_stylebox_override("panel", fs)
+		var fig := TextureRect.new()
+		fig.texture = load(fig_path)
+		fig.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		fig.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		fig.custom_minimum_size = Vector2(130, 230) if game.touch else Vector2(150, 260)
+		fp.add_child(fig)
+		eqrow.add_child(fp)
 	var eqf := HFlowContainer.new()
+	eqf.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	eqf.add_theme_constant_override("h_separation", 8)
 	eqf.add_theme_constant_override("v_separation", 8)
 	for slot in Daten.SLOTS:
 		var s: String = slot
 		eqf.add_child(_cell(Spiel.eq.get(s), func(): sel = {"eq": s}; render(), sel.get("eq", "") == s, Daten.SLOT[s].name))
-	add_child(eqf)
+	eqrow.add_child(eqf)
+	add_child(eqrow)
 	# Werte
 	var st := HFlowContainer.new()
 	st.add_theme_constant_override("h_separation", 18)

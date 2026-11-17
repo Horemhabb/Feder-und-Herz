@@ -340,11 +340,11 @@ func talk_helfer() -> void:
 			game.drop("shard", helfer.pos, 20 + 10 * n)
 			game.drop_item(helfer.pos, Spiel.new_item(n + 1, 2))
 			_update_quests()
-		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.dank], [["Danke.", lohn]])
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.dank], [["Danke.", lohn]], L.get("bild", ""))
 	elif helfer_paid:
-		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["%s winkt dir zu." % L.wer], [["Gehen", ende]])
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["%s winkt dir zu." % L.wer], [["Gehen", ende]], L.get("bild", ""))
 	else:
-		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.gruss], [["„Ich halte die Augen offen.“", ende]])
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.gruss], [["„Ich halte die Augen offen.“", ende]], L.get("bild", ""))
 
 func near_npc() -> bool:
 	return not npc.is_empty() and (npc.pos - game.hero.global_position).length() < 4.0
@@ -546,7 +546,7 @@ func _page(paras: Array, asked: Array) -> void:
 		var idx: int = i
 		opts.append(["„%s“" % f[0], func(): _page(["„%s“" % f[1]], asked + [idx])])
 	opts.append(["Gehen" if talked else "„Ich sehe, was ich tun kann.“", func(): _end_talk()])
-	game.hud.show_dialog(G.titel.to_upper(), G.wer, "", paras, opts)
+	game.hud.show_dialog(G.titel.to_upper(), G.wer, "", paras, opts, G.get("bild", ""))
 
 func _end_talk() -> void:
 	get_tree().paused = false

@@ -12,7 +12,7 @@ class_name Geschichte
 
 const H := [
 	{   # 1 · Das Tor des Westens
-		"wer": "Senu", "titel": "Wächter am Tor des Westens", "model": "Skeleton_Warrior", "tint": Color(0.75, 0.85, 0.8),
+		"wer": "Senu", "bild": "P01", "titel": "Wächter am Tor des Westens", "model": "Skeleton_Warrior", "tint": Color(0.75, 0.85, 0.8),
 		"gruss": ["Halt. Niemand geht durch das Tor des Westens, solange ich hier stehe. So lautete mein Befehl, und er wurde nie aufgehoben.",
 			"Aber sieh dich um. Sie gehen nicht hindurch, sie kommen nicht einmal mehr an. Die Lichter dort oben sind die Toten von Sandtor. Mahaf, der Fährmann, sollte sie übersetzen. Stattdessen führt er sie im Kreis, Nacht für Nacht."],
 		"fragen": [["Wer hat dir den Befehl gegeben?", "Ein König, dessen Namen ich vergessen habe. Das ist seltsam. Ich vergesse sonst nichts. Ich stehe hier seit vierhundert Überschwemmungen und kenne jedes Sandkorn."],
@@ -24,7 +24,7 @@ const H := [
 		"ba": "Die Lichter kennen dich. Hörst du? Sie rufen einen Namen, und es ist deiner.",
 	},
 	{   # 2 · Die Felder von Wernes
-		"wer": "Merit", "titel": "Schnitterin der Seligen", "model": "Rogue", "tint": Color(0.55, 0.95, 0.9),
+		"wer": "Merit", "bild": "P02", "titel": "Schnitterin der Seligen", "model": "Rogue", "tint": Color(0.55, 0.95, 0.9),
 		"gruss": ["Leise. Sie hören das Korn rascheln.",
 			"Hier haben wir geschnitten, wir Gerechtfertigten. Jeder Halm stand sieben Ellen hoch. Dann kam die Brut und häutete sich zwischen den Garben, und jetzt wächst hier nur noch, was Apophis abstreift."],
 		"fragen": [["Wie sind sie hereingekommen?", "Jemand hat das Feldtor von innen geöffnet. Am Riegel klebt Siegelwachs. Ein Königsring, aber der Name darin ist herausgekratzt."],
@@ -36,7 +36,7 @@ const H := [
 		"ba": "Hier roch es einmal nach Brot. Erinnerst du dich an Brot?",
 	},
 	{   # 3 · Der König ohne Namen
-		"wer": "Chaemwese", "titel": "Schreiber des Grabes", "model": "Skeleton_Mage", "tint": Color(0.95, 0.85, 0.65),
+		"wer": "Chaemwese", "bild": "P03", "titel": "Schreiber des Grabes", "model": "Skeleton_Mage", "tint": Color(0.95, 0.85, 0.65),
 		"gruss": ["Tritt nicht auf die Splitter. Das sind Buchstaben.",
 			"Ich habe seinen Namen aus diesen Wänden geschlagen, jeden einzelnen. Er hat es mir selbst befohlen, und ich habe nicht gefragt, warum. Ein Schreiber fragt nicht. Jetzt liegt er wach und weiß nicht mehr, wer er ist."],
 		"fragen": [["Warum befiehlt ein König so etwas?", "Wer keinen Namen hat, wird nicht aufgerufen. Wer nicht aufgerufen wird, wird nicht gewogen. Er hatte Angst vor der Waage. Die meisten Könige haben Grund dazu."],
@@ -48,7 +48,7 @@ const H := [
 		"ba": "Lies die Wände nicht. Was fehlt, ist das Wichtige.",
 	},
 	{   # 4 · Rosetau
-		"wer": "Ein Erloschener", "mit": "dem Erloschenen", "titel": "einst ein Unvergänglicher Stern", "model": "Mage", "tint": Color(0.6, 0.7, 0.85),
+		"wer": "Ein Erloschener", "bild": "P04", "mit": "dem Erloschenen", "titel": "einst ein Unvergänglicher Stern", "model": "Mage", "tint": Color(0.6, 0.7, 0.85),
 		"gruss": ["Du trägst Licht. Halt es nicht so hoch. Es tut weh, sich zu erinnern.",
 			"Wir waren die Sterne, die niemals untergehen. Wir zogen die Barke über Sokars Sand. Dann kam einer und sagte: Gebt mir eure Herzen, und ihr werdet nie gewogen. Wir wussten nicht, dass ein Stern ohne Herz erlischt."],
 		"fragen": [["Wer war das?", "Er trug den Schurz eines Richters. Einer der Zweiundvierzig. Er weinte, als er die Krüge verschloss. Das habe ich nie verstanden."],
@@ -60,7 +60,7 @@ const H := [
 		"ba": "Sieh nicht nach oben. Da ist nichts mehr.",
 	},
 	{   # 5 · Die Höhle des Sokar
-		"wer": "Ein alter Richter", "mit": "dem alten Richter", "titel": "der Schatten des Sammlers", "model": "Mage", "tint": Color(0.75, 0.55, 0.95),
+		"wer": "Ein alter Richter", "bild": "P05", "mit": "dem alten Richter", "titel": "der Schatten des Sammlers", "model": "Mage", "tint": Color(0.75, 0.55, 0.95),
 		"gruss": ["Setz dich, Laternenträger. Du bist weit gegangen für jemanden, der im Herbst gestorben ist.",
 			"Ja. Am Fieber, wie die halbe Stadt. Die Priester haben dich gewaschen und gesalbt und dir die Laterne in die Hände gelegt, bevor du kalt warst. Nur Tote kommen durch das Tor, und nur wer es nicht weiß, geht ohne Furcht. Sie haben dich benutzt. Ich benutze niemanden. Ich bewahre."],
 		"fragen": [["Warum hast du die Waage angehalten?", "Ich saß zweiundvierzigtausend Nächte zu Gericht. Ich habe gesehen, wie die Fresserin Herzen verschlang, die nur müde waren, nicht böse. Eines davon gehörte meiner Tochter. Da stand ich auf. Seitdem wird niemand mehr verschlungen. Nenn mir eine größere Gnade."],
@@ -155,23 +155,23 @@ const H := [
 # Schafe, die Bäuerin ihre Saatsäcke, das Kind die Kätzchen. Drei Dinge liegen oder laufen irgendwo in der Stunde herum.
 # ding: schaf, esel, ziege (Tiere) · sack, korb (Säcke) · kiste (Werkzeug) · krug (Wasser) · katze
 const LEUTE := [
-	{"wer": "Djau", "titel": "Schafhirte aus Sandtor", "model": "Barbarian", "ding": "schaf", "was": "Schafe", "eins": "Ein Schaf",
+	{"wer": "Djau", "bild": "P06", "titel": "Schafhirte aus Sandtor", "model": "Barbarian", "ding": "schaf", "was": "Schafe", "eins": "Ein Schaf",
 		"gruss": "Du da, mit der Lampe! Hast du meine Schafe gesehen? Drei Stück. Die Lichter am Himmel haben sie erschreckt, und weg waren sie. Ohne die Schafe brauche ich gar nicht erst heimzukommen.",
 		"fund": "Es sieht dich vorwurfsvoll an und trottet dann von selbst zum Hirten zurück.",
 		"dank": "Alle drei, auch die Dicke! Ich habe nicht viel, aber das hier habe ich im Sand gefunden. Nimm es, du kannst es besser brauchen."},
-	{"wer": "Ipi", "titel": "Bäuerin", "model": "Rogue", "ding": "sack", "was": "Saatsäcke", "eins": "Ein Sack Gerste",
+	{"wer": "Ipi", "bild": "P07", "titel": "Bäuerin", "model": "Rogue", "ding": "sack", "was": "Saatsäcke", "eins": "Ein Sack Gerste",
 		"gruss": "Die Biester haben mir die Saat verschleppt. Drei Säcke Gerste. Wenn die weg sind, gibt es nächstes Jahr kein Brot, ganz gleich in welcher Welt.",
 		"fund": "Schwer, aber heil. Du stellst ihn so hin, dass Ipi ihn vom Weg aus sieht.",
 		"dank": "Das reicht für ein ganzes Feld. Hier, das lag zwischen den Halmen. Ich kann damit nichts anfangen."},
-	{"wer": "Hori", "titel": "Steinmetz", "model": "Barbarian", "ding": "kiste", "was": "Werkzeugkisten", "eins": "Eine Werkzeugkiste",
+	{"wer": "Hori", "bild": "P08", "titel": "Steinmetz", "model": "Barbarian", "ding": "kiste", "was": "Werkzeugkisten", "eins": "Eine Werkzeugkiste",
 		"gruss": "Ich habe mein Werkzeug fallen lassen, als die Toten aufstanden. Hättest du auch. Meißel, Schlegel, Lot: drei Kisten. Ohne Werkzeug bin ich nur ein Mann mit starken Armen.",
 		"fund": "Kupfermeißel, sauber geschliffen. Wer so mit Werkzeug umgeht, will es wiederhaben.",
 		"dank": "Nichts fehlt. Sogar das Lot hängt noch gerade. Das hier habe ich aus einer Wand gebrochen, bevor ich wusste, wem sie gehört. Nimm du es."},
-	{"wer": "Tia", "titel": "Wasserträgerin", "model": "Rogue", "ding": "krug", "was": "Wasserkrüge", "eins": "Ein Wasserkrug",
+	{"wer": "Tia", "bild": "P09", "titel": "Wasserträgerin", "model": "Rogue", "ding": "krug", "was": "Wasserkrüge", "eins": "Ein Wasserkrug",
 		"gruss": "Hier gibt es kein Wasser, also habe ich meines mitgebracht. Drei Krüge. Dann kam so ein graues Ding auf mich zu, ich bin gerannt, und jetzt stehen die Krüge irgendwo da drin.",
 		"fund": "Noch voll, noch kühl. Du trinkst einen Schluck. Das wird sie dir verzeihen.",
 		"dank": "Du hast daraus getrunken, das sehe ich. Macht nichts, dafür ist es da. Hier, das habe ich unterwegs aufgelesen."},
-	{"wer": "Nefru", "titel": "ein Kind", "model": "Mage", "klein": true, "ding": "katze", "was": "Kätzchen", "eins": "Ein Kätzchen",
+	{"wer": "Nefru", "bild": "P10", "titel": "ein Kind", "model": "Mage", "klein": true, "ding": "katze", "was": "Kätzchen", "eins": "Ein Kätzchen",
 		"gruss": "Meine Katze hat Junge gekriegt, und die sind weggelaufen. Drei. Die Katze sucht auch schon, aber sie kann nicht so gut zählen.",
 		"fund": "Es faucht dich an, so gut es kann, und läuft dann mit steilem Schwanz nach Hause.",
 		"dank": "Eins, zwei, drei! Die Katze sagt danke. Sie hat dir was mitgebracht. Ich glaube, es war mal eine Maus, aber das hier glänzt mehr."},
