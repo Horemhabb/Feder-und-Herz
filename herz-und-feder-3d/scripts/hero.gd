@@ -74,6 +74,18 @@ func _ready() -> void:
 		m.layers = 2
 	lantern.shadow_caster_mask = 0xFFFFF & ~2
 	add_child(lantern)
+	if neu3d:
+		# Figurenlicht: Die Laterne hängt über dem Kopf und ließ das Haar weiß ausbrennen, während das Gesicht im Dunkeln lag.
+		# Jetzt beleuchtet sie nur die Welt; die Figur bekommt ein eigenes warmes Licht von der Seite der Kamera
+		# (Kamera steht schräg oben bei +x +z). Wie das Führungslicht beim Film, nur für den Helden.
+		lantern.light_cull_mask = 0xFFFFF & ~2
+		var fuehrung := OmniLight3D.new()
+		fuehrung.light_color = Color(1.0, 0.8, 0.55)
+		fuehrung.light_energy = 1.6
+		fuehrung.omni_range = 5.5
+		fuehrung.light_cull_mask = 2
+		fuehrung.position = Vector3(1.6, 3.2, 1.6)
+		add_child(fuehrung)
 	aura = OmniLight3D.new()
 	aura.light_color = Color(1.0, 0.85, 0.3)
 	aura.light_energy = 0.0
