@@ -200,6 +200,15 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.3.1
+
+- **Eidträger mit gemalten Texturen:** Schuppen, Kragen, Lasche, Leinen, Tuch, Klinge, Gesicht und Bronze stammen jetzt
+  aus dem gemalten Bogen K11 (`tools/figurenfabrik/gemalt.py`, Einzelheiten in `WERKSTATT.md`, Abschnitt 3a).
+- **Fehler behoben:** Besiegte Champions (z. B. „Irrender Ba, zäh“ oder ein Skorpion-Champion) ließen ihren goldenen
+  Ring und ihr Namensschild stehen, als lebten sie noch. Beides verschwindet jetzt mit ihnen; der Spieltest prüft das.
+- Spieltest: Die Prüfung „Fingertipp auf einen Gegner“ wählte manchmal einen Gegner an einer Mauer; sie versucht es jetzt
+  bis zu dreimal mit Gegnern, die stillhalten.
+
 ### Fassung 2.3: Werkstatt (Pfad 2 und 3)
 
 Der ganze Bericht steht in `WERKSTATT.md` (Bestandsaufnahme, Methodenvergleich, Performance, Lizenzen, Integrationsplan).
