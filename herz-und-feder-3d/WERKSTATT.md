@@ -135,6 +135,56 @@ Züge. Deshalb gibt es zusätzlich ein **Figurenlicht** (`hero.gd`): Die Laterne
 bekommt ein warmes Führungslicht von der Seite der Kamera. Vorher brannte das Haar im Laternenlicht weiß aus, und das
 Gesicht lag im Dunkeln.
 
+### 3c. Der Baukasten (Fassungen 2.4 und 2.5)
+
+Aus dem Einzelstück Eidträger wurde ein Baukasten: `tools/figurenfabrik/mensch.py` baut jeden Menschen und
+Menschenähnlichen aus einer Beschreibung, `figuren.py` enthält alle Beschreibungen. Eine Figur ist jetzt rund 15 Zeilen:
+
+- **Körperbau** über Faktoren: Schultern, Taille, Hüfte, Arme, Beine, weibliche Form; dazu eine Haltung (gebeugt, gereckt)
+- **Teile** zum An- und Abwählen: Kragen, Gürtel, Rock in jeder Länge vom Schurz bis zum Kleid, Lasche, Rückentuch oder
+  Umhang, Haartrachten (kurz, Glatze, lange Zöpfe, Dutt, Königstuch, Binden), Feder, Laterne, Köcher, Schienen;
+  Waffen: Schwert, Sichelschwert, Bogen, Sternenstab, Keule, Schild
+- **Texturtafel**: Feld für Feld aus dem gemalten Bogen (kacheln, als Ganzes, abrollen, Hautfarbe, Brust weich einsetzen,
+  Borte am Saum); Gesicht aus Bogen und Porträt; Leuchtkarte für Augen und Herzloch
+- **Varianten**: `variante("Ruheloser", bau=…, teile=…)` macht aus der Mumie den Koloss oder den Erloschenen.
+  Hüter sind Varianten über Größe und Tönung im Spiel. Das ist die „Monster-Maschine“.
+
+| Figur | Vorlage | Dreiecke | Rolle im Spiel |
+|---|---|---|---|
+| Eidträger (+ Tuch) | K11 | 3.664 | Held |
+| Priester | K12 | 2.808 | Held |
+| Jägerin | K13 | 3.472 | Heldin, mit Bogen und Köcher |
+| Sternleserin | K14 | 3.580 | Heldin, mit Sternenstab |
+| Herzloser | G13 | 2.128 | Gegner |
+| Ruheloser | G14 | 2.720 | Gegner; Mumie mit leuchtendem Herzloch |
+| Krieger | G15 | 3.560 | Sebau-Krieger; Hüter „König ohne Namen“ (größer, golden) |
+| Priesterin | G12 | 3.372 | Sebau-Priesterin mit Kobrahaube |
+| Koloss | G14 (Variante) | 2.768 | Sebau-Koloss; Hüter „Mutter der Häute“, „Stummer Türhüter“ |
+| Erloschener | G14 (Variante) | 2.938 | Gegner; Hüter „Der Sammler“ |
+| Mann, Frau, Alter | K12–K14 (Varianten) | rund 3.300 | Leute und Gestalten der Geschichte |
+
+Seit 2.5 gibt es im Spiel **keine KayKit-Figuren mehr**. Skelett und Bewegungen stammen weiter von dort (CC0); die zwei
+Quelldateien liegen unter `tools/figurenfabrik/rigs/` und kommen nicht ins Spiel. Der Schalter „Neue 3D-Figuren“ ist
+entfallen. Was es noch nicht gibt: der Fuchs der Jägerin (weiter ein Lichtwesen), Irrlicht und Skorpion (weiter
+prozedural), eigene Baupläne für die Hüter.
+
+### 3d. Ladezeit
+
+| | Fassung 2.3 | Fassung 2.5 |
+|---|---|---|
+| Spielpaket (`index.pck`) | 54,7 MB | 17,1 MB |
+| davon Stein- und Bodentexturen | 22,4 MB | 3,8 MB |
+| davon Figuren | 13,6 MB + Farbtafeln | 3,6 MB + 2 MB Tafeln |
+
+- **Texturen:** Stein, Boden und Requisiten lagen in zwei Grafikformaten zugleich im Paket (für Desktop und für Handy).
+  Jetzt liegt jede einmal als verlustbehaftetes Bild darin; Reliefkarten in halber Auflösung. Im Bildvergleich
+  (gleiche Karte, gleiche Stelle) ist kein Unterschied zu sehen. Preis: Die Texturen liegen unkomprimiert im
+  Grafikspeicher, rund 30 MB statt 14 MB. Für heutige Handys unkritisch, aber auf dem iPhone bitte gegenprüfen.
+- **Figuren:** elf Figuren aus der Fabrik statt acht KayKit-Figuren mit je 76 bis 95 Bewegungen, von denen das Spiel
+  ein Fünftel brauchte.
+- **Ton:** Hintergrundgeräusche und Erzählstimme einkanalig (halbe Größe, hörbar kein Unterschied bei Stimme und Wind).
+- Nicht geändert: die Engine selbst (`index.wasm`, 39,5 MB; der Server liefert sie gepackt aus, rund ein Viertel davon).
+
 ## 4. Der Herzlose
 
 Vorlage: G13. Im Spiel hieß die Gegnerart schon „Herzloser“; jetzt sieht man es. Dunkle Schuppenhaut, in der Brust

@@ -1,20 +1,21 @@
 extends Node3D
 # Schaukasten der Werkstatt (Fassung 2.3): eine kleine Kammer im Tempel, in der die Figuren aus der Figurenfabrik stehen.
-# Hier lassen sich alle Bewegungen durchschalten, alt und neu vergleichen und die Figur frei bewegen.
+# Hier lassen sich alle Helden und Gegner mit allen Bewegungen durchschalten und der Held frei bewegen.
 # Start: Knopf „Werkstatt“ auf dem Titelbild oder „-- --schau“. Prüfbilder: „-- --schau --schau-bild=<Ordner>“.
 
-const BEWEGUNGEN := [
-	["Stehen", "2H_Melee_Idle", "Idle_Combat", true],
-	["Gehen", "Walking_A", "Walking_D_Skeletons", true],
-	["Laufen", "Running_A", "Running_A", true],
-	["Angriff", "2H_Melee_Attack_Slice", "1H_Melee_Attack_Chop", false],
-	["Schwerer Angriff", "2H_Melee_Attack_Chop", "2H_Melee_Attack_Chop", false],
-	["Treffer", "Hit_A", "Hit_A", false],
-	["Ausweichen", "Dodge_Forward", "Spellcast_Shoot", false],
-	["Tod", "Death_A", "Death_C_Skeletons", false],
-	["Besondere Fähigkeit", "2H_Melee_Attack_Spin", "Spellcast_Summon", false],
+const BEWEGUNGEN := [["Stehen", true], ["Gehen", true], ["Laufen", true], ["Angriff", false], ["Schwerer Angriff", false], ["Treffer", false],
+	["Ausweichen", false], ["Tod", false], ["Besondere Fähigkeit", false]]
+# Name, Modell, die neun Bewegungen in der Reihenfolge von BEWEGUNGEN
+const HELDEN := [
+	["Eidträger", "Eidtraeger", ["2H_Melee_Idle", "Walking_A", "Running_A", "2H_Melee_Attack_Slice", "2H_Melee_Attack_Chop", "Hit_A", "Dodge_Forward", "Death_A", "2H_Melee_Attack_Spin"]],
+	["Priester des Schu", "Priester", ["Unarmed_Idle", "Walking_A", "Running_A", "Unarmed_Melee_Attack_Punch_A", "Unarmed_Melee_Attack_Kick", "Hit_A", "Dodge_Forward", "Death_A", "Spellcast_Raise"]],
+	["Wüstenjägerin", "Jaegerin", ["2H_Ranged_Aiming", "Walking_A", "Running_A", "2H_Ranged_Shoot", "2H_Ranged_Shooting", "Hit_A", "Dodge_Forward", "Death_A", "Interact"]],
+	["Sternleserin", "Sternleserin", ["Idle", "Walking_A", "Running_A", "Spellcast_Shoot", "Spellcast_Long", "Hit_A", "Dodge_Forward", "Death_A", "Spellcast_Raise"]],
 ]
-const SCHLEIFEN := ["2H_Melee_Idle", "Idle_Combat", "Idle", "Walking_A", "Walking_D_Skeletons", "Running_A"]
+const FEIND_BEW := ["Idle_Combat", "Walking_D_Skeletons", "Running_A", "1H_Melee_Attack_Chop", "2H_Melee_Attack_Chop", "Hit_A", "Spellcast_Shoot", "Death_C_Skeletons", "Spellcast_Summon"]
+const FEINDE := [["Herzloser", "Hohler", 1.0], ["Ruheloser", "Ruheloser", 1.0], ["Sebau-Krieger", "Krieger", 1.0], ["Sebau-Priesterin", "Priesterin", 1.0],
+	["Sebau-Koloss", "Koloss", 1.3], ["Erloschener", "Erloschener", 1.0]]
+const SCHLEIFEN := ["2H_Melee_Idle", "Idle_Combat", "Idle", "Unarmed_Idle", "2H_Ranged_Aiming", "Walking_A", "Walking_D_Skeletons", "Running_A"]
 const SURF := {"sandstein": ["w01_sandstein", 6.0, Color(1.0, 0.93, 0.80)], "granit": ["w02_granit", 6.0, Color(0.85, 0.85, 0.92)],
 	"pflaster": ["t06_pflaster", 4.0, Color(0.95, 0.88, 0.78)], "sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68)]}
 const PLATZ_HELD := Vector3(-2.3, 0.18, 0.2)
@@ -27,13 +28,12 @@ var lichter: Array = []
 
 var held: Node3D
 var feind: Node3D
-var held_alt: Node3D
-var feind_alt: Node3D
+var hi := 0               # welcher Held, welcher Gegner
+var fi := 0
 var cam: Camera3D
 var laterne: OmniLight3D
 var bew := 0
 var pause_t := 0.0
-var vergleich := false
 var tuch := ""            # Tuch der Gewogenen: "" (keins), "leicht", "schwer", "schwebe"
 const TUCH_NAME := {"": "aus", "leicht": "Lapis und Gold", "schwer": "Rot und Schwarz", "schwebe": "Leinen und Silber"}
 var frei := false
@@ -206,12 +206,6 @@ func _figuren() -> void:
 	feind = _lade("Hohler", PLATZ_FEIND)
 	feind.rotation.y = -0.5
 	held.rotation.y = 0.5
-	held_alt = _lade("Knight", PLATZ_HELD + Vector3(-2.6, -0.18, 1.0))
-	feind_alt = _lade("Skeleton_Rogue", PLATZ_FEIND + Vector3(2.6, -0.18, 1.0), Color(0.55, 0.26, 0.24))
-	held_alt.rotation.y = 0.5
-	feind_alt.rotation.y = -0.5
-	held_alt.visible = false
-	feind_alt.visible = false
 	# die Laterne des Eidträgers, wie im Spiel
 	laterne = OmniLight3D.new()
 	laterne.light_color = Color(1.0, 0.78, 0.48)
@@ -241,10 +235,8 @@ func _zeige(i: int) -> void:
 	var b: Array = BEWEGUNGEN[bew]
 	pause_t = 0.0
 	if not frei:
-		_spiele(held, b[1])
-	_spiele(feind, b[2])
-	_spiele(held_alt, b[1])
-	_spiele(feind_alt, b[2] if _ap(feind_alt).has_animation(b[2]) else "Idle")
+		_spiele(held, HELDEN[hi][2][bew])
+	_spiele(feind, FEIND_BEW[bew])
 	if l_bew:
 		l_bew.text = "%s  ·  %d von %d" % [b[0], bew + 1, BEWEGUNGEN.size()]
 
@@ -283,7 +275,8 @@ func _anzeige() -> void:
 	titel.add_theme_color_override("font_color", Color("e8c070"))
 	oben.add_child(titel)
 	l_info = Label.new()
-	l_info.text = "Eidträger: 3.664 Dreiecke, 19 Bewegungen  ·  Herzloser: 2.128 Dreiecke, 16 Bewegungen\nBeide stehen auf demselben Skelett. Körper, Tracht und Texturen baut ein Skript aus einem Bauplan."
+	l_info.text = "Vier Helden und sechs Gegner aus der Figurenfabrik, je 2.100 bis 3.700 Dreiecke.
+Alle stehen auf demselben Skelett. Körper, Tracht und Texturen baut ein Skript aus einem Bauplan und dem gemalten Bogen."
 	l_info.add_theme_font_override("font", f_text)
 	l_info.add_theme_font_size_override("font_size", 16)
 	l_info.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7, 0.85))
@@ -309,7 +302,9 @@ func _anzeige() -> void:
 	reihe.add_child(_knopf("  Bewegung ›  ", func(): _zeige(bew + 1)))
 	knoepfe.ziel = _knopf("  Blick: Überblick  ", func(): _ziel((ziel + 1) % 3))
 	reihe.add_child(knoepfe.ziel)
-	knoepfe.vgl = _knopf("  Vergleich mit alt: aus  ", func(): _vergleich(not vergleich))
+	knoepfe.vgl = _knopf("  Held: Eidträger  ", func(): _held((hi + 1) % HELDEN.size()))
+	knoepfe.fnd = _knopf("  Gegner: Herzloser  ", func(): _feind((fi + 1) % FEINDE.size()))
+	reihe.add_child(knoepfe.fnd)
 	reihe.add_child(knoepfe.vgl)
 	knoepfe.tuch = _knopf("  Tuch: aus  ", func(): _tuch(["", "leicht", "schwer", "schwebe"][(["", "leicht", "schwer", "schwebe"].find(tuch) + 1) % 4]))
 	reihe.add_child(knoepfe.tuch)
@@ -321,12 +316,14 @@ func _anzeige() -> void:
 
 func _ziel(z: int) -> void:
 	ziel = z
-	knoepfe.ziel.text = "  Blick: %s  " % ["Überblick", "Eidträger", "Herzloser"][z]
+	knoepfe.ziel.text = "  Blick: %s  " % ["Überblick", HELDEN[hi][0], FEINDE[fi][0]][z]
 
 # Eidträger mit oder ohne Nemes-Kopftuch: Modell tauschen, Ort, Blick, Laterne und Bewegung bleiben
 func _tuch(art: String) -> void:
 	tuch = art
 	knoepfe.tuch.text = "  Tuch: %s  " % TUCH_NAME[art]
+	if hi != 0:
+		_held(0)
 	var neu := _lade("Eidtraeger_Nemes" if art != "" else "Eidtraeger", held.position)
 	if art in ["schwer", "schwebe"]:
 		var tex: Texture2D = load("res://models/chars/tuch_%s.webp" % art)
@@ -345,11 +342,32 @@ func _tuch(art: String) -> void:
 	held = neu
 	_zeige(bew)
 
-func _vergleich(an: bool) -> void:
-	vergleich = an
-	held_alt.visible = an
-	feind_alt.visible = an
-	knoepfe.vgl.text = "  Vergleich mit alt: %s  " % ("an" if an else "aus")
+func _held(i: int) -> void:
+	hi = i
+	tuch = ""
+	knoepfe.tuch.text = "  Tuch: aus  "
+	knoepfe.vgl.text = "  Held: %s  " % HELDEN[hi][0]
+	var neu := _lade(HELDEN[hi][1], held.position)
+	neu.rotation = held.rotation
+	laterne.reparent(neu, false)
+	held.queue_free()
+	held = neu
+	_ziel(ziel)
+	_zeige(bew)
+
+func _feind(i: int) -> void:
+	fi = i
+	knoepfe.fnd.text = "  Gegner: %s  " % FEINDE[fi][0]
+	var neu := _lade(FEINDE[fi][1], feind.position)
+	neu.rotation = feind.rotation
+	neu.scale = Vector3.ONE * FEINDE[fi][2]
+	for c in feind.get_children():
+		if c is OmniLight3D:
+			c.reparent(neu, false)
+	feind.queue_free()
+	feind = neu
+	_ziel(ziel)
+	_zeige(bew)
 
 func _dreh(an: bool) -> void:
 	dreht = an
@@ -361,7 +379,7 @@ func _frei(an: bool) -> void:
 	if an:
 		_ziel(1)
 		blick = held.rotation.y
-		_ap(held).play("2H_Melee_Idle", 0.2)
+		_ap(held).play(HELDEN[hi][2][0], 0.2)
 	else:
 		held.position = PLATZ_HELD
 		held.rotation.y = 0.5
@@ -372,7 +390,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		match e.physical_keycode:
 			KEY_RIGHT, KEY_E: _zeige(bew + 1)
 			KEY_LEFT, KEY_Q: _zeige(bew - 1)
-			KEY_V: _vergleich(not vergleich)
+			KEY_V: _held((hi + 1) % HELDEN.size())
 			KEY_TAB: _ziel((ziel + 1) % 3)
 			KEY_ESCAPE: get_tree().change_scene_to_file("res://main.tscn")
 			KEY_SPACE:
@@ -381,11 +399,11 @@ func _unhandled_input(e: InputEvent) -> void:
 					busy = 0.45
 			KEY_J:
 				if frei and busy <= 0.0:
-					_ap(held).play("2H_Melee_Attack_Slice", 0.1)
+					_ap(held).play(HELDEN[hi][2][3], 0.1)
 					busy = 0.7
 			KEY_K:
 				if frei and busy <= 0.0:
-					_ap(held).play("2H_Melee_Attack_Spin", 0.1)
+					_ap(held).play(HELDEN[hi][2][8], 0.1)
 					busy = 1.0
 
 func _steuern(delta: float) -> void:
@@ -411,7 +429,7 @@ func _steuern(delta: float) -> void:
 		ap.play("Running_A", 0.15)
 		ap.speed_scale = 1.25
 	elif busy <= 0.0:
-		ap.play("2H_Melee_Idle", 0.2)
+		ap.play(HELDEN[hi][2][0], 0.2)
 		ap.speed_scale = 1.0
 	held.position.x = clampf(held.position.x, -9.0, 9.0)
 	held.position.z = clampf(held.position.z, -3.4, 6.0)
@@ -427,8 +445,6 @@ func _kamera(delta: float, sofort := false) -> void:
 	elif ziel == 2:
 		mitte = feind.position + Vector3(0, 1.3, 0)
 		weit = 5.0
-	if vergleich and ziel == 0:
-		weit = 12.5
 	var k := 1.0 if sofort else minf(1.0, delta * 3.0)
 	cam_mitte = cam_mitte.lerp(mitte, k)
 	cam_weit = lerpf(cam_weit, weit, k)
@@ -446,7 +462,7 @@ func _process(delta: float) -> void:
 		_steuern(delta)
 	# einmalige Bewegungen nach kurzer Pause wiederholen
 	var b: Array = BEWEGUNGEN[bew]
-	if not b[3]:
+	if not b[1]:
 		var ap := _ap(feind)
 		if not ap.is_playing():
 			pause_t += delta
@@ -458,13 +474,18 @@ func _process(delta: float) -> void:
 func _pruefbilder(ordner: String) -> void:
 	dreht = false
 	DirAccess.make_dir_recursive_absolute(ordner)
-	var folge := [["ueberblick", 0, 0, 0.0, false], ["tuch_leicht", 0, 1, -0.3, false], ["tuch_schwer", 0, 1, -0.3, false], ["tuch_schwebe", 0, 1, -0.3, false], ["angriff", 3, 0, 0.5, false], ["eidtraeger", 0, 1, -0.5, false], ["herzloser", 0, 2, 0.6, false],
-		["vergleich", 0, 0, 0.0, true], ["lauf", 2, 1, 0.9, false], ["besonders", 8, 0, -0.9, false]]
+	# Name, Bewegung, Blick, Winkel, Held, Gegner, Tuch
+	var folge := [["ueberblick", 0, 0, 0.0, 0, 0, ""], ["tuch_leicht", 0, 1, -0.3, 0, 0, "leicht"], ["tuch_schwer", 0, 1, -0.3, 0, 0, "schwer"], ["tuch_schwebe", 0, 1, -0.3, 0, 0, "schwebe"],
+		["priester", 4, 0, 0.3, 1, 1, ""], ["jaegerin", 0, 0, -0.3, 2, 2, ""], ["sternleserin", 3, 0, 0.2, 3, 3, ""], ["koloss", 4, 0, 0.0, 0, 4, ""], ["erloschener", 6, 0, 0.4, 3, 5, ""],
+		["h_priester", 0, 1, -0.4, 1, 1, ""], ["h_jaegerin", 0, 1, -0.4, 2, 2, ""], ["h_sternleserin", 0, 1, -0.4, 3, 3, ""],
+		["g_ruheloser", 0, 2, 0.5, 0, 1, ""], ["g_krieger", 0, 2, 0.5, 0, 2, ""], ["g_priesterin", 0, 2, 0.5, 0, 3, ""], ["g_koloss", 0, 2, 0.5, 0, 4, ""], ["g_erloschener", 0, 2, 0.5, 0, 5, ""]]
 	for f in folge:
-		var art: String = f[0].trim_prefix("tuch_") if f[0].begins_with("tuch_") else ""
-		if art != tuch:
-			_tuch(art)
-		_vergleich(f[4])
+		if f[4] != hi:
+			_held(f[4])
+		if f[5] != fi:
+			_feind(f[5])
+		if f[6] != tuch:
+			_tuch(f[6])
 		_ziel(f[2])
 		winkel = f[3]
 		_zeige(f[1])

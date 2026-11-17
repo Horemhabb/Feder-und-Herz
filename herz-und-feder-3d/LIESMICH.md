@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung 2.3
+# Herz und Feder · 3D-Fassung 2.5
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -200,10 +200,27 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.5: Alle Figuren aus der Figurenfabrik, halbe Ladezeit
+
+Einzelheiten in `WERKSTATT.md`, Abschnitte 3c und 3d.
+
+- **Baukasten** (`tools/figurenfabrik/mensch.py`, Baupläne in `figuren.py`): Körperbau über Faktoren, Teile zum An- und
+  Abwählen, Texturen aus dem gemalten Bogen. Aufruf: `python tools/figurenfabrik/figuren.py alle`.
+- **Helden:** Priester des Schu (K12), Wüstenjägerin mit Bogen und Köcher (K13), Sternleserin mit Sternenstab (K14),
+  dazu der Eidträger.
+- **Gegner:** Ruheloser (Mumie mit leuchtendem Herzloch, G14), Sebau-Krieger mit Königstuch, Sichelschwert und Schild
+  (G15), Sebau-Priesterin mit Kobrahaube (G12), Sebau-Koloss mit Keule, Erloschener mit Sternenstab, Herzloser.
+  Die Hüter der Stunden 2 bis 5 sind große, getönte Varianten.
+- **Leute und Gestalten der Geschichte:** Mann, Frau, Alter aus dem Baukasten.
+- **Die KayKit-Figuren sind aus dem Spiel entfernt**; der Schalter „Neue 3D-Figuren“ ist entfallen. Fackeln, Fässer,
+  Kisten und Truhen stammen weiter von dort.
+- **Ladezeit:** Spielpaket 17,1 MB statt 54,7 MB (Texturen einmal statt doppelt gepackt, schlanke Figuren, Ton).
+- **Schaukasten:** Knöpfe „Held“ und „Gegner“ schalten durch alle Figuren.
+
 ### Fassung 2.3.3: Das Tuch der Gewogenen
 
 - Nach der fünften Stunde ruft Thot den Namen des Laternenträgers und wiegt sein Herz. Seitdem trägt der Eidträger
-  (mit „Neue 3D-Figuren“) das Nemes-Kopftuch mit Uräus: `models/chars/Eidtraeger_Nemes.glb`, gebaut mit
+  das Nemes-Kopftuch mit Uräus: `models/chars/Eidtraeger_Nemes.glb`, gebaut mit
   `--gesicht=nemes`. Das Urteil der fünften Stunde erzählt es. Abgeleitet aus dem Spielstand (sechste Stunde erreicht),
   alte Spielstände brauchen kein neues Feld.
 - **Tuchfarbe nach dem Urteil:** leichtes Herz Lapis und Gold, schweres Herz Rot und Schwarz (die Farben des Seth), in der
@@ -287,7 +304,7 @@ Bewusst noch nicht umgesetzt (jeweils mit Risiko oder Aufwand):
 
 ## Was noch Platzhalter ist
 
-- **Figuren, Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus.
+- **Fackeln, Fässer und Kisten** stammen aus den freien KayKit-Paketen (CC0) und sehen comichaft und mittelalterlich aus (die Figuren seit 2.5 nicht mehr).
   Sie stehen für Bewegung, Licht und Ton, nicht für das endgültige Aussehen. Animationsnamen stehen nur in den
   `ANIM`-Tabellen in `scripts/hero.gd` und `scripts/foe.gd`; ein anderes Modell ist dort ein Tausch.
 - **Musik** kommt von Gomo Sounds (Spiel „Herz und Feder“ dort, vier Stücke à 30 s, nahtlos wiederholbar, „leicht utopisch, ein bisschen düster“):

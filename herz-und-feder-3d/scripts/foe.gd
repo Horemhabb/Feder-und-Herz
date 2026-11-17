@@ -18,20 +18,20 @@ const ANIM := {
 const KINDS := {
 	"wisp": {"ai": "swarm", "atk": 0.9, "spd": 135.0, "r": 10.0, "look": "wisp", "col": Color("8fe3e0"), "mat": ""},
 	"skorp": {"ai": "swarm", "atk": 1.1, "spd": 116.0, "r": 12.0, "look": "skorp", "col": Color("b98a4a"), "mat": "", "animal": true},
-	"lance": {"ai": "melee", "atk": 1.9, "spd": 92.0, "r": 14.0, "model": "Skeleton_Rogue", "tint": Color(0.95, 0.78, 0.42), "weapon": "Skeleton_Blade", "mat": "leder"},
-	"seer": {"ai": "ranged", "atk": 2.3, "spd": 84.0, "r": 13.0, "range": 340.0, "model": "Skeleton_Mage", "tint": Color(0.85, 0.95, 0.7), "weapon": "Skeleton_Staff", "shot": Color("9be06b"), "mat": "leder"},
-	"haut": {"ai": "slam", "atk": 3.0, "spd": 62.0, "r": 26.0, "model": "Skeleton_Warrior", "scale": 1.6, "tint": Color(0.75, 0.62, 0.4), "weapon": "Skeleton_Axe", "mat": "leder"},
-	"guard": {"ai": "melee", "atk": 2.1, "spd": 74.0, "r": 15.0, "model": "Skeleton_Minion", "weapon": "Skeleton_Blade", "mat": "eisen", "undead": true, "lies": true},
-	"fahl": {"ai": "ranged", "atk": 2.1, "spd": 88.0, "r": 13.0, "range": 360.0, "model": "Skeleton_Mage", "tint": Color(0.7, 0.78, 0.85), "weapon": "Skeleton_Staff", "shot": Color("e06bd0"), "mat": "stern"},
-	"hohl": {"ai": "melee", "atk": 1.6, "spd": 112.0, "r": 15.0, "neu": "Hohler", "neu_glow": Color(0.6, 0.8, 1.0), "model": "Skeleton_Rogue", "tint": Color(0.55, 0.26, 0.24), "weapon": "Skeleton_Blade", "mat": "eisen", "demon": true, "undead": true, "glow": Color(0.95, 0.35, 0.2)},
+	"lance": {"ai": "melee", "atk": 1.9, "spd": 92.0, "r": 14.0, "neu": "Krieger", "mat": "leder"},
+	"seer": {"ai": "ranged", "atk": 2.3, "spd": 84.0, "r": 13.0, "range": 340.0, "neu": "Priesterin", "shot": Color("9be06b"), "mat": "leder"},
+	"haut": {"ai": "slam", "atk": 3.0, "spd": 62.0, "r": 26.0, "neu": "Koloss", "scale": 1.3, "mat": "leder"},
+	"guard": {"ai": "melee", "atk": 2.1, "spd": 74.0, "r": 15.0, "neu": "Ruheloser", "mat": "eisen", "undead": true, "lies": true},
+	"fahl": {"ai": "ranged", "atk": 2.1, "spd": 88.0, "r": 13.0, "range": 360.0, "neu": "Erloschener", "neu_tint": Color(0.8, 0.95, 1.25), "shot": Color("e06bd0"), "mat": "stern"},
+	"hohl": {"ai": "melee", "atk": 1.6, "spd": 112.0, "r": 15.0, "neu": "Hohler", "neu_scale": 0.94, "neu_glow": Color(0.6, 0.8, 1.0), "mat": "eisen", "demon": true, "undead": true, "glow": Color(0.95, 0.35, 0.2)},
 }
 # Gestalten der Hüter (ACT[…].boss.look)
 const BOSS_LOOK := {
 	"wisp": {"look": "wisp", "mat": ""},
-	"mutter": {"model": "Skeleton_Warrior", "tint": Color(0.92, 0.75, 0.4), "weapon": "Skeleton_Axe", "mat": "leder"},
-	"koenig": {"model": "Skeleton_Warrior", "tint": Color(1.0, 0.85, 0.45), "weapon": "Skeleton_Axe", "mat": "eisen", "undead": true},
-	"grey": {"model": "Skeleton_Warrior", "tint": Color(0.72, 0.78, 0.82), "weapon": "Skeleton_Axe", "mat": "stern"},
-	"sammler": {"model": "Skeleton_Mage", "tint": Color(0.8, 0.55, 1.0), "weapon": "Skeleton_Staff", "mat": "stern"},
+	"mutter": {"neu": "Koloss", "neu_tint": Color(1.1, 0.9, 0.62), "neu_scale": 0.72, "mat": "leder"},
+	"koenig": {"neu": "Krieger", "neu_tint": Color(1.35, 1.1, 0.6), "neu_scale": 0.78, "mat": "eisen", "undead": true},
+	"grey": {"neu": "Koloss", "neu_tint": Color(0.72, 0.8, 0.95), "neu_scale": 0.72, "mat": "stern"},
+	"sammler": {"neu": "Erloschener", "neu_tint": Color(1.05, 0.7, 1.4), "neu_scale": 0.8, "mat": "stern"},
 }
 
 enum St { SLEEP, WAKING, FIGHT, DEAD }
@@ -130,17 +130,12 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		for e in Daten.ELITE:
 			if e.id == elite:
 				disp_name = "%s, %s" % [K.name, e.name]
-	if Spiel.neu3d and K.has("neu") and k != "boss":
-		# Werkstatt: Figur aus der Figurenfabrik, mit eigener Haut und eigenen Klauen (keine Tönung, keine Waffe)
-		setup("res://models/chars/%s.glb" % K.neu, sc * 0.94, r)
+	if K.has("neu"):
+		# Figur aus der Figurenfabrik: eigene Haut, eigene Waffe; Varianten (Hüter, Erloschene) über Größe und Tönung
+		setup("res://models/chars/%s.glb" % K.neu, sc * K.get("neu_scale", 1.0), r)
 		neu3d = true
-	elif K.has("model"):
-		setup("res://models/chars/%s.glb" % K.model, sc * (1.0 if k != "boss" else 1.0), r)
-		if K.has("tint"):
-			_tint(K.tint)
-		var wpn = load("res://models/chars/%s.gltf" % K.get("weapon", "Skeleton_Blade"))
-		if wpn:
-			attach("handslot.r", wpn.instantiate())
+		if K.has("neu_tint"):
+			_tint(K.neu_tint)
 	else:
 		_build_proc(K.look, r, K.get("bcol", K.get("col", Color.WHITE)) if k == "boss" else K.col)
 	collision_layer = 4

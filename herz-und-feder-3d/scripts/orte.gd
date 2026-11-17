@@ -102,7 +102,10 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 	sites.append(s)
 
 func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: float) -> Dictionary:
-	var n: Node3D = load("res://models/chars/%s.glb" % model).instantiate()
+	# Die Geschichte nennt noch die alten Rollen; seit 2.5 stehen dafür Figuren aus der Figurenfabrik
+	var rolle := {"Knight": "Mann", "Barbarian": "Mann", "Rogue": "Frau", "Mage": "Alter", "Skeleton_Warrior": "Krieger", "Skeleton_Mage": "Erloschener",
+		"Skeleton_Rogue": "Ruheloser", "Skeleton_Minion": "Ruheloser"}
+	var n: Node3D = load("res://models/chars/%s.glb" % rolle.get(model, model)).instantiate()
 	game.add_child(n)
 	n.global_position = pos
 	n.scale = Vector3.ONE * scl
