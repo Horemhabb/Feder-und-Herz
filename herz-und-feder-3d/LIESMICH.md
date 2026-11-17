@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung 2.0
+# Herz und Feder · 3D-Fassung 2.3
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -199,6 +199,30 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Bildwirkung:** Vignette (der Bildrand dunkelt ab), Staub im Laternenlicht.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
+
+### Fassung 2.3: Werkstatt (Pfad 2 und 3)
+
+Der ganze Bericht steht in `WERKSTATT.md` (Bestandsaufnahme, Methodenvergleich, Performance, Lizenzen, Integrationsplan).
+
+- **Figurenfabrik** (`tools/figurenfabrik/`): Ein Blender-Python-Skript baut aus einem Bauplan eine animierte Figur.
+  Es übernimmt Skelett und Bewegungen der KayKit-Figuren (CC0), streckt das Skelett auf menschliche Maße, führt die
+  Beine je Bild nach (Zweigelenk-IK), stellt jede Bewegung wieder auf den Boden und setzt einen neuen Körper mit
+  ägyptischer Tracht und selbst gemalter Texturtafel darauf. Ein Lauf dauert rund 15 Sekunden.
+- **Eidträger** (`models/chars/Eidtraeger.glb`, nach K11): 3.696 Dreiecke, ein Netz, 19 Bewegungen.
+  **Herzloser** (`models/chars/Hohler.glb`, nach G13): 2.128 Dreiecke, ein Netz, 16 Bewegungen, Leuchtkarte.
+- **Schalter „Neue 3D-Figuren“** auf dem Titelbild (auch `-- --neu3d`, im Web `?neu3d`): Der Krieger und die Herzlosen
+  (Stunden 3 bis 5) erscheinen in neuer Gestalt. Die Einstellung liegt in `user://einstellungen.json`, getrennt vom
+  Spielstand. Aus = alles wie bisher.
+- **Schaukasten** (Knopf auf dem Titelbild, `-- --schau`, im Web `?schau`): Tempelkammer mit beiden Figuren, allen neun
+  Bewegungen, Vergleich alt/neu und freiem Lauf (W A S D, Leertaste, J, K).
+- **Atmosphäre als Illusion** (`scripts/stimmung.gd`): Lichtstrahlen, Bodennebel, glühende Runenkreise und Friese, Staub
+  im Licht, Papyrussäulen. Im Spiel schon an Schreinen (Strahl und Kreis in der Farbe des Gottes), Seelenkrügen (kalter
+  Nebel), Fundstücken und am Platz des Hüters (Bannkreis). Bei „Grafik niedrig“ aus.
+- **Geräusche** (Gomo Sounds, 18 Stück): Schritte auf Sand und auf Stein (je vier, nach Untergrund), Ausweichen, Aufstieg,
+  Feuerschale entzünden und brennen, Segen am Schrein, Herz freilassen, Krug zerschlagen, Truhe, Papyrus (Gespräche und
+  Buchseiten), Aufheben, Schaf, Ziege, Esel, Katze (melden sich, wenn man sie findet), Skorpion, Irrlicht.
+  Der Todeslaut der Gegner war kaum zu hören und ist jetzt angehoben.
+- Prüfen: `-- --zeig=hohl` stellt drei Gegner einer Art neben den Eingang; der Bot schreibt Zeichenaufrufe und Dreiecke mit.
 
 ### Bilder aus dem Higgsfield-Auftrag der 2D-Fassung (K11–K14, G13–G18)
 

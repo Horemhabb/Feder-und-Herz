@@ -65,6 +65,8 @@ func bauen() -> void:
 	_packs()
 	g.boss = g._spawn("boss", cell_pos(k.lair), 99, "", g.hdef)
 	g.boss.home_face = atan2(k.start.x - k.lair.x, k.start.y - k.lair.y)
+	# der Platz des Hüters: ein Bannkreis glüht auf dem Boden
+	g.stimmung.append(Stimmung.runenkreis(g, cell_pos(k.lair), 4.4, Color(1.0, 0.42, 0.2), 0.42))
 	g.boss.face = g.boss.home_face
 	if g.boss.model:
 		g.boss.model.rotation.y = g.boss.face

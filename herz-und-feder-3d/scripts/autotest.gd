@@ -72,7 +72,8 @@ func _physics_process(delta: float) -> void:
 		burst = 18     # Folgebilder: Laufbewegung
 	if log_t >= 10.0:
 		log_t = 0.0
-		print("t=%d hp=%d en=%d kills=%d/%d tode=%d pos=(%d,%d) wach=%d boss=%s" % [int(t), int(h.hp), int(h.en), game.kills, game.total, game.deaths, int(h.global_position.x), int(h.global_position.z), game.foes.filter(func(f): return f.state == Foe.St.FIGHT).size(), ("%d" % int(game.boss.hp)) if game.boss.state != Foe.St.DEAD else "tot"])
+		print("t=%d hp=%d en=%d kills=%d/%d tode=%d pos=(%d,%d) wach=%d boss=%s aufrufe=%d dreiecke=%d" % [int(t), int(h.hp), int(h.en), game.kills, game.total, game.deaths, int(h.global_position.x), int(h.global_position.z), game.foes.filter(func(f): return f.state == Foe.St.FIGHT).size(), ("%d" % int(game.boss.hp)) if game.boss.state != Foe.St.DEAD else "tot",
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
 	if game.gate and game.gate_t > 2.9 and not has_meta("g"):
 		set_meta("g", true)
 		shot("pforte")

@@ -56,3 +56,42 @@ static func cls_of(id: String) -> String:
 		if C.sk.has(id) or C.rmb == id:
 			return c
 	return ""
+
+# Zeichen ohne Tafel, weiß auf durchsichtig: als Maske für glühende Runen (Farbe und Pulsieren macht der Shader).
+static func _roh(id: String) -> String:
+	var g: String = G.get(id, "")
+	g = g.replace("§s", 'fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"')
+	g = g.replace("§f", 'fill="#fff"')
+	return g.replace("§d", 'fill="none" stroke="#000" stroke-opacity="0.55" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"')
+
+# Zeichenreihe für Wandfriese: n Zeichen nebeneinander, dazwischen Trennstriche
+static func band(ids: Array, hoehe := 128) -> ImageTexture:
+	var svg := '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d 64" width="%d" height="64">' % [ids.size() * 60, ids.size() * 60]
+	svg += '<path d="M0 3h%d M0 61h%d" stroke="#fff" stroke-width="2"/>' % [ids.size() * 60, ids.size() * 60]
+	for i in ids.size():
+		svg += '<g transform="translate(%d 4)">%s</g>' % [i * 60 + 2, _roh(ids[i])]
+		svg += '<path d="M%d 12v40" stroke="#fff" stroke-width="1" stroke-opacity="0.5"/>' % (i * 60)
+	var img := Image.new()
+	img.load_svg_from_string(svg + "</svg>", hoehe / 64.0)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+# Runenkreis für den Boden: zwei Ringe, dazwischen die Zeichen, in der Mitte ein Stern
+static func kreis(ids: Array, px := 512) -> ImageTexture:
+	var svg := '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">'
+	svg += '<circle cx="200" cy="200" r="194" fill="none" stroke="#fff" stroke-width="3"/><circle cx="200" cy="200" r="128" fill="none" stroke="#fff" stroke-width="2"/>'
+	svg += '<circle cx="200" cy="200" r="120" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="3 9"/>'
+	for i in ids.size():
+		var a := 360.0 * i / ids.size()
+		svg += '<g transform="rotate(%.1f 200 200) translate(172 10)">%s</g>' % [a, _roh(ids[i])]
+		svg += '<path d="M200 6v60" stroke="#fff" stroke-width="1" stroke-opacity="0.6" transform="rotate(%.1f 200 200)"/>' % (a + 180.0 / ids.size())
+	var stern := ""
+	for i in 8:
+		var a := TAU * i / 8.0
+		var b := a + TAU / 16.0
+		stern += "%s%.1f %.1f L%.1f %.1f " % ["M" if i == 0 else "L", 200 + 96 * cos(a), 200 + 96 * sin(a), 200 + 40 * cos(b), 200 + 40 * sin(b)]
+	svg += '<path d="%sZ" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>' % stern
+	var img := Image.new()
+	img.load_svg_from_string(svg + "</svg>", px / 400.0)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)

@@ -62,8 +62,14 @@ var auto_low_done := false
 
 var cine_t := 0.0        # so lange blickt die Kamera zum Hüter, wenn er erwacht
 var staub: CPUParticles3D
+var stimmung: Array = []   # Lichtstrahlen, Nebelbänke, Runenkreise (Stimmung): bei „Grafik niedrig“ aus
 
 func _ready() -> void:
+	if ("--schau" in OS.get_cmdline_user_args() or Spiel.web_frage("schau")) and not Spiel.schau_gesehen:
+		# Werkstatt: der Schaukasten mit den Figuren aus der Figurenfabrik
+		Spiel.schau_gesehen = true
+		get_tree().change_scene_to_file.call_deferred("res://schau.tscn")
+		return
 	randomize()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--seed="):
@@ -412,12 +418,18 @@ func _set_light(kind: String) -> void:
 
 func _build_world() -> void:
 	# die Stunde aus karte.gd: Dungeon (Stunden 2–5 und die offenen Stunden je nach Vorlage) oder Freiland
+	stimmung.clear()
 	karte = Karte.new()
 	if hdef.has("dungeon"):
 		karte.gen_dungeon(hdef.dungeon)
 	else:
 		karte.gen_outdoor(hdef.mix)
 	Welt.new(self, karte).bauen()
+	# Prüfbilder: „-- --zeig=hohl“ stellt drei Gegner dieser Art neben den Eingang
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--zeig=") and Foe.KINDS.has(a.substr(7)):
+			for i in 3:
+				_spawn(a.substr(7), Welt.cell_pos(karte.start) + Vector3(2.5 + i * 2.2, 0, -3.0 + i * 0.6), 98)
 	total = foes.size() - 1
 	_set_light(karte.kind if karte.indoor else "")
 	# Irrende Ba: Lichter, die gegen den Wind ziehen (Farbe nach der Stunde)
@@ -1092,7 +1104,7 @@ func _level_up() -> void:
 			var S: Dictionary = hero.SK[id]
 			hud.announce(Klassen.icon(id, 176), "NEUE FÄHIGKEIT · %s" % ("ANTIPPEN" if touch else ("RECHTE MAUSTASTE" if i == 4 else "TASTE %d" % (i + 1))), S.name, S.txt, 7.0)
 	lvl_seen = Spiel.lvl
-	sfx.play("oath")
+	sfx.play("aufstieg")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
 
 # ---------------------------------------------------------------- Beute (04-combat.js › kill, 03a-dungeon.js › openChest)
@@ -1224,7 +1236,7 @@ func _take(b: Beute) -> bool:
 				hero.apply_stats()
 				sub = "direkt angelegt"
 			hud.toast_item(Daten.icon_of(b.item), Daten.item_name(b.item), sub, Daten.RAR[b.item.rar].col, 6.5 if b.item.rar >= 2 else 4.0)
-			sfx.play("ui", 0.1)
+			sfx.play("aufheben", 0.1)
 		"shard":
 			var am := int(round(b.amount * float(Spiel.S.shard)))   # ein schweres Herz findet mehr
 			Spiel.shards += am
@@ -1234,7 +1246,7 @@ func _take(b: Beute) -> bool:
 			Spiel.mats[b.mat] += b.amount
 			Spiel.speichern()
 			hud.toast_item(Daten.ICON[b.mat], "%d × %s" % [b.amount, Daten.MATS[b.mat].name], "jetzt %d" % Spiel.mats[b.mat], Daten.MATS[b.mat].col)
-			sfx.play("ui", 0.15, -6.0)
+			sfx.play("aufheben", 0.15, -4.0)
 		"blood":
 			hero.hp = minf(hero.max_hp, hero.hp + hero.max_hp * (0.3 if Spiel.has_leg("caravan") else 0.15))
 			if Spiel.pots < Daten.POTS:
@@ -1248,7 +1260,7 @@ func _take(b: Beute) -> bool:
 				Spiel.speichern()
 				hud.banner(Daten.EVID[b.page][0], "BUCH DES THOT · SEITE %d VON %d" % [b.page + 1, Daten.EVID.size()], 5.6)
 				hud.toast_item(Daten.ICON.evid, Daten.EVID[b.page][0], "Seite aus dem Buch des Thot. Lies sie in der Tasche (I).", Color(0.98, 0.9, 0.62), 6.5)
-				sfx.play("oath")
+				sfx.play("papyrus", 0.05, 4.0)
 	return true
 
 func _loot_tick(delta: float) -> void:
@@ -1304,7 +1316,7 @@ func _open_chest(c: Dictionary) -> void:
 	if c.lid:
 		var tw := create_tween()
 		tw.tween_property(c.lid, "rotation:x", -1.7, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	sfx.play_at("gate", c.pos, 0.1, -6.0)
+	sfx.play_at("truhe", c.pos, 0.1)
 	shake = maxf(shake, 0.2)
 	var T: int = c.tier
 	var n := Spiel.fall
@@ -1360,6 +1372,18 @@ func _open_chest(c: Dictionary) -> void:
 
 # Musik der Stunde: im Freiland die Wüstennacht, im Dungeon das Stück seiner Art, jeweils im Wechsel mit einem zweiten
 const MUSIK := {"ruin": "mus_felder", "tomb": "mus_grab", "glass": "mus_rosetau", "vault": "mus_hoehle"}
+
+# Untergrund unter einem Punkt: Stein in Gräbern und Gebäuden, sonst Sand (für den Klang der Schritte)
+func auf_stein(p: Vector3) -> bool:
+	if karte == null:
+		return false
+	if karte.indoor:
+		return true
+	var cx := int(p.x / Karte.CELL)
+	var cy := int(p.z / Karte.CELL)
+	if cx < 0 or cy < 0 or cx >= Karte.GW or cy >= Karte.GH:
+		return false
+	return karte.flr[cy * Karte.GW + cx] == 2
 
 func area_music() -> Array:
 	if karte and karte.indoor:
@@ -1738,6 +1762,9 @@ func set_low(low: bool, still := false) -> void:
 	env.glow_enabled = not low
 	if staub:
 		staub.emitting = not low
+	for n in stimmung:
+		if is_instance_valid(n):
+			n.visible = not low
 	# Handys haben sehr dichte Bildschirme (bis dreifach): dort die 3D-Auflösung stärker senken
 	get_viewport().scaling_3d_scale = (0.6 if touch else 0.7) if low else 1.0
 	# Stein ohne Reliefkarte und ohne anisotrope Filterung: weniger Texturzugriffe je Bildpunkt
