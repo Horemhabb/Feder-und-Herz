@@ -182,6 +182,24 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
   Weg (die Zelle galt als belegt). Sie weicht jetzt auf die nächste freie Zelle aus (`main.gd › _free_cell`).
 - Die Aufgaben im Questbuch sind schlichter benannt (Der Hüter, Feuerschalen, Seelenkrüge).
 
+### Fassung 2.2: Look und Gefühl (Pfad 1)
+
+- **Papyrus:** Alle Fenster sind beschriebene Papyrusblätter (`ui/papyrus.webp`, erzeugt mit `tools/papyrus.py`: gekreuzte
+  Faserlagen, ausgefranster Rand). Die Schrift ist Tinte, Überschriften stehen in rotem Ocker wie die Rubriken der
+  Schreiber. Auch das Questbuch und die Ankündigungen sind Papyruszettel. Dunkle Einlagen (Felder für Gegenstände)
+  behalten helle Schrift. Die Umfärbung macht `Hud._ink_all` für alles, was auf einem Blatt in `Hud.papier` liegt.
+- **Schrift:** Almendra (Text), Almendra fett (Titel), Almendra SC (Stempel). Eine mit der Feder geschriebene Schrift, frei (OFL).
+- **Zwischenbilder:** Die Physik rechnet 60-mal je Sekunde, viele Bildschirme (auch am Mac) zeigen 120 Bilder. Ohne
+  Zwischenbilder ruckelte jede Bewegung. Jetzt eingeschaltet (`physics/common/physics_interpolation`) für Figur, Gegner,
+  Geschosse und Fuchs; die Kamera folgt dem geglätteten Ort der Figur.
+- **Kamera:** gedämpft, blickt ein Stück in Laufrichtung voraus, schwenkt beim Erwachen des Hüters kurz zu ihm und
+  öffnet im Hüterkampf den Blick.
+- **Ausweichschritt:** Leertaste (am Handy ein Knopf unten rechts): kurzer Satz in Laufrichtung, einen Moment unverwundbar.
+- **Kampfgefühl:** halber Ausfallschritt in jeden Nahkampfhieb; Besiegte bleiben kurz liegen und versinken dann.
+- **Bildwirkung:** Vignette (der Bildrand dunkelt ab), Staub im Laternenlicht.
+- Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
+  Web-Renderer keinen sichtbaren Unterschied.
+
 ### Bilder aus dem Higgsfield-Auftrag der 2D-Fassung (K11–K14, G13–G18)
 
 - Die Bögen sind für Sprites der 2D-Fassung gemacht (vier Haltungen je Figur). In der 3D-Fassung bewegen sich echte

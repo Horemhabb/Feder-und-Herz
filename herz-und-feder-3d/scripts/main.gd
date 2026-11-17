@@ -60,8 +60,18 @@ var autotest: Node
 var slow_t := 0.0
 var auto_low_done := false
 
+var cine_t := 0.0        # so lange blickt die Kamera zum Hüter, wenn er erwacht
+var staub: CPUParticles3D
+
 func _ready() -> void:
 	randomize()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--seed="):
+			seed(int(a.substr(7)))   # Tests und Bildvergleiche: dieselbe Karte noch einmal
+	# Zwischenbilder (Physik-Interpolation): Die Physik rechnet 60-mal je Sekunde, viele Bildschirme zeigen 120 Bilder.
+	# Ohne Zwischenbilder ruckelt jede Bewegung. Eingeschaltet ist sie nur für das, was die Physik bewegt
+	# (Figur, Gegner, Geschosse, Fuchs); alles andere bewegt sich ohnehin je Bild.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	W = Karte.GW
 	H = Karte.GH
 	sfx = Sfx.new()
@@ -84,6 +94,7 @@ func _ready() -> void:
 	hero.game = self
 	add_child(hero)
 	hero.global_position = start_pos
+	hero.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	lvl_seen = Spiel.lvl
 	if hero.C.get("pet", false):
 		_build_pet()
@@ -92,8 +103,9 @@ func _ready() -> void:
 	cam.far = 200.0
 	add_child(cam)
 	cam_pos = hero.global_position
-	_place_cam(1.0)
+	_place_cam(0.0, true)
 	cam.make_current()
+	_build_staub()
 	touch = "--touch" in OS.get_cmdline_user_args() or OS.has_feature("web_android") or OS.has_feature("web_ios") \
 		or (OS.has_feature("web") and DisplayServer.is_touchscreen_available())
 	if touch:
@@ -547,6 +559,7 @@ func _spawn(kind: String, pos: Vector3, pack: int, elite := "", hd := {}) -> Foe
 	var f := Foe.new()
 	f.game = self
 	f.init(kind, pos, pack, elite, hd)
+	f.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	add_child(f)
 	foes.append(f)
 	return f
@@ -852,6 +865,7 @@ func spawn_shot(h: Hero, dir: Vector3, o: Dictionary) -> void:
 	var d := Vector3(dir.x, 0, dir.z).normalized()
 	m.global_position = h.global_position + Vector3(0, 1.3, 0) + d * 0.6
 	m.look_at(m.global_position + d, Vector3.UP)
+	m.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	shots.append({"n": m, "v": d * float(o.get("speed", 20.0)), "life": float(o.get("life", 0.6)), "r": r, "mult": float(o.get("mult", 1.0)),
 		"pierce": int(o.get("pierce", 0)), "push": float(o.get("push", 3.6)), "gen": float(o.get("gen", 0.0)), "stun": float(o.get("stun", 0.0)), "hit": []})
 
@@ -965,6 +979,7 @@ func _build_pet() -> void:
 	l.position.y = 0.7
 	pet.add_child(l)
 	add_child(pet)
+	pet.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	pet.global_position = hero.global_position + Vector3(-1.2, 0, 1.2)
 
 func hetz_target(at: Vector3) -> Foe:
@@ -1047,6 +1062,7 @@ func spawn_bolt(pos: Vector3, dir: Vector3, dmg: float, speed: float, col := Col
 	n.add_child(m)
 	add_child(n)
 	n.global_position = pos
+	n.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	bolts.append({"n": n, "v": dir * speed, "dmg": dmg, "life": life})
 
 func on_foe_dead(f: Foe) -> void:
@@ -1352,6 +1368,7 @@ func area_music() -> Array:
 
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
+	cine_t = 2.4
 	sfx.music("mus_kampf", 1.0)
 	hud.boss_show(b.K.name)
 	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
@@ -1611,8 +1628,47 @@ func spark(pos: Vector3, col: Color) -> void:
 	get_tree().create_timer(0.8).timeout.connect(p.queue_free)
 
 # ---------------------------------------------------------------- Kamera und Eingabe
-func _place_cam(k: float) -> void:
-	cam_pos = cam_pos.lerp(hero.global_position, k)
+# Staub im Laternenlicht: wenige helle Körnchen, die um die Figur treiben
+func _build_staub() -> void:
+	staub = CPUParticles3D.new()
+	staub.amount = 34
+	staub.lifetime = 7.0
+	staub.preprocess = 7.0
+	staub.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	staub.emission_box_extents = Vector3(8.0, 1.6, 8.0)
+	staub.direction = Vector3(1, 0.2, 0.3)
+	staub.spread = 180.0
+	staub.gravity = Vector3(0, 0.02, 0)
+	staub.initial_velocity_min = 0.08
+	staub.initial_velocity_max = 0.3
+	staub.scale_amount_min = 0.5
+	staub.scale_amount_max = 1.3
+	var qm := SphereMesh.new()
+	qm.radius = 0.022
+	qm.height = 0.044
+	qm.radial_segments = 4
+	qm.rings = 2
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.albedo_color = Color(1.0, 0.86, 0.6, 0.55)
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	qm.material = fm
+	staub.mesh = qm
+	add_child(staub)
+
+# Kamera: folgt der Figur gedämpft und blickt ein Stück in Laufrichtung voraus. Erwacht der Hüter, schwenkt sie
+# kurz zu ihm; im Hüterkampf öffnet sie den Blick etwas.
+func _place_cam(delta: float, snap := false) -> void:
+	var hp: Vector3 = hero.get_global_transform_interpolated().origin
+	var want := hp + hero.vel * 0.2
+	var hueter: bool = boss != null and boss_awake and boss.state != Foe.St.DEAD
+	if cine_t > 0.0 and hueter:
+		cine_t -= delta
+		want = hp.lerp(boss.global_position, 0.6)
+	cam_pos = want if snap else cam_pos.lerp(want, 1.0 - exp(-delta * (3.0 if cine_t > 0.0 else 7.5)))
+	cam.fov = 30.0 if snap else lerpf(cam.fov, 33.5 if hueter else 30.0, 1.0 - exp(-delta * 2.0))
+	if staub:
+		staub.global_position = cam_pos + Vector3(0, 1.8, 0)
 	var off := Vector3(14.5, 27.0, 14.5)
 	var sh := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.5
 	cam.global_position = cam_pos + off + sh
@@ -1647,6 +1703,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				hero.auto_aim = false
 				hero.cast(hero.ORDER[ev.keycode - KEY_1])
 			KEY_Q: hero.cast("potion")
+			KEY_SPACE: hero.dodge()
 			KEY_E:
 				if orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
 					orte.talk_helfer()
@@ -1679,6 +1736,8 @@ func set_low(low: bool, still := false) -> void:
 	hero.lantern.shadow_enabled = not low
 	moon.shadow_enabled = not low
 	env.glow_enabled = not low
+	if staub:
+		staub.emitting = not low
 	# Handys haben sehr dichte Bildschirme (bis dreifach): dort die 3D-Auflösung stärker senken
 	get_viewport().scaling_3d_scale = (0.6 if touch else 0.7) if low else 1.0
 	# Stein ohne Reliefkarte und ohne anisotrope Filterung: weniger Texturzugriffe je Bildpunkt
@@ -1812,7 +1871,7 @@ func _process(delta: float) -> void:
 		spar_t = 0.3
 		_spar_tick()
 	shake = maxf(0.0, shake - delta * 2.2)
-	_place_cam(minf(1.0, delta * 6.0))
+	_place_cam(delta)
 	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte
 	RenderingServer.global_shader_parameter_set("cut_cam", cam.global_position)
 	RenderingServer.global_shader_parameter_set("cut_hero", hero.global_position)

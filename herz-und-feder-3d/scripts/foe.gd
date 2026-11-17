@@ -734,6 +734,11 @@ func die() -> void:
 		game.spark(global_position + Vector3(0, 1.0, 0), K.get("bcol", K.get("col", Color.WHITE)))
 	else:
 		play(ANIM.death, 1.3, 0.05, true)
+		# der Besiegte bleibt einen Moment liegen und versinkt dann im Boden
+		var tw2 := create_tween()
+		tw2.tween_interval(5.0)
+		tw2.tween_property(model, "position:y", -1.7, 1.8).set_ease(Tween.EASE_IN)
+		tw2.tween_callback(func(): model.visible = false)
 	game.sfx.play_at("skel_die", global_position)
 	if glow:
 		var tw := create_tween()
