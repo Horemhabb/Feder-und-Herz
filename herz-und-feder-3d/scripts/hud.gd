@@ -1103,7 +1103,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.2", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.3", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
@@ -1182,5 +1182,31 @@ func _intro_rest(v: VBoxContainer) -> void:
 	v.add_child(btns)
 	if not intro_new:
 		v.add_child(_para("„Neue Figur anlegen“ löscht den Spielstand, sobald die neue Figur die Nacht betritt.", 12, Color(DIM, 0.7)))
+	# Werkstatt (Fassung 2.3): Figuren aus der Figurenfabrik. Nur die Darstellung ändert sich, der Spielstand bleibt, wie er ist.
+	var werk := HBoxContainer.new()
+	werk.add_theme_constant_override("separation", 10)
+	var n3 := CheckBox.new()
+	n3.text = "Neue 3D-Figuren" if game.touch else "Neue 3D-Figuren (Werkstatt): Eidträger und Herzloser in neuer Gestalt"
+	n3.button_pressed = Spiel.neu3d
+	n3.add_theme_font_size_override("font_size", 14)
+	n3.add_theme_color_override("font_color", DIM)
+	n3.toggled.connect(func(on): Spiel.setze_neu3d(on))
+	if not game.touch:
+		werk.add_child(n3)
+	var sk := _button("  Schaukasten  ", false, func(): pass)
+	for c in sk.pressed.get_connections():
+		sk.pressed.disconnect(c.callable)
+	sk.pressed.connect(func():
+		get_tree().paused = false
+		get_tree().change_scene_to_file("res://schau.tscn"))
+	sk.custom_minimum_size = Vector2(0, 36)
+	if game.touch:
+		# am Handy in die Reihe des Startknopfs: so bleibt alles ohne Rollen sichtbar
+		sk.custom_minimum_size = Vector2(0, 46)
+		btns.add_child(sk)
+		btns.add_child(n3)
+	else:
+		werk.add_child(sk)
+		v.add_child(werk)
 	primary = go
 	primary_btn.grab_focus()

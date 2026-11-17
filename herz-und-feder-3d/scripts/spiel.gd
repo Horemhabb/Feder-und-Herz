@@ -4,6 +4,10 @@ extends Node
 # und der Spielstand. Wie in der 2D-Fassung wird nur die Figur gespeichert: Eine Stunde beginnt nach dem Laden von vorn.
 
 const DATEI := "user://spielstand.json"
+# Einstellungen liegen getrennt vom Spielstand: Sie ändern nur die Darstellung, nie die Figur.
+const EINST := "user://einstellungen.json"
+var schau_gesehen := false   # „-- --schau“ öffnet den Schaukasten nur beim Start, nicht bei der Rückkehr ins Spiel
+var neu3d := false   # Werkstatt: Figuren aus der Figurenfabrik statt der bisherigen Modelle
 const VERSION := 1
 
 # Klassen, Fähigkeiten und Baum stehen in klassen.gd
@@ -40,6 +44,14 @@ func _ready() -> void:
 	if "--neu" in OS.get_cmdline_user_args():
 		loeschen()
 	laden()
+	if FileAccess.file_exists(EINST):
+		var e = JSON.parse_string(FileAccess.get_file_as_string(EINST))
+		if e is Dictionary:
+			neu3d = bool(e.get("neu3d", false))
+	if "--neu3d" in OS.get_cmdline_user_args() or web_frage("neu3d"):
+		neu3d = true
+	if "--alt3d" in OS.get_cmdline_user_args():
+		neu3d = false
 	# Testläufe: „-- --klasse=jaegerin“ legt eine frische Figur dieser Klasse an
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--klasse="):
@@ -50,6 +62,18 @@ func _ready() -> void:
 			fall = maxi(1, int(a.substr(9)))
 			max_fall = maxi(max_fall, fall)
 	calc()
+
+# Im Browser: steht das Wort hinter dem Fragezeichen der Adresse? („…/Feder-und-Herz/?schau“ öffnet den Schaukasten)
+func web_frage(wort: String) -> bool:
+	if not OS.has_feature("web"):
+		return false
+	return str(JavaScriptBridge.eval("window.location.search")).contains(wort)
+
+func setze_neu3d(an: bool) -> void:
+	neu3d = an
+	var f := FileAccess.open(EINST, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"neu3d": neu3d}))
 
 func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	cls = c if CLS.has(c) else "ermittler"

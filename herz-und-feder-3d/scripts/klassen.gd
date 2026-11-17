@@ -8,7 +8,7 @@ const CLS := {
 	"ermittler": {"name": "Eidträger", "like": "Nahkampf mit dem Zweihänder", "txt": "Hat auf die Feder der Maat geschworen. Hält viel aus und steht mitten im Getümmel.",
 		"col": Color("e8b04a"), "res": "Eidkraft", "rc": Color("3f7fd6"), "basic": "melee", "range": 3.3,
 		"sk": ["whirl", "dash", "oath", "udjat"], "rmb": "beam", "hp": 1.2, "red": 0.15, "spd": 1.0, "regen": 4.0,
-		"model": "Knight", "keep": ["2H_Sword"], "art": ["K01", Rect2(0, 3, 182, 411)],
+		"model": "Knight", "neu": "Eidtraeger", "keep": ["2H_Sword"], "art": ["K01", Rect2(0, 3, 182, 411)],
 		"anim": {"idle": "2H_Melee_Idle", "run": "Running_A", "atk_a": "2H_Melee_Attack_Slice", "atk_b": "2H_Melee_Attack_Chop",
 			"whirl": "2H_Melee_Attack_Spin", "dash": "Dodge_Forward", "oath": "Cheer", "udjat": "Spellcast_Raise",
 			"beam": "Spellcast_Shoot", "potion": "Use_Item", "hit": "Hit_A", "death": "Death_A"}},

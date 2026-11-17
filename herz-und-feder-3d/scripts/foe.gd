@@ -23,7 +23,7 @@ const KINDS := {
 	"haut": {"ai": "slam", "atk": 3.0, "spd": 62.0, "r": 26.0, "model": "Skeleton_Warrior", "scale": 1.6, "tint": Color(0.75, 0.62, 0.4), "weapon": "Skeleton_Axe", "mat": "leder"},
 	"guard": {"ai": "melee", "atk": 2.1, "spd": 74.0, "r": 15.0, "model": "Skeleton_Minion", "weapon": "Skeleton_Blade", "mat": "eisen", "undead": true, "lies": true},
 	"fahl": {"ai": "ranged", "atk": 2.1, "spd": 88.0, "r": 13.0, "range": 360.0, "model": "Skeleton_Mage", "tint": Color(0.7, 0.78, 0.85), "weapon": "Skeleton_Staff", "shot": Color("e06bd0"), "mat": "stern"},
-	"hohl": {"ai": "melee", "atk": 1.6, "spd": 112.0, "r": 15.0, "model": "Skeleton_Rogue", "tint": Color(0.55, 0.26, 0.24), "weapon": "Skeleton_Blade", "mat": "eisen", "demon": true, "undead": true, "glow": Color(0.95, 0.35, 0.2)},
+	"hohl": {"ai": "melee", "atk": 1.6, "spd": 112.0, "r": 15.0, "neu": "Hohler", "neu_glow": Color(0.6, 0.8, 1.0), "model": "Skeleton_Rogue", "tint": Color(0.55, 0.26, 0.24), "weapon": "Skeleton_Blade", "mat": "eisen", "demon": true, "undead": true, "glow": Color(0.95, 0.35, 0.2)},
 }
 # Gestalten der Hüter (ACT[…].boss.look)
 const BOSS_LOOK := {
@@ -39,6 +39,7 @@ enum St { SLEEP, WAKING, FIGHT, DEAD }
 var kind := "wisp"     # Gegnerart (Daten.ET) oder „boss“
 var typ := "wisp"
 var K: Dictionary      # Kampfweise und Aussehen
+var neu3d := false   # Figur stammt aus der Figurenfabrik
 var state := St.SLEEP
 var pack := 0
 var wake_t := 0.0
@@ -128,7 +129,11 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		for e in Daten.ELITE:
 			if e.id == elite:
 				disp_name = "%s, %s" % [K.name, e.name]
-	if K.has("model"):
+	if Spiel.neu3d and K.has("neu") and k != "boss":
+		# Werkstatt: Figur aus der Figurenfabrik, mit eigener Haut und eigenen Klauen (keine Tönung, keine Waffe)
+		setup("res://models/chars/%s.glb" % K.neu, sc * 0.94, r)
+		neu3d = true
+	elif K.has("model"):
 		setup("res://models/chars/%s.glb" % K.model, sc * (1.0 if k != "boss" else 1.0), r)
 		if K.has("tint"):
 			_tint(K.tint)
@@ -148,7 +153,7 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 	strafe = 1.0 if randf() < 0.5 else -1.0
 	if K.has("glow") or (k == "boss" and K.has("bcol")):
 		glow = OmniLight3D.new()
-		glow.light_color = K.get("glow", K.get("bcol", Color.WHITE))
+		glow.light_color = K.neu_glow if neu3d and K.has("neu_glow") else K.get("glow", K.get("bcol", Color.WHITE))
 		glow.light_energy = 1.4 if k == "boss" else 0.7
 		glow.omni_range = 9.0 if k == "boss" else 3.0
 		glow.position = Vector3(0, 2.2 * sc, 0)
@@ -445,7 +450,7 @@ func _physics_process(delta: float) -> void:
 					atk_t = K.atk
 					h.hurt(dmg, global_position, self)
 					act_t = 0.25
-					game.sfx.play_at("skel_attack", global_position, 0.2, -6.0)
+					game.sfx.play_at("skorpion" if typ == "skorp" else "irrlicht", global_position, 0.2)
 				elif not slot and d < 7.0:
 					move = _wait_ring(dirn, d, h)
 					speed *= 0.6

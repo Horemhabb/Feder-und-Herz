@@ -38,6 +38,7 @@ var lantern: OmniLight3D
 var aura: OmniLight3D
 var want_dir := Vector3.ZERO   # Eingabe: Laufrichtung
 var aim := Vector3.ZERO        # Eingabe: Punkt unter dem Mauszeiger
+var neu3d := false             # Figur stammt aus der Figurenfabrik
 var auto_aim := false          # die Fähigkeit kam von einem Knopf: Sprünge ohne Schaden weichen vom Gegner weg
 
 func _ready() -> void:
@@ -48,7 +49,9 @@ func _ready() -> void:
 	for id in ORDER:
 		SK[id] = Klassen.SK[id]
 		cd[id] = 0.0
-	setup("res://models/chars/%s.glb" % C.model, 1.0, 0.55)
+	# Werkstatt: Figur aus der Figurenfabrik (gleiche Knochen, gleiche Bewegungsnamen), sonst das bisherige Modell
+	neu3d = Spiel.neu3d and C.has("neu")
+	setup("res://models/chars/%s.glb" % (C.neu if neu3d else C.model), 1.12 if neu3d else 1.0, 0.55)
 	collision_layer = 2
 	collision_mask = 1 | 4 | 32
 	apply_stats(true)
@@ -63,7 +66,8 @@ func _ready() -> void:
 	lantern.omni_range = 16.0 * Spiel.S.cone
 	lantern.omni_attenuation = 1.3
 	lantern.shadow_enabled = true
-	lantern.position = Vector3(0, 2.6, 0)
+	# die neue Figur ist so groß wie ein Mensch: Die Laterne hängt höher, sonst blendet sie den Scheitel weiß
+	lantern.position = Vector3(0, 3.5 if neu3d else 2.6, 0)
 	# die Figur wirft im Licht ihrer eigenen Laterne keinen Schatten (sonst liegt ein dunkler Fleck um sie herum);
 	# im Mondlicht schon. Dafür liegt sie auf Sichtebene 2, die die Laterne beim Schattenwurf auslässt.
 	for m in meshes:
@@ -198,7 +202,7 @@ func _physics_process(delta: float) -> void:
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
 				step_t = 0.31
-				game.sfx.play("step", 0.12)
+				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
 		else:
 			play(ANIM.idle)
 			step_t = 0.1
@@ -221,7 +225,7 @@ func dodge() -> bool:
 	inv = maxf(inv, 0.38)
 	collision_mask = 1 | 32
 	play("Dodge_Forward", 1.9, 0.05, true)
-	game.sfx.play("dash", 0.1, -5.0)
+	game.sfx.play("ausweichen", 0.1)
 	return true
 
 func can(id: String) -> bool:

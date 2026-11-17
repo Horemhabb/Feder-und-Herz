@@ -54,15 +54,20 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			var god: Dictionary = GOETTER[(v + Spiel.fall) % GOETTER.size()]
 			s["gott"] = god
 			s["vis"] = Deko.schrein(game, pos, god.col)
+			# der Gott ist da: Licht fällt auf den Schrein, um ihn glüht ein Kreis seiner Zeichen
+			game.stimmung.append(Stimmung.lichtstrahl(game, pos, 7.5, 1.9, god.col.lerp(Color(1.0, 0.9, 0.7), 0.45), 0.34, 0.22, 0.6))
+			game.stimmung.append(Stimmung.runenkreis(game, pos, 2.0, god.col, 0.55))
 			text = "Schrein der %s" % god.name if god.id != "thot" else "Schrein des Thot"
 			col = god.col
 			size = Vector3(1.3, 2.2, 1.3)
 		"krug":
 			s["vis"] = Deko.krug(game, pos)
+			game.stimmung.append(Stimmung.nebel(game, pos, 5.5, Color(0.55, 0.75, 0.9), 0.32, 0.3))
 			size = Vector3(0.8, 1.4, 0.8)
 			col = Color(1.0, 0.5, 0.45)
 		"relikt":
 			s["vis"] = Deko.relikt(game, pos)
+			game.stimmung.append(Stimmung.lichtstrahl(game, pos, 6.0, 1.0, Color(1.0, 0.84, 0.55), 0.3, 0.18, 0.3))
 			text = G.relikt
 		"figur":
 			s["vis"] = _build_npc(pos, G.model, G.tint, true, 1.0)
@@ -295,7 +300,8 @@ func ba(key: String, text: String) -> void:
 func _found(s: Dictionary) -> void:
 	s.done = true
 	s.vis.light.light_energy = 0.0
-	game.sfx.play("ui", 0.1)
+	# Tiere melden sich, Dinge werden aufgehoben
+	game.sfx.play(L.ding if L.ding in ["schaf", "ziege", "esel", "katze"] else "aufheben", 0.1)
 	game.float_text(s.pos + Vector3(0, 1.4, 0), L.eins, Color(0.85, 0.95, 0.7), 1.1)
 	game.hud.toast(L.fund, 4.5)
 	# Tiere laufen heim, Dinge werden aufgehoben: beides verschwindet
@@ -367,7 +373,8 @@ func _weaken_boss(why: String) -> void:
 func _light(s: Dictionary) -> void:
 	s.done = true
 	Deko.entzuenden(game, s.vis)
-	game.sfx.play_at("oath", s.pos, 0.1, -4.0)
+	game.sfx.play_at("feuer_an", s.pos, 0.1)
+	game.sfx.loop_at("feuer_brennt", s.vis.n)
 	var h: Hero = game.hero
 	h.hp = minf(h.max_hp, h.hp + h.max_hp * 0.12)
 	game.float_text(s.pos + Vector3(0, 1.0, 0), "Feuer des Re", Color(1.0, 0.8, 0.4), 1.2)
@@ -394,7 +401,7 @@ func _bless(s: Dictionary) -> void:
 	h.apply_stats()
 	if god.id == "isis":
 		h.hp = h.max_hp
-	game.sfx.play("udjat", 0.05, -4.0)
+	game.sfx.play("segen", 0.05)
 	game.hud.banner("%s (%d Sekunden)" % [god.txt, int(god.dur)], "SEGEN: %s" % god.name.to_upper(), 4.0)
 	dirty = true
 
@@ -418,7 +425,7 @@ func _jar(s: Dictionary, free: bool) -> void:
 	var n := Spiel.fall
 	if free:
 		_weigh(4.0)
-		game.sfx.play_at("potion", s.pos, 0.1)
+		game.sfx.play_at("herz_frei", s.pos, 0.1)
 		game.float_text(s.pos + Vector3(0, 1.2, 0), "Ein Herz findet heim", Color(0.56, 0.89, 0.88), 1.2)
 		_soul(s.pos)
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.12):
@@ -429,7 +436,7 @@ func _jar(s: Dictionary, free: bool) -> void:
 	else:
 		_weigh(-5.0)
 		s.vis.body.visible = false
-		game.sfx.play_at("skel_die", s.pos, 0.1)
+		game.sfx.play_at("krug_bricht", s.pos, 0.1)
 		game.shake = maxf(game.shake, 0.25)
 		game.drop("shard", s.pos, 12 + 6 * n)
 		game.drop("mat", s.pos, randi_range(1, 2), "staub")
@@ -522,7 +529,7 @@ func talk() -> void:
 	if npc.is_empty() or game.hero.dead or game.hud.overlay != null:
 		return
 	get_tree().paused = true
-	game.sfx.play("ui")
+	game.sfx.play("papyrus", 0.08)
 	npc.vis.mark.visible = false
 	if relikt_done:
 		var maat: bool = Spiel.wahl.get(str(Stunden.hour_of(Spiel.fall)), "") == "maat"
