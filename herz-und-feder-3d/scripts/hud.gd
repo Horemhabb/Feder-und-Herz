@@ -591,8 +591,33 @@ func whisper(text: String) -> void:
 
 # ---------------------------------------------------------------- Fenster
 # Gespräch oder Entscheidung: Absätze, darunter die Antworten (Tasten 1 bis 9; Esc nimmt die letzte: gehen, liegen lassen)
-func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array) -> void:
-	var v := _sheet(0.5, 680)
+# bild: Kürzel eines Porträts (ui/portraits/P01.webp …). Liegt es vor, steht es links neben dem Text, wie bei den
+# alten Rollenspielen; fehlt es, bleibt das Fenster wie bisher.
+func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array, bild := "") -> void:
+	var path := "res://ui/portraits/%s.webp" % bild
+	var has_pic := bild != "" and ResourceLoader.exists(path)
+	var v := _sheet(0.5, 860 if has_pic and not game.touch else 680)
+	if has_pic:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 18)
+		var frame := PanelContainer.new()
+		var fs := _flat(Color(0, 0, 0, 0.6), 6, Color("c9a04a"), 2)
+		fs.set_content_margin_all(3)
+		frame.add_theme_stylebox_override("panel", fs)
+		frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		var pic := TextureRect.new()
+		pic.texture = load(path)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.custom_minimum_size = Vector2(150, 200) if game.touch else Vector2(192, 256)
+		frame.add_child(pic)
+		row.add_child(frame)
+		var right := VBoxContainer.new()
+		right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		right.add_theme_constant_override("separation", 14)
+		row.add_child(right)
+		v.add_child(row)
+		v = right
 	v.add_child(_para(stamp, 13, GOLD))
 	v.add_child(_para(title, 28, PARCH))
 	if sub != "":
