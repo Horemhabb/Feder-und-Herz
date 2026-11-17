@@ -95,6 +95,26 @@ Knochens, mit Gewichten je Ring. Das ergibt saubere Netze, weiche Gelenke und Te
 | Death | `Death_A` |
 | Special Ability | `2H_Melee_Attack_Spin`, `Spellcast_Raise`, `Spellcast_Shoot`, `Cheer` |
 
+### 3a. Gemalte Texturen (Fassung 2.3.1)
+
+Die Tafel des Eidträgers kommt jetzt zum größten Teil aus dem gemalten Bogen K11 (`bilder/K11_voll.webp`, 2048 Pixel,
+wird nicht ins Spiel gepackt). `tools/figurenfabrik/gemalt.py` überträgt Feld für Feld:
+
+| Feld | Woher | Wie |
+|---|---|---|
+| Schuppenpanzer | Brust der Vorderansicht | gekachelt, abwechselnd gespiegelt; großflächiges Licht herausgerechnet |
+| Perlenkragen | Kragen der Vorderansicht | aus dem Bogen um den Hals „abgerollt“ (Polarkoordinaten) und rundherum gelegt |
+| Lasche mit Horusauge | Vorderansicht | als Ganzes |
+| Leinen, Rückentuch, Gürtel, Beinwickel, Haar | Rückansicht | gekachelt |
+| Klinge | Rückansicht | aufgerichtet (um 25,6° gedreht), Vorder- und Rückseite gespiegelt |
+| Bronze (Parierstange, Laterne) | Armschiene der Vorderansicht | gekachelt |
+| Gesicht | Vorderansicht | Halbseite vom Ohr bis zwischen die Augen, gespiegelt, mit weichem Rand |
+| Haut, Sandalen | Farbe des gemalten Arms | Farbe plus feines Korn; Muskeln und Falten der Malerei kacheln sonst sichtbar |
+
+Was nicht geht und warum: Die Vorlage zeigt den Kopf nur schräg. Ein gespiegeltes Halbgesicht ist symmetrisch und
+wirkt deshalb etwas starr; für die Spielkamera reicht es. Eine echte Vorderansicht (ein weiteres Higgsfield-Bild:
+„Kopf von vorn, neutrales Licht“) würde das beheben.
+
 ## 4. Der Herzlose
 
 Vorlage: G13. Im Spiel hieß die Gegnerart schon „Herzloser“; jetzt sieht man es. Dunkle Schuppenhaut, in der Brust

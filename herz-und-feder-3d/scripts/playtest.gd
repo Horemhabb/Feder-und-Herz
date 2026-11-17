@@ -287,16 +287,23 @@ func run() -> void:
 	await wait(0.25)   # der Trefferstopp dauert 0,05 s und darf beim Prüfen vorbei sein
 	# Handy: ein Fingertipp, der im selben Bild losgelassen wird, muss trotzdem treffen
 	G.touch = true
-	# ein unverletzter Gegner: der vorige kann durch kritische Treffer schon gefallen sein
-	var ziel: Foe = G.foes.filter(func(f): return f.kind != "boss" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp)[0]
+	# ein unverletzter Gegner, der stillhält und frei zu sehen ist (der vorige kann schon gefallen sein; Schwärme huschen weg).
+	# Bis zu drei Versuche: Auf zufälligen Karten steht der Erste manchmal an einer Mauer.
+	var kandidaten: Array = G.foes.filter(func(f): return f.kind != "boss" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp and f.K.ai != "swarm")
+	var ziel: Foe = kandidaten[0]
 	var hp_vor := ziel.hp
-	h.global_position = ziel.global_position + Vector3(2.2, 0, 2.2)
-	G.cam_pos = h.global_position
-	await wait(0.6)
-	var tp: Vector2 = G.cam.unproject_position(ziel.global_position + Vector3(0, 1.0, 0))
-	mouse(tp, MOUSE_BUTTON_LEFT, true)
-	mouse(tp, MOUSE_BUTTON_LEFT, false)
-	await wait(1.0)
+	for versuch in mini(3, kandidaten.size()):
+		ziel = kandidaten[versuch]
+		hp_vor = ziel.hp
+		h.global_position = ziel.global_position + Vector3(2.2, 0, 2.2)
+		G.cam_pos = h.global_position
+		await wait(0.6)
+		var tp: Vector2 = G.cam.unproject_position(ziel.global_position + Vector3(0, 1.0, 0))
+		mouse(tp, MOUSE_BUTTON_LEFT, true)
+		mouse(tp, MOUSE_BUTTON_LEFT, false)
+		await wait(1.0)
+		if ziel.hp < hp_vor:
+			break
 	G.touch = false
 	check("Handy: kurzer Fingertipp auf einen Gegner schlägt zu", ziel.hp < hp_vor)
 	# die Figur greift von selbst weiter an, darum kann gerade ein neuer Trefferstopp laufen: kurz darauf muss er vorbei sein
@@ -378,5 +385,14 @@ func run() -> void:
 	await wait(2.5)
 	var G3 := g()
 	check("Stundenwahl: zurück in die erste Stunde (Freiland)", G3 != null and G3 != G2 and Spiel.fall == 1 and Spiel.max_fall == 2 and not G3.karte.indoor)
+	# Champions verschwinden ganz: Ring und Name blieben früher stehen, wenn ein Irrender Ba oder Skorpion fiel
+	if get_tree().paused:
+		await key(KEY_E)   # die Stunde betreten: auf der Tafel steht das Spiel, dort laufen keine Animationen
+		await wait(0.6)
+	for art in ["wisp", "skorp", "guard"]:
+		var champ: Foe = G3._spawn(art, G3.hero.global_position + Vector3(30, 0, 30), 97, "zaeh")
+		champ.die()
+		await wait(0.8)
+		check("Champion (%s) besiegt: Ring und Name sind weg" % art, champ.elite_teile.size() == 2 and champ.elite_teile.all(func(n): return not n.visible))
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()

@@ -14,6 +14,8 @@ from malen import Tafel
 
 QUELLE, ZIEL = sys.argv[1], sys.argv[2]
 TAFEL = sys.argv[3] if len(sys.argv) > 3 else ZIEL.replace(".glb", "_tafel.png")
+# gemalte Vorlage (Higgsfield-Bogen K11, 2048 Pixel): liefert Schuppen, Kragen, Leinen, Haut und Gesicht
+VORLAGE = sys.argv[4] if len(sys.argv) > 4 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bilder", "K11_voll.webp")
 
 BEWEGUNGEN = ["Idle", "2H_Melee_Idle", "Walking_A", "Running_A", "2H_Melee_Attack_Slice", "2H_Melee_Attack_Chop", "2H_Melee_Attack_Spin",
               "2H_Melee_Attack_Stab", "Dodge_Forward", "Cheer", "Spellcast_Raise", "Spellcast_Shoot", "Use_Item", "Interact", "PickUp",
@@ -152,6 +154,79 @@ def male():
     for z in (2.262, 2.278):
         t.linie("kopf", [P(-30, z), P(0, z - 0.003), P(30, z)], (148, 98, 64), 1.2)                              # Stirnfalten
     t.fertig(TAFEL)
+
+
+def uebermalen():
+    """Felder der Tafel aus der gemalten Vorlage füllen (Koordinaten im 2048er Bogen K11)."""
+    import gemalt as gm
+    from PIL import Image
+    if not os.path.exists(VORLAGE):
+        print("ohne gemalte Vorlage:", VORLAGE)
+        return
+    k = Image.open(VORLAGE).convert("RGB")
+    t = Image.open(TAFEL).convert("RGB")
+    F = FELDER
+
+    def gr(n):
+        x0, y0, x1, y1 = F[n]
+        return x1 - x0, y1 - y0
+    # Schuppenpanzer (Rücken der Rückansicht): eine Schuppe wird im Spiel rund 6 cm groß
+    w, h = gr("schuppen")
+    gm.einsetzen(t, F["schuppen"], gm.kachel(gm.flach(k.crop((470, 236, 570, 322))), w, h, 128))
+    # Perlenkragen: aus dem Bogen um den Hals abgerollt, dann gespiegelt rundherum
+    w, h = gr("kragen")
+    band = gm.abrollen(k, (520, 75), 86, 158, 64, 116, 256, h)
+    gm.einsetzen(t, F["kragen"], gm.kachel(band, w, h))
+    # Gürtel und Armschienen
+    w, h = gr("guertel")
+    gm.einsetzen(t, F["guertel"], gm.kachel(gm.angleichen(gm.flach(k.crop((1420, 365, 1580, 412)), 0.4), 105), w, h, h))
+    # Leinenschurz: weiß, gefiedert
+    w, h = gr("leinen")
+    gm.einsetzen(t, F["leinen"], gm.kachel(gm.flach(k.crop((1495, 650, 1570, 735)), 0.7), w, h, 200))
+    # Lasche mit dem Auge des Horus: ganz, wie gemalt
+    w, h = gr("schurz")
+    gm.einsetzen(t, F["schurz"], k.crop((500, 440, 585, 745)).resize((w, h), Image.LANCZOS))
+    # Rückentuch: nachtblau mit Goldfäden
+    w, h = gr("tuch")
+    gm.einsetzen(t, F["tuch"], gm.kachel(gm.flach(k.crop((1370, 470, 1470, 640))), w, h, 240))
+    # Haut, Beinwickel, Haar
+    w, h = gr("haut")
+    gm.einsetzen(t, F["haut"], gm.haut(k, (600, 215, 622, 245), w, h, 3, 1.1))
+    w, h = gr("wickel")
+    gm.einsetzen(t, F["wickel"], gm.kachel(gm.flach(k.crop((1505, 790, 1555, 900)), 0.5), w, h, h))
+    w, h = gr("haar")
+    gm.einsetzen(t, F["haar"], gm.kachel(k.crop((1458, 52, 1515, 80)), w, h, h))
+    # Klinge aus der Rückansicht, aufgerichtet: Länge läuft im Feld von oben (Parierstange) nach unten (Spitze),
+    # die Breite einmal um die flache Klinge herum (vorn eine Seite, hinten die gespiegelte)
+    w, h = gr("klinge")
+    kl = k.crop((1600, 470, 1880, 910)).rotate(-25.6, resample=Image.BICUBIC, center=(145, 222)).crop((118, 70, 158, 400))
+    kl = gm.angleichen(kl, 120).resize((w // 2, h), Image.LANCZOS)
+    band = Image.new("RGB", (w, h))
+    band.paste(kl, (0, 0))
+    band.paste(kl.transpose(Image.FLIP_LEFT_RIGHT), (w // 2, 0))
+    gm.einsetzen(t, F["klinge"], band)
+    # Bronze (Parierstange, Knauf, Laterne) aus der Armschiene der Vorderansicht
+    w, h = gr("bronze")
+    gm.einsetzen(t, F["bronze"], gm.kachel(gm.flach(k.crop((588, 314, 638, 340)), 0.6), w, h, 48))
+    # Sandalen: Haut mit Lederriemen
+    from PIL import ImageDraw
+    w, h = gr("sandale")
+    sa = gm.haut(k, (600, 215, 622, 245), w, h, 7, 1.05)
+    d = ImageDraw.Draw(sa)
+    d.rectangle([32, 0, 96, h], fill=(58, 40, 26))
+    for y in (24, 52, 80, 106):
+        d.line([(0, y), (w, y - 6)], fill=(70, 48, 30), width=7)
+    gm.einsetzen(t, F["sandale"], sa)
+    # Gesicht: Halbseite vom Ohr bis zur Nase, gespiegelt; Ohren liegen bei ±90°, Haaransatz bei 2,30 m, Bart unten
+    # Kopf zuerst ganz mit Haut aus der Stirn belegen (statt des Orangetons), dann das Gesicht darüber
+    w, h = gr("kopf")
+    gm.einsetzen(t, F["kopf"], gm.haut(k, (500, 95, 522, 112), w, h, 5, 1.1))
+    # Haaransatz (y 47) bei 2,30 m, Bartende (y 148) bei 2,00 m; Ohr (x 460) bei ±90°, Spiegelachse zwischen den Augen (x 531)
+    u0, v0 = gesicht_px(-95, 2.315)
+    u1, v1 = gesicht_px(95, 1.99)
+    fl = gm.gesicht(k, (455, 42, 0, 150), 531, int(u1 - u0), int(v1 - v0))
+    gm.einsetzen(t, F["kopf"], fl, (int(u0), int(v0)), 0.3)
+    t.save(TAFEL)
 
 
 def kopf_ring(z):
@@ -314,10 +389,13 @@ def baue(J):
 
 
 male()
+if "--ohne-vorlage" not in sys.argv:
+    uebermalen()
 arm = fabrik.lade_rig(QUELLE, BEWEGUNGEN)
 J = fabrik.umbauen(arm, PLAN, K_WEG)
 bild = bpy.data.images.load(TAFEL)
-mats = [fabrik.material("stoff", bild, 0.0, 0.85), fabrik.material("bronze", bild, 0.5, 0.55), fabrik.material("glut", bild, 0.0, 0.5, glut=1.3)]
+# Die Malerei bringt ihr Licht schon mit: Metall nur wenig spiegeln lassen, sonst glänzt es doppelt
+mats = [fabrik.material("stoff", bild, 0.0, 0.85), fabrik.material("bronze", bild, 0.35, 0.6), fabrik.material("glut", bild, 0.0, 0.5, glut=1.3)]
 ob = baue(J).mesh("Eidtraeger", arm, mats)
 fabrik.boden(arm, ob)
 print("Punkte", len(ob.data.vertices), "Dreiecke", sum(len(p.vertices) - 2 for p in ob.data.polygons))

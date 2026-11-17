@@ -74,6 +74,7 @@ var lead: Foe          # Streife: dem Anführer folgen
 var alert := 0.0
 var alarm := -1.0      # Nachbarrudel ruft: erwacht, wenn abgelaufen
 var mark3d: Label3D    # „?“ oder „!“ über dem Kopf
+var elite_teile: Array = []   # Ring und Namensschild eines Champions: verschwinden mit ihm
 var mark_show := 0.0
 var lying := false     # Ruhelose liegen am Boden und stehen auf
 var proc: Node3D       # selbst gebautes Aussehen (Lichter, Skorpione)
@@ -325,6 +326,7 @@ func _elite_mark(s: float) -> void:
 	ring.material_override = m
 	ring.position.y = 0.06
 	add_child(ring)
+	elite_teile.append(ring)
 	var l := Label3D.new()
 	l.text = disp_name
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -334,6 +336,7 @@ func _elite_mark(s: float) -> void:
 	l.position.y = 2.9 * s if proc == null else 2.4
 	l.pixel_size = 0.006
 	add_child(l)
+	elite_teile.append(l)
 
 func _show_mark(t: String, col: Color, secs: float) -> void:
 	mark3d.text = t
@@ -732,6 +735,14 @@ func die() -> void:
 	collision_mask = 0
 	charge_t = 0.0
 	mark3d.visible = false
+	# Champions: Ring und Name blenden mit aus (blieben vorher stehen, als lebte der Gegner noch)
+	for n in elite_teile:
+		if n is Label3D:
+			n.visible = false
+		else:
+			var tr := create_tween()
+			tr.tween_property(n, "scale", Vector3.ONE * 0.01, 0.5).set_ease(Tween.EASE_IN)
+			tr.tween_callback(n.hide)
 	if proc:
 		var tw := create_tween()
 		tw.tween_property(proc, "scale", Vector3.ONE * 0.05, 0.45).set_ease(Tween.EASE_IN)
