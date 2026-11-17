@@ -1,4 +1,4 @@
-# Herz und Feder · 3D-Fassung 2.7
+# Herz und Feder · 3D-Fassung 2.7.1
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
 Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
@@ -199,6 +199,22 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Bildwirkung:** Vignette (der Bildrand dunkelt ab), Staub im Laternenlicht.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
+
+### Fassung 2.7.1: Symbole als Reliefs
+
+- **Alle Symbole** der Fähigkeiten sind jetzt Reliefs: Steintafel in der Farbe der Klasse (Lapis, Türkis, Karneol,
+  Amethyst), die Hieroglyphe erhaben in Gold mit Glanz, Patina und Schlagschatten, die feinen Linien eingeritzt.
+  `tools/symbole/masken.gd` zeichnet die Zeichen aus `scripts/glyphen.gd` als Masken, `tools/symbole/symbole.py`
+  macht daraus Höhenfeld, Normalen und Licht. Ergebnis in `ui/symbole/` (256 Pixel). Fehlt eine Datei, nimmt das Spiel
+  das gezeichnete Zeichen.
+- **Neue Zeichen** für die sechs dauerhaften Stärken (Ka-Arme, Auge, Ba-Vogel, Wasser des Hapi, Faust mit Chepesch,
+  Speer des Seth; auf Basalt) und die vier Schlüsselsteine (Waage, Feder im Wind, Schakal-Standarte, Ibis mit Palette).
+- **Fähigkeitenbaum:** Symbole doppelt so groß, dauerhafte Stärken und Schlüsselstein mit Bild, oben die gemalte
+  Klassenfigur mit ihrer Beschreibung. Ungelernte Fähigkeiten etwas matter.
+- **Truhen** kleiner (sie wirkten neben den Figuren übergroß).
+
+Neu bauen: `godot --headless --path . --script res://tools/symbole/masken.gd -- /tmp/masken`, dann
+`python tools/symbole/symbole.py /tmp/masken ui/symbole`.
 
 ### Fassung 2.7: Keine fremde Kulisse mehr
 

@@ -83,6 +83,22 @@ func render() -> void:
 	close.pressed.connect(func(): game.toggle_tree())
 	top.add_child(close)
 	add_child(top)
+	var figur := "res://ui/figur_%s.webp" % Spiel.cls
+	if ResourceLoader.exists(figur):
+		var kopf := HBoxContainer.new()
+		kopf.add_theme_constant_override("separation", 14)
+		var fb := TextureRect.new()
+		fb.texture = load(figur)
+		fb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		fb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		fb.custom_minimum_size = Vector2(100, 190)
+		kopf.add_child(fb)
+		var kv0 := VBoxContainer.new()
+		kv0.alignment = BoxContainer.ALIGNMENT_CENTER
+		kv0.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		kv0.add_child(hud._para(Spiel.CLS[Spiel.cls].get("txt", ""), 13, Hud.DIM))
+		kopf.add_child(kv0)
+		add_child(kopf)
 	add_child(hud._para("%s · Stufe %d · %s" % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, ("%d freie Punkte" % pts) if pts != 1 else "1 freier Punkt"], 15, Hud.GOLD if pts > 0 else Hud.DIM))
 	# Fähigkeiten
 	var g := _grid()
@@ -96,9 +112,11 @@ func render() -> void:
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override("separation", 8)
 		var ic := TextureRect.new()
-		ic.texture = Klassen.icon(id, 80)
+		ic.texture = Klassen.icon(id, 128)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.custom_minimum_size = Vector2(40, 40)
+		ic.custom_minimum_size = Vector2(64, 64)
+		if rk == 0:
+			ic.modulate = Color(0.85, 0.82, 0.78)   # ungelernt: etwas matter
 		head.add_child(ic)
 		var hv := VBoxContainer.new()
 		hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -141,6 +159,14 @@ func render() -> void:
 		var c := _card(rk > 0)
 		var v: VBoxContainer = c[1]
 		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 8)
+		var pic := TextureRect.new()
+		pic.texture = Klassen.icon("p_" + pd.id, 128)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.custom_minimum_size = Vector2(48, 48)
+		if rk == 0:
+			pic.modulate = Color(0.85, 0.82, 0.78)
+		head.add_child(pic)
 		var hv := VBoxContainer.new()
 		hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hv.add_child(hud._label(pd.name, 15, Hud.PARCH))
@@ -157,6 +183,14 @@ func render() -> void:
 	var kc := _card(Spiel.has_key())
 	var kv: VBoxContainer = kc[1]
 	var kh := HBoxContainer.new()
+	kh.add_theme_constant_override("separation", 10)
+	var kpic := TextureRect.new()
+	kpic.texture = Klassen.icon("k_" + Spiel.cls, 128)
+	kpic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	kpic.custom_minimum_size = Vector2(72, 72)
+	if not Spiel.has_key():
+		kpic.modulate = Color(0.85, 0.82, 0.78)
+	kh.add_child(kpic)
 	var kl := hud._label("Schlüsselstein: " + K.name, 16, Hud.GOLD if Spiel.has_key() else Hud.PARCH)
 	kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	kh.add_child(kl)
