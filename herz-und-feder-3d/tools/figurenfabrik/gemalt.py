@@ -104,3 +104,88 @@ def haut(bild, box, w, h, seed=3, hell=1.0):
     grob = np.asarray(Image.fromarray((rng.random((h // 24 + 1, w // 24 + 1)) * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC)).astype(np.float32) / 255
     f = 1.0 + (fein - 0.5) * 0.16 + (grob - 0.5) * 0.14
     return Image.fromarray(np.clip(farbe[None, None, :] * f[:, :, None], 0, 255).astype(np.uint8))
+
+
+# ---------------------------------------------------------------- Gesichter: mehrere Wege
+def stuetz(z, punkte):
+    """Stückweise lineare Zuordnung Höhe → Bildzeile über Stützpunkte [(z, y), …] (z absteigend), außen verlängert."""
+    zs = np.array([p[0] for p in punkte], dtype=np.float64)[::-1]
+    ys = np.array([p[1] for p in punkte], dtype=np.float64)[::-1]
+    z = np.asarray(z, dtype=np.float64)
+    y = np.interp(z, zs, ys)
+    lo, hi = z < zs[0], z > zs[-1]
+    y[lo] = ys[0] + (z[lo] - zs[0]) * (ys[1] - ys[0]) / (zs[1] - zs[0])
+    y[hi] = ys[-1] + (z[hi] - zs[-1]) * (ys[-1] - ys[-2]) / (zs[-1] - zs[-2])
+    return y
+
+
+def projektion(bild, w, h, z_von_v, breite_von_z, cx, R, theta, y_punkte, spiegeln=True, rand=0.15):
+    """Projektionsmalerei ohne 3D-Programm: Der Kopf ist eine Drehfläche. Für jeden Punkt der Tafel (Winkel φ, Höhe z)
+    wird berechnet, wo er im gemalten Bild liegt, wenn der Kopf dort um θ gedreht dargestellt ist:
+    x = cx + R·b(z)·sin(φ + θ), y aus den Stützpunkten (Haaransatz, Augen, Mund, Bart).
+    Was der Maler nicht sehen konnte (Rückseite der Drehung), kommt aus der Gegenseite (−φ). Gibt RGBA zurück."""
+    src = _np(bild)
+    us = (np.arange(w) + 0.5) / w
+    phi = np.radians((us - 0.5) * 360.0)
+    z = np.array([z_von_v(v) for v in range(h)])
+    yy = stuetz(z, y_punkte)
+    bz = np.array([breite_von_z(zz) for zz in z])
+    t = math.radians(theta)
+
+    def probe(ph):
+        X = cx + R * bz[:, None] * np.sin(ph[None, :] + t)
+        Y = np.repeat(yy[:, None], w, axis=1)
+        c = np.cos(ph[None, :] + t).repeat(h, axis=0)
+        wgt = np.clip((c - rand) / 0.35, 0, 1)
+        Xi = X.clip(0, src.shape[1] - 1).astype(int)
+        Yi = Y.clip(0, src.shape[0] - 1).astype(int)
+        return src[Yi, Xi], wgt
+    c1, w1 = probe(phi)
+    if spiegeln:
+        c2, w2 = probe(-phi)
+        col = c1 * w1[..., None] + c2 * (1 - w1[..., None])
+        a = np.maximum(w1, w2)
+    else:
+        col, a = c1, w1
+    return np.dstack([col, a * 255]).astype(np.uint8)
+
+
+def farbe_angleichen(rgba, ziel_rgba):
+    """Mittelwert und Streuung jeder Farbe an eine andere Quelle angleichen (nur wo beide sichtbar sind)."""
+    a = rgba[..., :3].astype(np.float32)
+    b = ziel_rgba[..., :3].astype(np.float32)
+    m = (rgba[..., 3] > 128) & (ziel_rgba[..., 3] > 128)
+    if m.sum() < 50:
+        return rgba
+    for i in range(3):
+        sa, sb = a[..., i][m], b[..., i][m]
+        a[..., i] = (a[..., i] - sa.mean()) / (sa.std() + 1e-3) * sb.std() + sb.mean()
+    out = rgba.copy()
+    out[..., :3] = np.clip(a, 0, 255).astype(np.uint8)
+    return out
+
+
+def ueberblenden(unten, oben, gewicht):
+    """Zwei RGBA-Bilder mit einem Gewicht (0 = unten, 1 = oben) mischen; Deckkraft = größere der beiden."""
+    g = gewicht[..., None]
+    col = unten[..., :3] * (1 - g) + oben[..., :3] * g
+    a = np.maximum(unten[..., 3], oben[..., 3])
+    return np.dstack([col, a]).astype(np.uint8)
+
+
+def rand_weich(rgba, oben=0.08, unten=0.08):
+    """Deckkraft oben und unten auslaufen lassen."""
+    h = rgba.shape[0]
+    v = np.linspace(0, 1, h)
+    f = np.clip(v / max(1e-3, oben), 0, 1) * np.clip((1 - v) / max(1e-3, unten), 0, 1)
+    out = rgba.copy()
+    out[..., 3] = (out[..., 3] * f[:, None]).astype(np.uint8)
+    return out
+
+
+def vereinfachen(rgb_img, faktor=5, farben=20):
+    """Wie mit dem Pinsel vereinfacht: verkleinern, Flächen zusammenfassen, Farbzahl senken, wieder vergrößern."""
+    w, h = rgb_img.size
+    klein = rgb_img.resize((max(8, w // faktor), max(8, h // faktor)), Image.LANCZOS).filter(ImageFilter.MedianFilter(3))
+    klein = klein.quantize(farben, method=Image.Quantize.MEDIANCUT).convert("RGB")
+    return klein.resize((w, h), Image.BICUBIC)

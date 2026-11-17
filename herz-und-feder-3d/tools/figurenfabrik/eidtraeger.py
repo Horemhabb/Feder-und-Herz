@@ -15,7 +15,9 @@ from malen import Tafel
 QUELLE, ZIEL = sys.argv[1], sys.argv[2]
 TAFEL = sys.argv[3] if len(sys.argv) > 3 else ZIEL.replace(".glb", "_tafel.png")
 # gemalte Vorlage (Higgsfield-Bogen K11, 2048 Pixel): liefert Schuppen, Kragen, Leinen, Haut und Gesicht
-VORLAGE = sys.argv[4] if len(sys.argv) > 4 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bilder", "K11_voll.webp")
+VORLAGE = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bilder", "K11_voll.webp")
+PORTRAET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ui", "portrait_ermittler.jpg")
+GESICHT = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--gesicht=")), "mischung")
 
 BEWEGUNGEN = ["Idle", "2H_Melee_Idle", "Walking_A", "Running_A", "2H_Melee_Attack_Slice", "2H_Melee_Attack_Chop", "2H_Melee_Attack_Spin",
               "2H_Melee_Attack_Stab", "Dodge_Forward", "Cheer", "Spellcast_Raise", "Spellcast_Shoot", "Use_Item", "Interact", "PickUp",
@@ -46,6 +48,7 @@ FELDER = {
     "kopf": (0, 512, 512, 832), "haut": (512, 768, 704, 1024), "wickel": (512, 512, 704, 768),
     "klinge": (704, 512, 1024, 608), "bronze": (704, 608, 864, 704), "griff": (864, 608, 1024, 704),
     "feder": (704, 704, 1024, 832), "glas": (0, 832, 128, 960), "sandale": (128, 832, 256, 960), "haar": (256, 832, 512, 960),
+    "nemes": (704, 832, 1024, 1024),
 }
 HAUT = (160, 104, 68)
 BRONZE = (176, 132, 66)
@@ -221,12 +224,83 @@ def uebermalen():
     # Kopf zuerst ganz mit Haut aus der Stirn belegen (statt des Orangetons), dann das Gesicht darüber
     w, h = gr("kopf")
     gm.einsetzen(t, F["kopf"], gm.haut(k, (500, 95, 522, 112), w, h, 5, 1.1))
-    # Haaransatz (y 47) bei 2,30 m, Bartende (y 148) bei 2,00 m; Ohr (x 460) bei ±90°, Spiegelachse zwischen den Augen (x 531)
-    u0, v0 = gesicht_px(-95, 2.315)
-    u1, v1 = gesicht_px(95, 1.99)
-    fl = gm.gesicht(k, (455, 42, 0, 150), 531, int(u1 - u0), int(v1 - v0))
-    gm.einsetzen(t, F["kopf"], fl, (int(u0), int(v0)), 0.3)
+    gesicht_malen(GESICHT, k, t)
+    if GESICHT == "nemes":
+        # Kopftuch: waagrechte Streifen Lapis und Gold, Korn und Licht aus dem gemalten Rückentuch
+        import numpy as np
+        w, h = gr("nemes")
+        korn = np.asarray(gm.kachel(gm.flach(k.crop((1370, 470, 1470, 640)), 0.9), w, h, 160).convert("L")).astype(np.float32) / 255
+        v = np.arange(h)[:, None].repeat(w, axis=1)
+        gold = ((v // 12) % 2 == 0)
+        base = np.where(gold[..., None], np.array([196, 150, 70.0]), np.array([34, 52, 112.0]))
+        f = 0.75 + 0.6 * korn[..., None]
+        gm.einsetzen(t, F["nemes"], Image.fromarray(np.clip(base * f, 0, 255).astype(np.uint8)))
     t.save(TAFEL)
+
+
+def gesicht_malen(art, k, t):
+    """Sieben Wege zum Gesicht (siehe WERKSTATT.md, Abschnitt 3b). k: Bogen K11, t: Tafel."""
+    import gemalt as gm
+    import numpy as np
+    from PIL import Image, ImageDraw
+    F = FELDER
+    x0, y0, x1, y1 = F["kopf"]
+    W, H = x1 - x0, y1 - y0
+    z_von_v = lambda v: KOPF_Z[0] - (v + 0.5) / H * (KOPF_Z[0] - KOPF_Z[1])
+    breite = lambda z: kopf_ring(z)[2] / 0.124
+    # K11, Vorderansicht oben links: Kopf um θ = 48° gedreht (aus dem Augenabstand), Mitte x 496, Halbmesser 48 Pixel
+    def k11():
+        return gm.projektion(k, W, H, z_von_v, breite, 496, 48, 48, [(2.36, 30), (2.30, 47), (2.183, 87.5), (2.07, 120), (2.0, 148)])
+    # Porträt der Klassenkarte: fast von vorn (θ ≈ 0), Mitte x 252, Halbmesser 99
+    def portraet():
+        p = Image.open(PORTRAET).convert("RGB")
+        return gm.projektion(p, W, H, z_von_v, breite, 252, 99, 0, [(2.36, 70), (2.30, 95), (2.183, 160), (2.07, 240), (2.0, 300)])
+
+    def setzen(rgba):
+        rgba = gm.rand_weich(rgba, 0.12, 0.04)
+        im = Image.fromarray(rgba, "RGBA")
+        t.paste(im.convert("RGB"), (x0, y0), im.split()[3])
+
+    if art == "spiegel":          # A: Halbgesicht in der Mitte gespiegelt (bisher)
+        u0, v0 = gesicht_px(-95, 2.315)
+        u1, v1 = gesicht_px(95, 1.99)
+        fl = gm.gesicht(k, (455, 42, 0, 150), 531, int(u1 - u0), int(v1 - v0))
+        gm.einsetzen(t, F["kopf"], fl, (int(u0), int(v0)), 0.3)
+    elif art == "dreiviertel":    # B: 3/4-Spiegelung (Polycount): Achse seitlich versetzt, Nase und ein Auge bleiben einmalig
+        u0, v0 = gesicht_px(-95, 2.315)
+        u1, v1 = gesicht_px(95, 1.99)
+        wv, hv = int(u1 - u0), int(v1 - v0)
+        halb = k.crop((455, 42, 547, 150))                      # Ohr bis hinter die Nase (φ −90° … +20°)
+        rest = k.crop((455, 42, 517, 150)).transpose(Image.FLIP_LEFT_RIGHT)   # Gegenseite aus der nahen Wange
+        voll = Image.new("RGB", (halb.width + rest.width, halb.height))
+        voll.paste(halb, (0, 0))
+        voll.paste(rest, (halb.width, 0))
+        gm.einsetzen(t, F["kopf"], voll.resize((wv, hv), Image.LANCZOS), (int(u0), int(v0)), 0.3)
+    elif art == "projektion":     # C: Projektionsmalerei aus der Blickrichtung des Malers, Rückseite gespiegelt
+        setzen(k11())
+    elif art == "portraet":       # D: zweite Quelle: das Porträt der Klassenkarte, frontal projiziert
+        setzen(portraet())
+    elif art in ("mischung", "nemes"):       # E (und G mit Kopftuch): Ansichten verschmelzen (Vorder- und Seitenfoto): Gesicht aus dem Porträt, Ohren und Haar aus K11
+        p = portraet()
+        q = gm.farbe_angleichen(k11(), p)
+        phi = np.abs((np.arange(W) + 0.5) / W - 0.5) * 360
+        z = np.array([z_von_v(v) for v in range(H)])
+        quer = np.clip((50 - phi) / 18, 0, 1)[None, :]      # Schläfen schon aus K11: dort fällt im Porträt Mondlicht blau aufs Haar
+        hoch = np.clip((2.29 - z) / 0.03, 0, 1)[:, None]      # über dem Haaransatz zeigt das Porträt Nachthimmel: dort K11
+        g = quer * hoch * (p[..., 3] / 255.0)
+        setzen(gm.ueberblenden(q, p, g))
+    elif art == "gemalt":   # F: Projektion, dann für die Spielentfernung vereinfacht und mit Kajal nachgezogen
+        m = k11()
+        rgb = gm.vereinfachen(Image.fromarray(m[..., :3]), 3, 32)
+        d = ImageDraw.Draw(rgb)
+        for sgn in (-1, 1):
+            ex, ey = gesicht_px(sgn * 27, 2.183)
+            d.line([(ex - sgn * 15, ey + 2), (ex, ey - 2), (ex + sgn * 14, ey), (ex + sgn * 28, ey - 3)], fill=(22, 15, 10), width=3)   # Kajal
+            d.line([(ex - sgn * 17, ey - 14), (ex, ey - 19), (ex + sgn * 20, ey - 13)], fill=(78, 74, 70), width=5)                   # Braue
+        m = np.dstack([np.asarray(rgb), m[..., 3]]).astype(np.uint8)
+        setzen(m)
+    else:
+        raise SystemExit("unbekannte Gesichtsart: " + art)
 
 
 def kopf_ring(z):
@@ -263,13 +337,18 @@ def baue(J):
     B.loft(ringe, 18, F["kopf"], STOFF, deckel=(False, True), p=2.15)
     hx, hy = (F["haut"][0] + F["haut"][2]) / 2, (F["haut"][1] + F["haut"][3]) / 2
     n0, n1, n2, n3, n4 = (0, -.142, 2.205), (0, -.180, 2.128), (.024, -.136, 2.118), (-.024, -.136, 2.118), (0, -.138, 2.104)
+    # die Nase holt ihre Farbe aus dem gemalten Gesicht, genau von der Stelle, über der sie sitzt
+    kx, ky = F["kopf"][0], F["kopf"][1]
+    def nuv(p):
+        u, v = gesicht_px(math.degrees(math.atan2(p[0], -p[1])) * 0.6, p[2])
+        return (kx + u, ky + v)
     for tri in ((n0, n2, n1), (n0, n1, n3), (n1, n2, n4), (n1, n4, n3)):
-        B.flaeche(tri, [(hx, hy), (hx + 6, hy + 8), (hx - 6, hy + 8)], {"head": 1}, STOFF)
+        B.flaeche(tri, [nuv(q) for q in tri], {"head": 1}, STOFF)
     B.spiegel(lambda b: b.loft([{"c": (.112, .012, 2.165), "a": .034, "b": .02, "w": {"head": 1}}, {"c": (.134, .02, 2.168), "a": .04, "b": .022, "w": {"head": 1}},
                                 {"c": (.142, .026, 2.17), "a": .026, "b": .012, "w": {"head": 1}}], 8, F["haut"], STOFF, achse=(1, 0, 0), vorn=(0, 0, 1), deckel=(False, True)))
     # Haar: Kappe oben, Kranz hinten und an den Seiten
     kappe = []
-    for z in (2.275, 2.30, 2.325, 2.35, 2.37, 2.385, 2.396):     # die Kopfform, etwas angehoben: rund, ohne Spitze
+    for z in (2.30, 2.325, 2.35, 2.37, 2.385, 2.396):     # die Kopfform, etwas angehoben: rund, ohne Spitze
         af, ab, b = kopf_ring(z - 0.012)
         d = 0.015
         kappe.append({"c": (0, -.012, z), "a": (af + d, ab + d), "b": b + d, "w": {"head": 1}})
@@ -352,6 +431,35 @@ def baue(J):
             (1.10, .245, .275, {"hips": 1})]
     B.loft([dict({"c": (0, 0, z), "a": (a, a), "b": b, "w": w, "v": (1.885 - z) / 0.785}, **({"dz": fetzen} if z == 1.10 else {})) for z, a, b, w in tuch], 9, F["tuch"], STOFF,
            bogen=(math.radians(98), math.radians(262)))
+
+    # --- Nemes (Kopftuch der Könige), nur in der Variante „nemes“: liegt über dem Haar, fällt hinter den Ohren auf die
+    # Schultern, vorn zwei Laschen; beschattet Stirn und Augen wie die Kapuzen bei Diablo
+    if GESICHT == "nemes":
+        def ring(z, d):
+            af, ab, b = kopf_ring(min(z, 2.384))
+            return (af + d, ab + d), b + d
+        kappe = []
+        for z, d in ((2.42, 0.0), (2.40, 0.05), (2.36, 0.032), (2.31, 0.03), (2.27, 0.03)):
+            a, b = ring(z, d) if z < 2.41 else ((0.012, 0.012), 0.012)
+            kappe.append({"c": (0, -.012, z), "a": a, "b": b, "w": {"head": 1}})
+        B.loft(kappe, 20, F["nemes"], STOFF, p=2.15)
+        def nw(z):
+            return {"head": 1.0} if z > 2.1 else {"head": 0.4, "chest": 0.6}
+        seiten = []
+        for z, a_, b_ in ((2.27, None, None), (2.18, (.15, .15), .165), (2.08, (.16, .17), .21), (1.98, (.17, .18), .26), (1.90, (.18, .19), .28)):
+            if a_ is None:
+                a_, b_ = ring(z, 0.03)
+            seiten.append({"c": (0, 0.0 if z < 2.2 else -.012, z), "a": a_, "b": b_, "w": nw(z)})
+        B.loft(seiten, 18, F["nemes"], STOFF, bogen=(math.radians(62), math.radians(298)), p=2.3)
+        def lasche(b):
+            for x0 in (.135,):
+                pts = [(2.16, .045), (2.0, .055), (1.86, .06), (1.78, .06)]
+                b.loft([{"c": (x0, -.075, z), "a": .012, "b": hw, "w": {"head": .3, "chest": .7}, "ax": (0, 0, 1), "vorn": (0, -1, 0)} for z, hw in pts],
+                       6, F["nemes"], STOFF, achse=(0, 0, 1), vorn=(0, -1, 0), deckel=(False, True), p=4.0)
+        B.spiegel(lasche)
+        # Uräus: die aufgerichtete Kobra über der Stirn
+        B.loft([{"c": (0, -.15, 2.30), "a": .016, "b": .02, "w": {"head": 1}}, {"c": (0, -.165, 2.36), "a": .012, "b": .016, "w": {"head": 1}},
+                {"c": (0, -.15, 2.395), "a": .003, "b": .004, "w": {"head": 1}}], 6, F["bronze"], METALL, deckel=(True, True))
 
     # --- Feder der Maat hinter der rechten Schulter
     kiel = [Vector(p) for p in ((-.20, .15, 1.86), (-.25, .18, 2.08), (-.30, .185, 2.28), (-.345, .165, 2.46), (-.375, .11, 2.60), (-.385, .03, 2.70))]

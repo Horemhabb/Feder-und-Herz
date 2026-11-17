@@ -115,6 +115,26 @@ Was nicht geht und warum: Die Vorlage zeigt den Kopf nur schräg. Ein gespiegelt
 wirkt deshalb etwas starr; für die Spielkamera reicht es. Eine echte Vorderansicht (ein weiteres Higgsfield-Bild:
 „Kopf von vorn, neutrales Licht“) würde das beheben.
 
+### 3b. Sieben Wege zum Gesicht
+
+Die Vorlage zeigt den Kopf nur schräg. Recherchiert (Polycount, Blender Artists, Game Development Stack Exchange) und
+ausprobiert; jeder Weg ist in der Fabrik geblieben und lässt sich mit `--gesicht=<name>` bauen:
+
+| Weg | Woher die Idee | Ergebnis |
+|---|---|---|
+| A `spiegel`: Halbgesicht in der Mitte gespiegelt | übliche Spiegelung von UVs | symmetrisch, starr |
+| B `dreiviertel`: Spiegelachse seitlich versetzt | „3/4 mirroring“ (Polycount, 2026) | ein echtes Auge, aber sichtbare Naht |
+| C `projektion`: Projektionsmalerei aus der Blickrichtung des Malers | Projection Painting (Blender) | Ohren und Haar passen, das Gesicht verzerrt zur Seite hin |
+| D `portraet`: zweite Quelle, das Porträt der Klassenkarte frontal | mehrere Fotos derselben Person | lebendigster Blick, aber Mondlicht im Haar |
+| E `mischung`: D für Gesichtsmitte, C für Schläfen, Ohren, Haar; Farben angeglichen | Vorder- und Seitenfoto verschmelzen (free3dtutorials) | **gewählt**: lebendig und der Vorlage treu |
+| F `gemalt`: vereinfacht, Kajal nachgezogen | „impressionistisch auf Pixelebene malen“ (Polycount) | zu grob, verliert das Alter |
+| G `nemes`: Kopftuch der Könige mit Uräus, Gesicht wie E | Lesbarkeit über die Silhouette | im Spiel am klarsten ägyptisch zu erkennen |
+
+Wichtigste Erkenntnis: In der Spielkamera ist das Gesicht etwa sechs Pixel groß. Dort zählen Umriss und Licht mehr als
+Züge. Deshalb gibt es zusätzlich ein **Figurenlicht** (`hero.gd`): Die Laterne beleuchtet nur noch die Welt; die Figur
+bekommt ein warmes Führungslicht von der Seite der Kamera. Vorher brannte das Haar im Laternenlicht weiß aus, und das
+Gesicht lag im Dunkeln.
+
 ## 4. Der Herzlose
 
 Vorlage: G13. Im Spiel hieß die Gegnerart schon „Herzloser“; jetzt sieht man es. Dunkle Schuppenhaut, in der Brust

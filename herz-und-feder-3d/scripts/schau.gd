@@ -281,7 +281,7 @@ func _anzeige() -> void:
 	titel.add_theme_color_override("font_color", Color("e8c070"))
 	oben.add_child(titel)
 	l_info = Label.new()
-	l_info.text = "Eidträger: 3.696 Dreiecke, 19 Bewegungen  ·  Herzloser: 2.128 Dreiecke, 16 Bewegungen\nBeide stehen auf demselben Skelett. Körper, Tracht und Texturen baut ein Skript aus einem Bauplan."
+	l_info.text = "Eidträger: 3.664 Dreiecke, 19 Bewegungen  ·  Herzloser: 2.128 Dreiecke, 16 Bewegungen\nBeide stehen auf demselben Skelett. Körper, Tracht und Texturen baut ein Skript aus einem Bauplan."
 	l_info.add_theme_font_override("font", f_text)
 	l_info.add_theme_font_size_override("font_size", 16)
 	l_info.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7, 0.85))

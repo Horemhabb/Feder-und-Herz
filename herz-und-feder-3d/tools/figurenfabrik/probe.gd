@@ -11,12 +11,16 @@ func _ready() -> void:
 	var abstand := 2.6
 	var blick := Vector3(0, 1.2, 0)
 	var weit := 0.0
+	var spiel := false
+	var kopf := false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--modell="): modell = a.get_slice("=", 1)
 		if a.begins_with("--bew="): bew = Array(a.get_slice("=", 1).split(","))
 		if a.begins_with("--aus="): aus = a.get_slice("=", 1)
 		if a.begins_with("--dreh="): dreh = float(a.get_slice("=", 1))
 		if a == "--nah": nah = true
+		if a == "--spiel": spiel = true
+		if a == "--kopf": kopf = true
 		if a.begins_with("--abstand="): abstand = float(a.get_slice("=", 1))
 		if a.begins_with("--weit="): weit = float(a.get_slice("=", 1))
 		if a.begins_with("--blick="): blick.y = float(a.get_slice("=", 1))
@@ -61,11 +65,35 @@ func _ready() -> void:
 			print("fehlt: ", teile[0], " von ", ap.get_animation_list())
 	var cam := Camera3D.new()
 	add_child(cam)
-	cam.fov = 30
+	if kopf:
+		# Kopfbild: jede Figur von vorn bis Schulter, nah
+		cam.fov = 26
+		cam.position = Vector3(0, 2.22, 1.25 + (n - 1) * 0.45)
+		cam.look_at(Vector3(0, 2.15, 0))
+	elif spiel:
+		# wie im Spiel: Kamera 14,5 / 27 / 14,5 m über der Figur, Blickfeld 30°, Laterne über der Figur
+		cam.fov = 30
+		cam.position = Vector3(14.5, 27.0, 14.5)
+		cam.look_at(Vector3(0, 1.0, 0))
+		var lat := OmniLight3D.new()
+		lat.light_color = Color(1.0, 0.78, 0.48)
+		lat.light_energy = 3.2
+		lat.omni_range = 16.0
+		lat.position = Vector3(0, 3.5, 0)
+		add_child(lat)
+		cam.make_current()
+		await get_tree().create_timer(0.5).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(aus)
+		get_tree().quit()
+		return
+	if not kopf:
+		cam.fov = 30
 	var w := n * abstand
-	var d := weit if weit > 0.0 else maxf(6.0, w * 1.15)
-	cam.position = Vector3(0, blick.y + d * 0.22, d)
-	cam.look_at(blick)
+	if not kopf:
+		var d := weit if weit > 0.0 else maxf(6.0, w * 1.15)
+		cam.position = Vector3(0, blick.y + d * 0.22, d)
+		cam.look_at(blick)
 	cam.make_current()
 	await get_tree().create_timer(0.5).timeout
 	await RenderingServer.frame_post_draw
