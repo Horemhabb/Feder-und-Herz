@@ -229,18 +229,12 @@ func cell_pos(cx: int, cz: int) -> Vector3:
 	return Vector3(cx * CELL + CELL / 2, 0, cz * CELL + CELL / 2)
 
 func _piece(name: String, pos: Vector3, rot := 0.0, scl := Vector3.ONE) -> Node3D:
-	# Fässer und Kisten der alten Kulisse sind seit 2.6 ägyptisch: Krüge, Holzkisten, Körbe (Deko.requisit)
-	var ersatz := {"barrel_large": "amphore", "barrel_small_stack": "kruege", "crates_stacked": "kisten", "box_large": "kiste", "trunk_large_A": "korb"}
-	if ersatz.has(name):
-		var q := Deko.requisit(self, ersatz[name], pos, rot)
-		q.scale = scl * 1.25
-		return q
-	var n: Node3D = load("res://models/dungeon/%s.glb" % name).instantiate()
-	n.position = pos
-	n.rotation.y = rot
-	n.scale = scl
-	add_child(n)
-	return n
+	# Die alte Kulisse (KayKit) ist seit 2.7 ganz ersetzt: Die Karte nennt noch die alten Namen, gebaut wird Ägyptisches.
+	var ersatz := {"barrel_large": "amphore", "barrel_small_stack": "kruege", "crates_stacked": "kisten", "box_large": "kiste", "trunk_large_A": "korb",
+		"candle_triple": "lampen", "sword_shield_gold": "waffen", "coin_stack_large": "schatz", "rubble_large": "schutt", "rubble_half": "schutt_klein"}
+	var q := Deko.requisit(self, ersatz.get(name, "kiste"), pos, rot)
+	q.scale = scl * 1.25
+	return q
 
 # ---------------------------------------------------------------- Stein und Boden (Higgsfield-Texturen)
 # Die Texturen liegen in textures/ (aufbereitet mit tools/texturen.py). Fehlt eine Datei, z. B. der Wüstensand,
@@ -462,7 +456,7 @@ func _build_world() -> void:
 		wisps.append({"n": w, "ph": randf() * TAU, "sp": randf_range(0.5, 1.0)})
 
 func _torch(pos: Vector3, rot: float) -> void:
-	var t := _piece("torch_mounted", pos, rot)
+	var t := Deko.wandlampe(self, pos, rot)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.62, 0.28)
 	l.light_energy = 1.9
@@ -470,33 +464,17 @@ func _torch(pos: Vector3, rot: float) -> void:
 	l.omni_attenuation = 1.4
 	l.position = Vector3(0, 0.7, 0.45)
 	t.add_child(l)
-	var fl := CPUParticles3D.new()
-	fl.amount = 14
-	fl.lifetime = 0.5
-	fl.direction = Vector3(0, 1, 0)
-	fl.spread = 12.0
-	fl.gravity = Vector3(0, 1.5, 0)
-	fl.initial_velocity_min = 0.6
-	fl.initial_velocity_max = 1.2
-	fl.scale_amount_min = 0.5
-	fl.scale_amount_max = 1.0
-	var qm := SphereMesh.new()
-	qm.radius = 0.11
-	qm.height = 0.22
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.albedo_color = Color(1.0, 0.72, 0.3)
-	qm.material = fm
-	fl.mesh = qm
-	fl.position = Vector3(0, 0.55, 0.42)
-	t.add_child(fl)
+	Stimmung.flamme(t, Vector3(0, 0.33, 0.42), 0.55, 0.42)
 	if torches.size() < 6:
 		sfx.loop_at("torch", t)
 	torches.append({"l": l, "ph": randf() * 10.0})
 
 func _chest(pos: Vector3, tier: int) -> void:
-	var n := _piece(CHEST[tier].model, pos, PI, Vector3.ONE * (1.25 if tier == 2 else 1.0))
-	var lid := n.find_child("*_lid", true, false)
+	var tr := Deko.truhe(self, pos, tier)
+	var n: Node3D = tr.n
+	n.rotation.y = PI
+	n.scale = Vector3.ONE * (1.25 if tier == 2 else 1.05)
+	var lid: Node3D = tr.lid
 	var body := _box(pos, Vector3(1.4, 1.0, 1.0))
 	var l := Label3D.new()
 	l.text = CHEST[tier].name

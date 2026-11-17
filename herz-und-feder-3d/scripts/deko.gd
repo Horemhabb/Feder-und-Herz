@@ -197,7 +197,7 @@ static func fels(g: Node, pos: Vector3, r: float, tint: Color) -> Node3D:
 	if not cache.has("fels%d" % v):
 		cache["fels%d" % v] = _rock_mesh(1337 + v * 17)
 	var mi := _put(g, cache["fels%d" % v], pos + Vector3(0, r * 0.38, 0), randf() * TAU, Vector3(r, r * randf_range(0.75, 1.15), r))
-	mi.material_override = stone(g, "fels_%s" % tint.to_html(), "fels", tint)
+	mi.material_override = stone(g, "fels_%s" % tint.to_html(), "fels", tint * Color(0.62, 0.64, 0.72))
 	return mi
 
 # Material mit eigener Textur, über alle drei Achsen gelegt (Requisiten und Palmen brauchen so keine eigenen UVs)
@@ -243,6 +243,9 @@ static func requisit(g: Node, art: String, pos: Vector3, rot := 0.0) -> MeshInst
 		var a := _begin()
 		var b := _begin()
 		var c := _begin()
+		var d := _begin()
+		var e := _begin()
+		var f := _begin()
 		match art:
 			"amphore":
 				_dreh(a, KRUG, Vector3.ZERO, 1.0)
@@ -266,19 +269,41 @@ static func requisit(g: Node, art: String, pos: Vector3, rot := 0.0) -> MeshInst
 				box(b, Vector3(0.75, 0.45, 0.6), Vector3(-0.1, 0.6, 0.05))
 				for sx in [-0.6, 0.0]:
 					box(c, Vector3(0.07, 0.62, 0.72), Vector3(sx, 0, 0))
-			_:
-				_dreh(a, [], Vector3.ZERO)
+			"lampen":     # drei Öllämpchen aus Ton auf dem Boden, die Dochte glimmen
+				for q in [Vector3(-0.22, 0, 0.1), Vector3(0.2, 0, 0.16), Vector3(0.0, 0, -0.2)]:
+					_dreh(a, [[0.07, 0.13, 0.05], [0.13, 0.11, 0.04]], q)
+					_dreh(d, [[0.03, 0.005, 0.09]], q + Vector3(0, 0.08, 0), 1.0, 6)
+			"waffen":     # abgelegte Grabbeigaben: Schild und Sichelschwert an einem Ständer
+				box(b, Vector3(0.08, 1.1, 0.08), Vector3(0, 0, 0))
+				box(b, Vector3(0.7, 0.07, 0.07), Vector3(0, 0.75, 0))
+				_dreh(e, [[0.42, 0.42, 0.05]], Vector3(0, 0.02, 0.3))
+				box(e, Vector3(0.06, 0.9, 0.03), Vector3(0.3, 0.05, -0.08))
+				box(e, Vector3(0.2, 0.06, 0.03), Vector3(0.36, 0.9, -0.08))
+			"schatz":     # Grabschatz: Goldringe, Barren und ein Krug
+				for i in 5:
+					_dreh(e, [[0.16 - i * 0.012, 0.16 - i * 0.012, 0.05]], Vector3(-0.2, i * 0.05, 0.05))
+				for i in 3:
+					box(e, Vector3(0.3, 0.07, 0.12), Vector3(0.2, i * 0.07, -0.15 + i * 0.03))
+				_dreh(a, KRUG, Vector3(0.22, 0, 0.25), 0.4)
+				_dreh(e, [[0.07, 0.07, 0.03]], Vector3(0.05, 0, 0.3))
+			"schutt", "schutt_klein":   # Bruchstein
+				var rs := RandomNumberGenerator.new()
+				rs.seed = 9 if art == "schutt" else 4
+				for i in (6 if art == "schutt" else 3):
+					var bb := Basis(Vector3.UP, rs.randf() * TAU).scaled(Vector3.ONE * rs.randf_range(0.18, 0.42))
+					f.append_from(_rock_mesh(40 + i), 0, Transform3D(bb, Vector3(rs.randf_range(-0.5, 0.5), 0.1, rs.randf_range(-0.5, 0.5))))
 		var teile := []
 		if art == "korb":
 			var kb := _begin()
 			_dreh(kb, [[0.34, 0.46, 0.5], [0.46, 0.48, 0.06], [0.48, 0.2, 0.12], [0.2, 0.06, 0.08]], Vector3.ZERO, 1.0, 14)
 			teile.append([kb, korb])
 		else:
-			var voll := {"amphore": [true, false, true], "kruege": [true, true, false], "kiste": [false, true, true], "kisten": [false, true, true]}
-			var alle := [[a, ton], [b, holz], [c, bronze]]
-			for i in 3:
-				if voll.get(art, [true, false, false])[i]:
-					teile.append(alle[i])
+			# welche Flächen die Form belegt: Ton, Holz, Bronze, Glut, Gold, Stein (leere darf man nicht übergeben)
+			var voll := {"amphore": "ac", "kruege": "ab", "kiste": "bc", "kisten": "bc", "lampen": "ad", "waffen": "be", "schatz": "ae", "schutt": "f", "schutt_klein": "f"}
+			var alle := {"a": [a, ton], "b": [b, holz], "c": [c, bronze], "d": [d, mat("docht", Color(1.0, 0.7, 0.3), 1.0, Color(1.0, 0.6, 0.2), 3.0)],
+				"e": [e, gold()], "f": [f, stone(g, "hell", "sandstein", Color(1.0, 0.92, 0.8))]}
+			for z in voll.get(art, "a"):
+				teile.append(alle[z])
 		cache[k] = _commit(teile)
 	return _put(g, cache[k], pos, rot)
 
@@ -367,32 +392,9 @@ static func becken(g: Node, pos: Vector3, r: float) -> void:
 	e.material_override = stone(g, "hell", "sandstein", Color(1.15, 1.02, 0.84))
 
 # ---------------------------------------------------------------- Orte zum Handeln
-static func _fire(parent: Node3D, at: Vector3, big := 1.0) -> CPUParticles3D:
-	var fl := CPUParticles3D.new()
-	fl.amount = 20
-	fl.lifetime = 0.7
-	fl.direction = Vector3(0, 1, 0)
-	fl.spread = 16.0
-	fl.gravity = Vector3(0, 1.6, 0)
-	fl.initial_velocity_min = 0.7
-	fl.initial_velocity_max = 1.5
-	fl.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	fl.emission_sphere_radius = 0.32 * big
-	fl.scale_amount_min = 0.5
-	fl.scale_amount_max = 1.0
-	var qm := SphereMesh.new()
-	qm.radius = 0.15 * big
-	qm.height = 0.3 * big
-	qm.radial_segments = 6
-	qm.rings = 3
-	var fm := StandardMaterial3D.new()
-	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fm.albedo_color = Color(1.0, 0.72, 0.3)
-	qm.material = fm
-	fl.mesh = qm
-	parent.add_child(fl)
-	fl.position = at
-	return fl
+# Feuer als Shader-Flamme (zwei gekreuzte Flächen): ruhiger als Funken, ein Zeichenaufruf, in jedem Browser gleich
+static func _fire(parent: Node3D, at: Vector3, big := 1.0) -> Node3D:
+	return Stimmung.flamme(parent, at - Vector3(0, 0.3 * big, 0), 1.25 * big, 0.95 * big)
 
 # Feuerschale: erloschen, bis die Figur sie mit dem Funken des Re entzündet
 static func feuerschale(g: Node, pos: Vector3) -> Dictionary:
@@ -612,3 +614,54 @@ static func such(g: Node, pos: Vector3, ding: String) -> Dictionary:
 	n.add_child(l)
 	l.position = Vector3(0, 1.3, 0)
 	return {"n": n, "tier": tier, "light": l}
+
+
+# Truhe wie aus einem Grab: Kasten auf Füßen, Deckel in Schreinform (vorn hoch, hinten flach), Beschläge je nach Rang
+# (Bronze, dunkles Eisen, Gold mit Lapis). Der Deckel ist ein eigener Körper mit Drehpunkt an der Hinterkante.
+static func truhe(g: Node, pos: Vector3, tier: int) -> Dictionary:
+	var k := "truhe%d" % tier
+	if not cache.has(k):
+		var holz := tex_mat("holz%d" % tier, "p02_holz", 1.3, [Color.WHITE, Color(0.55, 0.5, 0.5), Color(1.0, 0.85, 0.6)][tier])
+		var metall: StandardMaterial3D = [mat("bronze", Color(0.45, 0.3, 0.14), 0.5, Color.BLACK, 0.0, 0.7), mat("eisen", Color(0.3, 0.33, 0.38), 0.45, Color.BLACK, 0.0, 0.8), gold()][tier]
+		var lapis := mat("lapis", Color(0.1, 0.18, 0.45), 0.5)
+		var b := _begin()
+		var c := _begin()
+		var l := _begin()
+		box(b, Vector3(1.2, 0.55, 0.76), Vector3(0, 0.12, 0))
+		for sx in [-0.52, 0.52]:
+			for sz in [-0.3, 0.3]:
+				box(b, Vector3(0.12, 0.12, 0.12), Vector3(sx, 0, sz))
+		for sx in [-0.42, 0.42]:
+			box(c, Vector3(0.09, 0.57, 0.79), Vector3(sx, 0.12, 0))
+		box(c, Vector3(0.16, 0.14, 0.05), Vector3(0, 0.45, 0.39))
+		var teile := [[b, holz], [c, metall]]
+		if tier == 2:
+			box(l, Vector3(0.6, 0.3, 0.02), Vector3(0, 0.24, 0.385))
+			teile.append([l, lapis])
+		cache[k] = _commit(teile)
+		var d := _begin()
+		var dc := _begin()
+		# Deckel: Drehpunkt hinten (z = 0), die Fläche reicht nach vorn (+z)
+		taper(d, Vector2(1.26, 0.82), Vector2(1.26, 0.36), 0.2, Vector3(0, 0, 0.38))
+		for sx in [-0.42, 0.42]:
+			taper(dc, Vector2(0.09, 0.84), Vector2(0.09, 0.38), 0.21, Vector3(sx, 0, 0.38))
+		box(dc, Vector3(0.14, 0.08, 0.14), Vector3(0, 0.2, 0.38))
+		cache[k + "d"] = _commit([[d, holz], [dc, metall]])
+	var n := _put(g, cache[k], pos)
+	var lid := MeshInstance3D.new()
+	lid.mesh = cache[k + "d"]
+	lid.position = Vector3(0, 0.67, -0.38)
+	n.add_child(lid)
+	return {"n": n, "lid": lid}
+
+# Wandlampe: Bronzearm mit Ölschale (statt der Fackeln der alten Kulisse); schaut nach +Z von der Wand weg
+static func wandlampe(g: Node, pos: Vector3, rot: float) -> Node3D:
+	if not cache.has("wandlampe"):
+		var c := _begin()
+		box(c, Vector3(0.16, 0.3, 0.05), Vector3(0, 0.1, 0.02))
+		box(c, Vector3(0.05, 0.05, 0.42), Vector3(0, 0.2, 0.21))
+		_dreh(c, [[0.05, 0.2, 0.1], [0.2, 0.22, 0.03]], Vector3(0, 0.22, 0.42), 1.0, 10)
+		var k := _begin()
+		_dreh(k, [[0.17, 0.17, 0.02]], Vector3(0, 0.33, 0.42), 1.0, 10)
+		cache["wandlampe"] = _commit([[c, mat("bronze", Color(0.45, 0.3, 0.14), 0.5, Color.BLACK, 0.0, 0.7)], [k, mat("kohle_glut", Color(1.0, 0.5, 0.15), 1.0, Color(1.0, 0.45, 0.1), 2.5)]])
+	return _put(g, cache["wandlampe"], pos, rot)
