@@ -50,9 +50,9 @@ func _ready() -> void:
 		SK[id] = Klassen.SK[id]
 		cd[id] = 0.0
 	# Werkstatt: Figur aus der Figurenfabrik (gleiche Knochen, gleiche Bewegungsnamen), sonst das bisherige Modell
-	neu3d = Spiel.neu3d and C.has("neu")
-	var modell: String = C.model
-	if neu3d:
+	neu3d = true
+	var modell: String = C.neu
+	if true:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)

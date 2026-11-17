@@ -3,11 +3,9 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba0k2vqxrqmpb"
-path.s3tc="res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.s3tc.ctex"
-path.etc2="res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.etc2.ctex"
+path="res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 generator_parameters={
 "md5": "9a714bc33f4314ea4520009f20b048a8"
@@ -16,13 +14,13 @@ generator_parameters={
 [deps]
 
 source_file="res://models/dungeon/candle_triple_dungeon_texture.png"
-dest_files=["res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.s3tc.ctex", "res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.etc2.ctex"]
+dest_files=["res://.godot/imported/candle_triple_dungeon_texture.png-f65efefa7a4918a97352eb2ec542633a.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
