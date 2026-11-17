@@ -19,6 +19,14 @@ QUELLEN = {
 	"t06_pflaster":  "hf_20261116_041040_d6dca7d0-df40-44c4-acfb-0b7f4289acb6.png",
 	"t07_gruft":     "hf_20261116_052916_39a49fef-54af-4ec2-b1a9-783e8efaf672.png",
 	"t09_sand":      "hf_20261116_080638_9e45fbfc-61a4-48fd-b21e-f10590c7a1ac.png",
+	# Stunden 2 bis 5 (Bildauftrag 2, Paket D = zweite Fassung) und der Fels im Freiland (Paket C)
+	"w03_lehm":         "hf_20261117_134824_58685d8b-d33a-44f2-8a3d-1989936454cf.png",
+	"t10_feld":         "hf_20261117_145342_5c55362d-ca84-48e9-ab9b-c490103a5da6.png",
+	"w04_grab":         "hf_20261117_155549_3c9c1916-b37f-4a35-9233-f3df77ef8dca.png",
+	"t11_glas":         "hf_20261117_165859_603d67cb-74da-4966-9a25-5451a061df66.png",
+	"w05_hoehle":       "hf_20261117_180148_8729340e-c9f4-42ee-8e16-628c19c47886.png",
+	"t12_hoehlenboden": "hf_20261117_190543_ee03ab8b-0e6d-42e5-947c-520f2b369097.png",
+	"f01_fels":         "hf_20261117_032346_a1dbdd0f-6ccd-472a-9c65-772436f66961.png",
 }
 GROESSE = 1024
 NAHT = 6   # Pixel beiderseits der Naht, die überblendet werden (im 2048er Original)
