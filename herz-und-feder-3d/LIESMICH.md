@@ -200,6 +200,22 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Higgsfield-Bilder: Endstand (18.11.2026)
+
+| Kürzel | Verwendet als | Fassung |
+|---|---|---|
+| W03, T10, W04, T11, W05, T12 | Mauern und Böden der Stunden 2 bis 5 (`textures/`) | Paket D (zweite Fassung) |
+| F01 | Fels im Freiland | Paket C |
+| X02 | Titelbild (`ui/titel.webp`) | Paket C |
+| P01, P02, P03 | Porträts von Senu, Merit, Chaemwese im Gespräch (`ui/portraits/`) | Paket D |
+| K11–K14 | Vorlagen der Heldenfiguren (Figurenfabrik) | Datei A |
+| G12–G15 | Vorlagen der Gegnerfiguren (Figurenfabrik) | Datei B |
+
+Geprüft: Die Kacheltexturen hatten sichtbare Nähte (Kantenmaß 1,5 bis 1,9); `tools/texturen.py` glättet sie auf
+0,4 bis 0,6. Die „transparenten“ Bilder (K, G) haben einen echten Alphakanal.
+Noch offen: P04 bis P10 (werden ohne Codeänderung angezeigt, sobald sie unter `ui/portraits/` liegen);
+G17 (kleine Gegner) und G18 (Fuchs) sind noch nicht als 3D-Figuren umgesetzt.
+
 ### Fassung 2.7.1: Symbole als Reliefs
 
 - **Alle Symbole** der Fähigkeiten sind jetzt Reliefs: Steintafel in der Farbe der Klasse (Lapis, Türkis, Karneol,
