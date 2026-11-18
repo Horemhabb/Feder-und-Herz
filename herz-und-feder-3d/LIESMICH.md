@@ -200,6 +200,11 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.8.1: Das Federkleid des Ba
+
+- Statt neun breiter Platten je Flügel jetzt vier Lagen geformter Einzelfedern wie beim echten Vogel: Handschwingen, Armschwingen, große Deckfedern mit schmalem Goldsaum, kleine Deckfedern an der Vorderkante, dazu ein Schwanzfächer. Jede Feder ist gemalt (Kiel, schräge Äste, kleine Lücken in der Fahne) und läuft von tiefem Jade zu einer nebligen, hellen Spitze.
+- Das Leuchten sitzt nur noch an den Federspitzen und am Kiel, Leib und Kopf glimmen kaum: weniger grell, mehr Geist. 1205 Dreiecke.
+
 ### Fassung 2.8: Tiere aus der Fabrik, schnellere Startseite
 
 - **Fuchs, Skorpion und Ba neu gebaut** (`tools/figurenfabrik/tiere.py`): eigene Skelette, Bewegungen aus Formeln (Laufen, Gehen, Ruhen, Biss/Stich, Treffer, Tod), Texturtafeln gemalt nach G17/G18. Fuchs rund 1000 Dreiecke, Skorpion 1270 mit glühenden Augen, Ba 590 mit schwebendem Federkleid. Der Fuchs der Jägerin läuft, geht oder ruht je nach Tempo und beißt sichtbar zu; Irrlichter erscheinen als Ba-Seelen, Skorpione als neue Skorpione, der Ba-Hüter als große Ba.
