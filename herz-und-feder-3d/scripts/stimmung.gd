@@ -80,6 +80,49 @@ void fragment() {
 	ALPHA = clamp(a, 0.0, 1.0);
 }"""
 
+# Schleier vor einem Gesicht (2.9.1): ein ovaler Dunst, durch den waagrechte Hitzeschlieren nach oben ziehen,
+# am Rand ausgefranst, mit einzelnen Funken. Er dreht sich immer zur Kamera: Von keiner Seite ist das Gesicht zu sehen.
+const SCHLEIER := """shader_type spatial;
+render_mode blend_mix, unshaded, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
+uniform vec4 tief : source_color = vec4(0.16, 0.36, 0.38, 1.0);
+uniform vec4 hell : source_color = vec4(0.78, 0.97, 0.92, 1.0);
+uniform float phase = 0.0;
+uniform float vor = 0.16;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void vertex() {
+	mat4 mv = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	mv[3].z += vor;   // ein Stück zur Kamera hin: der Kopf dahinter verdeckt ihn nie, von keiner Seite
+	MODELVIEW_MATRIX = mv;
+}
+void fragment() {
+	float t = TIME + phase;
+	vec2 q = (UV - 0.5) * vec2(2.0, 2.0);
+	// Schlieren: waagrecht gestreckt, steigen langsam, verbiegen den Umriss
+	float s1 = n(vec2(UV.x * 3.0 + t * 0.2, UV.y * 9.0 + t * 1.6));
+	float s2 = n(vec2(UV.x * 7.0 - t * 0.3, UV.y * 17.0 + t * 2.7));
+	float rand = 0.82 + (s1 - 0.5) * 0.35;
+	float oval = length(q * vec2(1.0, 0.86));
+	float maske = 1.0 - smoothstep(rand - 0.38, rand, oval);
+	float flimmer = 0.6 + 0.4 * sin(t * 7.0 + UV.y * 22.0 + s2 * 6.0);
+	vec3 c = mix(tief.rgb, hell.rgb, clamp(s1 * 0.8 + s2 * 0.5 * flimmer, 0.0, 1.0));
+	float funke = step(0.985, h(floor(UV * 26.0) + floor(t * 6.0))) * maske;
+	ALBEDO = c + vec3(funke);
+	ALPHA = clamp(maske * (0.74 + 0.24 * s2 * flimmer) + funke, 0.0, 0.96);
+}"""
+
+static func schleier(n: MeshInstance3D, breite := 0.36, hoehe := 0.44) -> void:
+	n.mesh = _quad(breite, hoehe)
+	var m := ShaderMaterial.new()
+	m.shader = _shader("schleier", SCHLEIER)
+	m.set_shader_parameter("phase", randf() * 10.0)
+	n.material_override = m
+	n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.sorting_offset = 0.5
+
 static func _shader(name: String, code: String) -> Shader:
 	if not cache.has(name):
 		var s := Shader.new()
