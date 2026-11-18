@@ -46,6 +46,7 @@ var pet: Node3D               # der Fuchs der Jägerin, vorerst als leuchtender 
 var pet_t := 0.0              # bis zum nächsten Biss
 var pet_rage := 0.0           # Upuauts Hatz: schnelleres Beißen
 var pet_tgt: Foe
+var pet_ap: AnimationPlayer
 var full_t := 0.0             # „Tasche voll“ höchstens alle 4 Sekunden melden
 var can_fullscreen := true    # im Browser: kann diese Seite Vollbild? (iPhone-Safari kann es nicht)
 var total := 0
@@ -948,37 +949,34 @@ func meteor(c: Vector3, r: float, mult: float) -> void:
 
 # ---------------------------------------------------------------- Der Fuchs der Jägerin (05-update.js › Begleittier)
 func _build_pet() -> void:
+	# der Wüstenfuchs (seit 2.8 aus tools/figurenfabrik/tiere.py): eigenes Skelett, Galopp, Biss, Schwanzwedeln
 	pet = Node3D.new()
-	var m := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.28
-	sm.height = 0.5
-	sm.radial_segments = 12
-	sm.rings = 6
-	m.mesh = sm
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.82, 0.5)
-	m.material_override = mat
-	m.position.y = 0.55
+	var m: Node3D = load("res://models/chars/Fuchs.glb").instantiate()
+	m.rotation.y = PI          # Modelle schauen nach +Z, look_at richtet nach −Z aus
+	m.scale = Vector3.ONE * 1.15
 	pet.add_child(m)
-	for k in 2:
-		var ear := MeshInstance3D.new()
-		var pm := PrismMesh.new()
-		pm.size = Vector3(0.14, 0.28, 0.06)
-		ear.mesh = pm
-		ear.material_override = mat
-		ear.position = Vector3(-0.12 + 0.24 * k, 0.86, 0.0)
-		pet.add_child(ear)
+	pet_ap = m.find_child("AnimationPlayer", true, false)
+	for n in ["Idle", "Running_A", "Walking_A"]:
+		if pet_ap.has_animation(n):
+			pet_ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
+	pet_ap.play("Idle")
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.75, 0.4)
-	l.light_energy = 1.0
-	l.omni_range = 3.0
-	l.position.y = 0.7
+	l.light_energy = 0.6
+	l.omni_range = 2.5
+	l.position.y = 1.1
 	pet.add_child(l)
 	add_child(pet)
 	pet.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	pet.global_position = hero.global_position + Vector3(-1.2, 0, 1.2)
+
+# Bewegung des Fuchses passend zum Tempo; ein Biss unterbricht kurz
+func _pet_anim(tempo: float) -> void:
+	if pet_ap == null or (pet_ap.current_animation == "Bite" and pet_ap.is_playing()):
+		return
+	var a := "Running_A" if tempo > 3.0 else ("Walking_A" if tempo > 0.3 else "Idle")
+	if pet_ap.current_animation != a:
+		pet_ap.play(a, 0.15)
 
 func hetz_target(at: Vector3) -> Foe:
 	if pet == null:
@@ -1030,15 +1028,19 @@ func _pet_tick(delta: float) -> void:
 	var d := goal - pet.global_position
 	d.y = 0
 	var reach := (t.radius + 0.8) if t else 0.3
+	var schritt := 0.0
 	if d.length() > reach:
-		pet.global_position += d.normalized() * minf(d.length() - reach * 0.8, 11.2 * delta)
+		schritt = minf(d.length() - reach * 0.8, 11.2 * delta)
+		pet.global_position += d.normalized() * schritt
 	pet.look_at(pet.global_position + Vector3(d.x, 0, d.z + 0.001), Vector3.UP)
-	pet.get_child(0).position.y = 0.55 + absf(sin(Time.get_ticks_msec() * 0.012)) * 0.12
+	_pet_anim(schritt / maxf(delta, 0.001))
 	var key := Spiel.has_key() and hero.cls == "jaegerin"
 	if t and d.length() <= reach + 0.2 and pet_t <= 0.0:
 		pet_t = (0.4 if pet_rage > 0.0 else 0.85) * (0.7 if key else 1.0)
 		hero.deal(t, 0.45 * (2.0 if key else 1.0), 0.8, 0.0, 0.0, false)
 		spark(t.global_position + Vector3(0, 0.8, 0), Color(1.0, 0.8, 0.5))
+		if pet_ap:
+			pet_ap.play("Bite", 0.05)
 	var far := (pet.global_position - hp_).length()
 	if far > 28.8 or (far > 10.4 and not sees(pet.global_position, hp_)):
 		pet.global_position = hp_ - hero.forward() * 1.2

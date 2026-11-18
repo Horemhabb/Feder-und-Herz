@@ -16,8 +16,8 @@ const ANIM := {
 
 # Gegnerarten: Werte aus ET (Daten.ET), dazu Kampfweise, Aussehen und Material
 const KINDS := {
-	"wisp": {"ai": "swarm", "atk": 0.9, "spd": 135.0, "r": 10.0, "look": "wisp", "col": Color("8fe3e0"), "mat": ""},
-	"skorp": {"ai": "swarm", "atk": 1.1, "spd": 116.0, "r": 12.0, "look": "skorp", "col": Color("b98a4a"), "mat": "", "animal": true},
+	"wisp": {"ai": "swarm", "atk": 0.9, "spd": 135.0, "r": 10.0, "look": "wisp", "neu": "Ba", "neu_scale": 0.85, "col": Color("8fe3e0"), "mat": ""},
+	"skorp": {"ai": "swarm", "atk": 1.1, "spd": 116.0, "r": 12.0, "look": "skorp", "neu": "Skorpion", "neu_scale": 0.8, "col": Color("b98a4a"), "mat": "", "animal": true},
 	"lance": {"ai": "melee", "atk": 1.9, "spd": 92.0, "r": 14.0, "neu": "Krieger", "mat": "leder"},
 	"seer": {"ai": "ranged", "atk": 2.3, "spd": 84.0, "r": 13.0, "range": 340.0, "neu": "Priesterin", "shot": Color("9be06b"), "mat": "leder"},
 	"haut": {"ai": "slam", "atk": 3.0, "spd": 62.0, "r": 26.0, "neu": "Koloss", "scale": 1.3, "mat": "leder"},
@@ -27,7 +27,7 @@ const KINDS := {
 }
 # Gestalten der Hüter (ACT[…].boss.look)
 const BOSS_LOOK := {
-	"wisp": {"look": "wisp", "mat": ""},
+	"wisp": {"look": "wisp", "neu": "Ba", "neu_scale": 0.62, "neu_tint": Color(1.15, 1.1, 0.9), "mat": ""},
 	"mutter": {"neu": "Koloss", "neu_tint": Color(1.1, 0.9, 0.62), "neu_scale": 0.72, "mat": "leder"},
 	"koenig": {"neu": "Krieger", "neu_tint": Color(1.35, 1.1, 0.6), "neu_scale": 0.78, "mat": "eisen", "undead": true},
 	"grey": {"neu": "Koloss", "neu_tint": Color(0.72, 0.8, 0.95), "neu_scale": 0.72, "mat": "stern"},
