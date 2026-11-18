@@ -289,6 +289,14 @@ func _open_land(p: Vector2, rad: int) -> bool:
 				return false
 	return true
 
+# keine Mauer im Umkreis (für größere Bauten wie die Werkstatt)
+func _frei_um(p: Vector2, rad: int) -> bool:
+	for dy in range(-rad, rad + 1):
+		for dx in range(-rad, rad + 1):
+			if not in_grid(int(p.x) + dx, int(p.y) + dy) or wall(int(p.x) + dx, int(p.y) + dy):
+				return false
+	return true
+
 # gepflasterter Weg entlang der Punkte (Bodenart 3), zwei Zellen breit; daneben abwechselnd Obelisken und Wächterstatuen
 func _road(pts: Array) -> void:
 	var walked := 0.0
@@ -431,6 +439,13 @@ func _place_sites() -> void:
 		var p := start + Vector2(cos(a), sin(a)) * randf_range(2.6, 4.6)
 		if found >= 3 and in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 2.4):
 			sites.append({"p": p, "kind": "helfer", "v": 0})
+			break
+	# die Werkstatt des Ptah steht nahe am Eingang (3.0): nur dort wird aufgewertet und neu gefasst
+	for t in 200:
+		var a := randf() * TAU
+		var p := start + Vector2(cos(a), sin(a)) * randf_range(4.5, 8.5)
+		if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 3.4) and _frei_um(p, 2) and not _deko_near(p, 2.8):
+			sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": "werkstatt", "v": 0})
 			break
 	# das Fundstück liegt weit hinten
 	places.reverse()

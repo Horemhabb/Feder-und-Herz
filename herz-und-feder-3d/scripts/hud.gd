@@ -47,6 +47,8 @@ var secondary: Callable
 var primary_btn: Button
 var banner_tw: Tween
 var toast_tw: Tween
+var menu_open := false
+var menue: Menue
 var bag_open := false
 var tree_open := false
 var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
@@ -107,7 +109,7 @@ func _ready() -> void:
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(quest_box)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen · Leertaste: ausweichen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü · I Tasche · K Fähigkeiten · E sprechen", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -121,9 +123,8 @@ func _ready() -> void:
 		row.custom_minimum_size = Vector2(560, 0)
 		row.alignment = BoxContainer.ALIGNMENT_END
 		row.add_theme_constant_override("separation", 6)
-		var knoepfe := [["Tasche", func(): game.toggle_bag()], ["Fähigk.", func(): game.toggle_tree()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
-		if game.can_fullscreen:
-			knoepfe.insert(0, ["Vollbild", func(): game.toggle_fullscreen()])
+		# Grafik, Ton, Bildrate und Vollbild stehen seit 3.0 im Menü
+		var knoepfe := [["Menü", func(): game.toggle_menu()], ["Tasche", func(): game.toggle_bag()], ["Fähigk.", func(): game.toggle_tree()]]
 		for t in knoepfe:
 			var b := Button.new()
 			b.text = t[0]
@@ -318,24 +319,95 @@ func _draw_waage() -> void:
 			waage.draw_circle(pan + Vector2(-2.2, -3), 3.2, Color("c22a22"))
 			waage.draw_circle(pan + Vector2(2.2, -3), 3.2, Color("c22a22"))
 
-# Questbuch oben links: Aufgaben der Stunde, erledigte gedimmt
+# Zeichen der Aufgaben (3.0): kleine goldene Symbole statt eines Punktes; erledigt wird zum Haken
+const Q_ZEICHEN := {
+	"hueter": '<path d="M16 3l11 5v8c0 7-5 11-11 13C10 27 5 23 5 16V8z" §/><circle cx="16" cy="14" r="3.5" §/>',
+	"leute": '<circle cx="16" cy="9" r="4.5" §/><path d="M7 28c0-7 4-11 9-11s9 4 9 11" §/>',
+	"relikt": '<path d="M16 3l3.6 8.4 9 .8-6.8 6 2 8.8L16 22.4 8.2 27l2-8.8-6.8-6 9-.8z" §/>',
+	"feuer": '<path d="M16 3c1 5 7 8 7 15a7 7 0 0 1-14 0c0-4 2-6 3-9 1 2 2 3 3 3 1-2 0-5 1-9z" §/><path d="M7 28h18" §/>',
+	"krug": '<path d="M11 5h10M12 5c0 4-5 6-5 13 0 6 4 9 9 9s9-3 9-9c0-7-5-9-5-13" §/><path d="M13 16c1-2 5-2 6 0 1 3-3 5-3 5s-4-2-3-5z" §/>',
+	"namenlos": '<ellipse cx="16" cy="14" rx="7" ry="10" §/><path d="M8 28h16" §/><circle cx="16" cy="14" r="1.6" fill="#e8b04a"/>',
+	"erledigt": '<circle cx="16" cy="16" r="12" stroke="#7a6a4a" stroke-width="2" fill="none"/><path d="M9.5 16.5l4.5 4.5 8.5-10" stroke="#7a6a4a" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+}
+var q_bilder := {}
+
+func _quest_bild(id: String) -> Texture2D:
+	if not q_bilder.has(id):
+		var svg := '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32">%s</svg>' % String(Q_ZEICHEN.get(id, Q_ZEICHEN.relikt)).replace("§", 'stroke="#5a3a12" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"')
+		var img := Image.new()
+		img.load_svg_from_string(svg, 1.0)
+		q_bilder[id] = ImageTexture.create_from_image(img)
+	return q_bilder[id]
+
+# Fortschritt aus dem Kurztext: „2/5“ oder „40 %“ → 0 bis 1, sonst −1
+func _anteil(kurz: String) -> float:
+	if "/" in kurz:
+		var t := kurz.split("/")
+		return clampf(float(t[0]) / maxf(1.0, float(t[1])), 0.0, 1.0)
+	if kurz.ends_with("%"):
+		return clampf(float(kurz.trim_suffix("%")) / 100.0, 0.0, 1.0)
+	return -1.0
+
+# Questbuch oben links (3.0): je Aufgabe ein Zeichen, der Titel, rechts der Stand, darunter ein Fortschrittsbalken
+# und ein Satz. Erledigtes schrumpft auf eine Zeile mit Haken.
 func _quests() -> void:
 	for c in quest_box.get_children():
 		quest_box.remove_child(c)
 		c.queue_free()
+	var offen := 0
 	for q in game.orte.quests:
-		# (nur Zeichen, die die Zierschrift selbst hat: im Browser fehlen sonst Sonderzeichen)
+		if not q.done:
+			offen += 1
+	var kopf := _label("AUFGABEN DIESER STUNDE" + ("" if offen > 0 else " · ALLE ERLEDIGT"), 11, DIM)
+	quest_box.add_child(kopf)
+	for q in game.orte.quests:
 		var kurz: String = q.get("kurz", "")
-		var head: String = "• " + q.titel.to_upper() + (" · ERLEDIGT" if q.done else ("   " + kurz if game.touch and kurz != "" else ""))
-		quest_box.add_child(_label(head, 12, DIM if q.done else GOLD))
-		if game.touch and (q.done or kurz != ""):
-			continue   # auf dem Handy knapp: eine Zeile je Aufgabe
-		var l := _label(q.text, 13, Color(DIM, 0.75) if q.done else PARCH)
+		var zeile := HBoxContainer.new()
+		zeile.add_theme_constant_override("separation", 7)
+		zeile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ic := TextureRect.new()
+		ic.texture = _quest_bild("erledigt" if q.done else q.id)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.custom_minimum_size = Vector2(22, 22)
+		ic.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		zeile.add_child(ic)
+		var sp := VBoxContainer.new()
+		sp.add_theme_constant_override("separation", 1)
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		zeile.add_child(sp)
+		var kz := HBoxContainer.new()
+		kz.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var titel := _label(q.titel.to_upper(), 12, DIM if q.done else GOLD)
+		titel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		titel.clip_text = true
+		kz.add_child(titel)
+		if not q.done and kurz != "":
+			kz.add_child(_label(kurz, 12, PARCH))
+		sp.add_child(kz)
+		quest_box.add_child(zeile)
+		if q.done:
+			continue
+		var an := _anteil(kurz)
+		if an >= 0.0:
+			var bahn := ColorRect.new()
+			bahn.color = Color(0.25, 0.17, 0.07, 0.35)
+			bahn.custom_minimum_size = Vector2(0, 4)
+			bahn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var voll := ColorRect.new()
+			voll.color = Color("8a5a16")
+			voll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			voll.anchor_right = an
+			voll.anchor_bottom = 1.0
+			bahn.add_child(voll)
+			sp.add_child(bahn)
+		if game.touch:
+			continue   # auf dem Handy knapp: Zeichen, Titel, Stand
+		var l := _label(q.text, 13, PARCH)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size = Vector2(330, 0)
-		l.add_theme_constant_override("outline_size", 4)
-		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-		quest_box.add_child(l)
+		l.custom_minimum_size = Vector2(290, 0)
+		sp.add_child(l)
 	var segen := []
 	for id in game.orte.buffs:
 		for g in Orte.GOETTER:
@@ -448,6 +520,9 @@ func _skill_box(id: String) -> Control:
 		var tap: bool = (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed)
 		if tap and not get_tree().paused and tap_frame != Engine.get_process_frames():
 			tap_frame = Engine.get_process_frames()
+			if not Spiel.gelernt(id):
+				game.nicht_gelernt(id)
+				return
 			# der Zeiger liegt auf dem Knopf, nicht auf einem Ziel: auf den nächsten Gegner zielen, sonst nach vorn
 			var near: Foe = game.foe_near(game.hero.global_position, 20.8)
 			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 8.8
@@ -587,10 +662,12 @@ func refresh() -> void:
 		if id != "potion" and S.cost > 0:
 			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
-		var locked: bool = u.need > Spiel.lvl
+		var locked: bool = not Spiel.gelernt(id)
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor and not locked else Color.WHITE
 		u.icon.modulate = Color(0.25, 0.25, 0.28, 0.7) if locked else Color.WHITE
-		u.lock.text = "AB STUFE %d" % u.need if locked else ""
+		# ungelernt: erst ab ihrer Stufe lernbar, dann wartet sie im Fähigkeitenbaum auf einen Punkt
+		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else "LERNEN")
+		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl else DIM)
 		u.name.modulate.a = 0.45 if locked else 1.0
 		if locked:
 			u.sub.text = ""
@@ -676,6 +753,7 @@ func toast(text: String, secs := 2.2, col := PARCH) -> void:
 # dein Ba spricht leise über der Leiste
 func whisper(text: String) -> void:
 	toast(text, 7.0, TEAL)
+	erklaere(text)
 
 # ---------------------------------------------------------------- Fenster
 # Gespräch oder Entscheidung: Absätze, darunter die Antworten (Tasten 1 bis 9; Esc nimmt die letzte: gehen, liegen lassen)
@@ -713,6 +791,7 @@ func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: 
 	for p in paras:
 		if p != "":
 			v.add_child(_para(p, 16, PARCH))
+	_fussnoten(v, [title, sub] + paras, 2)
 	var cbs := []
 	var i := 0
 	for o in opts:
@@ -743,6 +822,8 @@ func press_option(i: int) -> bool:
 
 func _close() -> void:
 	bag_open = false
+	menu_open = false
+	menue = null
 	dialog_opts = []
 
 	tree_open = false
@@ -862,19 +943,59 @@ func _para(text: String, size: int, col: Color, center := false) -> Label:
 	return l
 
 # Schwarze Tafel mit Stunde, Namen und Lage. Erst der Knopf gibt das Spiel frei.
+# Fußnoten (3.0): Begriffe, die in diesen Texten zum ersten Mal vorkommen, werden darunter in einem Satz erklärt
+func _fussnoten(v: VBoxContainer, texte: Array, hoechstens := 2, mitte := false) -> void:
+	var neu := Lexikon.neu_in(texte, hoechstens)
+	if neu.is_empty():
+		return
+	var kasten := PanelContainer.new()
+	var st := _flat(Color(0.2, 0.14, 0.06, 0.1), 6, Color(0.36, 0.25, 0.1, 0.55), 1)
+	st.set_content_margin_all(10)
+	kasten.add_theme_stylebox_override("panel", st)
+	var kv := VBoxContainer.new()
+	kv.add_theme_constant_override("separation", 4)
+	kasten.add_child(kv)
+	for e in neu:
+		kv.add_child(_para("%s: %s" % [e.name, e.txt], 13, TEAL, mitte))
+	v.add_child(kasten)
+
+# Kurzer Hinweis nach einem geflüsterten oder eingeblendeten Satz: ein neuer Begriff, in einem Satz erklärt
+func erklaere(text: String) -> void:
+	var neu := Lexikon.neu_in([text], 1)
+	if neu.is_empty():
+		return
+	var e: Dictionary = neu[0]
+	get_tree().create_timer(2.2, true, false, true).timeout.connect(func():
+		toast("%s: %s" % [e.name, e.txt], 9.0, TEAL))
+
 func show_chapter(no: String, name: String, lead: String, brief: String, btn: String, cb: Callable) -> void:
 	var v := _sheet(1.0, 720)
 	v.add_child(_para(no, 14, GOLD, true))
 	v.add_child(_para(name, 46, PARCH, true))
+	# Rückblick: was in der Stunde davor geschah (ab der zweiten Stunde der ersten Nacht)
+	var bisher := Worte.bisher(Stunden.hour_of(Spiel.fall)) if Stunden.night_of(Spiel.fall) == 1 else ""
+	if bisher != "":
+		v.add_child(_para("BISHER", 11, DIM, true))
+		v.add_child(_para(bisher, 14, DIM, true))
 	v.add_child(_para(lead, 20, PARCH, true))
 	v.add_child(_para(brief, 16, DIM, true))
+	# auf dem Handy steht der Knopf vor den Erklärungen, damit er ohne Rollen zu sehen ist
+	var knopf := func():
+		var row := CenterContainer.new()
+		primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
+		primary_btn.disabled = true
+		row.add_child(primary_btn)
+		v.add_child(row)
+	if game.touch:
+		knopf.call()
+	if not Spiel.gesehen("so_geht_es"):
+		Spiel.merke("so_geht_es")
+		v.add_child(_para(Worte.SO_GEHT_ES, 14, TEAL, true))
+	_fussnoten(v, [bisher, lead, brief], 3, true)
 	if chapter_note != "":
 		v.add_child(_para(chapter_note, 14, TEAL, true))
-	var row := CenterContainer.new()
-	primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
-	primary_btn.disabled = true
-	row.add_child(primary_btn)
-	v.add_child(row)
+	if not game.touch:
+		knopf.call()
 	primary = cb
 	var b := primary_btn
 	get_tree().create_timer(0.9, true, false, true).timeout.connect(func():
@@ -902,6 +1023,7 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	v.add_child(_para(next_no, 12, TEAL))
 	v.add_child(_para(next_name, 20, PARCH))
 	v.add_child(_para(next_lead, 14, DIM))
+	_fussnoten(v, [epi], 2)
 	v.add_child(_para("Die Pforte bleibt offen, solange du willst.", 13, DIM))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
@@ -922,6 +1044,26 @@ func show_bag() -> void:
 	v.add_child(t)
 	var cb := func(): get_tree().paused = false
 	secondary = cb
+
+# Spielmenü: hält das Spiel an (Esc)
+func show_menu() -> void:
+	var v := _sheet(0.82, 640)
+	menu_open = true
+	menue = Menue.new()
+	menue.hud = self
+	menue.game = game
+	v.add_child(menue)
+
+# Werkstatt des Ptah: dasselbe Fenster wie die Tasche, aber mit Aufwerten, Neu-Fassen und der Fundkiste
+func show_werkstatt() -> void:
+	var v := _sheet(0.86, 880)
+	bag_open = true
+	var t := Tasche.new()
+	t.hud = self
+	t.game = game
+	t.werkstatt = true
+	v.add_child(t)
+	secondary = func(): get_tree().paused = false
 
 func show_tree() -> void:
 	var v := _sheet(0.86, 900)
@@ -957,6 +1099,12 @@ func press_primary() -> bool:
 	return true
 
 func _input(ev: InputEvent) -> void:
+	if menu_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		if not menue.zurueck():
+			game.toggle_menu()
+		return
 	if tree_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_K:
 		get_viewport().set_input_as_handled()
 		game.sfx.play("ui")
@@ -1103,7 +1251,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 2.9.1", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.0", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
@@ -1113,8 +1261,10 @@ func _render_intro() -> void:
 	_intro_rest(v)
 
 func _intro_story(v: VBoxContainer) -> void:
-	v.add_child(_para("Die Nebelmark ist das letzte Land vor dem Westen. Ihr Nebel steigt aus der Duat, der Unterwelt, durch die Re jede Nacht in seiner Barke fährt. Seit dem Herbst kommt der Morgen später. Unten steht die Waage still: Kein Herz wird mehr gegen die Feder der Maat gewogen.", 15, PARCH))
-	v.add_child(_para("Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. Warum gerade dir, haben sie nicht gesagt. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs aufhebst und was du liegen lässt, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
+	# in schlichten Worten: worum es geht, wer du bist, was du tun sollst (3.0)
+	v.add_child(_para("Die alten Ägypter erzählten: Jede Nacht fährt die Sonne in einer Barke durch die Unterwelt, die Duat. Zwölf Stunden dauert die Fahrt. Kommt die Barke an, wird es Morgen.", 15, PARCH))
+	v.add_child(_para("Seit dem Herbst kommt der Morgen später. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne dieses Gericht findet niemand Ruhe, und niemand zieht mehr die Barke.", 15, PARCH))
+	v.add_child(_para("Du kommst aus Sandtor, der letzten Stadt vor dem Westen. Die Priester haben dir ihre letzte Laterne in die Hand gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs entscheidest, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
 
 func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:

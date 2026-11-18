@@ -32,6 +32,7 @@ var mus_t := 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	einst_anwenden()
 	for i in 10:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -183,7 +184,7 @@ func _process(delta: float) -> void:
 		if mus_gain[i] <= 0.0 and mus_want[i] <= 0.0:
 			p.stop()
 			continue
-		p.volume_db = VOL.get(mus_key[i], -12.0) + MUS_TRIM + mus_duck + linear_to_db(maxf(0.001, mus_gain[i]))
+		p.volume_db = VOL.get(mus_key[i], -12.0) + MUS_TRIM + mus_duck + linear_to_db(maxf(0.001, mus_gain[i] * float(Spiel.einst.musik)))
 	# Wechsel der Stücke einer Stunde mit Pausen dazwischen
 	if mus_list.is_empty() or (mus_name != "" and not mus_list.has(mus_name)):
 		return
@@ -200,6 +201,10 @@ func _process(delta: float) -> void:
 
 func hush() -> void:
 	voice.stop()
+
+# Lautstärke aus den Einstellungen (Spielmenü): gesamt über den Hauptkanal, Musik zusätzlich für sich
+func einst_anwenden() -> void:
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(Spiel.einst.laut))))
 
 func set_muted(m: bool) -> void:
 	muted = m

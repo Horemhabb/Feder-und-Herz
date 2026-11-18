@@ -200,6 +200,26 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 3.0: Spielmenü, Werkstatt, Lexikon und eine Geschichte, die jeden abholt
+
+**Spiel**
+- **Fähigkeiten wirken erst, wenn sie gelernt sind.** Es gibt keinen Grundmodus mehr. Eine neue Figur hat zwei Punkte und wählt im Fähigkeitenbaum (K), womit sie beginnt; der Baum öffnet sich beim ersten Betreten von selbst. Jede Stufe bringt einen Punkt. Lernen geht ab der Stufe der Fähigkeit (1, 2, 3, 5; rechte Maustaste ab 1), Rang 1 ist die Grundstärke, jeder weitere Rang gibt +12 %. Die Leiste zeigt „LERNEN“ oder „AB STUFE n“. Alte Spielstände behalten, was sie konnten (die Punkte dafür sind geschenkt).
+- **Werkstatt des Ptah.** Am Eingang jeder Stunde steht ein Goldschmied mit Werkbank, Lehmofen und Amboss. Nur dort (Taste E oder antippen) wird Ausrüstung aufgewertet und neu gefasst, gegen Material und eine Gebühr in Scherben (Aufwerten 6 + 5 je Stufe, Neu-Fassen 10 + 2 je Gegenstandsstufe). Neu-Fassen würfelt nicht mehr blind: Der Goldschmied legt zwei Eigenschaften hin, man nimmt eine oder behält die alte. Auch die Fundkiste des Grabräubers steht jetzt dort. In der Tasche wird nur noch angelegt und weggeworfen.
+- **Spielmenü (Esc, auf dem Handy der Knopf „Menü“).** Hält das Spiel an. Weiterspielen, Lexikon, Steuerung, Einstellungen (Ton, Lautstärke gesamt, Musik, Grafik, Vollbild, Bildrate; gespeichert für alle Figuren), Stunde wechseln, zum Titel, neue Figur.
+
+**Geschichte und Sprache**
+- **Lexikon** (`scripts/lexikon.gd`): 37 Begriffe in schlichten Sätzen (Duat, Re, Maat, Isfet, Herzwaage, Ba, Ka, Hüter, Seelenkrug, die Götter …). Beim ersten Auftauchen wird ein Begriff erklärt: als Fußnote unter Gesprächen und Tafeln, als kurzer Hinweis nach geflüsterten Sätzen. Danach steht er im Menü.
+- **Einstieg in schlichten Worten:** Der Startbildschirm erklärt, worum es geht, wer man ist und was man tun soll. Die Tafel jeder Stunde zeigt ab der zweiten einen Rückblick („Bisher“), die erste zusätzlich „So geht es“.
+- **Keine Wiederholungen** (`scripts/worte.gd`): Sätze des Ba, Seelenkrüge (jeder mit eigenem Bild und Namen), Niederlage, gefallener Hüter und die Leute am Eingang ziehen aus Stapeln, die sich erst wiederholen, wenn alle Sätze dran waren. Die vier Aufnahmen der Erzählerstimme liefen in jeder Stunde gleich; jede spielt jetzt nur noch einmal je Figur.
+
+**Bild und Ton**
+- **Questbuch:** je Aufgabe ein Zeichen, der Stand rechts, ein Fortschrittsbalken; Erledigtes schrumpft auf eine Zeile mit Haken.
+- **Figuren:** schwebendes Anch statt Ausrufezeichen, Namensschild mit Beruf, ein leiser Kreis am Boden.
+- **Welt:** gewebte Teppiche mit Borte und Rauten (vorher einfarbig rot), Nadeln aus dunklem Wüstenglas (vorher türkis leuchtend), Seelenkrug als Kanope mit Kopfdeckel, Schild und Speer am Ständer, Treffer blitzen auf, ohne die Figur weiß zu übermalen.
+- **Schritte neu** (`tools/ton/schritte.py`): je vier Einzelschritte für Sand und Stein aus vier neuen Aufnahmen von ElevenLabs (Sound Effects v2, zusammen etwa 70 Credits), geschichtet aus Tritt, Sohle und Körnern. Die alten Schritte hatten fast alle Energie zwischen 500 und 2000 Hz und mehrere Klacker je Datei: das klang hohl.
+
+**Tests:** Spieltest 97 Prüfungen, vier Klassentests (je 23 bis 24), Bots, Browser im Handy-Format. Neue Prüfbilder: `-- --autotest --ort=werkstatt,figur,helfer,krug`.
+
 ### Fassung 2.9.1: Der Schleier
 
 - Der Ba ohne Namen trägt einen flimmernden Gesichtsschleier (`Stimmung.schleier`): ovaler Dunst mit aufsteigenden Hitzeschlieren, ausgefranstem Rand und einzelnen Funken. Er hängt am Kopfknochen, macht also Flügelschlag und Wippen mit, dreht sich immer zur Kamera und wird im Shader ein Stück nach vorn geschoben. So ist das Gesicht von keiner Seite zu sehen. Ein Zeichenaufruf, kein Bild.

@@ -187,6 +187,13 @@ static func up_cost(it: Dictionary) -> Dictionary:
 		c["stern"] = 1
 	return c
 
+# Gebühren der Werkstatt des Ptah (3.0): Aufwerten und Neu-Fassen kosten außer dem Material auch Scherben
+static func up_fee(it: Dictionary) -> int:
+	return 6 + 5 * int(it.get("up", 0))
+
+static func reroll_fee(it: Dictionary) -> int:
+	return 10 + 2 * int(it.get("ilvl", 1))
+
 static func up_mul(it: Dictionary) -> float:
 	return 1.0 + 0.12 * int(it.get("up", 0))
 

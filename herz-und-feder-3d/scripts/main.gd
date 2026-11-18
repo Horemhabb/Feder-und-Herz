@@ -151,7 +151,7 @@ func _ready() -> void:
 		Spiel.force_new = false
 	else:
 		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin())
-		sfx.say("vo_chapter")
+		sprich("vo_chapter")
 	if autotest == null:
 		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
 			var kt: Node = load("res://scripts/klassentest.gd").new()
@@ -161,6 +161,14 @@ func _ready() -> void:
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
 			get_tree().root.add_child.call_deferred(pt)
+
+# Erzählerstimme (3.0): Es gibt vier Aufnahmen, und sie klangen in jeder Stunde gleich. Jede spielt jetzt nur noch
+# ein einziges Mal je Figur; danach erzählt allein der Text, der in jeder Stunde ein anderer ist.
+func sprich(name: String) -> void:
+	if Spiel.gesehen(name):
+		return
+	Spiel.merke(name)
+	sfx.say(name)
 
 func begin() -> void:
 	# der Knopf „Eintreten“ ist die Berührung, die der Browser für Vollbild verlangt
@@ -172,6 +180,12 @@ func begin() -> void:
 	get_tree().paused = false
 	Spiel.speichern()
 	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
+	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
+	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args()
+	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
+		get_tree().create_timer(1.4).timeout.connect(func():
+			if hud.overlay == null and not get_tree().paused and not hero.dead:
+				toggle_tree())
 
 # Startbildschirm: neue Figur oder weiterspielen. Danach baut sich die Stunde mit den gewählten Werten neu auf.
 func start_game(neu: bool, d: int, hardcore: bool, cls := "ermittler", hour := 0) -> void:
@@ -740,6 +754,22 @@ func _auto_target() -> Foe:
 			best = f
 	return best
 
+# Spielmenü: Esc hält das Spiel an und zeigt Lexikon, Steuerung und Einstellungen
+func toggle_menu() -> void:
+	if not started or hero.dead:
+		return
+	if hud.menu_open:
+		hud._close()
+		get_tree().paused = false
+	elif hud.overlay == null and not get_tree().paused:
+		sfx.play("ui")
+		get_tree().paused = true
+		hud.show_menu()
+
+func zum_titel() -> void:
+	Spiel.speichern()
+	restart(false)
+
 func toggle_tree() -> void:
 	if not started or hero.dead:
 		return
@@ -1084,13 +1114,13 @@ func _level_up() -> void:
 	hero.apply_stats(true)
 	hero.en = 100.0
 	# groß in der Bildmitte: die neue Stufe, der freie Punkt und jede Fähigkeit, die jetzt gelernt ist
-	hud.announce(null, "AUFSTIEG", "Stufe %d" % Spiel.lvl, "Ein Fähigkeitenpunkt ist frei. %s öffnet den Fähigkeitenbaum: Ränge, Verstärkungen und Passive." % ("„Fähigk.“ oben rechts" if touch else "Taste K"), 5.0)
+	hud.announce(null, "AUFSTIEG", "Stufe %d" % Spiel.lvl, "Ein Fähigkeitenpunkt ist frei. %s öffnet den Fähigkeitenbaum: Dort lernst du neue Fähigkeiten und stärkst die alten." % ("„Fähigk.“ oben rechts" if touch else "Taste K"), 5.0)
 	for i in 5:
 		var id: String = hero.ORDER[i]
 		var need := Klassen.unlock_lvl(hero.cls, id)
 		if need > lvl_seen and need <= Spiel.lvl and need > 1:
 			var S: Dictionary = hero.SK[id]
-			hud.announce(Klassen.icon(id, 176), "NEUE FÄHIGKEIT · %s" % ("ANTIPPEN" if touch else ("RECHTE MAUSTASTE" if i == 4 else "TASTE %d" % (i + 1))), S.name, S.txt, 7.0)
+			hud.announce(Klassen.icon(id, 176), "JETZT LERNBAR · IM FÄHIGKEITENBAUM", S.name, S.txt, 7.0)
 	lvl_seen = Spiel.lvl
 	sfx.play("aufstieg")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
@@ -1385,13 +1415,13 @@ func on_boss_wake(b: Foe) -> void:
 	hud.boss_show(b.K.name)
 	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
 	sfx.play("boss_appear")
-	sfx.say("vo_boss")
+	sprich("vo_boss")
 	shake = maxf(shake, 0.6)
 
 func on_boss_dead() -> void:
 	hud.boss_hide()
 	sfx.music_set(area_music(), 3.0)
-	hud.banner("Die Stunde ist vollendet. Eine Pforte steht offen.", "DER HÜTER IST GEFALLEN", 5.0)
+	hud.banner(Worte.zieh("hueter_faellt"), "DER HÜTER IST GEFALLEN", 5.0)
 	sfx.play("victory")
 	for f in live_foes():
 		if f.global_position.distance_to(boss.global_position) < 30.0:
@@ -1405,12 +1435,12 @@ func on_hero_dead() -> void:
 		# Hardcore: der Spielstand ist sofort verloren (04-combat.js › hurt)
 		Spiel.loeschen()
 	await get_tree().create_timer(1.6).timeout
-	sfx.say("vo_death")
+	sprich("vo_death")
 	get_tree().paused = true
 	if Spiel.hc:
 		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, Stunden.hour_txt(Spiel.fall)], func(): restart(false), "Neue Figur anlegen")
 		return
-	hud.show_dead(DEAD_TXT, func():
+	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 6 else "tod"), func():
 		sfx.hush()
 		for f in foes:
 			if f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING:
@@ -1486,7 +1516,7 @@ func _build_gate(pos: Vector3) -> void:
 func _ask_gate() -> void:
 	get_tree().paused = true
 	sfx.play("ui")
-	sfx.say("vo_epi")
+	sprich("vo_epi")
 	var stats := [[_clock(), "Zeit"], [str(kills), "Besiegte"], ["%d/%d" % [chests_open, chests.size()], "Truhen"], ["%d/%d" % [Spiel.evid.size(), Daten.EVID.size()], "Seiten"], [str(deaths), "Rückschläge"]]
 	var n1 := Spiel.fall + 1
 	var nd := Stunden.def(n1)
@@ -1716,15 +1746,19 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_1, KEY_2, KEY_3, KEY_4:
 				hero.aim = mouse_ground()
 				hero.auto_aim = false
-				hero.cast(hero.ORDER[ev.keycode - KEY_1])
+				if not hero.cast(hero.ORDER[ev.keycode - KEY_1]):
+					nicht_gelernt(hero.ORDER[ev.keycode - KEY_1])
 			KEY_Q: hero.cast("potion")
 			KEY_SPACE: hero.dodge()
 			KEY_E:
-				if orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
+				if orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
+					orte.werkstatt_oeffnen()
+				elif orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
 					orte.talk_helfer()
 				elif orte.near_npc():
 					orte.talk()
 			KEY_K: toggle_tree()
+			KEY_ESCAPE: toggle_menu()
 			KEY_F: hud.toggle_fps()
 			KEY_G: set_low(not low_gfx)
 			KEY_V: toggle_fullscreen()
@@ -1739,12 +1773,33 @@ func _unhandled_input(ev: InputEvent) -> void:
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()
 		return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.near_werkstatt() \
+			and mouse_ground().distance_to(orte.werk.pos) < 2.2 and not hud.mouse_over_ui():
+		# die Werkstatt antippen oder anklicken: eintreten
+		orte.werkstatt_oeffnen()
+		return
 	if touch and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 		tap_t = 0.3
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
 		hero.aim = mouse_ground()
 		hero.auto_aim = false
-		hero.cast(hero.ORDER[4])
+		if not hero.cast(hero.ORDER[4]):
+			nicht_gelernt(hero.ORDER[4])
+
+# Taste einer Fähigkeit gedrückt, die noch nicht gelernt ist: sagen, woran es liegt (höchstens alle paar Sekunden)
+var nicht_t := 0.0
+func nicht_gelernt(id: String) -> void:
+	if Spiel.gelernt(id) or clock - nicht_t < 2.5:
+		return
+	nicht_t = clock
+	var S: Dictionary = hero.SK[id]
+	var need := Klassen.unlock_lvl(hero.cls, id)
+	if need > Spiel.lvl:
+		hud.toast("%s lässt sich ab Stufe %d lernen." % [S.name, need], 3.0)
+	elif Spiel.tree_points() > 0:
+		hud.toast("%s ist noch nicht gelernt. %s öffnet den Fähigkeitenbaum." % [S.name, "„Fähigk.“ oben rechts" if touch else "Taste K"], 3.5)
+	else:
+		hud.toast("%s ist noch nicht gelernt. Der nächste Aufstieg bringt einen Punkt." % S.name, 3.5)
 
 func set_low(low: bool, still := false) -> void:
 	low_gfx = low

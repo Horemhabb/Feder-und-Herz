@@ -91,14 +91,21 @@ func run() -> void:
 	check("Leertaste: Ausweichschritt (%.1f m), kurz unverwundbar" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5 and h.dodge_cd > 0.0)
 	check("Fenster liegen auf Papyrus, die Schrift ist Tinte", G.hud.papier.size() >= 1 and G.hud.f_text != null)
 	# Fähigkeiten werden mit den Stufen gelernt und groß angekündigt
-	check("auf Stufe 1 sind zwei Fähigkeiten gelernt, die übrigen zeigen ihre Stufe", h.can("whirl") and not h.can("dash") and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2" and G.hud.skill_ui["beam"].lock.text == "")
+	# seit 3.0: nichts wirkt von selbst. Zwei Punkte zum Einstand, die Leiste zeigt „LERNEN“ oder die Stufe
+	check("auf Stufe 1 ist nichts gelernt: zwei Punkte, Leiste zeigt LERNEN und Stufen", not h.can("whirl") and Spiel.tree_points() == 2 and G.hud.skill_ui["whirl"].lock.text == "LERNEN" and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2")
+	check("Lernen geht erst ab der Stufe der Fähigkeit", not Spiel.tree_rank_up("dash") and Spiel.tree_rank_up("whirl") and Spiel.tree_rank_up("beam"))
+	await wait(0.2)
+	check("gelernt: Falkenkreis und Strahl wirken, die Leiste ist frei", h.can("whirl") and h.can("beam") and G.hud.skill_ui["whirl"].lock.text == "" and not h.can("dash"))
 	while Spiel.lvl < 5:
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl)):
 			G._level_up()
 	await wait(0.3)
 	check("Aufstieg: Ankündigung in der Bildmitte, weitere stehen an (%d)" % G.hud.ann_queue.size(), G.hud.ann_box != null and G.hud.ann_queue.size() >= 3)
 	check("freie Punkte: goldener Knopf über der Leiste", G.hud.punkt_btn.visible and ("%d Fähigkeitenpunkt" % Spiel.tree_points()) in G.hud.punkt_btn.text and Spiel.tree_points() >= 4)
-	check("auf Stufe 5 sind alle Fähigkeiten gelernt", G.hud.skill_ui["udjat"].lock.text == "" and Klassen.unlock_lvl("ermittler", "udjat") == 5)
+	check("auf Stufe 5 sind alle Fähigkeiten lernbar", G.hud.skill_ui["udjat"].lock.text == "LERNEN" and Klassen.unlock_lvl("ermittler", "udjat") == 5)
+	Spiel.auto_lernen()
+	await wait(0.2)
+	check("alle gelernt: keine Sperre mehr auf der Leiste", G.hud.skill_ui["udjat"].lock.text == "" and Spiel.gelernt("oath"))
 	shot("aufstieg")
 	h.en = 100.0
 	for k in [[KEY_1, "whirl"], [KEY_2, "dash"], [KEY_3, "oath"], [KEY_4, "udjat"]]:
@@ -154,7 +161,39 @@ func run() -> void:
 	h.apply_stats()
 	check("Anlegen einer Rüstung erhöht die Rüstung", Spiel.S.armor > 0)
 	var st0: int = Spiel.mats.staub
-	check("Aufwerten kostet Fayencestaub und hebt die Stufe", Spiel.upgrade(ring) and int(ring.up) == 1 and Spiel.mats.staub == st0 - 3)
+	Spiel.shards = 200
+	check("Aufwerten kostet Fayencestaub und eine Gebühr in Scherben", Spiel.upgrade(ring) and int(ring.up) == 1 and Spiel.mats.staub == st0 - 3 and Spiel.shards == 194)
+	# Werkstatt des Ptah (3.0): Gebühr in Scherben, Neu-Fassen mit Auswahl; in der Tasche gibt es beides nicht mehr
+	Spiel.shards = 200
+	Spiel.mats.staub = 20
+	var wsh := Spiel.shards
+	var aff0: String = ring.aff.keys()[0] if ring.aff.size() > 0 else ""
+	var wopts := Spiel.reroll_angebot(ring) if aff0 != "" else []
+	check("Neu fassen: Gebühr vorab, zwei Fassungen zur Wahl", aff0 == "" or (wopts.size() == 2 and Spiel.shards == wsh - Daten.reroll_fee(ring) and ring.aff.has(aff0)))
+	if not wopts.is_empty():
+		Spiel.reroll_setzen(ring, aff0, wopts[0])
+		check("Neu fassen: die gewählte Eigenschaft ersetzt die alte", ring.aff.has(wopts[0].k) and not ring.aff.has(aff0))
+	check("Werkstatt des Ptah steht in der Stunde, nahe am Eingang", not G.orte.werk.is_empty() and G.orte.werk.pos.distance_to(G.start_pos) < 30.0)
+	var tb: Tasche = G.hud.overlay.find_children("*", "Tasche", true, false)[0]
+	tb.sel = {"eq": "ring"}
+	tb.render()
+	await wait(0.1)
+	var knoepfe := tb.find_children("*", "Button", true, false).map(func(b): return b.text)
+	check("Tasche: kein Aufwerten, kein Neu-Fassen mehr", not knoepfe.any(func(t): return "Aufwerten" in t or "neu fassen" in t))
+	G.hud.close_bag()
+	G.hud.show_werkstatt()
+	await wait(0.2)
+	tb = G.hud.overlay.find_children("*", "Tasche", true, false)[0]
+	tb.sel = {"eq": "ring"}
+	tb.render()
+	await wait(0.1)
+	knoepfe = tb.find_children("*", "Button", true, false).map(func(b): return b.text)
+	check("Werkstatt: Aufwerten mit Gebühr, Neu-Fassen, Fundkiste", knoepfe.any(func(t): return "Aufwerten" in t and "Scherben" in t) and knoepfe.any(func(t): return "Fundkiste" in t))
+	shot("werkstatt")
+	G.hud.close_bag()
+	get_tree().paused = true
+	G.hud.show_bag()
+	await wait(0.2)
 	await key(KEY_I)
 	await wait(0.3)
 	check("I schließt die Tasche, Spiel läuft", not G.hud.bag_open and not get_tree().paused and G.hud.overlay == null)
@@ -290,6 +329,11 @@ func run() -> void:
 	# ein unverletzter Gegner, der stillhält und frei zu sehen ist (der vorige kann schon gefallen sein; Schwärme huschen weg).
 	# Bis zu drei Versuche: Auf zufälligen Karten steht der Erste manchmal an einer Mauer.
 	var kandidaten: Array = G.foes.filter(func(f): return f.kind != "boss" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp and f.K.ai != "swarm")
+	if kandidaten.is_empty():
+		# auf dieser Karte steht kein passender Gegner mehr: einen eigenen hinstellen
+		var neu: Foe = G._spawn("lance", h.global_position + Vector3(3.0, 0, 0.5), 96)
+		await wait(0.3)
+		kandidaten = [neu]
 	var ziel: Foe = kandidaten[0]
 	var hp_vor := ziel.hp
 	for versuch in mini(3, kandidaten.size()):
@@ -411,6 +455,41 @@ func run() -> void:
 	check("Tuchfarbe folgt dem Urteil der fünften Stunde", frei and Geschichte.urteil_art() == "schwer" and ResourceLoader.exists("res://models/chars/tuch_schwer.webp") and ResourceLoader.exists("res://models/chars/tuch_schwebe.webp"))
 	Spiel.urteil5 = u0
 	Spiel.herz = h0
+	# Spielmenü (3.0): Esc hält an, Unterseiten, Esc zurück, Esc weiter
+	if get_tree().paused:
+		G3.hud._close()
+		get_tree().paused = false
+	await wait(0.3)
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	check("Esc öffnet das Spielmenü, Spiel steht", G3.hud.menu_open and get_tree().paused)
+	shot("menue")
+	G3.hud.menue.geh("lexikon")
+	await wait(0.2)
+	var eintraege: Array = G3.hud.menue.find_children("*", "Label", true, false).map(func(l): return l.text)
+	check("Lexikon erklärt Ba, Duat und Maat", eintraege.has("Ba") and eintraege.has("Duat") and eintraege.has("Maat"))
+	shot("lexikon")
+	await key(KEY_ESCAPE)
+	await wait(0.2)
+	check("Esc auf einer Unterseite führt zurück ins Menü", G3.hud.menu_open and G3.hud.menue.seite == "")
+	G3.hud.menue.geh("einstellungen")
+	await wait(0.2)
+	shot("einstellungen")
+	G3.hud.menue.geh("")
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	check("Esc schließt das Menü, Spiel läuft", not G3.hud.menu_open and not get_tree().paused)
+	# Begriffe werden beim ersten Auftauchen erklärt, danach nicht mehr
+	Spiel.wissen.erase("lex_ba")
+	var fn1: Array = Lexikon.neu_in(["Dein Ba flüstert etwas über die Barke."], 2)
+	var fn2: Array = Lexikon.neu_in(["Dein Ba flüstert."], 2)
+	check("Lexikon: Ba wird einmal erklärt (nicht in „Barke“ verwechselt), dann nicht wieder", fn1.any(func(e): return e.id == "ba") and not fn2.any(func(e): return e.id == "ba"))
+	# wechselnde Texte: ein Stapel wiederholt sich erst, wenn alle Sätze dran waren
+	Worte.stapel.erase("ba_frei")
+	var gezogen := {}
+	for i2 in Worte.T["ba_frei"].size():
+		gezogen[Worte.zieh("ba_frei")] = 1
+	check("wechselnde Texte: %d verschiedene Sätze hintereinander" % gezogen.size(), gezogen.size() == Worte.T["ba_frei"].size())
 	# Der Ba ohne Namen (2.9): Stück finden, zurückbringen, er kehrt heim und flüstert den ersten Satz
 	var BO: Orte = G3.orte
 	if not BO.hat_namenlos():
@@ -420,7 +499,7 @@ func run() -> void:
 	BO._stueck_finden()
 	var weichen := BO.traegt_kartusche()
 	BO._heimkehr()
-	await wait(6.5)
+	await wait(8.0)
 	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter", weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
 	var reigen: Array = G3.foes.filter(func(f): return f.style == "reigen")
 	check("Reigen: reine Irrlicht-Schwärme tanzen und tragen eine Lichtspur", reigen.is_empty() or reigen.all(func(f): return f.has_meta("spur")))

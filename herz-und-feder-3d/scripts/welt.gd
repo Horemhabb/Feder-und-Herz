@@ -201,18 +201,69 @@ func _edges() -> void:
 		var body: StaticBody3D = g._box(b[0], b[1])
 		body.collision_layer = LOW_LAYER
 
+# Teppiche (3.0): gewebt statt einfarbig. Das Muster wird einmal je Farbe und Format gerechnet: goldene Borte,
+# dunkle Zierlinie, ein Feld mit Webstruktur und Rauten, an den Schmalseiten Fransen.
+static var rug_tex := {}
+
+static func _rug_bild(col: Color, quer: float) -> ImageTexture:
+	var key := "%s_%d" % [col.to_html(false), int(round(quer * 2.0))]
+	if rug_tex.has(key):
+		return rug_tex[key]
+	var w := int(clampf(64.0 * quer, 64.0, 256.0))
+	var h := 64
+	var img := Image.create(w, h, true, Image.FORMAT_RGB8)
+	var feld := Color(col.r * 0.72, col.g * 0.72, col.b * 0.72)
+	var borte := Color(0.5, 0.38, 0.17)
+	var hell := feld.lightened(0.22)
+	var dunkel := feld.darkened(0.45)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for y in h:
+		for x in w:
+			var rx: int = mini(x, w - 1 - x)        # Abstand zum Rand
+			var ry: int = mini(y, h - 1 - y)
+			var r: int = mini(rx, ry)
+			var c := feld
+			if rx < 3:
+				c = borte if (y / 2) % 2 == 0 else dunkel     # Fransen an den Schmalseiten
+			elif r < 7:
+				c = borte
+			elif r < 9:
+				c = dunkel
+			elif r < 11:
+				c = hell
+			else:
+				# Rauten entlang der Mitte, dazwischen feine Querstreifen
+				var u := float((x - 11) % 22) / 22.0 - 0.5
+				var v := float(y) / float(h) - 0.5
+				var raute := absf(u) * 2.0 + absf(v) * 3.2
+				if raute < 0.5:
+					c = borte if raute > 0.32 else hell
+				elif (x + y) % 9 == 0:
+					c = dunkel.lerp(feld, 0.5)
+			var web := 0.92 + 0.08 * float((x + y * 3) % 2) + rng.randf_range(-0.035, 0.035)   # Webstruktur
+			img.set_pixel(x, y, Color(c.r * web, c.g * web, c.b * web))
+	img.generate_mipmaps()
+	rug_tex[key] = ImageTexture.create_from_image(img)
+	return rug_tex[key]
+
 func _rugs() -> void:
 	for r in k.rugs:
 		var m := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(r.w * C, 0.02, r.h * C)
-		m.mesh = bm
+		var pm := PlaneMesh.new()
+		var lang: float = maxf(r.w, r.h) * C
+		var kurz: float = minf(r.w, r.h) * C
+		pm.size = Vector2(lang, kurz)
+		m.mesh = pm
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = r.col
+		mat.albedo_texture = _rug_bild(r.col, lang / kurz)
 		mat.roughness = 1.0
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		m.material_override = mat
 		g.add_child(m)
-		m.global_position = Vector3((r.x + r.w / 2.0) * C, 0.04, (r.y + r.h / 2.0) * C)
+		m.global_position = Vector3((r.x + r.w / 2.0) * C, 0.045, (r.y + r.h / 2.0) * C)
+		if r.h > r.w:
+			m.rotation.y = PI / 2
 
 # ---------------------------------------------------------------- Hindernisse
 func _obstacles() -> void:
@@ -284,11 +335,16 @@ func _needle(pos: Vector3, r: float, col: Color) -> void:
 	cm.rings = 1
 	m.mesh = cm
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = col * 0.6
+	# dunkles Wüstenglas, das nur an den Kanten schimmert (vorher leuchtete es türkis wie Plastik)
+	mat.albedo_color = Color(col.r * 0.2, col.g * 0.24, col.b * 0.26)
 	mat.emission_enabled = true
 	mat.emission = col
-	mat.emission_energy_multiplier = 0.9
-	mat.roughness = 0.2
+	mat.emission_energy_multiplier = 0.16
+	mat.metallic = 0.35
+	mat.roughness = 0.12
+	mat.rim_enabled = true
+	mat.rim = 0.6
+	mat.rim_tint = 0.4
 	m.material_override = mat
 	g.add_child(m)
 	m.global_position = pos + Vector3(0, cm.height * 0.45, 0)
