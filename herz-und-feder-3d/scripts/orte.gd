@@ -36,6 +36,7 @@ var auto := true             # Tests schalten das Auslösen bei Berührung zeitw
 var nl := {}                 # der Ba ohne Namen (2.9), falls er in dieser Stunde erscheint
 var stueck := {}             # das fehlende Stück seiner Kartusche
 var kartusche_bei_dir := false
+var nl_schleier: MeshInstance3D
 
 # Was die heimgeführten Ba sagen, einer nach dem anderen. Es ergibt ein Bild, aber nie das ganze.
 const BA_WORTE := ["Wir sind nicht verloren. Man hat uns verlegt.",
@@ -368,6 +369,7 @@ func namenlos(pos: Vector3, stueck_pos: Vector3, pack: int) -> void:
 	if ap and ap.has_animation("Idle_Combat"):
 		ap.get_animation("Idle_Combat").loop_mode = Animation.LOOP_LINEAR
 		ap.play("Idle_Combat", -1, 0.6)
+	_schleier(n)
 	var ring := _kartusche([3, 4])
 	game.add_child(ring)
 	ring.global_position = pos + Vector3(0, 1.55, 0)
@@ -400,6 +402,24 @@ func namenlos(pos: Vector3, stueck_pos: Vector3, pack: int) -> void:
 	st.add_child(sl)
 	game.stimmung.append(Stimmung.lichtstrahl(game, stueck_pos, 5.0, 0.8, Color(1.0, 0.82, 0.5), 0.22, 0.1, 0.0))
 	stueck = {"pos": stueck_pos, "n": st, "light": sl}
+
+# Wo ein Gesicht sein sollte, flimmert nur Luft: ein Schleier am Kopfknochen, der jede Bewegung mitmacht
+func _schleier(n: Node3D) -> void:
+	var sk: Skeleton3D = n.find_child("Skeleton3D", true, false)
+	var v := MeshInstance3D.new()
+	Stimmung.schleier(v)
+	var gesicht := Vector3(0, 1.56, 0.17)   # Augenhöhe, ein Stück vor dem Gesicht (Modellmaß, vor der Skalierung)
+	var k := sk.find_bone("kopf") if sk else -1
+	if k < 0:
+		n.add_child(v)
+		v.position = gesicht
+		return
+	var b := BoneAttachment3D.new()
+	b.bone_name = "kopf"
+	sk.add_child(b)
+	b.add_child(v)
+	v.transform = sk.get_bone_global_rest(k).affine_inverse() * Transform3D(Basis(), gesicht)
+	nl_schleier = v
 
 func _namenlos_tick(h: Hero, frei: bool) -> bool:
 	if nl.is_empty():

@@ -200,6 +200,10 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.9.1: Der Schleier
+
+- Der Ba ohne Namen trägt einen flimmernden Gesichtsschleier (`Stimmung.schleier`): ovaler Dunst mit aufsteigenden Hitzeschlieren, ausgefranstem Rand und einzelnen Funken. Er hängt am Kopfknochen, macht also Flügelschlag und Wippen mit, dreht sich immer zur Kamera und wird im Shader ein Stück nach vorn geschoben. So ist das Gesicht von keiner Seite zu sehen. Ein Zeichenaufruf, kein Bild.
+
 ### Fassung 2.9: Der Reigen und der Ba ohne Namen
 
 - **Reigen:** Reine Schwärme aus Irrlichtern (fünf und mehr) stehen nicht mehr herum. Sie tanzen auf einer ovalen Bahn, hochkant wie eine Kartusche, um eine leere Mitte, und ziehen eine feine Lichtspur hinter sich her. Sie greifen erst an, wenn man ihnen zu nahe kommt (etwa 3 m statt 14 m Sicht) oder einen von ihnen trifft.
