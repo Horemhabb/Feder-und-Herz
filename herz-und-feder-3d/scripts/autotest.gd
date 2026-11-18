@@ -38,6 +38,9 @@ func _process(_d: float) -> void:
 		if "--rundgang" in OS.get_cmdline_user_args():
 			phase = "rundgang"
 			rundgang()
+		elif Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--ort=")):
+			phase = "ort"
+			ort_bilder()
 		elif "--namenlos" in OS.get_cmdline_user_args():
 			phase = "namenlos"
 			namenlos_bilder()
@@ -114,6 +117,8 @@ func _physics_process(delta: float) -> void:
 			dir = dir.normalized()
 	h.aim = target
 	h.want_dir = dir
+	if Spiel.tree_points() > 0:
+		Spiel.auto_lernen()   # der Roboter lernt, was die Stufe hergibt (seit 3.0 wirkt nur Gelerntes)
 	if foe:
 		var near: int = game.live_foes().filter(func(f): return f.global_position.distance_to(h.global_position) < 4.2).size()
 		var awake: bool = foe.state != Foe.St.SLEEP
@@ -182,6 +187,35 @@ func rundgang() -> void:
 		await get_tree().create_timer(0.5).timeout
 		shot("rundgang_%d_%s" % [Spiel.fall, s[1]])
 	print("RUNDGANG fertig: %d Bilder" % n)
+	get_tree().quit()
+
+# Prüfbilder einzelner Orte: „-- --autotest --ort=werkstatt,figur,helfer“ stellt die Figur davor und hält das Bild fest
+func ort_bilder() -> void:
+	for f in game.foes:
+		f.process_mode = Node.PROCESS_MODE_DISABLED
+	game.freeze_foes = true
+	game.orte.auto = false
+	var arten := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--ort="):
+			arten = a.substr(6)
+	for art in arten.split(","):
+		for s in game.orte.sites:
+			if s.kind != art:
+				continue
+			var zu: Vector3 = (game.start_pos - s.pos)
+			zu.y = 0
+			game.hero.global_position = s.pos + zu.normalized() * 3.6
+			game.cam_pos = game.hero.global_position.lerp(s.pos, 0.5)
+			game.hero.want_dir = Vector3.ZERO
+			await get_tree().create_timer(1.6).timeout
+			if get_tree().paused:
+				game.hud._close()
+				get_tree().paused = false
+			await get_tree().create_timer(0.4).timeout
+			shot("ort_" + art)
+			break
+	print("ORTE fertig: %d Bilder" % n)
 	get_tree().quit()
 
 # Prüfbilder des Ba ohne Namen (2.9): erster Blick, mit dem Stück im Reigen, die Heimkehr

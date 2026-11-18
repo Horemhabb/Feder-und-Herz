@@ -100,6 +100,8 @@ func render() -> void:
 		kopf.add_child(kv0)
 		add_child(kopf)
 	add_child(hud._para("%s · Stufe %d · %s" % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, ("%d freie Punkte" % pts) if pts != 1 else "1 freier Punkt"], 15, Hud.GOLD if pts > 0 else Hud.DIM))
+	if not h.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
+		add_child(hud._para("Wähle deine ersten Fähigkeiten. Eine Fähigkeit wirkt erst, wenn du sie hier gelernt hast; jeder Aufstieg bringt einen weiteren Punkt.", 14, Hud.GOLD))
 	# Fähigkeiten
 	var g := _grid()
 	for id in h.ORDER:
@@ -122,18 +124,22 @@ func render() -> void:
 		hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hv.add_theme_constant_override("separation", 2)
 		hv.add_child(hud._label(S.name, 16, Hud.PARCH))
-		hv.add_child(hud._label("Taste %s · Rang %d von %d" % [Klassen.keys()[h.ORDER.find(id)], rk, Klassen.SK_RANKS], 11, Hud.DIM))
+		var need := Klassen.unlock_lvl(Spiel.cls, id)
+		var stand := "Rang %d von %d" % [rk, Klassen.SK_RANKS] if rk > 0 else ("noch nicht gelernt" if need <= Spiel.lvl else "lernbar ab Stufe %d" % need)
+		hv.add_child(hud._label("Taste %s · %s" % [Klassen.keys()[h.ORDER.find(id)], stand], 11, Hud.DIM if rk > 0 or need > Spiel.lvl else Hud.GOLD))
 		hv.add_child(_pips(rk))
 		head.add_child(hv)
 		var sid: String = id
-		head.add_child(_knopf("+", true, func(): Spiel.tree_rank_up(sid), pts > 0 and rk < Klassen.SK_RANKS))
+		head.add_child(_knopf("Lernen" if rk == 0 else "+", true, func(): Spiel.tree_rank_up(sid), pts > 0 and rk < Klassen.SK_RANKS and (rk > 0 or need <= Spiel.lvl)))
 		v.add_child(head)
 		v.add_child(hud._para(S.txt, 12, Hud.DIM))
 		var eff := ""
-		if S.util:
-			eff = "Abklingzeit −6 %% je Rang · jetzt %.1f s" % h.cd_of(id)
+		if rk == 0:
+			eff = "Wirkt erst, wenn du sie lernst (1 Punkt)."
+		elif S.util:
+			eff = "Abklingzeit −6 %% je weiterem Rang · jetzt %.1f s" % h.cd_of(id)
 		else:
-			eff = "Stärke +12 %% je Rang · jetzt ×%.2f" % Spiel.sk_pow(id)
+			eff = "Stärke +12 %% je weiterem Rang · jetzt ×%.2f" % Spiel.sk_pow(id)
 		v.add_child(hud._label(eff, 12, Hud.TEAL))
 		if rk >= 2:
 			var ar := HBoxContainer.new()

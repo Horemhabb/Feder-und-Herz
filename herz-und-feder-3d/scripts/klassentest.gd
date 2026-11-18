@@ -51,6 +51,9 @@ func run() -> void:
 	check("Fähigkeitenleiste zeigt die Fähigkeiten der Klasse", G.hud.skill_ui.has(h.ORDER[0]) and G.hud.skill_ui.has(h.ORDER[4]))
 	h.inv = 9999.0
 	Spiel.lvl = 12
+	check("ohne Punkt im Baum wirkt keine Fähigkeit", not h.can(h.ORDER[0]) and not Spiel.gelernt(h.ORDER[4]))
+	Spiel.auto_lernen()
+	check("gelernt: alle fünf Fähigkeiten stehen bereit", h.ORDER.all(func(i): return Spiel.gelernt(i)))
 	Spiel.calc()
 	h.apply_stats(true)
 	# Standardangriff
@@ -129,8 +132,8 @@ func run() -> void:
 	Spiel.tree = {"r": {}, "a": {}, "p": {}, "key": false}
 	var s1: String = h.ORDER[0]
 	var pw0 := Spiel.sk_pow(s1)
-	check("Rang erhöhen kostet einen Punkt", Spiel.tree_rank_up(s1) and Spiel.tree_rank_up(s1) and Spiel.tree_points() == Spiel.lvl - 2)
-	check("Wucht ab Rang 2 macht stärker", Spiel.tree_aug(s1, "wucht") and Spiel.sk_pow(s1) > pw0 + 0.4)
+	check("Rang erhöhen kostet einen Punkt", Spiel.tree_rank_up(s1) and Spiel.tree_rank_up(s1) and Spiel.tree_points() == Spiel.lvl + 1 - 2)
+	check("Wucht ab Rang 2 macht stärker", Spiel.tree_aug(s1, "wucht") and Spiel.sk_pow(s1) > pw0 + 0.3)
 	var hp0: float = Spiel.S.max_hp
 	Spiel.tree_passive("zaeh")
 	check("Starker Ka erhöht das Leben", Spiel.S.max_hp > hp0)
@@ -139,7 +142,7 @@ func run() -> void:
 		Spiel.tree_passive("scharf")
 	check("Schlüsselstein ab 8 Punkten", Spiel.tree_key() and Spiel.has_key())
 	Spiel.shards = 999
-	check("Zurücksetzen gibt alle Punkte zurück", Spiel.respec() and Spiel.tree_points() == Spiel.lvl)
+	check("Zurücksetzen gibt alle Punkte zurück", Spiel.respec() and Spiel.tree_points() == Spiel.lvl + 1)
 	await wait(0.2)
 	get_tree().paused = true
 	await wait(0.1)

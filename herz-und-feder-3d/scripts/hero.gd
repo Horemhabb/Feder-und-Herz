@@ -181,7 +181,7 @@ func cd_of(id: String) -> float:
 	if Spiel.aug(id) == "eile":
 		c *= 0.75
 	if SK[id].util:
-		c *= 1.0 - 0.06 * Spiel.rank(id)
+		c *= 1.0 - 0.06 * maxi(0, Spiel.rank(id) - 1)
 	return c
 
 func _physics_process(delta: float) -> void:
@@ -266,8 +266,8 @@ func dodge() -> bool:
 func can(id: String) -> bool:
 	if dead or (busy > 0.0 and not busy_basic) or dash_t > 0.0 or stun > 0.0 or not cd.has(id) or cd[id] > 0.0:
 		return false
-	if Klassen.unlock_lvl(cls, id) > Spiel.lvl:
-		return false   # noch nicht gelernt
+	if not Spiel.gelernt(id):
+		return false   # noch nicht im Fähigkeitenbaum gelernt
 	if id == "potion":
 		return pots > 0 and hp < max_hp
 	if id == "hetz" and game.hetz_target(aim) == null:
@@ -482,7 +482,7 @@ func cast(id: String) -> bool:
 			busy = 0.4
 			vel = Vector3.ZERO
 			game.sfx.play("udjat", 0.1, -6.0)
-			game.add_zone(c, 5.6, 5.0 * upw, 0.5, 0.35 * (1.0 + 0.12 * Spiel.rank(id)), 1.0, Color(0.56, 0.89, 0.88))
+			game.add_zone(c, 5.6, 5.0 * upw, 0.5, 0.35 * (1.0 + 0.12 * maxi(0, Spiel.rank(id) - 1)), 1.0, Color(0.56, 0.89, 0.88))
 		"nova":
 			play(ANIM.nova, 1.8, 0.08, true)
 			busy = 0.45

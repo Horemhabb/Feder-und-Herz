@@ -464,6 +464,73 @@ static func schrein(g: Node, pos: Vector3, col: Color) -> Dictionary:
 	l.position = Vector3(0, 1.6, 0.9)
 	return {"n": n, "glow": gm, "light": l}
 
+# Werkstatt des Ptah (3.0): Sonnensegel auf vier Pfosten, darunter Werkbank, Lehmofen mit Glut und ein Steinamboss.
+# Hier, und nur hier, wird Ausrüstung aufgewertet und neu gefasst.
+static func werkstatt(g: Node, pos: Vector3, rot: float) -> Dictionary:
+	var holz := tex_mat("holz", "p02_holz", 1.3)
+	var ton := tex_mat("ton", "p01_ton", 1.6)
+	var bronze := mat("bronze", Color(0.45, 0.3, 0.14), 0.5, Color.BLACK, 0.0, 0.7)
+	var tuch := mat("tuch_ptah", Color(0.3, 0.1, 0.08), 0.95)
+	var saum := mat("tuch_saum", Color(0.85, 0.68, 0.3), 0.8)
+	var glut := mat("glut", Color(1.0, 0.45, 0.12), 0.6, Color(1.0, 0.4, 0.1), 2.6)
+	var h := _begin()   # Holz
+	var t := _begin()   # Ton
+	var st := _begin()  # Stein
+	var b := _begin()   # Bronze
+	var go := _begin()  # Gold
+	var tu := _begin()  # Tuch
+	var sa := _begin()  # Saum
+	var gl := _begin()  # Glut
+	var ko := _begin()  # Schilfmatte
+	# Rückwand: zwei Pfosten, ein Querbalken und ein Tuch mit goldenem Saum. Kein Dach: Die Kamera sieht von oben,
+	# ein Segel würde Bank, Ofen und Goldschmied verdecken.
+	for x in [-1.35, 1.35]:
+		box(h, Vector3(0.12, 2.5, 0.12), Vector3(x, 0, -1.05))
+		box(st, Vector3(0.3, 0.16, 0.3), Vector3(x, 0, -1.05))
+	box(h, Vector3(3.0, 0.1, 0.1), Vector3(0, 2.44, -1.05))
+	box(tu, Vector3(2.5, 1.5, 0.03), Vector3(0, 0.9, -1.05))
+	box(sa, Vector3(2.5, 0.1, 0.05), Vector3(0, 0.84, -1.05))
+	box(sa, Vector3(2.5, 0.06, 0.05), Vector3(0, 2.3, -1.05))
+	# Zeichen des Ptah auf dem Tuch: der Djed-Pfeiler (Beständigkeit), vier Querbalken auf einem Schaft
+	box(sa, Vector3(0.14, 0.85, 0.05), Vector3(0, 1.1, -1.04))
+	for i in 4:
+		box(sa, Vector3(0.5 - 0.04 * i, 0.07, 0.05), Vector3(0, 1.55 + 0.12 * i, -1.04))
+	# Bodenmatte aus Schilf
+	box(ko, Vector3(3.1, 0.03, 2.5), Vector3(0, 0, 0))
+	# Werkbank vorn
+	box(h, Vector3(1.5, 0.08, 0.62), Vector3(0.15, 0.78, 0.45))
+	for x in [-0.5, 0.8]:
+		for z in [0.2, 0.7]:
+			box(h, Vector3(0.08, 0.78, 0.08), Vector3(x, 0, z))
+	box(h, Vector3(1.3, 0.05, 0.05), Vector3(0.15, 0.3, 0.2))
+	# Werkzeug und Werkstücke auf der Bank
+	box(h, Vector3(0.04, 0.04, 0.34), Vector3(-0.3, 0.86, 0.45))        # Hammerstiel
+	box(b, Vector3(0.16, 0.09, 0.09), Vector3(-0.3, 0.86, 0.3))        # Hammerkopf
+	box(b, Vector3(0.03, 0.02, 0.3), Vector3(0.0, 0.86, 0.5))          # Meißel
+	for i in 3:
+		box(go, Vector3(0.2, 0.06, 0.09), Vector3(0.5 + 0.03 * i, 0.86 + 0.06 * i, 0.42 + 0.02 * i))   # Goldbarren
+	_dreh(go, [[0.09, 0.11, 0.02], [0.11, 0.11, 0.015]], Vector3(0.22, 0.86, 0.62))   # Armreif
+	# Lehmofen hinten links: Kuppel mit Feuerloch
+	_dreh(t, [[0.5, 0.52, 0.12], [0.52, 0.46, 0.3], [0.46, 0.3, 0.26], [0.3, 0.14, 0.16], [0.14, 0.12, 0.2]], Vector3(-0.75, 0, -0.45), 1.0, 12)
+	box(gl, Vector3(0.3, 0.24, 0.06), Vector3(-0.75, 0.14, 0.06))
+	box(t, Vector3(0.42, 0.06, 0.1), Vector3(-0.75, 0.38, 0.07))
+	# Amboss: Granitblock mit Bronzeplatte
+	box(st, Vector3(0.5, 0.55, 0.42), Vector3(0.75, 0, -0.4))
+	box(b, Vector3(0.42, 0.04, 0.34), Vector3(0.75, 0.55, -0.4))
+	# Wasserkrug zum Abschrecken
+	_dreh(t, KRUG, Vector3(1.05, 0, 0.35), 0.55)
+	var n := _put(g, _commit([[h, holz], [t, ton], [st, stone(g, "dunkel", "granit", Color(0.85, 0.85, 0.9))], [b, bronze], [go, gold()],
+		[tu, tuch], [sa, saum], [gl, glut], [ko, tex_mat("matte", "p05_korb", 2.4, Color(0.6, 0.52, 0.4))]]), pos, rot)
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.6, 0.28)
+	l.light_energy = 1.6
+	l.omni_range = 6.5
+	l.omni_attenuation = 1.3
+	n.add_child(l)
+	l.position = Vector3(-0.6, 1.0, 0.5)
+	Stimmung.flamme(n, Vector3(-0.75, 1.02, -0.45), 0.4, 0.3)
+	return {"n": n, "light": l}
+
 # Seelenkrug: Kanope auf einem Sockel, in der ein Herz schlägt
 static func krug(g: Node, pos: Vector3) -> Dictionary:
 	var s := _begin()

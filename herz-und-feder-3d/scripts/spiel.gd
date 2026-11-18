@@ -30,6 +30,10 @@ var tree := {"r": {}, "a": {}, "p": {}, "key": false}   # Fähigkeitenbaum: Rän
 var pots := Daten.POTS   # Rotbier: wird nicht gespeichert, wie in der 2D-Fassung
 var herz := 0.0          # Herzwaage: über null leicht (Maat), unter null schwer (Isfet); −100 bis 100
 var ba_heim := 0         # so viele Ba ohne Namen hat die Figur heimgeführt (2.9); jeder sagt einen Satz mehr
+var einst := {"laut": 1.0, "musik": 1.0}   # Einstellungen (3.0): gelten für alle Figuren, eigene Datei
+const EINST_DATEI := "user://einstellungen.json"
+var wissen := {}         # was die Figur schon gesehen, gehört oder erklärt bekommen hat (3.0): Lexikon, Hinweise, Textwahl
+var tree_frei := 0       # geschenkte Punkte (3.0): alte Spielstände behalten ihre schon nutzbaren Fähigkeiten
 var urteil5 := ""        # Urteil am Ende der fünften Stunde: "leicht", "schwer" oder "schwebe" (Farbe des Tuchs)
 var wahl := {}           # Entscheidungen je Stunde der Nacht: "1" → "maat" oder "isfet"
 var segen := {}          # Segen der Schreine in dieser Stunde: Gott → true (setzt main.gd, wirkt in calc)
@@ -43,6 +47,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	if "--neu" in OS.get_cmdline_user_args():
 		loeschen()
+	else:
+		einst_laden()
 	laden()
 	# Testläufe: „-- --klasse=jaegerin“ legt eine frische Figur dieser Klasse an
 	for a in OS.get_cmdline_user_args():
@@ -82,6 +88,8 @@ func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	wahl = {}
 	urteil5 = ""
 	ba_heim = 0
+	tree_frei = 0
+	wissen = {}
 	segen = {}
 	calc()
 	speichern()
@@ -165,8 +173,46 @@ func tree_spent() -> int:
 		n += int(tree.p[k])
 	return n + tree.a.size() + (1 if tree.key else 0)
 
+# Punkte: einer je Stufe und einer zum Einstand. Mit der ersten Stufe lassen sich also zwei Fähigkeiten lernen.
 func tree_points() -> int:
-	return lvl - tree_spent()
+	return lvl + 1 + tree_frei - tree_spent()
+
+func einst_laden() -> void:
+	if not FileAccess.file_exists(EINST_DATEI):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(EINST_DATEI))
+	if d is Dictionary:
+		for k in einst.keys():
+			if d.has(k):
+				einst[k] = clampf(float(d[k]), 0.0, 1.0)
+
+func einst_speichern() -> void:
+	var f := FileAccess.open(EINST_DATEI, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(einst))
+		f.close()
+
+func gesehen(k: String) -> bool:
+	return wissen.has(k)
+
+func merke(k: String) -> void:
+	if not wissen.has(k):
+		wissen[k] = 1
+		speichern()
+
+# Seit 3.0 wirkt eine Fähigkeit erst, wenn sie im Baum gelernt ist (Rang 1). Das Rotbier kann jeder trinken.
+func gelernt(id: String) -> bool:
+	return id == "potion" or rank(id) >= 1
+
+func lernbar(id: String) -> bool:
+	return Klassen.unlock_lvl(cls, id) <= lvl
+
+# Tests und der Spielroboter lernen der Reihe nach, was die Stufe hergibt
+func auto_lernen() -> void:
+	for id in Klassen.order(cls):
+		if id != "potion" and rank(id) == 0 and lernbar(id) and tree_points() > 0:
+			tree.r[id] = 1
+	calc()
 
 func respec_cost() -> int:
 	return 10 + 3 * lvl
@@ -178,7 +224,7 @@ func has_key() -> bool:
 func sk_pow(id: String) -> float:
 	if Klassen.SK[id].util:
 		return 1.0
-	return 1.0 + 0.12 * rank(id) + (0.25 if aug(id) == "wucht" else 0.0)
+	return 1.0 + 0.12 * maxi(0, rank(id) - 1) + (0.25 if aug(id) == "wucht" else 0.0)
 
 # Wirkdauer oder Weite einer Hilfsfähigkeit
 func sk_upw(id: String) -> float:
@@ -187,6 +233,8 @@ func sk_upw(id: String) -> float:
 func tree_rank_up(id: String) -> bool:
 	if tree_points() <= 0 or rank(id) >= Klassen.SK_RANKS:
 		return false
+	if rank(id) == 0 and not lernbar(id):
+		return false   # erst ab der Stufe der Fähigkeit
 	tree.r[id] = rank(id) + 1
 	calc()
 	speichern()
@@ -262,28 +310,36 @@ func pay(cost: Dictionary, sh := 0) -> bool:
 	return true
 
 func upgrade(it: Dictionary) -> bool:
-	if int(it.get("up", 0)) >= Daten.UP_MAX or not pay(Daten.up_cost(it)):
+	if int(it.get("up", 0)) >= Daten.UP_MAX or not pay(Daten.up_cost(it), Daten.up_fee(it)):
 		return false
 	it["up"] = int(it.get("up", 0)) + 1
 	calc()
 	speichern()
 	return true
 
-func reroll(it: Dictionary, k: String) -> bool:
+# Neu fassen (3.0): Der Goldschmied zeigt zwei neue Eigenschaften zur Wahl; man nimmt eine oder behält die alte.
+# Bezahlt wird für die Arbeit, also vorher. Rückgabe: [{k, v}, …] oder leer, wenn es nicht geht.
+func reroll_angebot(it: Dictionary) -> Array:
 	var free := Daten.AFF_ORDER.filter(func(x): return not it.aff.has(x))
-	if free.is_empty() or not pay({"staub": Daten.REROLL_STAUB}, Daten.REROLL_SHARDS):
-		return false
-	var nk: String = free.pick_random()
+	if free.is_empty() or not pay({"staub": Daten.REROLL_STAUB}, Daten.reroll_fee(it)):
+		return []
+	free.shuffle()
+	var opts := []
+	for nk in free.slice(0, 2):
+		opts.append({"k": nk, "v": Daten.aff_wert(nk, int(it.ilvl))})
+	speichern()
+	return opts
+
+func reroll_setzen(it: Dictionary, k: String, neu: Dictionary) -> void:
 	var na := {}
 	for x in it.aff:
 		if x == k:
-			na[nk] = Daten.aff_wert(nk, int(it.ilvl))
+			na[neu.k] = neu.v
 		else:
 			na[x] = it.aff[x]
 	it.aff = na
 	calc()
 	speichern()
-	return true
 
 func gamble() -> Dictionary:
 	if bag.size() >= Daten.BAG_MAX or shards < Daten.GAMBLE:
@@ -311,7 +367,7 @@ func xp_gain(v: float) -> bool:
 func speichern() -> void:
 	var d := {"v": VERSION, "fall": fall, "lvl": lvl, "xp": xp, "eq": eq, "bag": bag, "muted": muted, "itemId": item_id,
 		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree,
-		"herz": herz, "wahl": wahl, "urteil5": urteil5, "baHeim": ba_heim}
+		"herz": herz, "wahl": wahl, "urteil5": urteil5, "baHeim": ba_heim, "treeFrei": tree_frei, "regel": 3, "wissen": wissen.keys()}
 	var f := FileAccess.open(DATEI, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -383,5 +439,20 @@ func laden() -> void:
 				if t.p.has(pd.id):
 					tree.p[pd.id] = clampi(int(t.p[pd.id]), 0, Klassen.SK_RANKS)
 		tree.key = bool(t.get("key", false))
+	tree_frei = clampi(int(d.get("treeFrei", 0)), 0, 99)
+	wissen = {}
+	if d.get("wissen") is Array:
+		for k in d.wissen:
+			wissen[str(k)] = 1
+	if int(d.get("regel", 0)) < 3:
+		# Spielstand von vor 3.0: Was die Figur schon konnte, bleibt ihr. Jede bisher nutzbare Fähigkeit gilt als gelernt,
+		# gesteigerte Ränge rücken eine Stufe auf (Rang 1 ist jetzt die Grundstärke); die Punkte dafür sind geschenkt.
+		for id in Klassen.order(cls):
+			if id == "potion" or not lernbar(id):
+				continue
+			var r0: int = rank(id)
+			if r0 < Klassen.SK_RANKS:
+				tree.r[id] = r0 + 1
+				tree_frei += 1
 	pots = Daten.POTS
 	hat_stand = true

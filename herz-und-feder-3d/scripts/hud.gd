@@ -47,6 +47,8 @@ var secondary: Callable
 var primary_btn: Button
 var banner_tw: Tween
 var toast_tw: Tween
+var menu_open := false
+var menue: Menue
 var bag_open := false
 var tree_open := false
 var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
@@ -107,7 +109,7 @@ func _ready() -> void:
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(quest_box)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "W A S D oder linke Maustaste: laufen · auf Gegner klicken: angreifen · Leertaste: ausweichen\nF Bildrate · G Grafik · M Ton · I Tasche · K Fähigkeiten · V Vollbild", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü · I Tasche · K Fähigkeiten · E sprechen", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -121,9 +123,8 @@ func _ready() -> void:
 		row.custom_minimum_size = Vector2(560, 0)
 		row.alignment = BoxContainer.ALIGNMENT_END
 		row.add_theme_constant_override("separation", 6)
-		var knoepfe := [["Tasche", func(): game.toggle_bag()], ["Fähigk.", func(): game.toggle_tree()], ["Grafik", func(): game.set_low(not game.low_gfx)], ["Ton", func(): game.sfx.set_muted(not game.sfx.muted)], ["Bildrate", func(): toggle_fps()]]
-		if game.can_fullscreen:
-			knoepfe.insert(0, ["Vollbild", func(): game.toggle_fullscreen()])
+		# Grafik, Ton, Bildrate und Vollbild stehen seit 3.0 im Menü
+		var knoepfe := [["Menü", func(): game.toggle_menu()], ["Tasche", func(): game.toggle_bag()], ["Fähigk.", func(): game.toggle_tree()]]
 		for t in knoepfe:
 			var b := Button.new()
 			b.text = t[0]
@@ -448,6 +449,9 @@ func _skill_box(id: String) -> Control:
 		var tap: bool = (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) or (ev is InputEventScreenTouch and ev.pressed)
 		if tap and not get_tree().paused and tap_frame != Engine.get_process_frames():
 			tap_frame = Engine.get_process_frames()
+			if not Spiel.gelernt(id):
+				game.nicht_gelernt(id)
+				return
 			# der Zeiger liegt auf dem Knopf, nicht auf einem Ziel: auf den nächsten Gegner zielen, sonst nach vorn
 			var near: Foe = game.foe_near(game.hero.global_position, 20.8)
 			game.hero.aim = near.global_position if near else game.hero.global_position + game.hero.forward() * 8.8
@@ -587,10 +591,12 @@ func refresh() -> void:
 		if id != "potion" and S.cost > 0:
 			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
-		var locked: bool = u.need > Spiel.lvl
+		var locked: bool = not Spiel.gelernt(id)
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor and not locked else Color.WHITE
 		u.icon.modulate = Color(0.25, 0.25, 0.28, 0.7) if locked else Color.WHITE
-		u.lock.text = "AB STUFE %d" % u.need if locked else ""
+		# ungelernt: erst ab ihrer Stufe lernbar, dann wartet sie im Fähigkeitenbaum auf einen Punkt
+		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else "LERNEN")
+		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl else DIM)
 		u.name.modulate.a = 0.45 if locked else 1.0
 		if locked:
 			u.sub.text = ""
@@ -676,6 +682,7 @@ func toast(text: String, secs := 2.2, col := PARCH) -> void:
 # dein Ba spricht leise über der Leiste
 func whisper(text: String) -> void:
 	toast(text, 7.0, TEAL)
+	erklaere(text)
 
 # ---------------------------------------------------------------- Fenster
 # Gespräch oder Entscheidung: Absätze, darunter die Antworten (Tasten 1 bis 9; Esc nimmt die letzte: gehen, liegen lassen)
@@ -713,6 +720,7 @@ func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: 
 	for p in paras:
 		if p != "":
 			v.add_child(_para(p, 16, PARCH))
+	_fussnoten(v, [title, sub] + paras, 2)
 	var cbs := []
 	var i := 0
 	for o in opts:
@@ -743,6 +751,8 @@ func press_option(i: int) -> bool:
 
 func _close() -> void:
 	bag_open = false
+	menu_open = false
+	menue = null
 	dialog_opts = []
 
 	tree_open = false
@@ -862,12 +872,46 @@ func _para(text: String, size: int, col: Color, center := false) -> Label:
 	return l
 
 # Schwarze Tafel mit Stunde, Namen und Lage. Erst der Knopf gibt das Spiel frei.
+# Fußnoten (3.0): Begriffe, die in diesen Texten zum ersten Mal vorkommen, werden darunter in einem Satz erklärt
+func _fussnoten(v: VBoxContainer, texte: Array, hoechstens := 2, mitte := false) -> void:
+	var neu := Lexikon.neu_in(texte, hoechstens)
+	if neu.is_empty():
+		return
+	var kasten := PanelContainer.new()
+	var st := _flat(Color(0.2, 0.14, 0.06, 0.1), 6, Color(0.36, 0.25, 0.1, 0.55), 1)
+	st.set_content_margin_all(10)
+	kasten.add_theme_stylebox_override("panel", st)
+	var kv := VBoxContainer.new()
+	kv.add_theme_constant_override("separation", 4)
+	kasten.add_child(kv)
+	for e in neu:
+		kv.add_child(_para("%s: %s" % [e.name, e.txt], 13, TEAL, mitte))
+	v.add_child(kasten)
+
+# Kurzer Hinweis nach einem geflüsterten oder eingeblendeten Satz: ein neuer Begriff, in einem Satz erklärt
+func erklaere(text: String) -> void:
+	var neu := Lexikon.neu_in([text], 1)
+	if neu.is_empty():
+		return
+	var e: Dictionary = neu[0]
+	get_tree().create_timer(2.2, true, false, true).timeout.connect(func():
+		toast("%s: %s" % [e.name, e.txt], 9.0, TEAL))
+
 func show_chapter(no: String, name: String, lead: String, brief: String, btn: String, cb: Callable) -> void:
 	var v := _sheet(1.0, 720)
 	v.add_child(_para(no, 14, GOLD, true))
 	v.add_child(_para(name, 46, PARCH, true))
+	# Rückblick: was in der Stunde davor geschah (ab der zweiten Stunde der ersten Nacht)
+	var bisher := Worte.bisher(Stunden.hour_of(Spiel.fall)) if Stunden.night_of(Spiel.fall) == 1 else ""
+	if bisher != "":
+		v.add_child(_para("BISHER", 11, DIM, true))
+		v.add_child(_para(bisher, 14, DIM, true))
 	v.add_child(_para(lead, 20, PARCH, true))
 	v.add_child(_para(brief, 16, DIM, true))
+	if not Spiel.gesehen("so_geht_es"):
+		Spiel.merke("so_geht_es")
+		v.add_child(_para(Worte.SO_GEHT_ES, 14, TEAL, true))
+	_fussnoten(v, [bisher, lead, brief], 3, true)
 	if chapter_note != "":
 		v.add_child(_para(chapter_note, 14, TEAL, true))
 	var row := CenterContainer.new()
@@ -902,6 +946,7 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	v.add_child(_para(next_no, 12, TEAL))
 	v.add_child(_para(next_name, 20, PARCH))
 	v.add_child(_para(next_lead, 14, DIM))
+	_fussnoten(v, [epi], 2)
 	v.add_child(_para("Die Pforte bleibt offen, solange du willst.", 13, DIM))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
@@ -922,6 +967,26 @@ func show_bag() -> void:
 	v.add_child(t)
 	var cb := func(): get_tree().paused = false
 	secondary = cb
+
+# Spielmenü: hält das Spiel an (Esc)
+func show_menu() -> void:
+	var v := _sheet(0.82, 640)
+	menu_open = true
+	menue = Menue.new()
+	menue.hud = self
+	menue.game = game
+	v.add_child(menue)
+
+# Werkstatt des Ptah: dasselbe Fenster wie die Tasche, aber mit Aufwerten, Neu-Fassen und der Fundkiste
+func show_werkstatt() -> void:
+	var v := _sheet(0.86, 880)
+	bag_open = true
+	var t := Tasche.new()
+	t.hud = self
+	t.game = game
+	t.werkstatt = true
+	v.add_child(t)
+	secondary = func(): get_tree().paused = false
 
 func show_tree() -> void:
 	var v := _sheet(0.86, 900)
@@ -957,6 +1022,12 @@ func press_primary() -> bool:
 	return true
 
 func _input(ev: InputEvent) -> void:
+	if menu_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		if not menue.zurueck():
+			game.toggle_menu()
+		return
 	if tree_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_K:
 		get_viewport().set_input_as_handled()
 		game.sfx.play("ui")
@@ -1113,8 +1184,10 @@ func _render_intro() -> void:
 	_intro_rest(v)
 
 func _intro_story(v: VBoxContainer) -> void:
-	v.add_child(_para("Die Nebelmark ist das letzte Land vor dem Westen. Ihr Nebel steigt aus der Duat, der Unterwelt, durch die Re jede Nacht in seiner Barke fährt. Seit dem Herbst kommt der Morgen später. Unten steht die Waage still: Kein Herz wird mehr gegen die Feder der Maat gewogen.", 15, PARCH))
-	v.add_child(_para("Die Priester im Sonnentempel von Sandtor haben dir ihre letzte Laterne gegeben. Warum gerade dir, haben sie nicht gesagt. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs aufhebst und was du liegen lässt, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
+	# in schlichten Worten: worum es geht, wer du bist, was du tun sollst (3.0)
+	v.add_child(_para("Die alten Ägypter erzählten: Jede Nacht fährt die Sonne in einer Barke durch die Unterwelt, die Duat. Zwölf Stunden dauert die Fahrt. Kommt die Barke an, wird es Morgen.", 15, PARCH))
+	v.add_child(_para("Seit dem Herbst kommt der Morgen später. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne dieses Gericht findet niemand Ruhe, und niemand zieht mehr die Barke.", 15, PARCH))
+	v.add_child(_para("Du kommst aus Sandtor, der letzten Stadt vor dem Westen. Die Priester haben dir ihre letzte Laterne in die Hand gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs entscheidest, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
 
 func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:

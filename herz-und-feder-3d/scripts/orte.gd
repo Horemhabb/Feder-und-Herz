@@ -14,7 +14,7 @@ const GOETTER := [
 	{"id": "bastet", "name": "Bastet", "col": Color(1.0, 0.85, 0.4), "txt": "Lauftempo +25 %", "dur": 60.0},
 	{"id": "hathor", "name": "Hathor", "col": Color(1.0, 0.6, 0.85), "txt": "Fundchance +60 %", "dur": 90.0},
 ]
-const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": ""}
+const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": "", "werkstatt": "Werkstatt des Ptah"}
 
 var game: Node
 var G: Dictionary            # Geschichte dieser Stunde
@@ -33,6 +33,7 @@ var helfer := {}
 var helfer_talked := false
 var helfer_paid := false
 var auto := true             # Tests schalten das Auslösen bei Berührung zeitweise ab
+var werk := {}               # die Werkstatt des Ptah dieser Stunde
 var nl := {}                 # der Ba ohne Namen (2.9), falls er in dieser Stunde erscheint
 var stueck := {}             # das fehlende Stück seiner Kartusche
 var kartusche_bei_dir := false
@@ -97,6 +98,16 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			s["vis"] = Deko.such(game, pos, L.ding)
 			text = L.eins
 			col = Color(0.95, 0.95, 0.85)
+		"werkstatt":
+			# zum Eingang hin offen; der Goldschmied steht zwischen Ofen und Amboss
+			var zu: Vector3 = game.start_pos - pos
+			var rot := atan2(zu.x, zu.z)
+			s["vis"] = Deko.werkstatt(game, pos, rot)
+			var schmied := _build_npc(pos + Vector3(0, 0, -0.35).rotated(Vector3.UP, rot), "Alter", Color.WHITE, false, 1.0)
+			schmied.mark.visible = false
+			s["schmied"] = schmied
+			size = Vector3(2.9, 1.6, 2.3)
+			werk = s
 	if kind != "such":
 		game._box(pos, size)
 		game.astar.set_point_solid(game._sub(pos), true)
@@ -109,7 +120,7 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 	l.pixel_size = 0.0055
 	l.visible = false
 	game.add_child(l)
-	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" or kind == "helfer" else (1.7 if kind == "such" else 2.3), 0)
+	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" or kind == "helfer" or kind == "werkstatt" else (1.7 if kind == "such" else 2.3), 0)
 	s["label"] = l
 	sites.append(s)
 
@@ -239,6 +250,8 @@ func tick(delta: float) -> void:
 		d.y = 0.0
 		var dist := d.length()
 		s.label.visible = dist < 11.0 and (not s.done or s.kind == "figur")
+		if s.kind == "werkstatt":
+			s.label.visible = dist < 14.0
 		if dist > 5.0:
 			s.asked = false
 		match s.kind:
@@ -256,6 +269,12 @@ func tick(delta: float) -> void:
 			s.vis.n.position.y = absf(sin(t * 2.4 + s.v * 1.7)) * 0.06
 			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004
 		if not frei or s.done and s.kind != "figur" and s.kind != "helfer":
+			continue
+		if s.kind == "werkstatt":
+			if dist < 3.1 and not s.asked:
+				s.asked = true
+				werkstatt_oeffnen()
+				return
 			continue
 		if s.kind == "helfer":
 			if not helfer_talked and dist < 3.2 and not s.asked:
@@ -568,7 +587,12 @@ func ba(key: String, text: String) -> void:
 	if ba_done.has(key):
 		return
 	ba_done[key] = true
-	game.hud.whisper("Dein Ba flüstert: „%s“" % text)
+	# beim allerersten Mal steht dabei, was ein Ba ist; danach kennt man ihn
+	if Spiel.gesehen("ba_stimme"):
+		game.hud.whisper("Dein Ba flüstert: „%s“" % text)
+	else:
+		Spiel.merke("ba_stimme")
+		game.hud.whisper("Dein Ba, der Seelenvogel, der dich begleitet, flüstert: „%s“" % text)
 
 # ---------------------------------------------------------------- Leute und ihre Sorgen
 func _found(s: Dictionary) -> void:
@@ -598,6 +622,19 @@ func _found(s: Dictionary) -> void:
 		if not helfer.is_empty():
 			helfer.vis.mark.visible = true
 
+# ---------------------------------------------------------------- Werkstatt des Ptah
+func near_werkstatt() -> bool:
+	return not werk.is_empty() and (werk.pos - game.hero.global_position).length() < 4.2
+
+func werkstatt_oeffnen() -> void:
+	if werk.is_empty() or game.hero.dead or game.hud.overlay != null or get_tree().paused:
+		return
+	get_tree().paused = true
+	game.sfx.play("ui")
+	game.hud.show_werkstatt()
+	if not Spiel.gesehen("werkstatt"):
+		Spiel.merke("werkstatt")
+
 func near_helfer() -> bool:
 	return not helfer.is_empty() and (helfer.pos - game.hero.global_position).length() < 4.0
 
@@ -622,7 +659,7 @@ func talk_helfer() -> void:
 			_update_quests()
 		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.dank], [["Danke.", lohn]], L.get("bild", ""))
 	elif helfer_paid:
-		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["%s winkt dir zu." % L.wer], [["Gehen", ende]], L.get("bild", ""))
+		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", [Worte.zieh("helfer_wink") % L.wer], [["Gehen", ende]], L.get("bild", ""))
 	else:
 		game.hud.show_dialog(L.titel.to_upper(), L.wer, "", ["„%s“" % L.gruss], [["„Ich halte die Augen offen.“", ende]], L.get("bild", ""))
 
@@ -656,7 +693,8 @@ func _light(s: Dictionary) -> void:
 		game.karte_ui.reveal_around(s.pos, 9)
 	_weigh(1.5)
 	_update_quests()
-	ba("feuer", "Re sieht dieses Feuer. Auch von so weit unten.")
+	if count("feuer", true) % 2 == 1:
+		ba("feuer%d" % count("feuer", true), Worte.zieh("ba_feuer"))   # nicht nach jeder Schale: Schweigen gehört dazu
 	if quest("feuer").done:
 		_weaken_boss("Alle Feuerschalen brennen. Der Hüter der Stunde scheut das Licht.")
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.25):
@@ -677,14 +715,17 @@ func _bless(s: Dictionary) -> void:
 		h.hp = h.max_hp
 	game.sfx.play("segen", 0.05)
 	game.hud.banner("%s (%d Sekunden)" % [god.txt, int(god.dur)], "SEGEN: %s" % god.name.to_upper(), 4.0)
+	game.hud.erklaere(god.name)
 	dirty = true
 
 # ---------------------------------------------------------------- Seelenkrug
 func _ask_jar(s: Dictionary) -> void:
 	get_tree().paused = true
 	game.sfx.play("ui")
-	var txt := ["Der Krug ist warm. Unter dem Siegel schlägt es, langsam und geduldig, wie etwas, das seit dem Herbst wartet.",
-		"Auf dem Siegel steht ein Name aus Sandtor. Das Herz darin wurde nie gewogen. Brichst du den Krug auf, zerfällt es, und was der Sammler dazugelegt hat, gehört dir."]
+	# jeder Krug ist ein anderer Mensch: anderes Bild, anderer Name; die Wahl steht jedes Mal klar da
+	if not s.has("text"):
+		s["text"] = [Worte.zieh("krug_bild"), "Auf dem Siegel steht ein Name aus Sandtor: %s. %s" % [Worte.zieh("krug_name"), Worte.zieh("krug_wahl")]]
+	var txt: Array = s.text
 	game.hud.show_dialog("SEELENKRUG", "Ein Herz schlägt darin", "", txt, [
 		["Das Siegel lösen und das Herz freilassen", func(): _jar(s, true)],
 		["Den Krug aufbrechen und plündern", func(): _jar(s, false)],
@@ -700,13 +741,13 @@ func _jar(s: Dictionary, free: bool) -> void:
 	if free:
 		_weigh(4.0)
 		game.sfx.play_at("herz_frei", s.pos, 0.1)
-		game.float_text(s.pos + Vector3(0, 1.2, 0), "Ein Herz findet heim", Color(0.56, 0.89, 0.88), 1.2)
+		game.float_text(s.pos + Vector3(0, 1.2, 0), Worte.zieh("herz_frei"), Color(0.56, 0.89, 0.88), 1.2)
 		_soul(s.pos)
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.12):
 			game._level_up()
 		if randf() < 0.35:
 			game.drop("blood", s.pos)
-		ba("frei", "Es hat „Danke“ gesagt. Hast du es gehört?")
+		ba("frei%d" % count("krug", true), Worte.zieh("ba_frei"))
 	else:
 		_weigh(-5.0)
 		s.vis.body.visible = false
@@ -716,7 +757,7 @@ func _jar(s: Dictionary, free: bool) -> void:
 		game.drop("mat", s.pos, randi_range(1, 2), "staub")
 		if randf() < 0.6:
 			game.drop_item(s.pos, Spiel.new_item(n, 1))
-		ba("raub", "Es hat nicht geschrien. Das ist das Schlimme.")
+		ba("raub%d" % count("krug", true), Worte.zieh("ba_raub"))
 	_update_quests()
 
 func _soul(pos: Vector3) -> void:

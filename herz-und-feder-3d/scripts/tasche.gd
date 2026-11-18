@@ -6,10 +6,20 @@ class_name Tasche extends VBoxContainer
 var hud: Hud
 var game: Node
 var sel := {}          # {"eq": Platz} oder {"bag": Index}
-var ask_reset := false
+var werkstatt := false   # dasselbe Fenster dient als Werkstatt des Ptah: nur dort wird aufgewertet und neu gefasst (3.0)
+var angebot := {}        # laufendes Neu-Fassen: {"it", "k", "opts"}
+
+const GRUSS := ["„Leg es auf den Amboss. Ich sehe mir an, was sich machen lässt.“",
+	"„Ptah hat die Welt mit Herz und Zunge gemacht. Ich brauche dazu einen Hammer.“",
+	"„Gutes Stück. Schlechte Fassung. Das eine kann ich ändern.“",
+	"„Bezahlt wird vorher. Gold verformt sich, Abmachungen nicht.“",
+	"„Was die Duat verbogen hat, biege ich gerade. Meistens.“"]
+
+var gruss := 0
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 12)
+	gruss = randi() % GRUSS.size()
 	render()
 
 func _clear() -> void:
@@ -104,11 +114,14 @@ func render() -> void:
 	var S: Dictionary = Spiel.S
 	# Kopf
 	var top := HBoxContainer.new()
-	var t := hud._label("Ausrüstung", 26, Hud.PARCH)
+	var t := hud._label("Werkstatt des Ptah" if werkstatt else "Ausrüstung", 26, Hud.PARCH)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(t)
-	top.add_child(_knopf(hud._taste("  Schließen  [I]  "), false, func(): game.toggle_bag()))
+	top.add_child(_knopf(hud._taste("  Schließen  [Esc]  " if werkstatt else "  Schließen  [I]  "), false, func(): hud.close_bag() if werkstatt else game.toggle_bag()))
 	add_child(top)
+	if werkstatt:
+		add_child(hud._para("Ptah ist der Gott der Handwerker. Sein Goldschmied wertet Ausrüstung auf und fasst ihre Eigenschaften neu, gegen Material und eine Gebühr in Scherben.", 13, Hud.DIM))
+		add_child(hud._para(GRUSS[gruss], 15, Hud.PARCH))
 	# Ausrüstung, daneben die Figur der Klasse in ganzer Größe (gemalt, aus dem Bildauftrag K11–K14)
 	var eqrow := HBoxContainer.new()
 	eqrow.add_theme_constant_override("separation", 14)
@@ -134,42 +147,43 @@ func render() -> void:
 		eqf.add_child(_cell(Spiel.eq.get(s), func(): sel = {"eq": s}; render(), sel.get("eq", "") == s, Daten.SLOT[s].name))
 	eqrow.add_child(eqf)
 	add_child(eqrow)
-	# Werte
-	var st := HFlowContainer.new()
-	st.add_theme_constant_override("h_separation", 18)
-	var rows := [
-		["Schaden", "%d" % round(S.dmg)], ["Leben", "%d" % S.max_hp], ["Rüstung", "%d · −%d %%" % [S.armor, round(S.red * 100.0)]],
-		["Krit. Chance", "%d %%" % round(S.crit)], ["Krit. Schaden", "+%d %%" % S.crit_dmg], ["Angriffe/s", "%.2f" % S.rate],
-		["Lauftempo", "%d %%" % round(S.speed * 100.0)], ["%s/s" % Spiel.CLS[Spiel.cls].res, "%d" % S.regen], ["Dornen", "%d" % S.thorns],
-		["Leben pro Treffer", "%d" % S.loh], ["Erfahrung", "+%d %%" % round((S.xp_mul - 1.0) * 100.0)], ["Beuteglück", "+%d %%" % round((S.find - 1.0) * 100.0)],
-	]
-	for r in rows:
-		var h := HBoxContainer.new()
-		h.custom_minimum_size = Vector2(230, 0)
-		var a := hud._label(r[0], 14, Hud.DIM)
-		a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		h.add_child(a)
-		h.add_child(hud._label(r[1], 14, Hud.PARCH))
-		st.add_child(h)
-	add_child(st)
-	# Material und Scherben
-	# Herzwaage: Stand und Wirkung, dazu die Entscheidungen dieser Nacht
-	add_child(_h3("Herzwaage"))
-	var maat := 0
-	var isfet := 0
-	for k in Spiel.wahl:
-		if Spiel.wahl[k] == "maat":
-			maat += 1
-		else:
-			isfet += 1
-	add_child(hud._label("Dein Herz ist %s (%+d). Entscheidungen: %d für Maat, %d für Isfet." % [Geschichte.herz_name(Spiel.herz), int(round(Spiel.herz)), maat, isfet], 15, Hud.PARCH))
-	add_child(hud._para(Geschichte.herz_wirkung(Spiel.herz), 13, Hud.DIM))
+	if not werkstatt:
+		# Werte
+		var st := HFlowContainer.new()
+		st.add_theme_constant_override("h_separation", 18)
+		var rows := [
+			["Schaden", "%d" % round(S.dmg)], ["Leben", "%d" % S.max_hp], ["Rüstung", "%d · −%d %%" % [S.armor, round(S.red * 100.0)]],
+			["Krit. Chance", "%d %%" % round(S.crit)], ["Krit. Schaden", "+%d %%" % S.crit_dmg], ["Angriffe/s", "%.2f" % S.rate],
+			["Lauftempo", "%d %%" % round(S.speed * 100.0)], ["%s/s" % Spiel.CLS[Spiel.cls].res, "%d" % S.regen], ["Dornen", "%d" % S.thorns],
+			["Leben pro Treffer", "%d" % S.loh], ["Erfahrung", "+%d %%" % round((S.xp_mul - 1.0) * 100.0)], ["Beuteglück", "+%d %%" % round((S.find - 1.0) * 100.0)],
+		]
+		for r in rows:
+			var h := HBoxContainer.new()
+			h.custom_minimum_size = Vector2(230, 0)
+			var a := hud._label(r[0], 14, Hud.DIM)
+			a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			h.add_child(a)
+			h.add_child(hud._label(r[1], 14, Hud.PARCH))
+			st.add_child(h)
+		add_child(st)
+		# Material und Scherben
+		# Herzwaage: Stand und Wirkung, dazu die Entscheidungen dieser Nacht
+		add_child(_h3("Herzwaage"))
+		var maat := 0
+		var isfet := 0
+		for k in Spiel.wahl:
+			if Spiel.wahl[k] == "maat":
+				maat += 1
+			else:
+				isfet += 1
+		add_child(hud._label("Dein Herz ist %s (%+d). Entscheidungen: %d für Maat, %d für Isfet." % [Geschichte.herz_name(Spiel.herz), int(round(Spiel.herz)), maat, isfet], 15, Hud.PARCH))
+		add_child(hud._para(Geschichte.herz_wirkung(Spiel.herz), 13, Hud.DIM))
 	add_child(_h3("Material"))
 	var mf := HFlowContainer.new()
 	mf.add_theme_constant_override("h_separation", 16)
 	for k in Daten.MAT_ORDER:
 		mf.add_child(_mat_row(Daten.ICON[k], "%s %d" % [Daten.MATS[k].name, Spiel.mats[k]], Daten.MATS[k].txt))
-	mf.add_child(_mat_row(Daten.ICON.shard, "Scherben %d" % Spiel.shards, "Für den Grabräuber, das Neuwürfeln und (bald) den Fähigkeitenbaum."))
+	mf.add_child(_mat_row(Daten.ICON.shard, "Scherben %d" % Spiel.shards, "Währung der Duat: für die Werkstatt des Ptah, den Grabräuber und das Zurücksetzen der Fähigkeiten."))
 	add_child(mf)
 	# Tasche
 	var bh := HBoxContainer.new()
@@ -203,48 +217,30 @@ func render() -> void:
 	add_child(bf)
 	# Detail
 	add_child(_detail())
-	# Grabräuber
-	var gr := HBoxContainer.new()
-	gr.add_theme_constant_override("separation", 10)
-	gr.add_child(_knopf("Beim Grabräuber tauschen: %d Scherben gegen ein unbekanntes Teil" % Daten.GAMBLE, false, func():
-		var it := Spiel.gamble()
-		if not it.is_empty():
-			sel = {"bag": Spiel.bag.size() - 1}
-			hud.toast_item(Daten.icon_of(it), Daten.item_name(it), game.item_sub(it), Daten.RAR[it.rar].col)
-		render(), Spiel.shards >= Daten.GAMBLE and Spiel.bag.size() < Daten.BAG_MAX))
-	add_child(gr)
-	# Buch des Thot
-	add_child(_h3("Buch des Thot (%d von %d Seiten)" % [Spiel.evid.size(), Daten.EVID.size()]))
-	var found: Array = Spiel.evid.duplicate()
-	found.sort()
-	for i in found:
-		var pv := VBoxContainer.new()
-		pv.add_child(hud._label("%d · %s" % [i + 1, Daten.EVID[i][0]], 15, Hud.PARCH))
-		pv.add_child(hud._para(Daten.EVID[i][1], 13, Hud.DIM))
-		add_child(pv)
-	if found.size() < Daten.EVID.size():
-		add_child(hud._para("Noch nicht gefunden … Elite-Gegner und Hüter tragen die Seiten bei sich.", 13, Color(Hud.DIM, 0.6)))
-	# Stunde wechseln: jede erreichte Stunde noch einmal betreten (beginnt neu)
-	if Spiel.max_fall > 1:
-		add_child(_h3("STUNDE WECHSELN"))
-		var hf := HFlowContainer.new()
-		hf.add_theme_constant_override("h_separation", 6)
-		hf.add_theme_constant_override("v_separation", 6)
-		for n in range(maxi(1, Spiel.max_fall - 11), Spiel.max_fall + 1):
-			var nn: int = n
-			hf.add_child(_knopf("%d · %s" % [Stunden.hour_of(n), Stunden.def(n).name] if Stunden.night_of(n) == 1 else Stunden.hour_txt(n),
-				n == Spiel.fall, func(): game.go_hour(nn), n != Spiel.fall))
-		add_child(hf)
-	# Neue Figur
-	var nf := HBoxContainer.new()
-	nf.add_theme_constant_override("separation", 10)
-	if ask_reset:
-		nf.add_child(hud._label("Wirklich? Der Spielstand wird beim Start gelöscht.", 13, Hud.DIM))
-		nf.add_child(_knopf("Ja, zur Neuanlage", false, func(): game.new_character()))
-		nf.add_child(_knopf("Abbrechen", false, func(): ask_reset = false; render()))
-	else:
-		nf.add_child(_knopf("Neue Figur anlegen (Spielstand löschen)", false, func(): ask_reset = true; render()))
-	add_child(nf)
+	if werkstatt:
+		# Grabräuber
+		var gr := HBoxContainer.new()
+		gr.add_theme_constant_override("separation", 10)
+		gr.add_child(_knopf("Fundkiste des Grabräubers: %d Scherben gegen ein unbekanntes Teil" % Daten.GAMBLE, false, func():
+			var it := Spiel.gamble()
+			if not it.is_empty():
+				sel = {"bag": Spiel.bag.size() - 1}
+				hud.toast_item(Daten.icon_of(it), Daten.item_name(it), game.item_sub(it), Daten.RAR[it.rar].col)
+			render(), Spiel.shards >= Daten.GAMBLE and Spiel.bag.size() < Daten.BAG_MAX))
+		add_child(gr)
+	if not werkstatt:
+		# Buch des Thot
+		add_child(_h3("Buch des Thot (%d von %d Seiten)" % [Spiel.evid.size(), Daten.EVID.size()]))
+		var found: Array = Spiel.evid.duplicate()
+		found.sort()
+		for i in found:
+			var pv := VBoxContainer.new()
+			pv.add_child(hud._label("%d · %s" % [i + 1, Daten.EVID[i][0]], 15, Hud.PARCH))
+			pv.add_child(hud._para(Daten.EVID[i][1], 13, Hud.DIM))
+			add_child(pv)
+		if found.size() < Daten.EVID.size():
+			add_child(hud._para("Noch nicht gefunden … Elite-Gegner und Hüter tragen die Seiten bei sich.", 13, Color(Hud.DIM, 0.6)))
+		add_child(hud._label("Stunde wechseln und neue Figur: im Spielmenü (%s)." % ("Knopf „Menü“" if game.touch else "Esc"), 12, Hud.DIM))
 
 	hud._pass_all(self)
 
@@ -302,12 +298,35 @@ func _detail() -> Control:
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(l)
 		var key: String = k
-		h.add_child(_knopf("↻ neu würfeln", false, func():
-			if Spiel.reroll(it, key):
-				_changed(), _can_pay({"staub": Daten.REROLL_STAUB}, Daten.REROLL_SHARDS) and it.aff.size() < Daten.AFF_ORDER.size()))
+		if werkstatt:
+			h.add_child(_knopf("neu fassen", false, func():
+				var opts := Spiel.reroll_angebot(it)
+				if not opts.is_empty():
+					angebot = {"it": it, "k": key, "opts": opts}
+					game.sfx.play("gate", 0.1, -10.0)
+					render(), angebot.is_empty() and _can_pay({"staub": Daten.REROLL_STAUB}, Daten.reroll_fee(it)) and it.aff.size() < Daten.AFF_ORDER.size()))
 		v.add_child(h)
-	if it.aff.size() > 0:
-		v.add_child(hud._label("Neu würfeln: %s ersetzt das Affix durch ein anderes." % _cost_txt({"staub": Daten.REROLL_STAUB}, Daten.REROLL_SHARDS), 11, Hud.DIM))
+	if werkstatt and not angebot.is_empty() and angebot.it == it:
+		# der Goldschmied legt zwei Fassungen hin: eine nehmen oder die alte behalten
+		var ab := VBoxContainer.new()
+		ab.add_child(hud._label("Zwei neue Fassungen für „%s“. Wähle eine oder behalte die alte:" % Daten.aff_line(it, angebot.k), 13, Hud.GOLD))
+		var ar := HFlowContainer.new()
+		ar.add_theme_constant_override("h_separation", 8)
+		for o in angebot.opts:
+			var oo: Dictionary = o
+			var probe := {"aff": {oo.k: oo.v}, "up": it.get("up", 0)}
+			ar.add_child(_knopf(Daten.aff_line(probe, oo.k), true, func():
+				Spiel.reroll_setzen(angebot.it, angebot.k, oo)
+				angebot = {}
+				game.sfx.play("oath", 0.1, -8.0)
+				_changed()))
+		ar.add_child(_knopf("Die alte behalten", false, func():
+			angebot = {}
+			render()))
+		ab.add_child(ar)
+		v.add_child(ab)
+	elif werkstatt and it.aff.size() > 0:
+		v.add_child(hud._label("Neu fassen: %s. Du wählst aus zwei neuen Eigenschaften oder behältst die alte." % _cost_txt({"staub": Daten.REROLL_STAUB}, Daten.reroll_fee(it)), 11, Hud.DIM))
 	if it.has("leg"):
 		v.add_child(hud._para(Daten.leg(it.leg).txt, 14, Color("ff8a3c")))
 	if not worn:
@@ -329,12 +348,14 @@ func _detail() -> Control:
 			game.sfx.play("oath", 0.1, -8.0)
 			_changed()))
 	var u := int(it.get("up", 0))
-	if u < Daten.UP_MAX:
+	if not werkstatt:
+		pass
+	elif u < Daten.UP_MAX:
 		var c := Daten.up_cost(it)
-		row.add_child(_knopf("Aufwerten auf +%d: %s" % [u + 1, _cost_txt(c)], false, func():
+		row.add_child(_knopf("Aufwerten auf +%d: %s" % [u + 1, _cost_txt(c, Daten.up_fee(it))], false, func():
 			if Spiel.upgrade(it):
 				game.sfx.play("gate", 0.1, -8.0)
-				_changed(), _can_pay(c)))
+				_changed(), angebot.is_empty() and _can_pay(c, Daten.up_fee(it))))
 	else:
 		row.add_child(hud._label("Höchste Stufe erreicht.", 13, Hud.DIM))
 	if not worn:
@@ -345,4 +366,6 @@ func _detail() -> Control:
 			Spiel.speichern()
 			render()))
 	v.add_child(row)
+	if not werkstatt:
+		v.add_child(hud._label("Aufwerten und neu fassen: beim Goldschmied in der Werkstatt des Ptah, am Eingang jeder Stunde.", 11, Hud.DIM))
 	return p
