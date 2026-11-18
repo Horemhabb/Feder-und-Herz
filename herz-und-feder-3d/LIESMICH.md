@@ -200,6 +200,13 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.8: Tiere aus der Fabrik, schnellere Startseite
+
+- **Fuchs, Skorpion und Ba neu gebaut** (`tools/figurenfabrik/tiere.py`): eigene Skelette, Bewegungen aus Formeln (Laufen, Gehen, Ruhen, Biss/Stich, Treffer, Tod), Texturtafeln gemalt nach G17/G18. Fuchs rund 1000 Dreiecke, Skorpion 1270 mit glühenden Augen, Ba 590 mit schwebendem Federkleid. Der Fuchs der Jägerin läuft, geht oder ruht je nach Tempo und beißt sichtbar zu; Irrlichter erscheinen als Ba-Seelen, Skorpione als neue Skorpione, der Ba-Hüter als große Ba.
+- **Startseite im Browser**: Titelbild und Zierschrift stecken direkt in der Seite (54 KB), sind also da, bevor die großen Dateien geladen sind. Goldener Ladebalken mit Megabyte-Angabe, wechselnde Sprüche, sanftes Ausblenden. Danach zeigt die Engine dasselbe Bild als Startbild (`ui/start.png`, 110 KB), so gibt es keinen schwarzen oder Godot-Zwischenschirm mehr. Neu bauen: `python3 tools/startseite.py`.
+- Neue Tiertafeln verlustbehaftet gepackt.
+- Ehrlich: Die eigentliche Ladezeit hängt weiter vor allem an `index.wasm` (39,5 MB, gepackt etwa 9 MB) und `index.pck` (rund 20 MB). Beim zweiten Start kommt alles aus dem Zwischenspeicher (PWA).
+
 ### Higgsfield-Bilder: Endstand (18.11.2026)
 
 | Kürzel | Verwendet als | Fassung |

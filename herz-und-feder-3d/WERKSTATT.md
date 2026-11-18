@@ -305,6 +305,8 @@ Alle liefen für Fassung 2.3 mit alten und mit neuen Figuren.
 | Pillow, NumPy | Texturtafeln malen | HPND (MIT-artig), BSD | 0 | ja |
 | KayKit Adventurers und Skeletons (Kay Lousberg) | Skelett und Bewegungen | CC0 1.0 | 0 | ja, ohne Namensnennung |
 | Eigene Skripte der Fabrik | | GPL-3.0-or-later (Pflicht, weil sie `bpy` aufrufen und öffentlich sind; siehe `tools/figurenfabrik/LIZENZ.md`) | 0 | ja |
+| `tiere.py` (Fuchs, Skorpion, Ba: eigene Skelette und Bewegungen) | Figurenfabrik | GPL-3.0-or-later | 0 | ja |
+| `tools/startseite.py` (Ladeseite der Web-Fassung) | Web | wie das Spiel | 0 | ja |
 | Erzeugte Modelle und Tafeln | Spiel | deine | 0 | ja |
 | Almendra | Schrift | SIL OFL 1.1 | 0 | ja |
 | Higgsfield-Bilder (K11–K14, G12–G18) | Vorlage für Tracht und Farben, nicht im Modell enthalten | nach deinem Tarif bei Higgsfield | bereits vorhanden | laut deinem Tarif |
