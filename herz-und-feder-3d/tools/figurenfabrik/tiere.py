@@ -170,6 +170,49 @@ def tafel_skorpion(pfad):
     return F
 
 
+def federbild(art, w=128, h=192, keim=0):
+    """Eine Feder, gemalt: Kiel in der Mitte, schräge Äste, Farbe vom Ansatz (oben) zur Spitze (unten).
+    art: 0 Schwungfeder, 1 Armschwinge, 2 Deckfeder, 3 Schwanzfeder. Gibt (Farbe, Glut) als Arrays zurück."""
+    rng = np.random.default_rng(keim + 17 * art)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    v = yy / (h - 1)                      # 0 Ansatz, 1 Spitze
+    u = (xx / (w - 1) - 0.5) * 2          # −1 … 1 quer
+    au = np.abs(u)
+    # Farbreihen nach G17: tiefes Jade am Ansatz, helles Minz, silbrig-neblige Spitze
+    reihen = {0: [(22, 70, 72), (58, 150, 140), (138, 196, 184), (206, 226, 218)],
+              1: [(26, 78, 80), (70, 160, 150), (146, 200, 190), (198, 222, 214)],
+              2: [(20, 58, 66), (44, 112, 118), (112, 182, 174), (176, 218, 210)],
+              3: [(24, 72, 76), (64, 150, 142), (130, 190, 178), (210, 230, 222)]}[art]
+    st = np.array([0.0, 0.35, 0.72, 1.0])
+    farbe = np.zeros((h, w, 3), np.float32)
+    for k in range(3):
+        a = np.clip((v - st[k]) / (st[k + 1] - st[k]), 0, 1)[..., None]
+        m = ((v >= st[k]) & (v <= st[k + 1]))[..., None]
+        farbe = np.where(m, np.array(reihen[k]) * (1 - a) + np.array(reihen[k + 1]) * a, farbe)
+    # Äste: feine, schräg zur Spitze laufende Linien, leicht gewellt
+    phase = v * 46 - au * 15 + rng.normal(0, 0.15, (h, 1)).astype(np.float32)
+    aeste = 0.5 + 0.5 * np.sin(phase * 2 * np.pi / 3.2)
+    farbe *= (0.86 + 0.16 * aeste)[..., None]
+    # Lücken in der Fahne, wie bei echten Federn (ein paar Äste klaffen auseinander)
+    for _ in range(3 if art != 2 else 1):
+        y0 = rng.uniform(0.3, 0.85)
+        spalt = np.exp(-((v - y0 - au * 0.12) / 0.012) ** 2) * (au > 0.15)
+        farbe *= (1 - 0.35 * spalt)[..., None]
+    # Kiel: heller Strich, zur Spitze dünner und blasser
+    kiel = np.exp(-(u / (0.05 * (1.15 - v))) ** 2) * (1 - 0.6 * v)
+    farbe = farbe * (1 - kiel[..., None] * 0.6) + np.array([235, 245, 238]) * (kiel[..., None] * 0.6)
+    # Ränder dunkler, Spitze ausgefranst hell
+    farbe *= (1 - 0.32 * np.clip((au - 0.55) / 0.45, 0, 1) ** 1.5)[..., None]
+    if art == 2:   # Deckfedern: schmaler goldener Saum, passend zum Stirnband
+        saum = np.clip(1 - np.abs(v - 0.93) / 0.05, 0, 1)
+        farbe = farbe * (1 - saum[..., None] * 0.55) + np.array([196, 160, 78]) * (saum[..., None] * 0.55)
+    farbe += rng.normal(0, 4, farbe.shape)
+    # Glut: nur die nebligen Spitzen und ein Hauch am Kiel, nicht die ganze Gestalt
+    glut = np.clip((v - 0.6) / 0.4, 0, 1) ** 1.8 * 0.6 + kiel * 0.08
+    glut = (np.array([150, 225, 210]) * glut[..., None])
+    return np.clip(farbe, 0, 255), np.clip(glut, 0, 255)
+
+
 def tafel_ba(pfad):
     k = Image.open(BILD("G17_voll.webp")).convert("RGB")
     F = {"feder": (0, 0, 512, 192), "leib": (0, 192, 256, 384), "kopf": (256, 192, 512, 384), "band": (0, 384, 256, 448),
@@ -178,7 +221,11 @@ def tafel_ba(pfad):
     def setz(feld, fl):
         x0, y0, x1, y1 = F[feld]
         t.paste(fl.resize((x1 - x0, y1 - y0), Image.LANCZOS), (x0, y0))
-    setz("feder", k.crop((90, 80, 330, 200)))
+    fed = np.zeros((192, 512, 3), np.float32)
+    fglut = np.zeros((192, 512, 3), np.float32)
+    for art in range(4):
+        fed[:, art * 128:(art + 1) * 128], fglut[:, art * 128:(art + 1) * 128] = federbild(art)
+    setz("feder", Image.fromarray(fed.astype(np.uint8)))
     setz("leib", gm.kachel(gm.flach(k.crop((330, 330, 430, 420)), 0.6), 256, 192, 96))
     setz("kopf", gm.haut(k, (585, 330, 600, 350), 256, 192, 5, 1.15))
     setz("band", gm.kachel(k.crop((470, 225, 560, 245)), 256, 64, 64))
@@ -188,9 +235,11 @@ def tafel_ba(pfad):
     setz("auge", au)
     setz("haar", Image.new("RGB", (256, 64), (24, 30, 36)))
     t.save(pfad)
-    # Leuchtkarte: die ganze Gestalt glimmt türkis, die Augen hell
-    a = np.asarray(t).astype(np.float32) * 0.55
-    g = Image.fromarray(np.clip(a * np.array([0.7, 1.1, 1.15]), 0, 255).astype(np.uint8))
+    # Leuchtkarte: Leib und Kopf nur ein Hauch, Federspitzen neblig hell, Augen weiß
+    a = np.asarray(t).astype(np.float32) * 0.16
+    g = np.clip(a * np.array([0.7, 1.1, 1.15]), 0, 255)
+    g[0:192, :] = fglut
+    g = Image.fromarray(g.astype(np.uint8))
     ImageDraw.Draw(g).ellipse([396, 396, 436, 436], fill=(255, 255, 255))
     g.save(pfad.replace(".png", "_glut.png"))
     return F
@@ -381,28 +430,64 @@ def ba(ziel, tmp):
     for s in (1, -1):
         kegel(B, (s * 0.032, -0.235, H + 0.25), (s * 0.034, -0.252, H + 0.25), 0.014, 0.007, {"kopf": 1}, F["auge"], 6)
     kegel(B, (0, -0.25, H + 0.22), (0, -0.27, H + 0.205), 0.012, 0.003, {"kopf": 1}, F["kopf"], 5)
-    # Flügel: Fächer aus Federn an Arm und Hand, die hinteren länger
+    # Federn: jede Feder ist ein schmaler, leicht gebogener Streifen mit spitzem Ende (Umriss aus der Form,
+    # nicht aus Transparenz: das bleibt im Browser sauber). Vier Lagen je Flügel wie beim echten Vogel.
     fx0, fy0, fx1, fy1 = F["feder"]
+    rng = np.random.default_rng(5)
+    profil = (0.42, 0.88, 1.0, 0.78, 0.0)
+    def feder(wurzel, richtung, laenge, breite, art, w, krumm=0.05, quer=None):
+        d = Vector(richtung).normalized()
+        q = (quer or d.cross(Z)).normalized() * breite * 0.5
+        unten = Vector((0, 0, -1))
+        pts = [wurzel + d * laenge * t + unten * krumm * laenge * t * t for t in (0, 0.25, 0.5, 0.75, 1.0)]
+        cx = fx0 + art * 128 * (fx1 - fx0) / 512
+        cw = 128 * (fx1 - fx0) / 512
+        uv = lambda a, t: (cx + cw * (0.5 + 0.5 * a), fy0 + (fy1 - fy0) * (0.02 + 0.96 * t))
+        ts = (0, 0.25, 0.5, 0.75, 1.0)
+        for i in range(4):
+            p0, p1, b0, b1 = pts[i], pts[i + 1], profil[i], profil[i + 1]
+            if b1 > 0:
+                B.flaeche([p0 - q * b0, p0 + q * b0, p1 + q * b1, p1 - q * b1],
+                          [uv(-b0, ts[i]), uv(b0, ts[i]), uv(b1, ts[i + 1]), uv(-b1, ts[i + 1])], w, 0)
+            else:
+                B.flaeche([p0 - q * b0, p0 + q * b0, p1], [uv(-b0, ts[i]), uv(b0, ts[i]), uv(0, 1.0)], w, 0)
+    def gewicht(s, u):
+        h = min(1.0, max(0.0, (u - 0.35) / 0.3))
+        return {"fluegel" + s: 1 - h, "hand" + s: h} if h < 1 else {"hand" + s: 1}
     for s, x in ((".l", 1), (".r", -1)):
+        kante = lambda u: Vector((x * (0.1 + 0.72 * u), -0.02 + 0.08 * u, H + 0.1 + 0.02 * math.sin(u * 3)))
+        # Handschwingen: lang, nach außen gefächert
         for i in range(9):
-            u = i / 8
-            wurzel = Vector((x * (0.1 + 0.72 * u), -0.02 + 0.08 * u, H + 0.1 + 0.02 * math.sin(u * 3)))
-            laenge = 0.28 + 0.35 * math.sin(u * 2.4) + (0.15 if u > 0.8 else 0)
-            spitze = wurzel + Vector((x * 0.12 * u, laenge, -0.04 - 0.05 * u))
-            breit = 0.095
-            w = {"fluegel" + s: 1 - u, "hand" + s: u} if u < 0.5 else {"hand" + s: 1}
-            q = Vector((x * breit, 0, 0))
-            uv = lambda a, b: (fx0 + a * (fx1 - fx0) * 0.5 + (0.5 if x < 0 else 0) * (fx1 - fx0), fy0 + b * (fy1 - fy0))
-            B.flaeche([wurzel - q, wurzel + q, spitze + q * 0.4, spitze - q * 0.4], [uv(u, 0.1), uv(u + 0.1, 0.1), uv(u + 0.1, 0.95), uv(u, 0.95)], w, 0)
+            u = 0.56 + 0.44 * i / 8
+            a = 0.1 + 0.55 * (i / 8) ** 1.3 + rng.uniform(-0.03, 0.03)
+            L = (0.5 + 0.2 * math.sin(i / 8 * 2.2)) * rng.uniform(0.93, 1.05)
+            feder(kante(u), (x * math.sin(a), math.cos(a), -0.1), L, 0.11, 0, gewicht(s, u), 0.06)
+        # Armschwingen: mittellang, nach hinten
+        for i in range(10):
+            u = 0.04 + 0.52 * i / 9
+            a = 0.02 + 0.1 * i / 9 + rng.uniform(-0.03, 0.03)
+            L = (0.3 + 0.12 * i / 9) * rng.uniform(0.94, 1.05)
+            feder(kante(u) + Vector((0, 0, 0.004)), (x * math.sin(a), math.cos(a), -0.12), L, 0.12, 1, gewicht(s, u), 0.05)
+        # große Deckfedern: kurz, oben auf, mit Goldsaum
+        for i in range(13):
+            u = 0.03 + 0.9 * i / 12
+            a = 0.05 + 0.35 * (i / 12) ** 1.5 + rng.uniform(-0.04, 0.04)
+            feder(kante(u) + Vector((0, -0.005, 0.016)), (x * math.sin(a), math.cos(a), -0.2), 0.18 * rng.uniform(0.9, 1.08) + 0.04 * (i / 12), 0.095, 2, gewicht(s, u), 0.12)
+        # kleine Deckfedern an der Vorderkante, schuppig
+        for i in range(10):
+            u = 0.02 + 0.8 * i / 9
+            a = 0.1 + 0.3 * i / 9
+            feder(kante(u) + Vector((0, -0.02, 0.026)), (x * math.sin(a), math.cos(a), -0.3), 0.1 * rng.uniform(0.9, 1.1), 0.075, 2, gewicht(s, u), 0.2)
         # Krallen
         kette(B, [(x * 0.06, 0.08, H - 0.08), (x * 0.07, 0.06, H - 0.22), (x * 0.07, 0.02, H - 0.32)], [0.03, 0.018, 0.01], [{"leib": .5, "kralle" + s: .5}, {"kralle" + s: 1}, {"kralle" + s: 1}], F["kralle"], 6)
-    # Schwanzfedern
-    for i in range(5):
-        a = (i - 2) * 0.18
-        wurzel = Vector((0, 0.28, H - 0.02))
-        spitze = wurzel + Vector((math.sin(a) * 0.3, 0.36 + 0.05 * (2 - abs(i - 2)), -0.1))
-        q = Vector((0.04, 0, 0))
-        B.flaeche([wurzel - q, wurzel + q, spitze + q * 0.5, spitze - q * 0.5], [(fx0 + 20, fy0 + 20), (fx0 + 60, fy0 + 20), (fx0 + 60, fy1 - 10), (fx0 + 20, fy1 - 10)], {"schwanz": 1}, 0)
+    # Schwanz: Fächer aus sieben langen Federn, die mittleren am längsten, dazu kurze Deckfedern
+    for i in range(7):
+        a = (i - 3) * 0.13
+        L = 0.42 + 0.08 * (1 - abs(i - 3) / 3)
+        feder(Vector((0, 0.26, H - 0.02 + 0.002 * i)), (math.sin(a), math.cos(a), -0.28), L, 0.09, 3, {"schwanz": 1}, 0.08, quer=Vector((math.cos(a), -math.sin(a), 0)))
+    for i in range(4):
+        a = (i - 1.5) * 0.18
+        feder(Vector((0, 0.2, H + 0.01)), (math.sin(a), math.cos(a), -0.2), 0.16, 0.06, 2, {"schwanz": 1}, 0.1, quer=Vector((math.cos(a), -math.sin(a), 0)))
 
     def flug(schlag, f_bob=1.0):
         def pose(t):
@@ -426,7 +511,7 @@ def ba(ziel, tmp):
         return {"root": [(Y, 1.2 * u)], "fluegel.l": [(Y, 0.9 * u)], "fluegel.r": [(Y, -0.9 * u)], "_ort": (0, 0, -(H - 0.2) * u * u)}
     bewegung(arm, "Death_C_Skeletons", 24, fall, False)
     ausgeben(arm, B, "Ba", tafel, tafel.replace(".png", "_glut.png"), os.path.join(ziel, "Ba.glb"),
-             lambda bild, gb: [fabrik.material("geist", bild, 0.0, 0.6, glut=1.6, glutbild=gb)])
+             lambda bild, gb: [fabrik.material("geist", bild, 0.0, 0.7, glut=1.0, glutbild=gb)])
 
 
 if __name__ == "__main__":
