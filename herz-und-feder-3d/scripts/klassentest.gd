@@ -98,6 +98,14 @@ func run() -> void:
 		await wait(0.3)
 		var nf: Foe = G.foe_near(h.global_position, 12.0)   # Gegner bewegen sich: auf den jetzt nächsten zielen
 		h.aim = nf.global_position if nf else target
+		if id == "roll" or id == "blink":
+			# Sprung und Schritt brauchen freie Bahn: in die Richtung zielen, in der sechs Meter frei sind
+			# (ein Gegner direkt vor der Figur oder eine Mauer verkürzten den Weg, und der Test prüfte den Zufall)
+			for k2 in 12:
+				var ri := Vector3(sin(k2 * TAU / 12.0), 0, cos(k2 * TAU / 12.0))
+				if G.walkable(h.global_position, h.global_position + ri * 6.0):
+					h.aim = h.global_position + ri * 9.0
+					break
 		h.auto_aim = false
 		var before := harm(G)
 		var p0 := h.global_position

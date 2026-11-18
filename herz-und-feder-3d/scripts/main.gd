@@ -1773,6 +1773,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()
 		return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.near_werkstatt() \
+			and mouse_ground().distance_to(orte.werk.pos) < 2.2 and not hud.mouse_over_ui():
+		# die Werkstatt antippen oder anklicken: eintreten
+		orte.werkstatt_oeffnen()
+		return
 	if touch and ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 		tap_t = 0.3
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:

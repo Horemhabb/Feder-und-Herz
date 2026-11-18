@@ -34,6 +34,7 @@ var helfer_talked := false
 var helfer_paid := false
 var auto := true             # Tests schalten das Auslösen bei Berührung zeitweise ab
 var werk := {}               # die Werkstatt des Ptah dieser Stunde
+var marken: Array = []       # schwebende Anch-Zeichen über Figuren, die etwas zu sagen haben
 var nl := {}                 # der Ba ohne Namen (2.9), falls er in dieser Stunde erscheint
 var stueck := {}             # das fehlende Stück seiner Kartusche
 var kartusche_bei_dir := false
@@ -122,6 +123,30 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 	game.add_child(l)
 	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" or kind == "helfer" or kind == "werkstatt" else (1.7 if kind == "such" else 2.3), 0)
 	s["label"] = l
+	# Namensschild (3.0): unter dem Namen steht in kleiner Schrift, wer das ist
+	var wer := ""
+	match kind:
+		"figur": wer = G.get("titel", "")
+		"helfer": wer = L.get("titel", "")
+		"werkstatt": wer = "Goldschmied · antippen" if game.touch else "Goldschmied · Taste E"
+		"schrein": wer = "Segen für eine Weile"
+		"krug": wer = "ein gefangenes Herz"
+		"feuer": wer = "entzünden"
+	if wer != "":
+		var l2 := Label3D.new()
+		l2.text = wer
+		l2.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l2.font_size = 26
+		l2.outline_size = 8
+		l2.modulate = Color(0.93, 0.89, 0.8)
+		l2.pixel_size = 0.0055
+		l2.visible = false
+		game.add_child(l2)
+		l2.global_position = l.global_position - Vector3(0, 0.3, 0)
+		s["label2"] = l2
+	if kind == "figur" or kind == "helfer":
+		# ein leiser Kreis am Boden: Hier steht jemand, mit dem man reden kann
+		game.stimmung.append(Stimmung.runenkreis(game, pos, 1.25, col, 0.42))
 	sites.append(s)
 
 func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: float) -> Dictionary:
@@ -155,15 +180,9 @@ func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: floa
 	l.omni_range = 6.0 if geist else 4.5
 	n.add_child(l)
 	l.position = Vector3(0, 2.2, 0)
-	var mark := Label3D.new()
-	mark.text = "!"
-	mark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	mark.font_size = 120
-	mark.outline_size = 16
-	mark.modulate = Color(1.0, 0.8, 0.3) if geist else Color(0.8, 1.0, 0.6)
-	mark.pixel_size = 0.006
-	n.add_child(mark)
-	mark.position = Vector3(0, 3.7, 0)
+	# statt eines Ausrufezeichens: ein schwebendes Anch, golden bei Gestalten der Duat, grün bei Leuten mit einer Sorge
+	var mark := Deko.marke(n, 3.85 / scl, Color(1.0, 0.78, 0.3) if geist else Color(0.62, 0.95, 0.5))
+	marken.append(mark)
 	return {"n": n, "mark": mark}
 
 func _tint(n: Node, c: Color) -> void:
@@ -243,6 +262,10 @@ func tick(delta: float) -> void:
 	t += delta
 	var h: Hero = game.hero
 	var frei: bool = auto and not h.dead and game.hud.overlay == null and not get_tree().paused
+	for m in marken:
+		if m.visible:
+			m.rotation.y = t * 1.6
+			m.position.y = float(m.get_meta("y")) + sin(t * 2.2) * 0.07
 	if _namenlos_tick(h, frei):
 		return
 	for s in sites:
@@ -252,6 +275,8 @@ func tick(delta: float) -> void:
 		s.label.visible = dist < 11.0 and (not s.done or s.kind == "figur")
 		if s.kind == "werkstatt":
 			s.label.visible = dist < 14.0
+		if s.has("label2"):
+			s.label2.visible = s.label.visible and dist < 7.0
 		if dist > 5.0:
 			s.asked = false
 		match s.kind:
@@ -271,11 +296,7 @@ func tick(delta: float) -> void:
 		if not frei or s.done and s.kind != "figur" and s.kind != "helfer":
 			continue
 		if s.kind == "werkstatt":
-			if dist < 3.1 and not s.asked:
-				s.asked = true
-				werkstatt_oeffnen()
-				return
-			continue
+			continue   # öffnet sich nicht im Vorbeigehen: E drücken oder den Goldschmied antippen
 		if s.kind == "helfer":
 			if not helfer_talked and dist < 3.2 and not s.asked:
 				s.asked = true

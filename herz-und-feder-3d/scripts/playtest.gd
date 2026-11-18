@@ -329,6 +329,11 @@ func run() -> void:
 	# ein unverletzter Gegner, der stillhält und frei zu sehen ist (der vorige kann schon gefallen sein; Schwärme huschen weg).
 	# Bis zu drei Versuche: Auf zufälligen Karten steht der Erste manchmal an einer Mauer.
 	var kandidaten: Array = G.foes.filter(func(f): return f.kind != "boss" and f != foe and f.state != Foe.St.DEAD and f.hp >= f.max_hp and f.K.ai != "swarm")
+	if kandidaten.is_empty():
+		# auf dieser Karte steht kein passender Gegner mehr: einen eigenen hinstellen
+		var neu: Foe = G._spawn("lance", h.global_position + Vector3(3.0, 0, 0.5), 96)
+		await wait(0.3)
+		kandidaten = [neu]
 	var ziel: Foe = kandidaten[0]
 	var hp_vor := ziel.hp
 	for versuch in mini(3, kandidaten.size()):

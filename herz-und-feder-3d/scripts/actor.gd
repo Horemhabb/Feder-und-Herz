@@ -43,8 +43,10 @@ func setup(path: String, scl: float, r: float) -> void:
 	if flash_mat == null:
 		flash_mat = StandardMaterial3D.new()
 		flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		flash_mat.albedo_color = Color(1, 0.95, 0.85, 0.75)
+		# Treffer blitzen auf, ohne die Figur weiß zu übermalen (3.0): Licht wird aufaddiert, die Textur bleibt sichtbar
+		flash_mat.albedo_color = Color(1.0, 0.82, 0.55, 0.42)
 		flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 
 func _collect(n: Node) -> void:
 	if n is MeshInstance3D:

@@ -273,12 +273,30 @@ static func requisit(g: Node, art: String, pos: Vector3, rot := 0.0) -> MeshInst
 				for q in [Vector3(-0.22, 0, 0.1), Vector3(0.2, 0, 0.16), Vector3(0.0, 0, -0.2)]:
 					_dreh(a, [[0.07, 0.13, 0.05], [0.13, 0.11, 0.04]], q)
 					_dreh(d, [[0.03, 0.005, 0.09]], q + Vector3(0, 0.08, 0), 1.0, 6)
-			"waffen":     # abgelegte Grabbeigaben: Schild und Sichelschwert an einem Ständer
-				box(b, Vector3(0.08, 1.1, 0.08), Vector3(0, 0, 0))
-				box(b, Vector3(0.7, 0.07, 0.07), Vector3(0, 0.75, 0))
-				_dreh(e, [[0.42, 0.42, 0.05]], Vector3(0, 0.02, 0.3))
-				box(e, Vector3(0.06, 0.9, 0.03), Vector3(0.3, 0.05, -0.08))
-				box(e, Vector3(0.2, 0.06, 0.03), Vector3(0.36, 0.9, -0.08))
+			"waffen":     # Grabbeigaben am Ständer: ein Rundschild lehnt daran, ein Speer und ein Sichelschwert hängen
+				for sx in [-0.3, 0.3]:
+					box(b, Vector3(0.07, 1.1, 0.07), Vector3(sx, 0, -0.12))
+				box(b, Vector3(0.74, 0.06, 0.06), Vector3(0, 0.98, -0.12))
+				var schild := CylinderMesh.new()
+				schild.top_radius = 0.36
+				schild.bottom_radius = 0.36
+				schild.height = 0.05
+				schild.radial_segments = 16
+				schild.rings = 1
+				var lehne := Basis(Vector3.RIGHT, PI / 2 - 0.32)
+				e.append_from(schild, 0, Transform3D(lehne, Vector3(0, 0.4, 0.06)))
+				var buckel := CylinderMesh.new()
+				buckel.top_radius = 0.05
+				buckel.bottom_radius = 0.12
+				buckel.height = 0.07
+				buckel.radial_segments = 10
+				buckel.rings = 1
+				c.append_from(buckel, 0, Transform3D(lehne, Vector3(0, 0.42, 0.12)))
+				box(b, Vector3(0.035, 1.75, 0.035), Vector3(0.38, 0, -0.06))            # Speerschaft
+				_dreh(c, [[0.05, 0.005, 0.2]], Vector3(0.38, 1.75, -0.06), 1.0, 6)    # Speerspitze
+				box(c, Vector3(0.05, 0.5, 0.02), Vector3(-0.2, 0.46, -0.08))           # Sichelschwert: Klinge
+				box(c, Vector3(0.16, 0.05, 0.02), Vector3(-0.13, 0.46, -0.08))         #   Sichel
+				box(b, Vector3(0.05, 0.16, 0.03), Vector3(-0.2, 0.82, -0.08))          #   Griff
 			"schatz":     # Grabschatz: Goldringe, Barren und ein Krug
 				for i in 5:
 					_dreh(e, [[0.16 - i * 0.012, 0.16 - i * 0.012, 0.05]], Vector3(-0.2, i * 0.05, 0.05))
@@ -299,7 +317,7 @@ static func requisit(g: Node, art: String, pos: Vector3, rot := 0.0) -> MeshInst
 			teile.append([kb, korb])
 		else:
 			# welche Flächen die Form belegt: Ton, Holz, Bronze, Glut, Gold, Stein (leere darf man nicht übergeben)
-			var voll := {"amphore": "ac", "kruege": "ab", "kiste": "bc", "kisten": "bc", "lampen": "ad", "waffen": "be", "schatz": "ae", "schutt": "f", "schutt_klein": "f"}
+			var voll := {"amphore": "ac", "kruege": "ab", "kiste": "bc", "kisten": "bc", "lampen": "ad", "waffen": "bce", "schatz": "ae", "schutt": "f", "schutt_klein": "f"}
 			var alle := {"a": [a, ton], "b": [b, holz], "c": [c, bronze], "d": [d, mat("docht", Color(1.0, 0.7, 0.3), 1.0, Color(1.0, 0.6, 0.2), 3.0)],
 				"e": [e, gold()], "f": [f, stone(g, "hell", "sandstein", Color(1.0, 0.92, 0.8))]}
 			for z in voll.get(art, "a"):
@@ -464,6 +482,51 @@ static func schrein(g: Node, pos: Vector3, col: Color) -> Dictionary:
 	l.position = Vector3(0, 1.6, 0.9)
 	return {"n": n, "glow": gm, "light": l}
 
+# Marke über einer Figur, die etwas zu sagen hat (3.0): ein schwebendes goldenes Anch, das Zeichen für Leben.
+# Es dreht sich langsam und leuchtet; Orte.tick bewegt es.
+static func marke(parent: Node3D, hoehe: float, col: Color) -> Node3D:
+	var n := Node3D.new()
+	parent.add_child(n)
+	n.position = Vector3(0, hoehe, 0)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.metallic = 0.6
+	m.roughness = 0.35
+	m.emission_enabled = true
+	m.emission = col
+	m.emission_energy_multiplier = 1.5
+	var st := _begin()
+	box(st, Vector3(0.09, 0.42, 0.07), Vector3(0, -0.42, 0))        # Schaft
+	box(st, Vector3(0.4, 0.09, 0.07), Vector3(0, -0.06, 0))         # Querbalken
+	var mi := MeshInstance3D.new()
+	var am := ArrayMesh.new()
+	st.set_material(m)
+	st.generate_tangents()
+	st.commit(am)
+	mi.mesh = am
+	n.add_child(mi)
+	var ring := MeshInstance3D.new()                                  # Schlaufe
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.09
+	tm.outer_radius = 0.17
+	tm.rings = 14
+	tm.ring_segments = 8
+	ring.mesh = tm
+	ring.material_override = m
+	ring.rotation.x = PI / 2
+	ring.scale = Vector3(0.9, 1.0, 1.25)
+	ring.position = Vector3(0, 0.2, 0)
+	n.add_child(ring)
+	var l := OmniLight3D.new()
+	l.light_color = col
+	l.light_energy = 0.6
+	l.omni_range = 2.5
+	n.add_child(l)
+	n.scale = Vector3.ONE * 1.35
+	n.set_meta("y", hoehe)
+	n.set_meta("mat", m)
+	return n
+
 # Werkstatt des Ptah (3.0): Sonnensegel auf vier Pfosten, darunter Werkbank, Lehmofen mit Glut und ein Steinamboss.
 # Hier, und nur hier, wird Ausrüstung aufgewertet und neu gefasst.
 static func werkstatt(g: Node, pos: Vector3, rot: float) -> Dictionary:
@@ -531,38 +594,43 @@ static func werkstatt(g: Node, pos: Vector3, rot: float) -> Dictionary:
 	Stimmung.flamme(n, Vector3(-0.75, 1.02, -0.45), 0.4, 0.3)
 	return {"n": n, "light": l}
 
-# Seelenkrug: Kanope auf einem Sockel, in der ein Herz schlägt
+# Seelenkrug (3.0 neu geformt): eine Kanope aus Alabaster auf einem Granitsockel mit Goldband. Der Deckel ist ein
+# stilisierter Kopf mit Kopftuch. Im Bauch des Kruges schlägt ein Herz: Orte.tick lässt ihn rot pulsen.
 static func krug(g: Node, pos: Vector3) -> Dictionary:
 	var s := _begin()
-	box(s, Vector3(0.7, 0.5, 0.7), Vector3.ZERO)
-	var n := _put(g, _commit([[s, stone(g, "dunkel", "granit", Color(0.8, 0.8, 0.9))]]), pos)
+	box(s, Vector3(0.78, 0.16, 0.78), Vector3.ZERO)
+	box(s, Vector3(0.62, 0.3, 0.62), Vector3(0, 0.16, 0))
+	var gd := _begin()
+	box(gd, Vector3(0.66, 0.05, 0.66), Vector3(0, 0.4, 0))
+	var n := _put(g, _commit([[s, stone(g, "dunkel", "granit", Color(0.8, 0.8, 0.9))], [gd, gold()]]), pos)
 	var jm := StandardMaterial3D.new()
-	jm.albedo_color = Color(0.85, 0.78, 0.62)
-	jm.roughness = 0.5
+	jm.albedo_texture = load("res://textures/p01_ton.jpg")
+	jm.albedo_color = Color(1.25, 1.18, 1.02)       # heller Alabaster über der Tonstruktur
+	jm.uv1_triplanar = true
+	jm.uv1_scale = Vector3.ONE * 1.4
+	jm.roughness = 0.45
 	jm.emission_enabled = true
 	jm.emission = Color(1.0, 0.25, 0.2)
 	jm.emission_energy_multiplier = 0.4
+	var bs := _begin()
+	_dreh(bs, [[0.15, 0.2, 0.05], [0.2, 0.3, 0.22], [0.3, 0.33, 0.2], [0.33, 0.27, 0.16], [0.27, 0.2, 0.07]], Vector3.ZERO, 1.0, 14)
 	var body := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.3
-	cm.bottom_radius = 0.19
-	cm.height = 0.7
-	cm.radial_segments = 10
-	cm.rings = 1
-	body.mesh = cm
-	body.material_override = jm
+	body.mesh = _commit([[bs, jm]])
 	n.add_child(body)
-	body.position = Vector3(0, 0.85, 0)
+	body.position = Vector3(0, 0.45, 0)
+	# Deckel: Kopf mit gestreiftem Kopftuch (dunkelblau und gold), vorn ein helles Gesicht
+	var kopf := _begin()
+	_dreh(kopf, [[0.2, 0.2, 0.04], [0.15, 0.2, 0.1], [0.2, 0.19, 0.12], [0.19, 0.1, 0.1]], Vector3.ZERO, 1.0, 12)
+	var tuch := _begin()
+	box(tuch, Vector3(0.44, 0.34, 0.12), Vector3(0, 0.04, -0.14))      # Kopftuch hinten
+	for sx in [-0.19, 0.19]:
+		box(tuch, Vector3(0.09, 0.3, 0.16), Vector3(sx, -0.02, 0.02))    # Lappen an den Seiten
+	var band := _begin()
+	box(band, Vector3(0.46, 0.04, 0.3), Vector3(0, 0.26, -0.06))
 	var lid := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.24
-	sm.height = 0.44
-	sm.radial_segments = 10
-	sm.rings = 5
-	lid.mesh = sm
-	lid.material_override = mat("krugdeckel", Color(0.2, 0.18, 0.2), 0.5)
+	lid.mesh = _commit([[kopf, mat("krugkopf", Color(0.8, 0.7, 0.52), 0.55)], [tuch, mat("krugtuch", Color(0.1, 0.14, 0.3), 0.6)], [band, gold()]])
 	n.add_child(lid)
-	lid.position = Vector3(0, 1.36, 0)
+	lid.position = Vector3(0, 1.15, 0)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.3, 0.25)
 	l.light_energy = 0.8

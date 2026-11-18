@@ -61,6 +61,8 @@ func _physics_process(delta: float) -> void:
 				shot("pforte_fenster")
 				phase = "ende"
 				finish("an der Pforte")
+			elif game.hud.bag_open or game.hud.tree_open or game.hud.menu_open:
+				game.hud.close_bag()   # Tasche, Werkstatt, Baum oder Menü: zu und weiter
 			elif not game.hud.dialog_opts.is_empty():
 				# Gespräch oder Entscheidung: der Bot nimmt immer die erste Antwort
 				game.hud.press_option(0)
