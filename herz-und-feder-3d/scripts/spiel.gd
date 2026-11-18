@@ -29,6 +29,7 @@ var item_id := 1
 var tree := {"r": {}, "a": {}, "p": {}, "key": false}   # Fähigkeitenbaum: Ränge, Wucht/Eile, Passive, Schlüsselstein
 var pots := Daten.POTS   # Rotbier: wird nicht gespeichert, wie in der 2D-Fassung
 var herz := 0.0          # Herzwaage: über null leicht (Maat), unter null schwer (Isfet); −100 bis 100
+var ba_heim := 0         # so viele Ba ohne Namen hat die Figur heimgeführt (2.9); jeder sagt einen Satz mehr
 var urteil5 := ""        # Urteil am Ende der fünften Stunde: "leicht", "schwer" oder "schwebe" (Farbe des Tuchs)
 var wahl := {}           # Entscheidungen je Stunde der Nacht: "1" → "maat" oder "isfet"
 var segen := {}          # Segen der Schreine in dieser Stunde: Gott → true (setzt main.gd, wirkt in calc)
@@ -80,6 +81,7 @@ func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	herz = 0.0
 	wahl = {}
 	urteil5 = ""
+	ba_heim = 0
 	segen = {}
 	calc()
 	speichern()
@@ -309,7 +311,7 @@ func xp_gain(v: float) -> bool:
 func speichern() -> void:
 	var d := {"v": VERSION, "fall": fall, "lvl": lvl, "xp": xp, "eq": eq, "bag": bag, "muted": muted, "itemId": item_id,
 		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree,
-		"herz": herz, "wahl": wahl, "urteil5": urteil5}
+		"herz": herz, "wahl": wahl, "urteil5": urteil5, "baHeim": ba_heim}
 	var f := FileAccess.open(DATEI, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -341,6 +343,7 @@ func laden() -> void:
 	herz = clampf(float(d.get("herz", 0.0)), -100.0, 100.0)
 	wahl = d.get("wahl", {}) if d.get("wahl") is Dictionary else {}
 	urteil5 = str(d.get("urteil5", ""))
+	ba_heim = clampi(int(d.get("baHeim", 0)), 0, 99)
 	eq = {}
 	if d.get("eq") is Dictionary:
 		for slot in d.eq:

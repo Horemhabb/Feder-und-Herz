@@ -33,6 +33,17 @@ var helfer := {}
 var helfer_talked := false
 var helfer_paid := false
 var auto := true             # Tests schalten das Auslösen bei Berührung zeitweise ab
+var nl := {}                 # der Ba ohne Namen (2.9), falls er in dieser Stunde erscheint
+var stueck := {}             # das fehlende Stück seiner Kartusche
+var kartusche_bei_dir := false
+
+# Was die heimgeführten Ba sagen, einer nach dem anderen. Es ergibt ein Bild, aber nie das ganze.
+const BA_WORTE := ["Wir sind nicht verloren. Man hat uns verlegt.",
+	"Wer uns die Namen nahm, hat sie nicht verbrannt. Er hat sie aufgeschrieben.",
+	"Es gibt ein Buch, das keine Waage kennt.",
+	"Frag den Schreiber, warum seine Binse trocken ist.",
+	"Auf der letzten Seite ist noch Platz."]
+const BA_SILBEN := ["Mer…", "Nebet…", "…hotep", "Sat…", "…mose", "Ta…", "…nefer"]
 
 func _ready() -> void:
 	G = Geschichte.def(Spiel.fall)
@@ -220,6 +231,8 @@ func tick(delta: float) -> void:
 	t += delta
 	var h: Hero = game.hero
 	var frei: bool = auto and not h.dead and game.hud.overlay == null and not get_tree().paused
+	if _namenlos_tick(h, frei):
+		return
 	for s in sites:
 		var d: Vector3 = s.pos - h.global_position
 		d.y = 0.0
@@ -292,6 +305,244 @@ func tick(delta: float) -> void:
 		q["kurz"] = "Pforte offen" if game.gate else ("im Kampf" if game.boss_awake else "%d %%" % int(100.0 * game.kills / maxf(1.0, game.total)))
 		q.done = game.gate != null
 		dirty = true
+
+# ---------------------------------------------------------------- Der Ba ohne Namen (2.9)
+# Mitten im Reigen der Irrlichter schwebt ein Ba, aus dessen goldener Kartusche ein Stück fehlt. Er sieht nicht den
+# Helden an, sondern dorthin, wo das Stück liegt. Wer es trägt, dem weicht der Reigen aus. Legt man es zurück,
+# kehrt der Ba heim und flüstert einen Satz; die Sätze aller Stunden ergeben ein Rätsel, das sich nie ganz löst.
+func hat_namenlos() -> bool:
+	return not nl.is_empty()
+
+func traegt_kartusche() -> bool:
+	return kartusche_bei_dir
+
+# Der Reigen lässt dich durch, solange du das Stück trägst; ist sein Ba heimgekehrt, tanzt er nur noch
+func reigen_friedlich(pack: int) -> bool:
+	return kartusche_bei_dir or (not nl.is_empty() and nl.fertig and nl.get("heim", false) and pack == nl.pack)
+
+func _gold_mat(kraft: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.86, 0.66, 0.3)
+	m.metallic = 0.75
+	m.roughness = 0.35
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.75, 0.35)
+	m.emission_energy_multiplier = kraft
+	return m
+
+# Kartusche: hochkantes Oval aus Goldgliedern mit Querbalken unten. luecke: diese Glieder fehlen
+func _kartusche(luecke: Array, nur: Array = []) -> Node3D:
+	var r := Node3D.new()
+	var mat := _gold_mat(0.35)
+	var n := 14
+	for i in n:
+		if i in luecke or (not nur.is_empty() and not i in nur):
+			continue
+		var a := TAU * (i + 0.5) / n
+		var gl := MeshInstance3D.new()
+		var b := BoxMesh.new()
+		b.size = Vector3(0.05, 0.3, 0.05)
+		gl.mesh = b
+		gl.material_override = mat
+		gl.position = Vector3(cos(a) * 0.5, sin(a) * 0.85, 0)
+		gl.rotation.z = atan2(sin(a) * 0.85, cos(a) * 0.5)
+		r.add_child(gl)
+	if nur.is_empty():
+		var bar := MeshInstance3D.new()
+		var bb := BoxMesh.new()
+		bb.size = Vector3(0.62, 0.05, 0.05)
+		bar.mesh = bb
+		bar.material_override = mat
+		bar.position = Vector3(0, -0.98, 0)
+		r.add_child(bar)
+	r.set_meta("mat", mat)
+	return r
+
+func namenlos(pos: Vector3, stueck_pos: Vector3, pack: int) -> void:
+	var n: Node3D = load("res://models/chars/Ba.glb").instantiate()
+	game.add_child(n)
+	n.global_position = pos
+	n.scale = Vector3.ONE * 1.15
+	_tint(n, Color(0.82, 0.92, 1.0))
+	var ap: AnimationPlayer = n.find_child("AnimationPlayer", true, false)
+	if ap and ap.has_animation("Idle_Combat"):
+		ap.get_animation("Idle_Combat").loop_mode = Animation.LOOP_LINEAR
+		ap.play("Idle_Combat", -1, 0.6)
+	var ring := _kartusche([3, 4])
+	game.add_child(ring)
+	ring.global_position = pos + Vector3(0, 1.55, 0)
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.7, 0.95, 0.9)
+	l.light_energy = 0.8
+	l.omni_range = 5.0
+	n.add_child(l)
+	l.position = Vector3(0, 1.6, 0)
+	var lab := Label3D.new()
+	lab.text = "?"
+	lab.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lab.font_size = 40
+	lab.outline_size = 10
+	lab.modulate = Color(0.7, 0.92, 0.9)
+	lab.pixel_size = 0.0055
+	lab.visible = false
+	game.add_child(lab)
+	lab.global_position = pos + Vector3(0, 3.1, 0)
+	game.stimmung.append(Stimmung.nebel(game, pos, 7.0, Color(0.55, 0.8, 0.85), 0.3, 0.25))
+	nl = {"pos": pos, "n": n, "ring": ring, "label": lab, "light": l, "pack": pack, "gesehen": false, "fertig": false, "asked": false}
+	# das Stück: zwei Glieder der Kartusche, weit weg, in einem schwachen Lichtschein
+	var st := _kartusche([], [3, 4])
+	game.add_child(st)
+	st.global_position = stueck_pos + Vector3(0, 1.0, 0)
+	var sl := OmniLight3D.new()
+	sl.light_color = Color(1.0, 0.8, 0.45)
+	sl.light_energy = 0.7
+	sl.omni_range = 3.5
+	st.add_child(sl)
+	game.stimmung.append(Stimmung.lichtstrahl(game, stueck_pos, 5.0, 0.8, Color(1.0, 0.82, 0.5), 0.22, 0.1, 0.0))
+	stueck = {"pos": stueck_pos, "n": st, "light": sl}
+
+func _namenlos_tick(h: Hero, frei: bool) -> bool:
+	if nl.is_empty():
+		return false
+	nl.ring.rotation.y = t * 0.35
+	if not stueck.is_empty() and not kartusche_bei_dir and not nl.fertig:
+		stueck.n.rotation.y = t * 1.2
+		stueck.n.position.y = 1.0 + sin(t * 1.7) * 0.1
+	if nl.fertig:
+		return false
+	var d: Vector3 = nl.pos - h.global_position
+	d.y = 0.0
+	var dist := d.length()
+	nl.label.visible = dist < 11.0
+	# er sieht nicht dich an, sondern dorthin, wo sein Stück liegt (oder dich, wenn du es trägst)
+	var blick: Vector3 = (h.global_position if kartusche_bei_dir else stueck.pos) - nl.pos
+	nl.n.rotation.y = lerp_angle(nl.n.rotation.y, atan2(blick.x, blick.z), 0.03)
+	if not frei:
+		return false
+	if not nl.gesehen and dist < 9.0 and game.sees(h.global_position, nl.pos):
+		nl.gesehen = true
+		nl.label.text = "Ein Ba ohne Namen"
+		game.hud.whisper("Ein Ba ohne Gesicht. Er dreht sich nicht nach dir um. Er sieht in die Ferne.")
+		_namenlos_quest("Du trägst etwas, das zu ihm gehört." if kartusche_bei_dir else "Er sieht unverwandt in eine Richtung.")
+	if not stueck.is_empty() and not kartusche_bei_dir:
+		var ds: Vector3 = stueck.pos - h.global_position
+		ds.y = 0.0
+		if ds.length() < 1.9:
+			_stueck_finden()
+	if kartusche_bei_dir and dist < 3.4 and not nl.asked:
+		nl.asked = true
+		_namenlos_frage()
+		return true
+	if dist > 6.0:
+		nl.asked = false
+	return false
+
+func _namenlos_quest(text: String) -> void:
+	var q := quest("namenlos")
+	if q.is_empty():
+		q = {"id": "namenlos", "titel": "Ein Ba ohne Namen", "text": "", "done": false, "kurz": "?"}
+		quests.append(q)
+	q.text = text
+	dirty = true
+
+func _stueck_finden() -> void:
+	kartusche_bei_dir = true
+	game.sfx.play("aufheben", 0.1)
+	var tw: Tween = stueck.n.create_tween()
+	tw.tween_property(stueck.n, "scale", Vector3.ONE * 0.05, 0.5)
+	tw.tween_callback(func(): stueck.n.visible = false)
+	game.float_text(stueck.pos + Vector3(0, 1.4, 0), "Ein Stück Gold", Color(1.0, 0.82, 0.45), 1.1)
+	game.hud.toast("Zwei Glieder einer Kartusche. Die Zeichen darauf sind warm. Lesen kannst du sie nicht.", 5.0)
+	_namenlos_quest("Du trägst etwas, das zu ihm gehört.")
+	ba("kartusche", "Die Lichter werden dir jetzt ausweichen. Sie wissen, was du trägst.")
+
+func _namenlos_frage() -> void:
+	if game.hero.dead or game.hud.overlay != null:
+		nl.asked = false
+		return
+	get_tree().paused = true
+	game.sfx.play("ui")
+	var txt := ["Der Reigen der Lichter stockt. Der Ba schwebt dir entgegen, und die goldene Kartusche um ihn öffnet sich dort, wo zwei Glieder fehlen.",
+		"Wo ein Gesicht sein sollte, ist nur ein Flimmern, wie Luft über heißem Stein. Das Gold in deiner Hand ist schwer und warm. Es würde sich gut verkaufen."]
+	game.hud.show_dialog("EIN BA OHNE NAMEN", "Er hält still", "", txt, [
+		["Das Stück in die Kartusche legen", func(): _heimkehr()],
+		["Das Gold behalten", func(): _behalten()],
+		["Noch nicht", func(): get_tree().paused = false]])
+
+func _heimkehr() -> void:
+	get_tree().paused = false
+	nl.fertig = true
+	nl["heim"] = true
+	kartusche_bei_dir = false
+	Spiel.ba_heim += 1
+	var i: int = Spiel.ba_heim - 1
+	var satz: String = BA_WORTE[i] if i < BA_WORTE.size() else "Er lächelt. Mehr sagt er nicht."
+	# das Stück fliegt in den Ring, das Gold glüht auf, unter ihm leuchten die Zeichen
+	stueck.n.visible = true
+	stueck.n.scale = Vector3.ONE
+	stueck.n.global_position = game.hero.global_position + Vector3(0, 1.4, 0)
+	stueck.n.rotation = Vector3.ZERO
+	var tw: Tween = stueck.n.create_tween()
+	tw.tween_property(stueck.n, "global_position", nl.ring.global_position, 0.9).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(stueck.n, "rotation:y", nl.ring.rotation.y, 0.9)
+	tw.tween_callback(func():
+		stueck.n.reparent(nl.ring)
+		stueck.n.position = Vector3.ZERO
+		stueck.n.rotation = Vector3.ZERO
+		for m in [nl.ring.get_meta("mat"), stueck.n.get_meta("mat")]:
+			var mm: StandardMaterial3D = m
+			game.create_tween().tween_property(mm, "emission_energy_multiplier", 2.4, 0.6)
+		game.sfx.play_at("herz_frei", nl.pos, 0.1)
+		game.stimmung.append(Stimmung.runenkreis(game, nl.pos, 2.2, Color(1.0, 0.8, 0.4), 0.7))
+		game.hud.toast("Für einen Herzschlag kannst du die Zeichen lesen: „%s“ Dann sind sie fort." % BA_SILBEN[randi() % BA_SILBEN.size()], 5.5))
+	tw.tween_interval(1.6)
+	tw.tween_callback(func():
+		game.hud.banner("„%s“" % satz, "DER BA KEHRT HEIM", 7.0)
+		_soul(nl.pos + Vector3(0, 0.6, 0)))
+	var auf: Tween = nl.n.create_tween()
+	auf.tween_interval(2.5)
+	auf.tween_property(nl.n, "global_position:y", nl.pos.y + 7.0, 3.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	auf.parallel().tween_property(nl.ring, "global_position:y", nl.pos.y + 8.5, 3.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	auf.parallel().tween_property(nl.n, "scale", Vector3.ONE * 0.2, 3.0)
+	auf.parallel().tween_property(nl.ring, "scale", Vector3.ONE * 0.2, 3.0)
+	auf.parallel().tween_property(nl.light, "light_energy", 0.0, 3.0)
+	auf.tween_callback(func():
+		nl.n.visible = false
+		nl.ring.visible = false)
+	nl.label.visible = false
+	_weigh(3.5)
+	if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.2):
+		game._level_up()
+	if game.karte_ui:
+		game.karte_ui.reveal_around(nl.pos, 16)   # er zeigt dir, was er gesehen hat
+	var q := quest("namenlos")
+	q.done = true
+	q.kurz = ""
+	q.text = "Heimgekehrt. Seinen Namen hat er mitgenommen."
+	dirty = true
+
+func _behalten() -> void:
+	get_tree().paused = false
+	nl.fertig = true
+	kartusche_bei_dir = false
+	game.drop("shard", game.hero.global_position, 25 + 10 * Spiel.fall)
+	_weigh(-4.0)
+	var mat: StandardMaterial3D = nl.ring.get_meta("mat")
+	game.create_tween().tween_property(mat, "emission_energy_multiplier", 0.0, 1.5)
+	var ab: Tween = nl.n.create_tween()
+	ab.tween_property(nl.n, "global_position:y", nl.pos.y - 2.0, 2.5).set_ease(Tween.EASE_IN)
+	ab.parallel().tween_property(nl.light, "light_energy", 0.0, 2.0)
+	ab.tween_callback(func():
+		nl.n.visible = false
+		nl.ring.visible = false)
+	nl.label.visible = false
+	ba("behalten", "Er hat nicht gefragt, warum. Er hat nur aufgehört, sich umzudrehen.")
+	game.wake_pack(nl.pack)   # der Reigen zerfällt
+	var q := quest("namenlos")
+	q.done = true
+	q.kurz = ""
+	q.text = "Verstummt."
+	dirty = true
 
 func ba(key: String, text: String) -> void:
 	if ba_done.has(key):

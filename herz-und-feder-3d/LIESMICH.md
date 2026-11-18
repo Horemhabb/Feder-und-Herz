@@ -200,6 +200,16 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 2.9: Der Reigen und der Ba ohne Namen
+
+- **Reigen:** Reine Schwärme aus Irrlichtern (fünf und mehr) stehen nicht mehr herum. Sie tanzen auf einer ovalen Bahn, hochkant wie eine Kartusche, um eine leere Mitte, und ziehen eine feine Lichtspur hinter sich her. Sie greifen erst an, wenn man ihnen zu nahe kommt (etwa 3 m statt 14 m Sicht) oder einen von ihnen trifft.
+- **Der Ba ohne Namen:** Um den ersten Reigen einer Stunde schwebt manchmal (rund 7 von 10 Stunden mit Reigen) ein blasser Ba in einer goldenen Kartusche, aus der zwei Glieder fehlen. Er sieht nicht den Helden an, sondern unverwandt in die Richtung, wo das Stück liegt: weit weg, in einem schwachen Lichtschein, meist dort, wo andere Gegner wachen.
+  - Wer das Stück trägt, dem weicht der Reigen aus.
+  - **Zurücklegen:** Die Kartusche schließt sich und glüht. Für einen Herzschlag lässt sich eine Silbe lesen („Mer…“, „…hotep“), dann ist sie fort. Der Ba steigt auf, flüstert einen Satz und zeigt auf der Karte, was er gesehen hat. Das Herz wird leichter, und der Reigen bleibt friedlich.
+  - **Behalten:** Das Gold bringt Scherben, das Herz wird schwerer, der Ba versinkt, und der Reigen zerfällt in einen Angriff.
+- **Das Rätsel:** Jeder heimgeführte Ba sagt einen Satz mehr (`Orte.BA_WORTE`, gespeichert als `baHeim`). Die Sätze deuten auf ein Buch, in dem die geraubten Namen stehen, lösen es aber nicht auf. Wer das Rätsel später auflöst, muss bei diesen Sätzen anknüpfen.
+- Prüfbilder: `-- --autotest --namenlos --neu --stunde=1 --seed=7` (mit `--namenlos` erscheint der Ba immer).
+
 ### Fassung 2.8.1: Das Federkleid des Ba
 
 - Statt neun breiter Platten je Flügel jetzt vier Lagen geformter Einzelfedern wie beim echten Vogel: Handschwingen, Armschwingen, große Deckfedern mit schmalem Goldsaum, kleine Deckfedern an der Vorderkante, dazu ein Schwanzfächer. Jede Feder ist gemalt (Kiel, schräge Äste, kleine Lücken in der Fahne) und läuft von tiefem Jade zu einer nebligen, hellen Spitze.

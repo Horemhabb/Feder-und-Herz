@@ -65,7 +65,10 @@ var slow_t := 0.0      # Seschats Maß: kriechen mit 40 % Tempo
 var mark_t := 0.0      # Gebs Lachen: zerbirst beim Tod
 var fear_t := 0.0      # Upuauts Hatz: Tiere fliehen
 # Ruhe und Wahrnehmung (05-update.js › idleFoe)
-var style := "ruhe"    # ruhe, lager, wache, streife, hinterhalt
+var style := "ruhe"    # ruhe, lager, wache, streife, hinterhalt, reigen
+var reigen_c := Vector3.ZERO   # Reigen (2.9): Mitte, um die der Schwarm der Irrlichter kreist
+var reigen_i := 0
+var reigen_n := 1
 var hidden := false    # Hinterhalt: unsichtbar, bis der Held nah ist
 var way: Array = []    # Streife: Wegpunkte
 var way_i := 0
@@ -164,7 +167,56 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 	mark3d.position.y = 2.6 * sc + (0.4 if elite != "" else 0.0)
 	mark3d.visible = false
 	add_child(mark3d)
+	if typ == "wisp":
+		_spur(sc)
 	_rest_pose(true)
+
+# Irrlichter ziehen eine feine Spur aus Licht hinter sich her (wenige Teilchen, im Browser billig)
+func _spur(s: float) -> void:
+	var p := CPUParticles3D.new()
+	p.amount = 14
+	p.lifetime = 1.1
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.18 * s
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 180.0
+	p.initial_velocity_min = 0.02
+	p.initial_velocity_max = 0.12
+	p.gravity = Vector3(0, 0.25, 0)
+	p.scale_amount_min = 0.5
+	p.scale_amount_max = 1.0
+	var kurve := Curve.new()
+	kurve.add_point(Vector2(0, 1.0))
+	kurve.add_point(Vector2(1, 0.0))
+	p.scale_amount_curve = kurve
+	var q := QuadMesh.new()
+	q.size = Vector2(0.09, 0.09)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.albedo_color = Color(0.55, 0.95, 0.85, 0.55)
+	q.material = m
+	p.mesh = q
+	p.position = Vector3(0, 1.05 * s, 0.1 * s)
+	add_child(p)
+	set_meta("spur", p)
+
+# Reigen: Die Irrlichter tanzen auf einer ovalen Bahn, der Form einer Kartusche, als kreisten sie um einen Namen,
+# der nicht mehr da ist. Sie greifen erst an, wenn man ihren Reigen durchbricht oder einen von ihnen trifft.
+func _reigen(delta: float) -> void:
+	var t := Time.get_ticks_msec() * 0.001
+	var a := t * 0.55 + TAU * float(reigen_i) / float(maxi(1, reigen_n)) + sin(t * 0.9 + reigen_i) * 0.25
+	var lok := Vector3(cos(a) * 1.9, 0, sin(a) * 3.3)   # hochkant wie eine Kartusche
+	var ziel := reigen_c + lok.rotated(Vector3.UP, home_face)
+	var dir := flat(ziel - global_position)
+	if dir.length() > 0.15:
+		_go(dir.normalized(), spd * clampf(dir.length() * 0.35, 0.15, 0.55), delta)
+		play(ANIM.walk if ap and ap.has_animation(ANIM.walk) else ANIM.run, 0.7)
+	else:
+		play(ANIM.idle)
 
 # Ruhelose (und Hüter mit Skelett) in Ruhe: liegen oder stehen still; alle anderen stehen bereit
 func _rest_pose(first := false) -> void:
@@ -528,6 +580,14 @@ func _idle(delta: float, h: Hero) -> void:
 	if d > 40.0 or h.dead:
 		return
 	var sees: bool = d < 16.8 and game.sees(global_position, h.global_position)
+	if style == "reigen":
+		# wer das Stück der Kartusche trägt, dem weichen sie aus; sonst weckt nur, wer ihnen zu nahe kommt
+		var nah := 3.2 * float(Spiel.D().sight)
+		if d < nah and sees and not game.orte.reigen_friedlich(pack):
+			game.wake_pack(pack)
+			return
+		_reigen(delta)
+		return
 	if hidden:
 		if d < 6.0 and sees:
 			game.wake_pack(pack)
