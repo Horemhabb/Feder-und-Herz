@@ -411,5 +411,18 @@ func run() -> void:
 	check("Tuchfarbe folgt dem Urteil der fünften Stunde", frei and Geschichte.urteil_art() == "schwer" and ResourceLoader.exists("res://models/chars/tuch_schwer.webp") and ResourceLoader.exists("res://models/chars/tuch_schwebe.webp"))
 	Spiel.urteil5 = u0
 	Spiel.herz = h0
+	# Der Ba ohne Namen (2.9): Stück finden, zurückbringen, er kehrt heim und flüstert den ersten Satz
+	var BO: Orte = G3.orte
+	if not BO.hat_namenlos():
+		BO.namenlos(G3.hero.global_position + Vector3(20, 0, 0), G3.hero.global_position + Vector3(-20, 0, 0), 98)
+	var bh := Spiel.ba_heim
+	var herz0 := Spiel.herz
+	BO._stueck_finden()
+	var weichen := BO.traegt_kartusche()
+	BO._heimkehr()
+	await wait(6.5)
+	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter", weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
+	var reigen: Array = G3.foes.filter(func(f): return f.style == "reigen")
+	check("Reigen: reine Irrlicht-Schwärme tanzen und tragen eine Lichtspur", reigen.is_empty() or reigen.all(func(f): return f.has_meta("spur")))
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()

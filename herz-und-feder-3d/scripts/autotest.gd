@@ -38,6 +38,9 @@ func _process(_d: float) -> void:
 		if "--rundgang" in OS.get_cmdline_user_args():
 			phase = "rundgang"
 			rundgang()
+		elif "--namenlos" in OS.get_cmdline_user_args():
+			phase = "namenlos"
+			namenlos_bilder()
 	if burst > 0:
 		burst -= 1
 		if burst % 3 == 0:
@@ -179,6 +182,40 @@ func rundgang() -> void:
 		await get_tree().create_timer(0.5).timeout
 		shot("rundgang_%d_%s" % [Spiel.fall, s[1]])
 	print("RUNDGANG fertig: %d Bilder" % n)
+	get_tree().quit()
+
+# Prüfbilder des Ba ohne Namen (2.9): erster Blick, mit dem Stück im Reigen, die Heimkehr
+func namenlos_bilder() -> void:
+	var O: Orte = game.orte
+	if not O.hat_namenlos():
+		print("NAMENLOS: in dieser Stunde keiner")
+		get_tree().quit()
+		return
+	var c: Vector3 = O.nl.pos
+	var stellen := [[c + Vector3(0, 0, 7.5), "blick"], [O.stueck.pos + Vector3(2.5, 0, 2.5), "stueck"]]
+	for s in stellen:
+		game.hero.global_position = s[0]
+		game.cam_pos = s[0]
+		await get_tree().create_timer(2.5).timeout
+		shot("namenlos_" + s[1])
+	game.hero.global_position = O.stueck.pos + Vector3(0.6, 0, 0.6)
+	await get_tree().create_timer(1.0).timeout
+	print("NAMENLOS Stück getragen: ", O.traegt_kartusche())
+	game.hero.global_position = c + Vector3(0, 0, 4.5)
+	game.cam_pos = game.hero.global_position
+	await get_tree().create_timer(2.0).timeout
+	shot("namenlos_reigen")
+	game.hero.global_position = c + Vector3(0, 0, 2.6)
+	game.cam_pos = game.hero.global_position
+	await get_tree().create_timer(1.0).timeout
+	shot("namenlos_frage")
+	if game.hud.overlay != null:
+		game.hud._close()
+		O._heimkehr()
+	for i in 4:
+		await get_tree().create_timer(1.1).timeout
+		shot("namenlos_heim")
+	print("NAMENLOS fertig: ba_heim=%d" % Spiel.ba_heim)
 	get_tree().quit()
 
 func finish(why: String) -> void:

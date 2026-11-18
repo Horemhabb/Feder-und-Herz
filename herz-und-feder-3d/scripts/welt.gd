@@ -342,6 +342,13 @@ func _packs() -> void:
 		if style == "lager":
 			g._campfire(c)
 		var lead: Foe = null
+		# Reigen (2.9): Ein reiner Schwarm aus Irrlichtern tanzt um eine leere Mitte. Um den ersten Reigen
+		# der Stunde schwebt manchmal ein Ba, dem sein Name fehlt.
+		var reigen: bool = comp.size() >= 5 and comp.all(func(x): return x == "wisp") and style != "hinterhalt"
+		if reigen:
+			style = "reigen"
+			if not g.orte.hat_namenlos() and _namenlos_wuerfel():
+				g.orte.namenlos(c, _fern_von(c), pid)
 		for i in comp.size():
 			var pos: Vector3 = g._pack_pos(style, c, face, i, comp.size())
 			if not g.walkable(c, pos) or g.astar.is_point_solid(g._sub(pos)):
@@ -355,10 +362,35 @@ func _packs() -> void:
 			if f.model:
 				f.model.rotation.y = f.face
 			f.set_style(style, way)
+			if reigen:
+				f.reigen_c = c
+				f.reigen_i = i
+				f.reigen_n = comp.size()
 			if style == "streife":
 				f.lead = lead
 				if lead == null:
 					lead = f
+
+# Der Ba ohne Namen erscheint nicht in jeder Stunde: Das Geheimnis soll sich nicht aufdrängen.
+func _namenlos_wuerfel() -> bool:
+	if "--namenlos" in OS.get_cmdline_user_args():
+		return true
+	var rng := RandomNumberGenerator.new()
+	rng.seed = Spiel.fall * 7919 + Spiel.ba_heim * 31 + 3
+	return rng.randf() < 0.7
+
+# Das fehlende Stück liegt weit weg vom Reigen, an einer Stelle, wo sonst andere wachen
+func _fern_von(c: Vector3) -> Vector3:
+	var kand := []
+	for sp in k.spots:
+		var p := cell_pos(sp.p)
+		if not g.astar.is_point_solid(g._sub(p)) and p.distance_to(c) > 14.0:
+			kand.append(p)
+	if kand.is_empty():
+		return cell_pos(k.start) + Vector3(2.5, 0, 2.5)
+	kand.sort_custom(func(a, b): return a.distance_to(c) > b.distance_to(c))
+	var p: Vector3 = kand[randi() % maxi(1, kand.size() / 3)]
+	return p + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
 
 # Atmosphäre je Stunde (2.6): Jede Art von Ort bekommt ihre eigene Luft. Alles Illusion aus Stimmung, bei „Grafik niedrig“ aus.
 func _stimmung() -> void:
