@@ -123,7 +123,7 @@ FIGUREN["Erloschener"] = variante("Ruheloser", bau={"schulter": 0.9, "taille": 0
                                              metall=("kachel", (410, 425, 500, 465), 96, 0.4)),
                                   glut=[("auge", 27, 2.183, 6, (255, 255, 255))])
 # ------------------------------------------------------------ Leute und Gestalten der Geschichte
-LEUTE = ["Idle", "Unarmed_Idle", "Interact", "Cheer"]
+LEUTE = ["Idle", "Unarmed_Idle", "Interact", "Cheer", "Walking_A", "Running_A", "Sit_Floor_Idle", "PickUp"]   # seit 3.2 gehen, laufen und sitzen die Leute auch
 FIGUREN["Mann"] = variante("Priester", bewegungen=LEUTE, gesicht=FIGUREN["Priester"]["gesicht"][:1],
                            teile={"rumpf": "rumpf", "guertel": "stoff", "rock": {"saum": .66, "weit": .85}, "haar": "kurz", "unterschenkel": "haut"},
                            tafel=dict(FIGUREN["Priester"]["tafel"], haar=("farbe", (38, 30, 26), 0.25)))

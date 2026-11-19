@@ -54,6 +54,15 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	run.call_deferred()
 
+# eine Stelle neben einem Gegner, von der aus er frei zu erreichen ist (die Karten sind zufällig: blind daneben gesetzt,
+# stand die Figur manchmal in einem Felsblock, und die halbe Prüfung fiel als Folgefehler um)
+func frei_neben(G: Node, pos: Vector3, r: float) -> Vector3:
+	for i in 8:
+		var q: Vector3 = pos + Vector3(cos(TAU * i / 8.0), 0, sin(TAU * i / 8.0)) * r
+		if G.walkable(pos, q) and not G.astar.is_point_solid(G._sub(q)):
+			return q
+	return pos + Vector3(r, 0, 0)
+
 func run() -> void:
 	await wait(1.6)
 	var G := g()
@@ -62,6 +71,7 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(2.0)
 	G = g()
+	G.leben.stumm = true   # die lebendige Welt (3.2) hat eigene Prüfungen; hier soll kein Fundstück dazwischenfallen
 	check("neue Figur angelegt und gespeichert (Stufe 1, Normal)", Spiel.hat_stand and Spiel.lvl == 1 and Spiel.diff == 0)
 	check("danach die Tafel der Stunde", G.hud.overlay != null and get_tree().paused and not G.started)
 	await wait(1.0)
@@ -315,7 +325,7 @@ func run() -> void:
 	O.auto = false
 	h.global_position = G.start_pos
 	var foe: Foe = G.foes.filter(func(f): return f.kind != "boss" and f.K.ai != "swarm")[0]
-	h.global_position = foe.global_position + Vector3(2.2, 0, 2.2)
+	h.global_position = frei_neben(G, foe.global_position, 2.6)
 	G.cam_pos = h.global_position
 	await wait(0.6)
 	var sp: Vector2 = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
@@ -339,7 +349,7 @@ func run() -> void:
 	for versuch in mini(3, kandidaten.size()):
 		ziel = kandidaten[versuch]
 		hp_vor = ziel.hp
-		h.global_position = ziel.global_position + Vector3(2.2, 0, 2.2)
+		h.global_position = frei_neben(G, ziel.global_position, 2.6)
 		G.cam_pos = h.global_position
 		await wait(0.6)
 		var tp: Vector2 = G.cam.unproject_position(ziel.global_position + Vector3(0, 1.0, 0))
@@ -370,7 +380,7 @@ func run() -> void:
 	var killer: Foe = cand[0]
 	killer.max_hp = 1e6
 	killer.hp = 1e6
-	h.global_position = killer.global_position + Vector3(1.6, 0, 0)
+	h.global_position = frei_neben(G, killer.global_position, 1.6)
 	G.cam_pos = h.global_position
 	G.wake_pack(killer.pack)
 	var t0 := Time.get_ticks_msec()
@@ -503,5 +513,22 @@ func run() -> void:
 	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter", weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
 	var reigen: Array = G3.foes.filter(func(f): return f.style == "reigen")
 	check("Reigen: reine Irrlicht-Schwärme tanzen und tragen eine Lichtspur", reigen.is_empty() or reigen.all(func(f): return f.has_meta("spur")))
+	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
+	var LB: Leben = G3.leben
+	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)
+	var offen: Array = LB.funde.filter(func(f): return not f.done and not f.has("fuer"))
+	if not offen.is_empty():
+		var sp0 := Spiel.shards
+		G3.hero.global_position = offen[0].pos
+		await wait(1.5)
+		check("Fundstück: im Vorbeigehen aufgehoben, Splitter fallen", offen[0].done and (G3.loot.size() > 0 or Spiel.shards > sp0))
+	var bitter: Array = LB.leute.filter(func(p): return not p.auftrag.is_empty())
+	if not bitter.is_empty():
+		var bp: Dictionary = bitter[0]
+		bp.auftrag.stand = "gefragt"
+		LB._fund({"art": bp.auftrag.art, "name": bp.auftrag.ding, "text": "", "fuer": bp}, G3.hero.global_position + Vector3(3, 0, 0))
+		G3.hero.global_position += Vector3(3, 0, 0)
+		await wait(1.0)
+		check("Bitte: das verlorene Stück wird gefunden und gemeldet", bp.auftrag.stand == "gefunden")
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit()
