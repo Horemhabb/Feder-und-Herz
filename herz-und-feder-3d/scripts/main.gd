@@ -12,6 +12,7 @@ var karte_ui: KarteAnzeige
 var lichter: Array = []        # feste Lichter der Stunde: weit entfernte werden abgeschaltet (der Renderer rechnet höchstens 32)
 var spar_t := 0.0
 var freeze_foes := false       # der Rundgang hält die Gegner selbst an
+var leben: Leben               # Leute, Kleintiere, Pflanzen und Fundstücke (3.2)
 var orte: Orte                 # Feuerschalen, Schreine, Seelenkrüge, Figur, Fundstück und das Questbuch der Stunde
 
 var hero: Hero
@@ -98,6 +99,10 @@ func _ready() -> void:
 	_build_env()
 	_build_world()
 	orte.setup()
+	leben = Leben.new()
+	leben.game = self
+	add_child(leben)
+	leben.bauen()
 	for l in find_children("*", "OmniLight3D", true, false):
 		lichter.append(l)
 	hero = Hero.new()
@@ -611,6 +616,22 @@ func walkable(a: Vector3, b: Vector3) -> bool:
 		if not sp.intersect_ray(q).is_empty():
 			return false
 	return true
+
+# Ein Hindernis sperrt jede Zelle der Wegsuche, deren Mitte unter ihm liegt (mit Schulterbreite Zugabe). Vorher galt nur
+# die Zelle seiner Mitte als belegt: Ein Felsblock von 2,3 m auf der Grenze zweier Zellen ließ den Weg durch sich hindurch
+# laufen, und wer ihm folgte (Gegner, Bot), lief fest.
+func mark_solid(pos: Vector3, size: Vector3, zugabe := 0.35) -> void:
+	var hx := size.x / 2.0 + zugabe
+	var hz := size.z / 2.0 + zugabe
+	for cy in range(int(floor((pos.z - hz) / CELL)), int(floor((pos.z + hz) / CELL)) + 1):
+		for cx in range(int(floor((pos.x - hx) / CELL)), int(floor((pos.x + hx) / CELL)) + 1):
+			var c := Vector2i(cx, cy)
+			if not astar.is_in_boundsv(c):
+				continue
+			var m := Vector3(cx * CELL + CELL / 2.0, 0, cy * CELL + CELL / 2.0)
+			if absf(m.x - pos.x) <= hx and absf(m.z - pos.z) <= hz:
+				astar.set_point_solid(c, true)
+	astar.set_point_solid(_sub(pos), true)
 
 func _sub(p: Vector3) -> Vector2i:
 	return Vector2i(clampi(int(p.x / CELL), 0, W - 1), clampi(int(p.z / CELL), 0, H - 1))
@@ -1765,7 +1786,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_Q: hero.cast("potion")
 			KEY_SPACE: hero.dodge()
 			KEY_E:
-				if orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
+				if not leben.naechster_auftrag().is_empty():
+					leben.auftrag_reden(leben.naechster_auftrag())
+				elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
 					orte.werkstatt_oeffnen()
 				elif orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
 					orte.talk_helfer()
@@ -1783,6 +1806,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 		# die Figur der Stunde antippen oder anklicken: noch einmal mit ihr sprechen
 		orte.talk()
 		return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and not hud.mouse_over_ui():
+		# jemanden mit einer Bitte antippen oder anklicken (3.2)
+		var bp := leben.naechster_auftrag()
+		if not bp.is_empty() and mouse_ground().distance_to(bp.n.global_position) < 1.6:
+			leben.auftrag_reden(bp)
+			return
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.helfer_talked and orte.near_helfer() \
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()
@@ -1845,6 +1874,7 @@ func _physics_process(delta: float) -> void:
 	_loot_tick(delta)
 	_chest_tick()
 	orte.tick(delta)
+	leben.tick(delta)
 	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)

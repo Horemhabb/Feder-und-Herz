@@ -111,7 +111,7 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			werk = s
 	if kind != "such":
 		game._box(pos, size)
-		game.astar.set_point_solid(game._sub(pos), true)
+		game.mark_solid(pos, size)
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED

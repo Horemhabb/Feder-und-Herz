@@ -287,7 +287,7 @@ func _obstacles() -> void:
 					g._piece(DECO.get(o.v, "box_large"), pos, randf() * TAU, Vector3.ONE * clampf(r * 1.6, 0.6, 1.4))
 		var body: StaticBody3D = g._box(pos, Vector3(r * 1.5, 1.6, r * 1.5))
 		body.collision_layer = LOW_LAYER if o.kind != "needle" and o.kind != "star" and r < 0.6 else 1
-		g.astar.set_point_solid(g._sub(pos), true)
+		g.mark_solid(pos, Vector3(r * 1.5, 1.6, r * 1.5))
 
 func _rock_tint() -> Color:
 	var c := Color(g.hdef.pal.rockL)
@@ -312,7 +312,7 @@ func _deko() -> void:
 				size = Vector3(0.5, 3.0, 0.5)
 		var body: StaticBody3D = g._box(pos, size)
 		body.collision_layer = LOW_LAYER if d.kind == "palme" else 1
-		g.astar.set_point_solid(g._sub(pos), true)
+		g.mark_solid(pos, size)
 	for p in k.pools:
 		var pos := cell_pos(p.p)
 		var r: float = p.r * C

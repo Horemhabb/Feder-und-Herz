@@ -200,6 +200,16 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 3.2: Eine Welt, in der jemand wohnt
+
+- **Leute unterwegs** (`scripts/leben.gd`): drei bis acht je Stunde, aus Mann, Frau und Alter mit leicht abgetönter Tracht. Sie gehen Wege ab, bleiben stehen, setzen sich, schauen dem Helden nach und sagen beim Vorbeigehen einen Satz als Sprechblase (25 Sätze, nie zwei Blasen zugleich). Wer sie sind, bleibt offen. Sie sind unverwundbar; wird in ihrer Nähe gekämpft, rennen sie davon und gehen danach ihrer Wege. Läuft man in jemanden hinein, tritt er zur Seite. Die drei Figuren haben dafür in der Figurenfabrik Gehen, Laufen, Sitzen und Aufheben bekommen.
+- **Kleine Bitten:** Etwa jede fünfte Person hat etwas verloren (einen Kamm, eine Schöpfkelle, ein Amulett, einen Pinsel, ein Sistrum, Lotossamen). Sie wartet an ihrem Platz, ein grünes Anch über dem Kopf. Mit E oder Antippen sagt sie, was fehlt; das Stück liegt an einem stillen Ort und steht dann im Questbuch. Zurückgebracht gibt es Splitter, Erfahrung und ein etwas leichteres Herz.
+- **Kleintiere:** Skarabäen, Wüstenmäuse, Eidechsen (im Freiland, in Ruinen und Glas), Esel und kreisende Falken unter freiem Himmel, Fledermäuse unter Dächern, Fische in jedem Becken (ab und zu springt einer). Alle aus Grundformen gebaut, jedes unter 400 Dreiecken; sie weichen aus, wenn man ihnen zu nahe kommt.
+- **Pflanzen:** Papyrus rings um die Becken, Lotos auf dem Wasser, Grasbüschel im Freiland und in Ruinen, als MultiMesh gezeichnet.
+- **Fundstücke:** drei bis vier je Stunde an stillen Orten, mit einem pulsierenden Glanz: Uschebti, Herzskarabäus, Kanopenkrug, Papyrusrolle, Anch, Salbgefäß, Udjat-Auge, Bronzespiegel. Im Vorbeigehen aufgehoben, mit einem Satz dazu, was es ist; dazu Splitter und etwas Erfahrung.
+- **Wegsuche:** Ein Hindernis sperrt jetzt jede Zelle, deren Mitte unter ihm liegt (vorher nur die Zelle seiner Mitte). Ein Felsblock auf der Grenze zweier Zellen ließ den Weg durch sich hindurchlaufen; Gegner und der Testbot liefen dagegen fest. Der Bot besiegt in Stunde 1 jetzt alle 55 Gegner (vorher blieb er nach 11 stehen) und meidet Gegner, zu denen kein Weg führt.
+- **Leistung:** Leute werden nur bis 32 m gezeichnet, Tiere und Funde bis 46 m. Mit niedriger Grafik gibt es etwa halb so viele. In Stunde 1 kostet das rund 25 Zeichenaufrufe mehr (etwa 9 %).
+
 ### Fassung 3.1: Die Pforte, die Stimme und der Klang der Nacht
 
 Erste Etappe des großen Wurfs nach dem Fragebogen (siehe `SPEC_4.0.md`).

@@ -2,6 +2,7 @@ extends Node
 # Testmodus (Start mit „-- --autotest“): ein einfacher Bot spielt die Stunde durch, schreibt Zustände ins Protokoll
 # und speichert Bilder nach test_out/. So lässt sich das Spiel ohne Menschen und ohne Bildschirm prüfen.
 
+var meiden := {}          # Gegner, zu denen gerade kein Weg führt: Instanz → bis wann meiden
 var game: Node
 var t := 0.0
 var shot_t := 0.0
@@ -95,6 +96,8 @@ func _physics_process(delta: float) -> void:
 	var foe: Foe = null
 	var bd := 1e9
 	for f in game.live_foes():
+		if meiden.get(f.get_instance_id(), -1.0) > t:
+			continue   # zuletzt nicht erreichbar: erst einmal andere
 		var d: float = f.global_position.distance_to(h.global_position) * (0.4 if f.state == Foe.St.FIGHT else 1.0) + (60.0 if f == game.boss and game.kills < game.total else 0.0)
 		if d < bd:
 			bd = d
@@ -117,6 +120,10 @@ func _physics_process(delta: float) -> void:
 			dir = (path[0] - h.global_position)
 			dir.y = 0
 			dir = dir.normalized()
+		elif foe and foe.state == Foe.St.SLEEP:
+			# kein Weg dorthin (der Gegner ruht über einer Requisite oder hinter Mauern): 20 Sekunden lang andere zuerst
+			print("  kein Weg zu %s bei %s" % [foe.kind, foe.global_position])
+			meiden[foe.get_instance_id()] = t + 20.0
 	h.aim = target
 	h.want_dir = dir
 	if Spiel.tree_points() > 0:
@@ -147,8 +154,19 @@ func _physics_process(delta: float) -> void:
 	else:
 		stuck_t += delta
 		if stuck_t > 12.0 and h.want_dir.length() > 0.1:
-			print("HÄNGT bei ", h.global_position, " Ziel ", target, " frei=", game.walkable(h.global_position, target))
+			print("HÄNGT bei ", h.global_position, " Ziel ", target, " frei=", game.walkable(h.global_position, target), " Weg ", game.find_path(h.global_position, target).slice(0, 3), " Werkstatt ", game.orte.werk.get("pos", "-"))
 			stuck_t = 0.0
+			var q := PhysicsShapeQueryParameters3D.new()
+			var kugel := SphereShape3D.new()
+			kugel.radius = 1.6
+			q.shape = kugel
+			q.transform = Transform3D(Basis(), h.global_position + Vector3(0, 0.6, 0))
+			q.collision_mask = 0xFFFF
+			for r in game.get_world_3d().direct_space_state.intersect_shape(q, 12):
+				var o: Object = r.collider
+				if o is StaticBody3D:
+					var cs: CollisionShape3D = o.get_child(0)
+					print("   Körper bei ", o.global_position, " Größe ", (cs.shape as BoxShape3D).size if cs.shape is BoxShape3D else cs.shape, " Schicht ", o.collision_layer, " Zelle fest=", game.astar.is_point_solid(game._sub(o.global_position)))
 
 # Rundgang (Start mit „-- --autotest --rundgang [--stunde=N]“): Figur an den Start, in Räume und vor den Hüter setzen
 # und je ein Bild machen, zum Vergleichen von Mauern, Böden und Licht. Gegner ruhen dabei. Danach jede zehnte Bodenzelle
@@ -202,6 +220,37 @@ func ort_bilder() -> void:
 		if a.begins_with("--ort="):
 			arten = a.substr(6)
 	for art in arten.split(","):
+		if art == "leben":
+			# Lebendige Welt (3.2): Leute, eine Person mit Bitte, Tiere, ein Becken, ein Fundstück
+			var L: Leben = game.leben
+			print("LEBEN: %d Leute (%d mit Bitte), %d Tiere, %d Funde" % [L.leute.size(), L.leute.filter(func(p): return not p.auftrag.is_empty()).size(), L.tiere.size(), L.funde.size()])
+			for f in game.foes:
+				f.process_mode = Node.PROCESS_MODE_INHERIT
+			var ziele := []
+			for p in L.leute:
+				ziele.append(["mensch" if p.auftrag.is_empty() else "bitte", p.n])
+			for e in L.tiere:
+				if e.art in ["esel", "eidechse", "skarabaeus", "maus", "fledermaus"] and not ziele.any(func(z): return z[0] == e.art):
+					ziele.append([e.art, e.n])
+			if not game.karte.pools.is_empty():
+				ziele.append(["becken", null, Welt.cell_pos(game.karte.pools[0].p)])
+			for f in L.funde:
+				ziele.append(["fund", f.n])
+				break
+			var gesehen := {}
+			for z in ziele:
+				if gesehen.get(z[0], 0) >= (2 if z[0] == "mensch" else 1):
+					continue
+				gesehen[z[0]] = gesehen.get(z[0], 0) + 1
+				var wo: Vector3 = z[2] if z[1] == null else (z[1] as Node3D).global_position
+				game.hero.global_position = wo + Vector3(1.6, 0, 1.6)
+				game.cam_pos = wo
+				await get_tree().create_timer(2.4).timeout
+				if z[1] != null and z[0] != "fund":
+					game.cam_pos = (z[1] as Node3D).global_position
+				await get_tree().create_timer(0.3).timeout
+				shot("leben_" + z[0])
+			continue
 		if art == "pforte":
 			# die Pforte (3.1): Sie steigt dort auf, wo der Hüter fiel; vier Bilder, während sie aufsteigt
 			var gp: Vector3 = Welt.cell_pos(game.karte.lair)
