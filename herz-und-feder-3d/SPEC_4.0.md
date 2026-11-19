@@ -3,6 +3,11 @@
 Stand: 19.11.2026, nach Fassung 3.0. **Verbindlich** seit dem ausgefüllten Fragebogen (34 von 35 Antworten, siehe
 Abschnitt 0). Die Abschnitte 2 bis 11 sind der ursprüngliche Entwurf; wo der Fragebogen anders entschieden hat, gilt Abschnitt 0.
 
+**Fortschritt:** 3.1 erledigt (Pforte, 36 Ansagen, Klangkulisse in drei Schichten, Musik nach Lage, leisere Schritte,
+Ladeklang). Offen: 3.2 Leute, Tiere, Pflanzen, Fundstücke · 3.3 Baum · 3.4 große Karten · 4.0 Akt 1 mit Türhüter.
+Befund der Messfahrt: Der Bot bleibt in Stunde 1 bei Zelle (17,9) stehen (keine wachen Gegner, 11 von 55 besiegt);
+das wird vor dem Feinschliff der Schwierigkeit in 4.0 untersucht.
+
 ## 0. Entscheidungen aus dem Fragebogen
 
 | Frage | Entscheidung |

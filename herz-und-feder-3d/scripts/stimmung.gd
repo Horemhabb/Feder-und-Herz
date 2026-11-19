@@ -114,6 +114,56 @@ void fragment() {
 	ALPHA = clamp(maske * (0.74 + 0.24 * s2 * flimmer) + funke, 0.0, 0.96);
 }"""
 
+# Blick durch die Pforte (3.1): eine gemalte Ferne der nächsten Stunde. Himmel in ihrer Farbe, ein Horizont aus Hügeln,
+# Dunst, der langsam zieht, Sterne, die blinken, und ein Lichtpunkt, der näher zu kommen scheint. Kein zweites Bild:
+# eine Fläche mit einem Shader, damit es im Browser läuft.
+const BLICK := """shader_type spatial;
+render_mode unshaded, cull_disabled, shadows_disabled, fog_disabled;
+uniform vec4 himmel : source_color = vec4(0.1, 0.2, 0.3, 1.0);
+uniform vec4 boden : source_color = vec4(0.3, 0.28, 0.24, 1.0);
+uniform vec4 licht : source_color = vec4(0.6, 0.95, 0.9, 1.0);
+uniform float auf = 1.0;
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) {
+	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+void fragment() {
+	vec2 uv = vec2(UV.x, 1.0 - UV.y);          // 0 unten, 1 oben
+	float t = TIME;
+	vec3 c = mix(himmel.rgb * 0.35, himmel.rgb * 1.1, smoothstep(0.25, 1.0, uv.y));
+	// Sterne
+	vec2 g = floor(uv * vec2(40.0, 70.0));
+	float st = step(0.985, h(g)) * (0.5 + 0.5 * sin(t * 2.0 + h(g + 3.0) * 40.0)) * smoothstep(0.45, 0.8, uv.y);
+	c += vec3(st) * 0.9;
+	// Horizont: zwei Hügelketten, die hintere heller
+	float k1 = 0.34 + 0.05 * n(vec2(uv.x * 4.0, 1.0)) + 0.03 * sin(uv.x * 9.0);
+	float k2 = 0.26 + 0.06 * n(vec2(uv.x * 6.0 + 7.0, 2.0));
+	c = mix(c, mix(boden.rgb, himmel.rgb, 0.45), step(uv.y, k1));
+	c = mix(c, boden.rgb * 0.7, step(uv.y, k2));
+	// Lichtpunkt in der Ferne, pulsiert
+	float d = length((uv - vec2(0.5, 0.36)) * vec2(1.4, 1.0));
+	c += licht.rgb * (0.02 / (d * d + 0.004)) * (0.8 + 0.2 * sin(t * 1.7)) * 0.08;
+	// ziehender Dunst
+	float nb = n(vec2(uv.x * 3.0 - t * 0.12, uv.y * 5.0)) * n(vec2(uv.x * 7.0 + t * 0.2, uv.y * 9.0 + 3.0));
+	c = mix(c, licht.rgb * 0.8, nb * 0.45 * smoothstep(0.55, 0.15, uv.y));
+	// Rand: zum Rahmen hin heller, als käme Licht heraus
+	float rand = min(min(uv.x, 1.0 - uv.x), 1.0 - uv.y) ;
+	c += licht.rgb * (1.0 - smoothstep(0.0, 0.12, rand)) * 0.35;
+	ALBEDO = c * auf;
+}"""
+
+static func blick(n: MeshInstance3D, himmel: Color, boden: Color, licht: Color, breite: float, hoehe: float) -> ShaderMaterial:
+	n.mesh = _quad(breite, hoehe)
+	var m := ShaderMaterial.new()
+	m.shader = _shader("blick", BLICK)
+	m.set_shader_parameter("himmel", himmel)
+	m.set_shader_parameter("boden", boden)
+	m.set_shader_parameter("licht", licht)
+	n.material_override = m
+	n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return m
+
 static func schleier(n: MeshInstance3D, breite := 0.36, hoehe := 0.44) -> void:
 	n.mesh = _quad(breite, hoehe)
 	var m := ShaderMaterial.new()
