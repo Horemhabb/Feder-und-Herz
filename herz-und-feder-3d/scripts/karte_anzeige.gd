@@ -9,6 +9,7 @@ var seen := PackedByteArray()
 var img: Image
 var tex: ImageTexture
 var t := 0.0
+var gross := false   # große Karte (3.4): Zeichen doppelt so groß, dazu Thot und Werkstatt
 
 func setup(g: Node, k: Karte) -> void:
 	game = g
@@ -18,6 +19,9 @@ func setup(g: Node, k: Karte) -> void:
 	img = Image.create(Karte.GW, Karte.GH, false, Image.FORMAT_RGBA8)
 	tex = ImageTexture.create_from_image(img)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	process_mode = Node.PROCESS_MODE_ALWAYS if gross else Node.PROCESS_MODE_INHERIT
+	if gross:
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # groß gezogen sonst verschwommen
 	_paint()
 
 func _process(delta: float) -> void:
@@ -27,7 +31,7 @@ func _process(delta: float) -> void:
 	if t > 0.0:
 		return
 	t = 0.2
-	if karte.indoor and game.hero:
+	if karte.indoor and game.hero and not gross:
 		_reveal()
 	_paint()
 	queue_redraw()
@@ -97,22 +101,23 @@ func _draw() -> void:
 	for e in [Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]:
 		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -6), e + Vector2(6, 0), e + Vector2(0, 6), e + Vector2(-6, 0)]), gold)
 		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -3), e + Vector2(3, 0), e + Vector2(0, 3), e + Vector2(-3, 0)]), Color(0.1, 0.08, 0.06))
+	var z := 2.2 if gross else 1.0
 	var packs := {}
 	for f in game.foes:
 		if f.state == Foe.St.DEAD or f.hidden:
 			continue
 		if f.kind == "boss":
 			if game.boss_awake:
-				draw_circle(_to_px(f.global_position), 4.0, Color("b06be0"))
+				draw_circle(_to_px(f.global_position), 4.0 * z, Color("b06be0"))
 		elif f.state == Foe.St.FIGHT:
-			draw_circle(_to_px(f.global_position), 2.0, Color(0.9, 0.3, 0.25))
+			draw_circle(_to_px(f.global_position), 2.0 * z, Color(0.9, 0.3, 0.25))
 		elif _seen_at(f.global_position) and not packs.has(f.pack):
 			packs[f.pack] = true
-			draw_circle(_to_px(f.global_position), 2.5, Color(0.95, 0.82, 0.29))
+			draw_circle(_to_px(f.global_position), 2.5 * z, Color(0.95, 0.82, 0.29))
 	for c in game.chests:
 		if not c.open and _seen_at(c.pos):
 			var p := _to_px(c.pos)
-			draw_rect(Rect2(p - Vector2(2.5, 2.5), Vector2(5, 5)), Color(0.85, 0.7, 0.4))
+			draw_rect(Rect2(p - Vector2(2.5, 2.5) * z, Vector2(5, 5) * z), Color(0.85, 0.7, 0.4))
 	# Orte: Feuerschalen (Ring, entzündet gefüllt), Schreine, Seelenkrüge, Fundstück (Raute), Figur
 	for st in game.orte.sites:
 		if not _seen_at(st.pos):
@@ -121,32 +126,36 @@ func _draw() -> void:
 		match st.kind:
 			"feuer":
 				if st.done:
-					draw_circle(q, 2.5, Color(1.0, 0.62, 0.25))
+					draw_circle(q, 2.5 * z, Color(1.0, 0.62, 0.25))
 				else:
-					draw_arc(q, 2.5, 0.0, TAU, 8, Color(1.0, 0.62, 0.25), 1.0)
+					draw_arc(q, 2.5 * z, 0.0, TAU, 12, Color(1.0, 0.62, 0.25), 1.0 * z)
 			"schrein":
 				if not st.done:
-					draw_rect(Rect2(q - Vector2(1.5, 3), Vector2(3, 6)), st.gott.col)
+					draw_rect(Rect2(q - Vector2(1.5, 3) * z, Vector2(3, 6) * z), st.gott.col)
 			"krug":
 				if not st.done:
-					draw_circle(q, 2.0, Color(1.0, 0.35, 0.3))
+					draw_circle(q, 2.0 * z, Color(1.0, 0.35, 0.3))
 			"relikt":
 				if not st.done:
-					draw_colored_polygon(PackedVector2Array([q + Vector2(0, -4), q + Vector2(4, 0), q + Vector2(0, 4), q + Vector2(-4, 0)]), Color(1.0, 0.85, 0.4))
+					draw_colored_polygon(PackedVector2Array([q + Vector2(0, -4) * z, q + Vector2(4, 0) * z, q + Vector2(0, 4) * z, q + Vector2(-4, 0) * z]), Color(1.0, 0.85, 0.4))
 			"figur":
-				draw_circle(q, 2.5, Color(0.56, 0.89, 0.88))
+				draw_circle(q, 2.5 * z, Color(0.56, 0.89, 0.88))
 			"helfer":
-				draw_circle(q, 2.5, Color(0.8, 1.0, 0.6))
+				draw_circle(q, 2.5 * z, Color(0.8, 1.0, 0.6))
+			"thot":
+				draw_rect(Rect2(q - Vector2(1.5, 3) * z, Vector2(3, 6) * z), Color(0.55, 0.75, 1.0))
+			"werkstatt":
+				draw_rect(Rect2(q - Vector2(2.5, 2.5) * z, Vector2(5, 5) * z), Color(0.95, 0.75, 0.4), false, 1.0 * z)
 			"such":
 				if not st.done and game.orte.helfer_talked:
-					draw_circle(q, 1.8, Color(0.95, 0.95, 0.85))
+					draw_circle(q, 1.8 * z, Color(0.95, 0.95, 0.85))
 	if game.gate:
-		draw_arc(_to_px(game.gate.global_position), 5.0, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5)
+		draw_arc(_to_px(game.gate.global_position), 5.0 * z, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5 * z)
 	if game.hero:
 		# die Figur als Pfeil in Blickrichtung, mit weichem Schein
 		var hp := _to_px(game.hero.global_position)
 		var f: float = game.hero.face
 		var v := Vector2(sin(f), cos(f))
 		var q := Vector2(-v.y, v.x)
-		draw_circle(hp, 7.0, Color(1.0, 0.9, 0.6, 0.18))
-		draw_colored_polygon(PackedVector2Array([hp + v * 6.5, hp - v * 4.0 + q * 4.2, hp - v * 1.5, hp - v * 4.0 - q * 4.2]), Color(1.0, 0.97, 0.88))
+		draw_circle(hp, 7.0 * z, Color(1.0, 0.9, 0.6, 0.18))
+		draw_colored_polygon(PackedVector2Array([hp + v * 6.5 * z, hp - v * 4.0 * z + q * 4.2 * z, hp - v * 1.5 * z, hp - v * 4.0 * z - q * 4.2 * z]), Color(1.0, 0.97, 0.88))
