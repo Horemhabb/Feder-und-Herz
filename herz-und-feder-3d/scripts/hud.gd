@@ -666,8 +666,10 @@ func refresh() -> void:
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor and not locked else Color.WHITE
 		u.icon.modulate = Color(0.25, 0.25, 0.28, 0.7) if locked else Color.WHITE
 		# ungelernt: erst ab ihrer Stufe lernbar, dann wartet sie im Fähigkeitenbaum auf einen Punkt
-		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else "LERNEN")
-		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl else DIM)
+		# seit 3.3: auf der Stufe, aber im Baum noch kein Weg dorthin
+		var weg: bool = Spiel.nachbar_gelernt("s:" + id) if locked and id != "potion" else true
+		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else ("LERNEN" if weg else "WEG FEHLT"))
+		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl and weg else DIM)
 		u.name.modulate.a = 0.45 if locked else 1.0
 		if locked:
 			u.sub.text = ""
@@ -1066,7 +1068,7 @@ func show_werkstatt() -> void:
 	secondary = func(): get_tree().paused = false
 
 func show_tree() -> void:
-	var v := _sheet(0.86, 900)
+	var v := _sheet(0.86, 1180)
 	tree_open = true
 	var t := Baum.new()
 	t.hud = self
@@ -1251,7 +1253,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.2", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.3", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist

@@ -100,7 +100,7 @@ Regeln und Zahlen stammen aus `nebelmark/src` (Daten in `scripts/daten.gd`, Figu
 - Klassenwahl auf dem Startbildschirm mit den gemalten Porträts der 2D-Fassung; Symbole der Fähigkeiten aus dem Original.
 - **Fähigkeitenbaum** (K, auf dem Handy „Fähigk.“): ein Punkt je Stufe, fünf Ränge je Fähigkeit (+12 % Stärke,
   Hilfsfähigkeiten −6 % Abklingzeit), ab Rang 2 Wucht oder Eile, sechs dauerhafte Stärken, ein Schlüsselstein je
-  Klasse ab 8 verteilten Punkten, Zurücksetzen für 10 + 3 × Stufe Scherben.
+  Klasse ab 8 verteilten Punkten. Seit 3.3 als gezeichneter Baum mit drei Ästen; Umlernen kostenlos am Schrein des Thot.
 - Daten in `scripts/klassen.gd`; Klassentest: `godot --path . -- --neu --klasse=jaegerin --klassentest`.
 
 ### Etappe 3: Gegner und Hüter
@@ -199,6 +199,15 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Bildwirkung:** Vignette (der Bildrand dunkelt ab), Staub im Laternenlicht.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
+
+### Fassung 3.3: Ein Baum, der wie ein Baum wächst
+
+- **Der Fähigkeitenbaum ist ein Baum** (`scripts/baum.gd`, Daten in `Klassen.baum`): unten der Stamm, darüber drei Äste mit eigenem Thema (Eidträger: Klinge, Licht, Eid · Priester: Faust, Atem, Ka · Jägerin: Fächer, Neith, Sachmet · Sternleserin: Gewitter, Sterne, Wort). 23 Knoten je Klasse: fünf Fähigkeiten (rund, mit ihrem Relief), an jeder die Blätter Wucht und Eile, sechs dauerhafte Stärken (Rauten) und der Schlüsselstein oben am mittleren Ast. Zwei Querverbindungen lassen andere Wege zu.
+- **Lernregel:** Ein Knoten lässt sich nur lernen, wenn ein Nachbar schon gelernt ist. Die beiden Fähigkeiten der Stufe 1 hängen am Stamm; jede spätere ist auf ihrer Stufe über reine Fähigkeitswege erreichbar, Stärken kosten also keinen Umweg. Gelernte Äste leuchten golden, lernbare Knoten atmen in Türkis.
+- **Bedienung:** Knoten antippen oder anklicken; daneben (am Handy darunter) steht, was er tut, und direkt unter dem Knoten erscheint ein Knopf „Lernen“ oder „Steigern“. Die Leiste zeigt bei Fähigkeiten, zu denen noch kein Weg führt, „WEG FEHLT“.
+- **Schrein des Thot:** steht in jeder Stunde nahe am Eingang. Dort wischt Thot die Tafel glatt: alle Punkte zurück, kostenlos, danach öffnet sich der Baum. Woanders gibt es kein Umlernen mehr. Der Erfahrungssegen, den bisher ein Schrein des Thot gab, kommt jetzt von Seschat.
+- **Alte Spielstände:** Hängt alles Gelernte über gelernte Knoten am Stamm, bleibt der Baum, wie er war. Sonst gibt es alle Punkte zurück und einmal einen Hinweis.
+- **Noch nicht:** Der Ausbau auf 25 bis 35 Knoten (neue Verstärkungen und Stärken) folgt im zweiten Schritt, weil er Balancearbeit für vier Klassen braucht.
 
 ### Fassung 3.2: Eine Welt, in der jemand wohnt
 

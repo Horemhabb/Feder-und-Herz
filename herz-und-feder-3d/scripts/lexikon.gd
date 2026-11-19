@@ -61,7 +61,7 @@ const W := [
 	{"id": "laterne", "name": "Die Laterne", "such": ["Laterne", "Laternenträger"], "kern": true, "gruppe": "Die Welt",
 		"txt": "Die Priester von Sandtor haben sie dir mitgegeben. In ihr brennt ein Funke des Sonnengottes: Er leuchtet dir und ist zugleich deine Waffe."},
 	{"id": "scherben", "name": "Scherben", "such": ["Scherben"], "kern": false, "gruppe": "Die Welt",
-		"txt": "Beschriebene Tonscherben, das Geld der Duat. Du bezahlst damit den Goldschmied, den Grabräuber und das Zurücksetzen deiner Fähigkeiten."},
+		"txt": "Beschriebene Tonscherben, das Geld der Duat. Du bezahlst damit den Goldschmied und den Grabräuber. (Umlernen kostet seit dem neuen Baum nichts mehr: Das macht Thot an seinem Schrein.)"},
 	{"id": "heka", "name": "Heka", "such": ["Heka"], "kern": false, "gruppe": "Die Seele",
 		"txt": "Zauberkraft: die Macht, mit dem richtigen Wort etwas wirklich werden zu lassen."},
 	{"id": "selket", "name": "Selket", "such": ["Selket"], "kern": false, "gruppe": "Götter", "txt": "Die Skorpiongöttin. Sie beschützt die Atmenden und hält Apophis in Fesseln."},

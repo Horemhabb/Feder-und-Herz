@@ -183,7 +183,7 @@ func render() -> void:
 	mf.add_theme_constant_override("h_separation", 16)
 	for k in Daten.MAT_ORDER:
 		mf.add_child(_mat_row(Daten.ICON[k], "%s %d" % [Daten.MATS[k].name, Spiel.mats[k]], Daten.MATS[k].txt))
-	mf.add_child(_mat_row(Daten.ICON.shard, "Scherben %d" % Spiel.shards, "Währung der Duat: für die Werkstatt des Ptah, den Grabräuber und das Zurücksetzen der Fähigkeiten."))
+	mf.add_child(_mat_row(Daten.ICON.shard, "Scherben %d" % Spiel.shards, "Währung der Duat: für die Werkstatt des Ptah und den Grabräuber."))
 	add_child(mf)
 	# Tasche
 	var bh := HBoxContainer.new()

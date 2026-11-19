@@ -611,7 +611,8 @@ func walkable(a: Vector3, b: Vector3) -> bool:
 		return true
 	var side := Vector3(-d.z, 0, d.x).normalized() * 0.5
 	var sp := get_world_3d().direct_space_state
-	for s in [side, -side]:
+	# drei Strahlen: links, rechts und in der Mitte (eine Requisite schmaler als 1 m lag sonst genau zwischen den beiden)
+	for s in [side, -side, Vector3.ZERO]:
 		var q := PhysicsRayQueryParameters3D.create(a + s + Vector3(0, 0.6, 0), b + s + Vector3(0, 0.6, 0), 1 | Welt.LOW_LAYER)
 		if not sp.intersect_ray(q).is_empty():
 			return false
@@ -1151,7 +1152,7 @@ func _level_up() -> void:
 	hero.apply_stats(true)
 	hero.en = 100.0
 	# groß in der Bildmitte: die neue Stufe, der freie Punkt und jede Fähigkeit, die jetzt gelernt ist
-	hud.announce(null, "AUFSTIEG", "Stufe %d" % Spiel.lvl, "Ein Fähigkeitenpunkt ist frei. %s öffnet den Fähigkeitenbaum: Dort lernst du neue Fähigkeiten und stärkst die alten." % ("„Fähigk.“ oben rechts" if touch else "Taste K"), 5.0)
+	hud.announce(null, "AUFSTIEG", "Stufe %d" % Spiel.lvl, "Ein Fähigkeitenpunkt ist frei. %s öffnet den Fähigkeitenbaum: Dort lernst du, was neben schon Gelerntem liegt, und stärkst die alten Fähigkeiten." % ("„Fähigk.“ oben rechts" if touch else "Taste K"), 5.0)
 	for i in 5:
 		var id: String = hero.ORDER[i]
 		var need := Klassen.unlock_lvl(hero.cls, id)
@@ -1788,6 +1789,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_E:
 				if not leben.naechster_auftrag().is_empty():
 					leben.auftrag_reden(leben.naechster_auftrag())
+				elif orte.near_thot() and not orte.near_helfer() and not orte.near_npc():
+					orte.thot_reden()
 				elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
 					orte.werkstatt_oeffnen()
 				elif orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
@@ -1815,6 +1818,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.helfer_talked and orte.near_helfer() \
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()
+		return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.near_thot() \
+			and mouse_ground().distance_to(orte.thot.pos) < 2.0 and not hud.mouse_over_ui():
+		orte.thot_reden()
 		return
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.near_werkstatt() \
 			and mouse_ground().distance_to(orte.werk.pos) < 2.2 and not hud.mouse_over_ui():

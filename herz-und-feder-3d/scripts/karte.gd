@@ -447,6 +447,35 @@ func _place_sites() -> void:
 		if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 3.4) and _frei_um(p, 2) and not _deko_near(p, 2.8):
 			sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": "werkstatt", "v": 0})
 			break
+	# der Schrein des Thot (3.3): Hier wird umgelernt. Er steht in jeder Stunde nahe am Eingang; findet sich dort kein
+	# Platz, rückt er weiter hinaus und nimmt zur Not auch einen engeren Platz.
+	var thot := false
+	for ring in [[4.0, 9.0, true], [6.0, 13.0, true], [3.0, 16.0, false]]:
+		for t in 160:
+			var a := randf() * TAU
+			var p := start + Vector2(cos(a), sin(a)) * randf_range(ring[0], ring[1])
+			if in_grid(int(p.x), int(p.y)) and _site_ok(p, reach, 2.6) and (not ring[2] or _frei_um(p, 1)):
+				sites.append({"p": Vector2(int(p.x) + 0.5, int(p.y) + 0.5), "kind": "thot", "v": 0})
+				thot = true
+				break
+		if thot:
+			break
+	if not thot:
+		# letzter Ausweg: die nächste erreichbare freie Zelle ab drei Zellen vom Start, die keinem anderen Ort zu nahe ist
+		var best := Vector2(-1, -1)
+		var bd := 1e9
+		for y in GH:
+			for x in GW:
+				var q := Vector2(x + 0.5, y + 0.5)
+				var dd := q.distance_to(start)
+				if dd < 3.0 or dd >= bd or wall(x, y) or reach[gi(x, y)] < 0 or q.distance_to(lair) < 6.0:
+					continue
+				if sites.any(func(s): return s.p.distance_to(q) < 2.0):
+					continue
+				best = q
+				bd = dd
+		if best.x >= 0.0:
+			sites.append({"p": best, "kind": "thot", "v": 0})
 	# das Fundstück liegt weit hinten
 	places.reverse()
 	for pl in places:
