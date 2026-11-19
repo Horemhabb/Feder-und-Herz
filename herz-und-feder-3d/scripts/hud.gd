@@ -50,6 +50,7 @@ var toast_tw: Tween
 var menu_open := false
 var menue: Menue
 var bag_open := false
+var karte_open := false   # große Karte (3.4)
 var tree_open := false
 var chapter_note := ""     # Zusatzzeile auf der Tafel (z. B. Hinweis für das iPhone)
 var toasts: VBoxContainer   # Fundmeldungen links oben (07-ui.js › toast)
@@ -109,7 +110,7 @@ func _ready() -> void:
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(quest_box)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü · I Tasche · K Fähigkeiten · E sprechen", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü · I Tasche · K Fähigkeiten · Tab Karte · E sprechen", 12, Color(DIM, 0.7))
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.position = Vector2(-560, 14)
@@ -824,6 +825,7 @@ func press_option(i: int) -> bool:
 
 func _close() -> void:
 	bag_open = false
+	karte_open = false
 	menu_open = false
 	menue = null
 	dialog_opts = []
@@ -1037,6 +1039,38 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 	secondary = stay
 	primary_btn.grab_focus()
 
+# Große Karte der Stunde (3.4): dieselbe Karte wie oben rechts, groß, mit Legende
+func show_karte() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	var v := _sheet(0.86, minf(1100.0, vs.x - 32.0))
+	karte_open = true
+	var kopf := HBoxContainer.new()
+	var t := _label("Karte · " + Stunden.hour_txt(Spiel.fall), 24, PARCH)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	kopf.add_child(t)
+	kopf.add_child(_button(_taste("  Schließen  [Tab]  "), false, func(): close_bag()))
+	v.add_child(kopf)
+	var k := KarteAnzeige.new()
+	k.gross = true
+	k.setup(game, game.karte)
+	k.seen = game.karte_ui.seen   # was die Figur schon gesehen hat, ist auch groß aufgedeckt
+	var breite := minf(1100.0, vs.x - 32.0) - 48.0
+	var hoehe := minf(breite * float(Karte.GH) / float(Karte.GW), vs.y - 240.0)
+	k.custom_minimum_size = Vector2(hoehe * float(Karte.GW) / float(Karte.GH), hoehe)
+	k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(k)
+	var leg := HFlowContainer.new()
+	leg.add_theme_constant_override("h_separation", 18)
+	for e in [["●", Color(1.0, 0.62, 0.25), "Feuerschale (entzündet: Rückkehrpunkt)"], ["▮", Color(0.55, 0.75, 1.0), "Schrein des Thot (umlernen)"],
+			["■", Color(0.95, 0.75, 0.4), "Werkstatt des Ptah"], ["●", Color(0.95, 0.82, 0.29), "Rudel"], ["◆", Color(1.0, 0.85, 0.4), "Fundstück der Stunde"],
+			["○", Color(0.56, 0.89, 0.88), "Pforte"], ["▲", Color(1.0, 0.97, 0.88), "du"]]:
+		var h := HBoxContainer.new()
+		h.add_child(_label(e[0], 14, e[1]))
+		h.add_child(_label(e[2], 12, DIM))
+		leg.add_child(h)
+	v.add_child(leg)
+	secondary = func(): get_tree().paused = false
+
 func show_bag() -> void:
 	var v := _sheet(0.86, 880)
 	bag_open = true
@@ -1112,7 +1146,12 @@ func _input(ev: InputEvent) -> void:
 		game.sfx.play("ui")
 		close_bag()
 		return
-	if bag_open and ev is InputEventKey and ev.pressed and not ev.echo and (ev.keycode == KEY_I or ev.keycode == KEY_TAB):
+	if karte_open and ev is InputEventKey and ev.pressed and not ev.echo and (ev.keycode == KEY_TAB or ev.keycode == KEY_ESCAPE):
+		get_viewport().set_input_as_handled()
+		game.sfx.play("ui")
+		close_bag()
+		return
+	if bag_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_I:
 		get_viewport().set_input_as_handled()
 		game.sfx.play("ui")
 		close_bag()
@@ -1253,7 +1292,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.3", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.4", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist

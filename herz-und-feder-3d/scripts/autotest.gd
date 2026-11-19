@@ -251,6 +251,16 @@ func ort_bilder() -> void:
 				await get_tree().create_timer(0.3).timeout
 				shot("leben_" + z[0])
 			continue
+		if art == "karte":
+			# große Karte (3.4), nach einem Blick auf die kleine
+			print("KARTE: %d × %d Zellen, %d Gegner, %d Feuerschalen, Thot %s" % [Karte.GW, Karte.GH, game.foes.size(), game.orte.sites.filter(func(s): return s.kind == "feuer").size(), not game.orte.thot.is_empty()])
+			shot("karte_klein")
+			game.toggle_karte()
+			await get_tree().create_timer(0.8).timeout
+			shot("karte_gross")
+			game.toggle_karte()
+			await get_tree().create_timer(0.3).timeout
+			continue
 		if art == "baum":
 			# der Fähigkeitenbaum als Bild (3.3), mit ein paar gelernten Knoten
 			Spiel.lvl = 6

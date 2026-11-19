@@ -4,8 +4,21 @@ class_name Karte extends RefCounted
 # Mauern haben eine Höhe in Pixeln der 2D-Fassung: unter 50 versperren sie nur den Weg, ab 50 auch Sicht und Geschosse.
 # Ergebnis: grid/wh/flr, Räume, Start, Hüterbau, Rudel-Plätze, Truhen, Fässer, Hindernisse, Fackeln, Türme.
 
-const GW := 52
-const GH := 40
+# Größe des Rasters: seit 3.4 je Stunde. Die vier Stunden von Akt 1 haben die doppelte Fläche (74 × 56 Zellen statt
+# 52 × 40, etwa 148 × 112 m); was eine Karte füllt (Räume, Bauten, Rudelplätze, Feuerschalen), wächst mit der Fläche.
+const GW0 := 52
+const GH0 := 40
+static var GW := GW0
+static var GH := GH0
+
+static func groesse(stunde: int) -> void:
+	var gross := stunde >= 1 and stunde <= 4
+	GW = 74 if gross else GW0
+	GH = 56 if gross else GH0
+
+# wie viel größer als die alte Karte (1.0 oder etwa 2.0)
+static func flaeche() -> float:
+	return float(GW * GH) / float(GW0 * GH0)
 const CELL := 2.0          # Meter je Zelle
 const WALLH := 96
 const TOWER := 255
@@ -153,8 +166,8 @@ func gen_dungeon(dkind: String) -> void:
 	_new_grid(true)
 	indoor = true
 	kind = dkind
-	for t in 4000:
-		if rooms.size() >= 11:
+	for t in 9000:
+		if rooms.size() >= int(round(11 * flaeche())):
 			break
 		var shape: String = _wpick([["rect", 4], ["hall", 3], ["cross", 2], ["round", 2]])
 		var w := randi_range(11, 14) if shape == "hall" else randi_range(7, 11)
@@ -329,9 +342,14 @@ func _road(pts: Array) -> void:
 
 # Oase: ein Wasserbecken mit Palmen, dazu einzelne Palmen und Säulenstümpfe im Gelände
 func _oasis() -> void:
+	for oase in (2 if flaeche() > 1.5 else 1):
+		_ein_becken()
+	_palmen()
+
+func _ein_becken() -> void:
 	for t in 200:
 		var p := Vector2(randf_range(8, GW - 8), randf_range(6, GH - 6))
-		if p.distance_to(start) < 12 or p.distance_to(lair) < 10 or not _open_land(p, 4) or _deko_near(p, 4.0):
+		if p.distance_to(start) < 12 or p.distance_to(lair) < 10 or not _open_land(p, 4) or _deko_near(p, 4.0) or pools.any(func(o): return o.p.distance_to(p) < 16.0):
 			continue
 		pools.append({"p": p, "r": 2.1})
 		for i in randi_range(5, 7):
@@ -340,9 +358,11 @@ func _oasis() -> void:
 			if _open_land(q, 0) and not _deko_near(q, 0.5):
 				deko.append({"p": q, "kind": "palme", "r": 0.3, "face": randf() * TAU})
 		break
+
+func _palmen() -> void:
 	var n := 0
-	for t in 300:
-		if n >= 12:
+	for t in 600:
+		if n >= int(round(12 * flaeche())):
 			break
 		var p := Vector2(randf_range(3, GW - 3), randf_range(3, GH - 3))
 		if p.distance_to(start) < 4 or not _open_land(p, 1) or _deko_near(p, 2.0):
@@ -408,6 +428,9 @@ func _place_sites() -> void:
 				places.append({"x": int(p.x) - 2, "y": int(p.y) - 2, "w": 5, "h": 5, "c": p})
 	places.sort_custom(func(a, b): return a.c.distance_to(start) < b.c.distance_to(start))
 	var plan := ["feuer", "krug", "feuer", "schrein", "feuer", "krug", "feuer", "schrein", "krug", "feuer"]
+	if flaeche() > 1.5:
+		# große Karten (3.4): mehr Feuerschalen, denn sie sind jetzt auch Rückkehrpunkte
+		plan += ["feuer", "krug", "feuer", "schrein", "feuer"]
 	var i := 0
 	var v := 0
 	for pl in places:
@@ -503,8 +526,8 @@ func gen_outdoor(mix: Array) -> void:
 	var sx := int(start.x)
 	var sy := int(start.y)
 	var B := []
-	for t in 3000:
-		if B.size() >= 6:
+	for t in 6000:
+		if B.size() >= int(round(6 * flaeche())):
 			break
 		var w := randi_range(8, 12)
 		var h := randi_range(6, 9)
@@ -523,19 +546,23 @@ func gen_outdoor(mix: Array) -> void:
 		B[-1].ruin = 0.3
 		B[-1].kind = "kapelle"
 	# Wehrmauer quer durchs Gelände, mit Tor und Breschen
-	var wx := int(GW * 0.36)
-	var gate := randi_range(8, GH - 12)
-	var blocked := false
-	for b in B:
-		if wx >= b.x - 2 and wx <= b.x + b.w + 1:
-			blocked = true
-	if not blocked:
-		for y in range(2, GH - 2):
-			if (y >= gate and y < gate + 4) or randf() < 0.07:
-				continue
-			_set_wall(wx, y, randi_range(14, 60) if randf() < 0.2 else WALLH)
-			if y == gate - 1 or y == gate + 4:
-				_set_wall(wx, y, WALLH + 30)
+	# (auf großen Karten zwei: Sie teilen die Stunde in Abschnitte mit dichten Bereichen und stillen Wegen dazwischen)
+	var tore := []
+	for anteil in ([0.33, 0.66] if flaeche() > 1.5 else [0.36]):
+		var wx := int(GW * anteil)
+		var gate := randi_range(8, GH - 12)
+		var blocked := false
+		for b in B:
+			if wx >= b.x - 2 and wx <= b.x + b.w + 1:
+				blocked = true
+		if not blocked:
+			for y in range(2, GH - 2):
+				if (y >= gate and y < gate + 4) or randf() < 0.07:
+					continue
+				_set_wall(wx, y, randi_range(14, 60) if randf() < 0.2 else WALLH)
+				if y == gate - 1 or y == gate + 4:
+					_set_wall(wx, y, WALLH + 30)
+			tore.append(Vector2(wx + 0.5, gate + 2.0))
 	for b in B:
 		var side := randi_range(0, 3)
 		var dpos := randi_range(b.x + 2, b.x + b.w - 4) if side < 2 else randi_range(b.y + 2, b.y + b.h - 4)
@@ -586,16 +613,13 @@ func gen_outdoor(mix: Array) -> void:
 	if lair == Vector2.ZERO:
 		lair = Vector2(GW - 6, GH / 2.0)
 	# Prozessionsweg vom Start durch das Tor bis vor die Kapelle des Hüters, gesäumt von Obelisken und Wächtern
-	var pts := [start]
-	if not blocked:
-		pts.append(Vector2(wx + 0.5, gate + 2.0))
-	pts.append(lair)
+	var pts := [start] + tore + [lair]
 	_road(pts)
 	_oasis()
 	# zwei Türme als Landmarken
 	var n := 0
-	for t in 200:
-		if n >= 2:
+	for t in 400:
+		if n >= int(round(2 * flaeche())):
 			break
 		var x := randi_range(4, GW - 9)
 		var y := randi_range(3, GH - 8)
@@ -616,7 +640,7 @@ func gen_outdoor(mix: Array) -> void:
 		n += 1
 	_dress_walls(11)
 	# Felsen, Glasnadeln und Wracks im offenen Land
-	for i in 110:
+	for i in int(110 * flaeche()):
 		var p := Vector2(randf_range(2.4, GW - 2.4), randf_range(2.4, GH - 2.4))
 		var r := randf_range(0.32, 0.8)
 		var k: String = _wpick(mix)
@@ -638,8 +662,8 @@ func gen_outdoor(mix: Array) -> void:
 			obst.append({"p": p, "r": r, "kind": k, "v": randi_range(0, 1) if k == "needle" else [0, 0, 1, 1, 2, 3, 4, 5].pick_random()})
 	# Rudel im offenen Land
 	n = 0
-	for t in 400:
-		if n >= 9:
+	for t in 800:
+		if n >= int(round(9 * flaeche())):
 			break
 		var p := Vector2(randf_range(4, GW - 4), randf_range(4, GH - 4))
 		if wall(int(p.x), int(p.y)) or flr[gi(int(p.x), int(p.y))] != 0 or p.distance_to(start) < 10.4:

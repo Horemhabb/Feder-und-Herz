@@ -395,7 +395,9 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(0.5)
 	var awake: int = G.foes.filter(func(f): return f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING).size()
-	check("Rückkehr: Figur lebt, steht am Start, Spiel läuft", not h.dead and h.hp == h.max_hp and not get_tree().paused and h.global_position.distance_to(G.start_pos) < 1.0)
+	# seit 3.4: am Eingang oder an einer entzündeten Feuerschale, an der kein Gegner wartet
+	var an_schale: bool = O.sites.any(func(s): return s.kind == "feuer" and s.done and s.pos.distance_to(h.global_position) < 2.5)
+	check("Rückkehr: Figur lebt, steht am Eingang oder an einer entzündeten Feuerschale, Spiel läuft", not h.dead and h.hp == h.max_hp and not get_tree().paused and (h.global_position.distance_to(G.start_pos) < 1.0 or an_schale) and h.global_position.distance_to(G.rueck_pos) < 1.0)
 	check("Rückkehr: kein Gegner ist mehr wach (%d)" % awake, awake == 0)
 	await wait(2.0)
 	check("zwei Sekunden später greift am Start niemand an", h.hp == h.max_hp)
@@ -511,7 +513,7 @@ func run() -> void:
 	var weichen := BO.traegt_kartusche()
 	BO._heimkehr()
 	await wait(8.0)
-	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter", weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
+	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter (%s %s %s %s %s %s, Pause %s, Fenster %s)" % [weichen, Spiel.ba_heim == bh + 1, not BO.traegt_kartusche(), BO.quest("namenlos").get("done", "-"), Spiel.herz >= herz0, not BO.nl.n.visible, get_tree().paused, G3.hud.l_title.text if G3.hud.overlay and "l_title" in G3.hud else str(G3.hud.overlay != null)], weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
 	var reigen: Array = G3.foes.filter(func(f): return f.style == "reigen")
 	check("Reigen: reine Irrlicht-Schwärme tanzen und tragen eine Lichtspur", reigen.is_empty() or reigen.all(func(f): return f.has_meta("spur")))
 	# Schrein des Thot (3.3): steht in jeder Stunde, dort wird kostenlos umgelernt, danach öffnet sich der Baum

@@ -66,6 +66,7 @@ var auto_low_done := false
 var klang: Klang
 var gate_cine_t := 0.0   # so lange sieht die Kamera der aufsteigenden Pforte zu
 var cine_t := 0.0        # so lange blickt die Kamera zum Hüter, wenn er erwacht
+var rueck_pos := Vector3.ZERO   # wo die Figur nach der letzten Niederlage erwacht ist (3.4)
 var staub: CPUParticles3D
 var stimmung: Array = []   # Lichtstrahlen, Nebelbänke, Runenkreise (Stimmung): bei „Grafik niedrig“ aus
 
@@ -83,6 +84,7 @@ func _ready() -> void:
 	# Ohne Zwischenbilder ruckelt jede Bewegung. Eingeschaltet ist sie nur für das, was die Physik bewegt
 	# (Figur, Gegner, Geschosse, Fuchs); alles andere bewegt sich ohnehin je Bild.
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	Karte.groesse(Stunden.hour_of(Spiel.fall))   # 3.4: Akt 1 hat doppelt so große Karten
 	W = Karte.GW
 	H = Karte.GH
 	sfx = Sfx.new()
@@ -138,9 +140,14 @@ func _ready() -> void:
 	karte_ui = KarteAnzeige.new()
 	karte_ui.setup(self, karte)
 	karte_ui.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	var ks := Vector2(Karte.GW, Karte.GH) * (2.6 if touch else 3.6)
+	# gleich breit wie früher, auch wenn die Karte größer ist
+	var ks := Vector2(Karte.GW, Karte.GH) * (2.6 if touch else 3.6) * float(Karte.GW0) / float(Karte.GW)
 	karte_ui.size = ks
 	karte_ui.position = Vector2(-ks.x - 16, 112 if touch else 86)
+	karte_ui.mouse_filter = Control.MOUSE_FILTER_STOP
+	karte_ui.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			toggle_karte())
 	hud.root.add_child(karte_ui)
 	if touch:
 		auto_low_done = true
@@ -254,6 +261,18 @@ func toggle_bag() -> void:
 		get_tree().paused = true
 		Spiel.neu = 0
 		hud.show_bag()
+
+# große Karte (3.4): Tab, am Handy ein Tipp auf die kleine Karte; das Spiel steht, solange sie offen ist
+func toggle_karte() -> void:
+	if not started or hero.dead:
+		return
+	if hud.karte_open:
+		sfx.play("ui")
+		hud.close_bag()
+	elif hud.overlay == null and not get_tree().paused:
+		sfx.play("ui")
+		get_tree().paused = true
+		hud.show_karte()
 
 func add_site(kind: String, pos: Vector3, v: int) -> void:
 	orte.add(kind, pos, v)
@@ -1490,11 +1509,38 @@ func on_hero_dead() -> void:
 		for b in bolts:
 			b.n.queue_free()
 		bolts.clear()
-		hero.revive(start_pos)
+		var wo := rueckkehr_ort(hero.global_position)
+		rueck_pos = wo
+		hero.revive(wo)
 		if pet:
-			pet.global_position = start_pos + Vector3(-1.2, 0, 1.2)
-		cam_pos = start_pos
+			pet.global_position = wo + Vector3(-1.2, 0, 1.2)
+		cam_pos = wo
+		if wo.distance_to(start_pos) > 1.0:
+			sfx.play("rueckkehr" if sfx._stream("rueckkehr") else "ui")
+			hud.toast("Du erwachst an einer Feuerschale, die du entzündet hast.", 3.0)
 		get_tree().paused = false)
+
+# Rückkehrpunkt nach einer Niederlage (3.4): die nächste entzündete Feuerschale, an der kein Gegner wartet, sonst der Eingang
+func rueckkehr_ort(tod: Vector3) -> Vector3:
+	var best := start_pos
+	var bd := tod.distance_to(start_pos)
+	for s in orte.sites:
+		if s.kind != "feuer" or not s.done:
+			continue
+		var p: Vector3 = s.pos
+		var d := tod.distance_to(p)
+		if d >= bd:
+			continue
+		if live_foes().any(func(f): return f.kind != "boss" and f.global_position.distance_to(p) < 10.0):
+			continue
+		# neben die Schale, nicht hinein: eine freie Stelle ringsum
+		for i in 8:
+			var q: Vector3 = p + Vector3(cos(TAU * i / 8.0), 0, sin(TAU * i / 8.0)) * 1.8
+			if walkable(p, q) and not astar.is_point_solid(_sub(q)):
+				best = q
+				bd = d
+				break
+	return best
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
 func _build_gate(pos: Vector3) -> void:
@@ -1802,7 +1848,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_F: hud.toggle_fps()
 			KEY_G: set_low(not low_gfx)
 			KEY_V: toggle_fullscreen()
-			KEY_I, KEY_TAB: toggle_bag()
+			KEY_I: toggle_bag()
+			KEY_TAB: toggle_karte()
 			KEY_M: sfx.set_muted(not sfx.muted)
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.talked and orte.near_npc() \
 			and mouse_ground().distance_to(orte.npc.pos) < 1.8 and not hud.mouse_over_ui():

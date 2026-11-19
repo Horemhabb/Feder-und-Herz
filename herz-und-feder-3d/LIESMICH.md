@@ -200,6 +200,13 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 3.4: Größere Stunden, Rückkehr am Feuer, die große Karte
+
+- **Doppelte Fläche für Akt 1:** Die Stunden 1 bis 4 haben 74 × 56 Zellen (etwa 148 × 112 m) statt 52 × 40. Was eine Stunde füllt, wächst mit der Fläche: im Dungeon doppelt so viele Räume (und damit Rudel, Truhen, Teppiche), im Freiland doppelt so viele Bauten, Rudelplätze, Felsen, Palmen und Türme, zwei Oasen statt einer und zwei Wehrmauern, die die Stunde in Abschnitte teilen. Dazu fünf zusätzliche Orte (drei Feuerschalen, ein Krug, ein Schrein). Stunde 1 hat jetzt rund 97 Gegner statt 55, Stunde 2 rund 52 statt 20. Die Stunden ab 5 bleiben vorerst, wie sie sind (`Karte.groesse`).
+- **Rückkehr am Feuer:** Nach einer Niederlage erwacht man an der nächsten entzündeten Feuerschale, an der kein Gegner wartet (sonst am Eingang). Ein Hinweis und ein eigener Klang sagen, wo.
+- **Große Karte:** Tab (am Handy: die kleine Karte antippen) zeigt die Karte der Stunde groß, mit Legende: Feuerschalen (gefüllt = Rückkehrpunkt), Schrein des Thot, Werkstatt, Rudel, Fundstück, Pforte. Im Dungeon nur, was man schon gesehen hat. Die Tasche liegt seitdem nur noch auf I.
+- **Leistung:** Die Kamera sieht so viel wie vorher; die Zeichenaufrufe in Stunde 1 liegen weiter zwischen etwa 375 und 475. Der Aufbau der Welt dauert wenige Sekunden.
+
 ### Fassung 3.3: Ein Baum, der wie ein Baum wächst
 
 - **Der Fähigkeitenbaum ist ein Baum** (`scripts/baum.gd`, Daten in `Klassen.baum`): unten der Stamm, darüber drei Äste mit eigenem Thema (Eidträger: Klinge, Licht, Eid · Priester: Faust, Atem, Ka · Jägerin: Fächer, Neith, Sachmet · Sternleserin: Gewitter, Sterne, Wort). 23 Knoten je Klasse: fünf Fähigkeiten (rund, mit ihrem Relief), an jeder die Blätter Wucht und Eile, sechs dauerhafte Stärken (Rauten) und der Schlüsselstein oben am mittleren Ast. Zwei Querverbindungen lassen andere Wege zu.
