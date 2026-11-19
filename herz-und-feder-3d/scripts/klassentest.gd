@@ -136,21 +136,48 @@ func run() -> void:
 					h.cast(id)
 					await wait(1.6)
 				check("%s trifft (%.0f Schaden)" % [name, harm(G) - before], harm(G) > before)
-	# Fähigkeitenbaum
+	# Fähigkeitenbaum (seit 3.3 ein Baum: lernbar nur neben Gelerntem)
 	Spiel.tree = {"r": {}, "a": {}, "p": {}, "key": false}
 	var s1: String = h.ORDER[0]
 	var pw0 := Spiel.sk_pow(s1)
 	check("Rang erhöhen kostet einen Punkt", Spiel.tree_rank_up(s1) and Spiel.tree_rank_up(s1) and Spiel.tree_points() == Spiel.lvl + 1 - 2)
 	check("Wucht ab Rang 2 macht stärker", Spiel.tree_aug(s1, "wucht") and Spiel.sk_pow(s1) > pw0 + 0.3)
+	check("Baum: ein Knoten ohne gelernten Nachbarn lässt sich nicht lernen", not Spiel.tree_passive("scharf") and not Spiel.tree_rank_up(h.ORDER[3]))
 	var hp0: float = Spiel.S.max_hp
-	Spiel.tree_passive("zaeh")
-	check("Starker Ka erhöht das Leben", Spiel.S.max_hp > hp0)
-	check("Schlüsselstein erst ab 8 Punkten", not Spiel.tree_key())
-	for k in 5:
-		Spiel.tree_passive("scharf")
-	check("Schlüsselstein ab 8 Punkten", Spiel.tree_key() and Spiel.has_key())
-	Spiel.shards = 999
-	check("Zurücksetzen gibt alle Punkte zurück", Spiel.respec() and Spiel.tree_points() == Spiel.lvl + 1)
+	check("Starker Ka hängt am Stamm und erhöht das Leben", Spiel.tree_passive("zaeh") and Spiel.S.max_hp > hp0)
+	check("Schlüsselstein: ohne Weg und vor 8 Punkten nicht", not Spiel.tree_key())
+	# der Weg zum Schlüsselstein: rechte Maustaste, Taste 3, Fülle des Hapi
+	Spiel.tree_rank_up(h.ORDER[4])
+	Spiel.tree_rank_up(h.ORDER[2])
+	Spiel.tree_passive("kraft")
+	Spiel.tree_passive("kraft")
+	check("Schlüsselstein über den mittleren Ast ab 8 Punkten (%d)" % Spiel.tree_spent(), Spiel.tree_key() and Spiel.has_key())
+	check("Baum gültig: alles hängt am Stamm", Spiel.baum_gueltig())
+	var heil: Dictionary = Spiel.tree.duplicate(true)
+	Spiel.tree.p["jaeger"] = 1   # ein Stück ohne Weg dorthin, wie es ein alter Spielstand haben kann
+	check("Baum ungültig, wenn etwas nicht am Stamm hängt", not Spiel.baum_gueltig())
+	Spiel.tree = heil
+	check("Umlernen (am Schrein des Thot) gibt alle Punkte zurück und kostet nichts", Spiel.respec() and Spiel.tree_points() == Spiel.lvl + 1 and Spiel.respec_cost() == 0)
+	# alte Spielstände (3.3): ein Baum, der am Stamm hängt, bleibt; einer, der es nicht tut, wird zurückgegeben
+	Spiel.tree = {"r": {h.ORDER[0]: 2}, "a": {}, "p": {"zaeh": 1}, "key": false}
+	Spiel.speichern()
+	var roh: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Spiel.DATEI))
+	roh["regel"] = 3
+	var f := FileAccess.open(Spiel.DATEI, FileAccess.WRITE)
+	f.store_string(JSON.stringify(roh))
+	f.close()
+	Spiel.laden()
+	check("alter Spielstand mit gültigem Baum: bleibt, wie er war", Spiel.rank(h.ORDER[0]) == 2 and Spiel.pas("zaeh") == 1 and not Spiel.baum_neu)
+	roh["tree"] = {"r": {h.ORDER[3]: 3}, "a": {}, "p": {"scharf": 2}, "key": false}
+	f = FileAccess.open(Spiel.DATEI, FileAccess.WRITE)
+	f.store_string(JSON.stringify(roh))
+	f.close()
+	Spiel.laden()
+	check("alter Spielstand mit losem Baum: Punkte zurück, Hinweis steht an", Spiel.tree_spent() == 0 and Spiel.baum_neu and Spiel.tree_points() == Spiel.lvl + 1 + Spiel.tree_frei)
+	Spiel.baum_neu = false
+	Spiel.lvl = 12
+	Spiel.auto_lernen()
+	check("auto_lernen geht vom Stamm aus und lernt alle Fähigkeiten der Stufe", h.ORDER.all(func(i): return i == "potion" or Spiel.gelernt(i) or not Spiel.lernbar(i)) and Spiel.baum_gueltig())
 	await wait(0.2)
 	get_tree().paused = true
 	await wait(0.1)

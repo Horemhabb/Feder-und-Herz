@@ -112,7 +112,7 @@ func run() -> void:
 	await wait(0.3)
 	check("Aufstieg: Ankündigung in der Bildmitte, weitere stehen an (%d)" % G.hud.ann_queue.size(), G.hud.ann_box != null and G.hud.ann_queue.size() >= 3)
 	check("freie Punkte: goldener Knopf über der Leiste", G.hud.punkt_btn.visible and ("%d Fähigkeitenpunkt" % Spiel.tree_points()) in G.hud.punkt_btn.text and Spiel.tree_points() >= 4)
-	check("auf Stufe 5 sind alle Fähigkeiten lernbar", G.hud.skill_ui["udjat"].lock.text == "LERNEN" and Klassen.unlock_lvl("ermittler", "udjat") == 5)
+	check("auf Stufe 5: Eid neben dem Strahl ist lernbar, zum Blick des Udjat fehlt noch der Weg", G.hud.skill_ui["oath"].lock.text == "LERNEN" and G.hud.skill_ui["udjat"].lock.text == "WEG FEHLT" and Klassen.unlock_lvl("ermittler", "udjat") == 5)
 	Spiel.auto_lernen()
 	await wait(0.2)
 	check("alle gelernt: keine Sperre mehr auf der Leiste", G.hud.skill_ui["udjat"].lock.text == "" and Spiel.gelernt("oath"))
@@ -435,6 +435,7 @@ func run() -> void:
 	await wait(1.0)
 	check("Eintreten startet die zweite Stunde", G2.started and not get_tree().paused and G2.foes.size() > 10 and G2.chests.size() > 0)
 	check("Hüter der zweiten Stunde ist die Mutter der Häute", G2.boss.K.name == "Die Mutter der Häute")
+	check("Schrein des Thot steht auch in der zweiten Stunde (Dungeon)", not G2.orte.thot.is_empty())
 	G2.go_hour(1)
 	await wait(2.5)
 	var G3 := g()
@@ -513,6 +514,22 @@ func run() -> void:
 	check("Ba ohne Namen: Stück tragen, heimführen, Herz leichter", weichen and Spiel.ba_heim == bh + 1 and not BO.traegt_kartusche() and BO.quest("namenlos").done and Spiel.herz >= herz0 and not BO.nl.n.visible)
 	var reigen: Array = G3.foes.filter(func(f): return f.style == "reigen")
 	check("Reigen: reine Irrlicht-Schwärme tanzen und tragen eine Lichtspur", reigen.is_empty() or reigen.all(func(f): return f.has_meta("spur")))
+	# Schrein des Thot (3.3): steht in jeder Stunde, dort wird kostenlos umgelernt, danach öffnet sich der Baum
+	check("Schrein des Thot steht in der ersten Stunde (Freiland)", not G3.orte.thot.is_empty())
+	if not G3.orte.thot.is_empty():
+		G3.hero.global_position = frei_neben(G3, G3.orte.thot.pos, 2.0)
+		Spiel.auto_lernen()
+		var sp_vor := Spiel.tree_spent()
+		await wait(0.2)
+		G3.orte.thot_reden()
+		await wait(0.3)
+		G3.hud.press_option(0)
+		await wait(0.5)
+		check("Thot: Umlernen gibt alle %d Punkte zurück und öffnet den Baum" % sp_vor, sp_vor > 0 and Spiel.tree_spent() == 0 and G3.hud.tree_open)
+		if G3.hud.tree_open:
+			G3.toggle_tree()
+		await wait(0.3)
+		Spiel.auto_lernen()
 	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
 	var LB: Leben = G3.leben
 	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)

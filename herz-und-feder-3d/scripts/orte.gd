@@ -9,14 +9,15 @@ class_name Orte extends Node
 
 const GOETTER := [
 	{"id": "sachmet", "name": "Sachmet", "col": Color(1.0, 0.36, 0.25), "txt": "Schaden +30 %", "dur": 60.0},
-	{"id": "thot", "name": "Thot", "col": Color(0.55, 0.75, 1.0), "txt": "Erfahrung +50 %", "dur": 90.0},
+	{"id": "seschat", "name": "Seschat", "col": Color(0.55, 0.75, 1.0), "txt": "Erfahrung +50 %", "dur": 90.0},   # bis 3.2 Thot; der hat seit 3.3 seinen eigenen Schrein zum Umlernen
 	{"id": "isis", "name": "Isis", "col": Color(0.5, 1.0, 0.7), "txt": "geheilt, Leben kehrt zurück", "dur": 45.0},
 	{"id": "bastet", "name": "Bastet", "col": Color(1.0, 0.85, 0.4), "txt": "Lauftempo +25 %", "dur": 60.0},
 	{"id": "hathor", "name": "Hathor", "col": Color(1.0, 0.6, 0.85), "txt": "Fundchance +60 %", "dur": 90.0},
 ]
-const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": "", "werkstatt": "Werkstatt des Ptah"}
+const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": "", "werkstatt": "Werkstatt des Ptah", "thot": "Schrein des Thot"}
 
 var game: Node
+var thot: Dictionary = {}    # Schrein des Thot (3.3): hier wird umgelernt
 var G: Dictionary            # Geschichte dieser Stunde
 var sites: Array = []        # {kind, pos, v, done, vis, label, asked}
 var quests: Array = []       # {id, titel, text, done}
@@ -71,7 +72,7 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			# der Gott ist da: Licht fällt auf den Schrein, um ihn glüht ein Kreis seiner Zeichen
 			game.stimmung.append(Stimmung.lichtstrahl(game, pos, 7.5, 1.9, god.col.lerp(Color(1.0, 0.9, 0.7), 0.45), 0.34, 0.22, 0.6))
 			game.stimmung.append(Stimmung.runenkreis(game, pos, 2.0, god.col, 0.55))
-			text = "Schrein der %s" % god.name if god.id != "thot" else "Schrein des Thot"
+			text = "Schrein der %s" % god.name
 			col = god.col
 			size = Vector3(1.3, 2.2, 1.3)
 		"krug":
@@ -99,6 +100,14 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			s["vis"] = Deko.such(game, pos, L.ding)
 			text = L.eins
 			col = Color(0.95, 0.95, 0.85)
+		"thot":
+			# Thot, der Schreiber der Götter: Hier wischt er die Tafel glatt, und man lernt neu (3.3)
+			s["vis"] = Deko.schrein(game, pos, Color(0.55, 0.75, 1.0))
+			game.stimmung.append(Stimmung.lichtstrahl(game, pos, 7.0, 1.6, Color(0.6, 0.78, 1.0), 0.3, 0.2, 0.5))
+			game.stimmung.append(Stimmung.runenkreis(game, pos, 1.8, Color(0.55, 0.75, 1.0), 0.5))
+			col = Color(0.62, 0.8, 1.0)
+			size = Vector3(1.3, 2.2, 1.3)
+			thot = s
 		"werkstatt":
 			# zum Eingang hin offen; der Goldschmied steht zwischen Ofen und Amboss
 			var zu: Vector3 = game.start_pos - pos
@@ -130,6 +139,7 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 		"helfer": wer = L.get("titel", "")
 		"werkstatt": wer = "Goldschmied · antippen" if game.touch else "Goldschmied · Taste E"
 		"schrein": wer = "Segen für eine Weile"
+		"thot": wer = "umlernen · antippen" if game.touch else "umlernen · Taste E"
 		"krug": wer = "ein gefangenes Herz"
 		"feuer": wer = "entzünden"
 	if wer != "":
@@ -273,7 +283,7 @@ func tick(delta: float) -> void:
 		d.y = 0.0
 		var dist := d.length()
 		s.label.visible = dist < 11.0 and (not s.done or s.kind == "figur")
-		if s.kind == "werkstatt":
+		if s.kind == "werkstatt" or s.kind == "thot":
 			s.label.visible = dist < 14.0
 		if s.has("label2"):
 			s.label2.visible = s.label.visible and dist < 7.0
@@ -295,8 +305,8 @@ func tick(delta: float) -> void:
 			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004
 		if not frei or s.done and s.kind != "figur" and s.kind != "helfer":
 			continue
-		if s.kind == "werkstatt":
-			continue   # öffnet sich nicht im Vorbeigehen: E drücken oder den Goldschmied antippen
+		if s.kind == "werkstatt" or s.kind == "thot":
+			continue   # öffnet sich nicht im Vorbeigehen: E drücken oder antippen
 		if s.kind == "helfer":
 			if not helfer_talked and dist < 3.2 and not s.asked:
 				s.asked = true
@@ -655,6 +665,32 @@ func werkstatt_oeffnen() -> void:
 	game.hud.show_werkstatt()
 	if not Spiel.gesehen("werkstatt"):
 		Spiel.merke("werkstatt")
+
+# ---------------------------------------------------------------- Schrein des Thot (3.3)
+func near_thot() -> bool:
+	return not thot.is_empty() and game.hero != null and (thot.pos - game.hero.global_position).length() < 3.6
+
+func thot_reden() -> void:
+	if thot.is_empty() or game.hero.dead or game.hud.overlay != null:
+		return
+	get_tree().paused = true
+	game.sfx.play("thot" if game.sfx._stream("thot") else "ui")
+	var zu := func(): get_tree().paused = false
+	var baum := func():
+		get_tree().paused = false
+		game.toggle_tree()
+	if Spiel.tree_spent() == 0:
+		game.hud.show_dialog("SCHREIN DES THOT", "Thot, Schreiber der Götter", "", ["Die Tafel vor dem Ibis ist leer. „Was du noch nicht geschrieben hast, muss ich nicht löschen.“"], [["Zum Fähigkeitenbaum", baum], ["Gehen", zu]])
+		return
+	var neu := func():
+		Spiel.respec()
+		game.hero.apply_stats()
+		game.sfx.play("thot" if game.sfx._stream("thot") else "ui")
+		game.hud.toast("Thot wischt die Tafel glatt: %d Punkte sind frei." % Spiel.tree_points(), 3.5)
+		get_tree().paused = false
+		game.toggle_tree()   # gleich neu verteilen: ohne Gelerntes stünde man sonst mit leeren Händen da
+	game.hud.show_dialog("SCHREIN DES THOT", "Thot, Schreiber der Götter", "", ["Der Ibis neigt den Kopf und hält dir die Tafel hin, auf der steht, was du gelernt hast. „Ich kann es glatt wischen. Dann schreibst du neu, Wort für Wort, mit allen Punkten, die du hattest. Es kostet nichts als die Mühe.“"],
+		[["Umlernen: alle Punkte zurück", neu], ["Lieber nicht", zu]])
 
 func near_helfer() -> bool:
 	return not helfer.is_empty() and (helfer.pos - game.hero.global_position).length() < 4.0

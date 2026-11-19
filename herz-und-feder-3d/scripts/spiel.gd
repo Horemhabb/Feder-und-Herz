@@ -33,6 +33,7 @@ var ba_heim := 0         # so viele Ba ohne Namen hat die Figur heimgeführt (2.
 var einst := {"laut": 1.0, "musik": 1.0}   # Einstellungen (3.0): gelten für alle Figuren, eigene Datei
 const EINST_DATEI := "user://einstellungen.json"
 var wissen := {}         # was die Figur schon gesehen, gehört oder erklärt bekommen hat (3.0): Lexikon, Hinweise, Textwahl
+var baum_neu := false   # 3.3: der alte Baum passte nicht mehr, die Punkte sind zurückgegeben (einmal sagen)
 var tree_frei := 0       # geschenkte Punkte (3.0): alte Spielstände behalten ihre schon nutzbaren Fähigkeiten
 var urteil5 := ""        # Urteil am Ende der fünften Stunde: "leicht", "schwer" oder "schwebe" (Farbe des Tuchs)
 var wahl := {}           # Entscheidungen je Stunde der Nacht: "1" → "maat" oder "isfet"
@@ -89,6 +90,7 @@ func neue_figur(c: String, d: int, hardcore: bool) -> void:
 	urteil5 = ""
 	ba_heim = 0
 	tree_frei = 0
+	baum_neu = false
 	wissen = {}
 	segen = {}
 	calc()
@@ -139,7 +141,7 @@ func calc() -> void:
 		"regen": C.regen + a.regen + pas("kraft") + 2.0 * leicht,
 		"loh": float(a.loh),
 		"thorns": float(a.thorns),
-		"xp_mul": 1.0 + a.xp / 100.0 + 0.1 * leicht + (0.5 if segen.has("thot") else 0.0),
+		"xp_mul": 1.0 + a.xp / 100.0 + 0.1 * leicht + (0.5 if segen.has("seschat") else 0.0),
 		"find": 1.0 + a.find / 100.0 + (0.6 if segen.has("hathor") else 0.0),
 		"cone": (1.35 if legs.has("sight") else 1.0) * (1.0 + 0.125 * leicht),
 		"shard": 1.0 + 0.25 * schwer,
@@ -207,15 +209,58 @@ func gelernt(id: String) -> bool:
 func lernbar(id: String) -> bool:
 	return Klassen.unlock_lvl(cls, id) <= lvl
 
-# Tests und der Spielroboter lernen der Reihe nach, was die Stufe hergibt
+# ---- Baum als Baum (3.3): Ein Knoten ist gelernt, wenn er im Spielstand steht; lernbar nur neben Gelerntem.
+func knoten_gelernt(key: String) -> bool:
+	if key == "w":
+		return true
+	if key == "k":
+		return bool(tree.key)
+	if key.begins_with("s:"):
+		return rank(key.substr(2)) > 0
+	if key.begins_with("p:"):
+		return pas(key.substr(2)) > 0
+	if key.begins_with("a:"):
+		var t := key.split(":")
+		return aug(t[1]) == t[2]
+	return false
+
+func nachbar_gelernt(key: String) -> bool:
+	var B := Klassen.baum(cls)
+	for n in B.nachbarn.get(key, []):
+		if knoten_gelernt(n):
+			return true
+	return false
+
+# Hängt alles Gelernte über gelernte Knoten am Stamm? (Prüfung alter Spielstände)
+func baum_gueltig() -> bool:
+	var B := Klassen.baum(cls)
+	var gesehen := {"w": true}
+	var q := ["w"]
+	while not q.is_empty():
+		var k: String = q.pop_back()
+		for n in B.nachbarn.get(k, []):
+			if not gesehen.has(n) and knoten_gelernt(n):
+				gesehen[n] = true
+				q.append(n)
+	for k in B.knoten:
+		if knoten_gelernt(k) and not gesehen.has(k):
+			return false
+	return true
+
+# Tests und der Spielroboter lernen der Reihe nach, was die Stufe hergibt: jede Fähigkeit Rang 1, vom Stamm nach außen
 func auto_lernen() -> void:
-	for id in Klassen.order(cls):
-		if id != "potion" and rank(id) == 0 and lernbar(id) and tree_points() > 0:
-			tree.r[id] = 1
+	var mehr := true
+	while mehr and tree_points() > 0:
+		mehr = false
+		for id in Klassen.order(cls):
+			if id != "potion" and rank(id) == 0 and lernbar(id) and tree_points() > 0 and nachbar_gelernt("s:" + id):
+				tree.r[id] = 1
+				mehr = true
 	calc()
 
+# Umlernen kostet seit 3.3 nichts mehr, geht aber nur am Schrein des Thot
 func respec_cost() -> int:
-	return 10 + 3 * lvl
+	return 0
 
 func has_key() -> bool:
 	return bool(tree.key)
@@ -233,8 +278,8 @@ func sk_upw(id: String) -> float:
 func tree_rank_up(id: String) -> bool:
 	if tree_points() <= 0 or rank(id) >= Klassen.SK_RANKS:
 		return false
-	if rank(id) == 0 and not lernbar(id):
-		return false   # erst ab der Stufe der Fähigkeit
+	if rank(id) == 0 and (not lernbar(id) or not nachbar_gelernt("s:" + id)):
+		return false   # erst ab der Stufe der Fähigkeit und nur neben schon Gelerntem
 	tree.r[id] = rank(id) + 1
 	calc()
 	speichern()
@@ -254,22 +299,23 @@ func tree_aug(id: String, a: String) -> bool:
 func tree_passive(id: String) -> bool:
 	if tree_points() <= 0 or pas(id) >= Klassen.SK_RANKS:
 		return false
+	if pas(id) == 0 and not nachbar_gelernt("p:" + id):
+		return false
 	tree.p[id] = pas(id) + 1
 	calc()
 	speichern()
 	return true
 
 func tree_key() -> bool:
-	if tree.key or tree_points() <= 0 or tree_spent() < Klassen.KEY_NEED:
+	if tree.key or tree_points() <= 0 or tree_spent() < Klassen.KEY_NEED or not nachbar_gelernt("k"):
 		return false
 	tree.key = true
 	speichern()
 	return true
 
 func respec() -> bool:
-	if shards < respec_cost() or tree_spent() == 0:
+	if tree_spent() == 0:
 		return false
-	shards -= respec_cost()
 	tree = {"r": {}, "a": {}, "p": {}, "key": false}
 	calc()
 	speichern()
@@ -367,7 +413,7 @@ func xp_gain(v: float) -> bool:
 func speichern() -> void:
 	var d := {"v": VERSION, "fall": fall, "lvl": lvl, "xp": xp, "eq": eq, "bag": bag, "muted": muted, "itemId": item_id,
 		"shards": shards, "evid": evid, "cls": cls, "diff": diff, "hc": hc, "mats": mats, "maxFall": max_fall, "tree": tree,
-		"herz": herz, "wahl": wahl, "urteil5": urteil5, "baHeim": ba_heim, "treeFrei": tree_frei, "regel": 3, "wissen": wissen.keys()}
+		"herz": herz, "wahl": wahl, "urteil5": urteil5, "baHeim": ba_heim, "treeFrei": tree_frei, "regel": 4, "wissen": wissen.keys()}
 	var f := FileAccess.open(DATEI, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -454,5 +500,9 @@ func laden() -> void:
 			if r0 < Klassen.SK_RANKS:
 				tree.r[id] = r0 + 1
 				tree_frei += 1
+	if int(d.get("regel", 0)) < 4 and not baum_gueltig():
+		# 3.3: Der Baum ist ein Baum geworden. Hängt etwas nicht mehr am Stamm, gibt es alle Punkte zurück zum Neuverteilen.
+		tree = {"r": {}, "a": {}, "p": {}, "key": false}
+		baum_neu = true
 	pots = Daten.POTS
 	hat_stand = true

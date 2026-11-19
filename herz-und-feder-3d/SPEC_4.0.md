@@ -4,9 +4,11 @@ Stand: 19.11.2026, nach Fassung 3.0. **Verbindlich** seit dem ausgefüllten Frag
 Abschnitt 0). Die Abschnitte 2 bis 11 sind der ursprüngliche Entwurf; wo der Fragebogen anders entschieden hat, gilt Abschnitt 0.
 
 **Fortschritt:** 3.1 erledigt (Pforte, 36 Ansagen, Klangkulisse in drei Schichten, Musik nach Lage, leisere Schritte,
-Ladeklang). 3.2 erledigt (Leute mit Sprechblasen und Bitten, sieben Tierarten, Pflanzen, Fundstücke). Offen: 3.3 Baum ·
-3.4 große Karten · 4.0 Akt 1 mit Türhüter. Der Stillstand des Bots in Stunde 1 ist behoben (Hindernisse sperrten in der
-Wegsuche nur ihre Mittelzelle); er besiegt dort jetzt alle 55 Gegner in etwa 90 Sekunden.
+Ladeklang). 3.2 erledigt (Leute mit Sprechblasen und Bitten, sieben Tierarten, Pflanzen, Fundstücke). 3.3 erledigt
+(Baum mit drei Ästen und 23 Knoten, Nachbarregel, Schrein des Thot; der Ausbau auf 25 bis 35 Knoten folgt). Offen:
+3.4 große Karten · 4.0 Akt 1 mit Türhüter. Der Stillstand des Bots in Stunde 1 ist eingegrenzt und entschärft (Hindernisse
+sperrten in der Wegsuche nur ihre Mittelzelle); er besiegt dort jetzt alle 55 Gegner in etwa 90 Sekunden. Ob er in den
+Stunden 1 bis 4 bis zur Pforte kommt, ist noch nicht gemessen.
 
 ## 0. Entscheidungen aus dem Fragebogen
 

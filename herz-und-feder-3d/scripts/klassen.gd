@@ -102,6 +102,74 @@ const KEYSTONE := {
 }
 const KEY_NEED := 8
 
+# ---------------------------------------------------------------- Fähigkeitenbaum als Baum (3.3)
+# Ein Stamm unten (frei, immer da), drei Äste mit eigenem Thema. Knoten: Fähigkeiten (s:), ihre Verstärkungen Wucht und
+# Eile als kleine Blätter (a:id:wucht, a:id:eile; nur eine von beiden, ab Rang 2), dauerhafte Stärken (p:) und der
+# Schlüsselstein (k) oben am mittleren Ast. Gelernt werden kann nur, was neben schon Gelerntem liegt.
+# Die Fähigkeiten der Stufe 1 (Taste 1 und rechte Maustaste) hängen direkt am Stamm; die übrigen liegen so, dass man sie
+# auf ihrer Stufe über reine Fähigkeitswege erreicht (Taste 2 über Taste 1, Taste 3 über die rechte Maustaste,
+# Taste 4 über Taste 3). Zwei Querverbindungen machen die Wege freier.
+const AESTE := {
+	"ermittler": ["Klinge", "Licht", "Eid"],
+	"moench": ["Faust", "Atem", "Ka"],
+	"jaegerin": ["Fächer", "Neith", "Sachmet"],
+	"forensiker": ["Gewitter", "Sterne", "Wort"],
+}
+# Lage im Bild (760 × 600, Stamm unten in der Mitte). Die Knoten heißen nach ihrer Rolle; s0 bis s3 sind die Tasten 1 bis 4, sr die rechte Maustaste.
+const LAGE := {
+	"w": Vector2(380, 545),
+	"s0": Vector2(245, 445), "s1": Vector2(160, 315), "p_hieb": Vector2(135, 190), "p_scharf": Vector2(205, 80),
+	"sr": Vector2(380, 420), "s2": Vector2(380, 292), "p_kraft": Vector2(380, 188), "k": Vector2(380, 84),
+	"p_zaeh": Vector2(515, 445), "p_flink": Vector2(600, 335), "s3": Vector2(560, 215), "p_jaeger": Vector2(625, 92),
+}
+# Blätter Wucht und Eile neben jeder Fähigkeit (Versatz zur Fähigkeit)
+const BLATT := {
+	"s0": [Vector2(-80, 14), Vector2(-74, 80)], "s1": [Vector2(-88, 10), Vector2(-62, -62)],
+	"sr": [Vector2(-70, -30), Vector2(70, -30)], "s2": [Vector2(-72, -34), Vector2(72, -34)],
+	"s3": [Vector2(-70, -60), Vector2(78, -6)],
+}
+const KANTEN := [["w", "s0"], ["w", "sr"], ["w", "p_zaeh"],
+	["s0", "s1"], ["s1", "p_hieb"], ["p_hieb", "p_scharf"],
+	["sr", "s2"], ["s2", "p_kraft"], ["p_kraft", "k"],
+	["p_zaeh", "p_flink"], ["p_flink", "s3"], ["s3", "p_jaeger"],
+	["s1", "s2"], ["s2", "s3"]]   # die zwei Querverbindungen
+
+static var _baum := {}
+
+# Der Baum einer Klasse: {"knoten": {Schlüssel: {art, ref, pos, ast}}, "nachbarn": {Schlüssel: [Schlüssel]}, "aeste": [Namen]}
+static func baum(cls: String) -> Dictionary:
+	if _baum.has(cls):
+		return _baum[cls]
+	var o: Array = order(cls)
+	var rolle := {"s0": "s:" + o[0], "s1": "s:" + o[1], "s2": "s:" + o[2], "s3": "s:" + o[3], "sr": "s:" + o[4], "k": "k", "w": "w"}
+	for pd in PASSIVES:
+		rolle["p_" + pd.id] = "p:" + pd.id
+	var ast := {"w": -1, "s0": 0, "s1": 0, "p_hieb": 0, "p_scharf": 0, "sr": 1, "s2": 1, "p_kraft": 1, "k": 1,
+		"p_zaeh": 2, "p_flink": 2, "s3": 2, "p_jaeger": 2}
+	var knoten := {}
+	var nachbarn := {}
+	for r in LAGE:
+		var key: String = rolle[r]
+		var art: String = "stamm" if r == "w" else ("schluessel" if r == "k" else ("faehigkeit" if r.begins_with("s") else "staerke"))
+		knoten[key] = {"art": art, "ref": key.substr(2) if key.length() > 2 else "", "pos": LAGE[r], "ast": ast[r]}
+		nachbarn[key] = []
+	for e in KANTEN:
+		var a: String = rolle[e[0]]
+		var b: String = rolle[e[1]]
+		nachbarn[a].append(b)
+		nachbarn[b].append(a)
+	for r in BLATT:
+		var sk: String = rolle[r]
+		var id: String = sk.substr(2)
+		for i in 2:
+			var aug: String = ["wucht", "eile"][i]
+			var key := "a:%s:%s" % [id, aug]
+			knoten[key] = {"art": "blatt", "ref": id, "aug": aug, "pos": LAGE[r] + BLATT[r][i], "ast": ast[r]}
+			nachbarn[key] = [sk]
+			nachbarn[sk].append(key)
+	_baum[cls] = {"knoten": knoten, "nachbarn": nachbarn, "aeste": AESTE[cls]}
+	return _baum[cls]
+
 # Reihenfolge der Leiste: Tasten 1–4, rechte Maustaste, Rotbier
 static func order(cls: String) -> Array:
 	var C: Dictionary = CLS[cls]

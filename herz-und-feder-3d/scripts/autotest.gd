@@ -251,6 +251,17 @@ func ort_bilder() -> void:
 				await get_tree().create_timer(0.3).timeout
 				shot("leben_" + z[0])
 			continue
+		if art == "baum":
+			# der Fähigkeitenbaum als Bild (3.3), mit ein paar gelernten Knoten
+			Spiel.lvl = 6
+			Spiel.auto_lernen()
+			Spiel.tree_passive("zaeh")
+			game.toggle_tree()
+			await get_tree().create_timer(0.8).timeout
+			shot("baum")
+			game.toggle_tree()
+			await get_tree().create_timer(0.3).timeout
+			continue
 		if art == "pforte":
 			# die Pforte (3.1): Sie steigt dort auf, wo der Hüter fiel; vier Bilder, während sie aufsteigt
 			var gp: Vector3 = Welt.cell_pos(game.karte.lair)
