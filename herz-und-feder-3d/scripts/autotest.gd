@@ -202,6 +202,22 @@ func ort_bilder() -> void:
 		if a.begins_with("--ort="):
 			arten = a.substr(6)
 	for art in arten.split(","):
+		if art == "pforte":
+			# die Pforte (3.1): Sie steigt dort auf, wo der Hüter fiel; vier Bilder, während sie aufsteigt
+			var gp: Vector3 = Welt.cell_pos(game.karte.lair)
+			var weg: Vector3 = game.start_pos - gp
+			weg = Vector3(0, 0, 1) if weg.z >= weg.x else Vector3(1, 0, 0)
+			game.boss.process_mode = Node.PROCESS_MODE_DISABLED
+			game.boss.visible = false
+			game.hero.global_position = gp + weg.normalized() * 4.5
+			game.cam_pos = game.hero.global_position
+			await get_tree().create_timer(1.0).timeout
+			game._build_gate(gp)
+			game.gate_ask = false
+			for i in 4:
+				await get_tree().create_timer(1.1).timeout
+				shot("pforte_%d" % i)
+			continue
 		for s in game.orte.sites:
 			if s.kind != art:
 				continue

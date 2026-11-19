@@ -62,6 +62,8 @@ var autotest: Node
 var slow_t := 0.0
 var auto_low_done := false
 
+var klang: Klang
+var gate_cine_t := 0.0   # so lange sieht die Kamera der aufsteigenden Pforte zu
 var cine_t := 0.0        # so lange blickt die Kamera zum Hüter, wenn er erwacht
 var staub: CPUParticles3D
 var stimmung: Array = []   # Lichtstrahlen, Nebelbänke, Runenkreise (Stimmung): bei „Grafik niedrig“ aus
@@ -140,6 +142,9 @@ func _ready() -> void:
 		set_low(true, true)
 	sfx.loop("amb_wind")
 	sfx.loop("amb_drone")
+	klang = Klang.new()
+	klang.game = self
+	add_child(klang)
 	sfx.music("mus_titel")
 	get_tree().paused = true
 	if "--autotest" in OS.get_cmdline_user_args():
@@ -165,6 +170,16 @@ func _ready() -> void:
 # Erzählerstimme (3.0): Es gibt vier Aufnahmen, und sie klangen in jeder Stunde gleich. Jede spielt jetzt nur noch
 # ein einziges Mal je Figur; danach erzählt allein der Text, der in jeder Stunde ein anderer ist.
 func sprich(name: String) -> void:
+	# seit 3.1 hat jede Stunde ihre eigenen Ansagen (Leitsatz, Satz des Hüters, Epilog); sie spielen einmal je Figur und Stunde
+	var art: String = {"vo_chapter": "lead", "vo_boss": "say", "vo_epi": "epi"}.get(name, "")
+	if art != "":
+		var eigen := "vo_h%02d_%s" % [Stunden.hour_of(Spiel.fall), art]
+		if ResourceLoader.exists("res://audio/%s.ogg" % eigen):
+			var k := "%s_n%d" % [eigen, Stunden.night_of(Spiel.fall)]
+			if not Spiel.gesehen(k):
+				Spiel.merke(k)
+				sfx.say(eigen)
+			return
 	if Spiel.gesehen(name):
 		return
 	Spiel.merke(name)
@@ -177,6 +192,7 @@ func begin() -> void:
 	sfx.hush()
 	started = true
 	sfx.music_set(area_music())
+	klang.starten(karte.kind if karte.indoor else "")
 	get_tree().paused = false
 	Spiel.speichern()
 	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
@@ -1460,56 +1476,50 @@ func on_hero_dead() -> void:
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
 func _build_gate(pos: Vector3) -> void:
-	gate = Node3D.new()
-	add_child(gate)
-	gate.global_position = pos + Vector3(0, -5.0, 0)
-	var stone := StandardMaterial3D.new()
-	stone.albedo_color = Color(0.36, 0.33, 0.28)
-	stone.roughness = 0.95
-	var parts := [[Vector3(-1.5, 2.1, 0), Vector3(0.7, 4.2, 0.9)], [Vector3(1.5, 2.1, 0), Vector3(0.7, 4.2, 0.9)], [Vector3(0, 4.5, 0), Vector3(4.2, 0.7, 1.0)], [Vector3(0, 5.05, 0), Vector3(4.8, 0.4, 1.2)]]
-	var sand := surf("sandstein_sims")
-	for pt in parts:
-		var m := MeshInstance3D.new()
-		if sand:
-			m.mesh = _block_mesh(pt[1], sand, 0.31)   # Fuß bei y = 0, darum um die halbe Höhe tiefer setzen
-			m.position = pt[0] - Vector3(0, pt[1].y / 2, 0)
-		else:
-			var bm := BoxMesh.new()
-			bm.size = pt[1]
-			m.mesh = bm
-			m.material_override = stone
-			m.position = pt[0]
-		gate.add_child(m)
-	var glowm := MeshInstance3D.new()
-	var gm := BoxMesh.new()
-	gm.size = Vector3(2.3, 4.1, 0.2)
-	glowm.mesh = gm
-	var gmat := StandardMaterial3D.new()
-	gmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	gmat.albedo_color = Color(0.62, 0.95, 0.92)
-	glowm.material_override = gmat
-	glowm.position = Vector3(0, 2.1, 0)
-	gate.add_child(glowm)
-	var sun := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.24
-	sm.height = 0.48
-	sun.mesh = sm
-	var smat := StandardMaterial3D.new()
-	smat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	smat.albedo_color = Color(1.0, 0.75, 0.3)
-	sun.material_override = smat
-	sun.position = Vector3(0, 4.5, 0.55)
-	gate.add_child(sun)
-	var l := OmniLight3D.new()
-	l.light_color = Color(0.55, 0.95, 0.9)
-	l.light_energy = 3.0
-	l.omni_range = 12.0
-	l.position = Vector3(0, 2.2, 1.2)
-	gate.add_child(l)
-	sfx.play("gate")
+	# Pylon in Stein und Farbe dieser Stunde; am Ende eines Aktes (Stunde 4, 8, 12) größer
+	# Die Kamera schaut immer schräg von +X/+Z herab. Darum wendet die Pforte ihr Gesicht (den gemalten Blick) einer
+	# dieser beiden Achsen zu, und zwar der, die eher zum Eingang der Stunde weist: So sieht man sie nie von hinten.
+	var zu := start_pos - pos
+	var rot := 0.0 if zu.z >= zu.x else PI / 2
+	var stein: Material = surf(Welt.LOOK.get(karte.kind if karte.indoor else "", Welt.LOOK[""]).wall)
+	var aktende := Stunden.hour_of(Spiel.fall) % 4 == 0
+	var pf := Deko.pforte(self, pos + Vector3(0, -7.5, 0), rot, stein, Stunden.def(Spiel.fall + 1), aktende)
+	gate = pf.n
+	pf.blick.set_shader_parameter("auf", 0.0)
+	sfx.play("tor_auf" if sfx._stream("tor_auf") else "gate")
+	# kleine Szene: Der Boden bebt, Sand rieselt, das Tor steigt auf, die Kamera fährt zurück und sieht hin
+	shake = maxf(shake, 0.55)
+	gate_cine_t = 3.2
+	var sandfall := CPUParticles3D.new()
+	sandfall.amount = 70
+	sandfall.lifetime = 1.6
+	sandfall.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	sandfall.emission_box_extents = Vector3(3.6, 0.2, 1.2)
+	sandfall.direction = Vector3(0, 1, 0)
+	sandfall.spread = 35.0
+	sandfall.initial_velocity_min = 1.0
+	sandfall.initial_velocity_max = 3.2
+	sandfall.gravity = Vector3(0, -4.0, 0)
+	sandfall.scale_amount_min = 0.6
+	sandfall.scale_amount_max = 1.4
+	var q := QuadMesh.new()
+	q.size = Vector2(0.12, 0.12)
+	var qm := StandardMaterial3D.new()
+	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	qm.albedo_color = Color(0.78, 0.68, 0.5, 0.7)
+	q.material = qm
+	sandfall.mesh = q
+	add_child(sandfall)
+	sandfall.global_position = pos + Vector3(0, 0.2, 0)
+	sandfall.emitting = true
+	get_tree().create_timer(3.4).timeout.connect(func():
+		sandfall.emitting = false
+		get_tree().create_timer(2.0).timeout.connect(sandfall.queue_free))
 	var tw := create_tween()
-	tw.tween_property(gate, "global_position:y", 0.0, 2.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(gate, "global_position:y", pos.y, 2.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(v: float): pf.blick.set_shader_parameter("auf", v), 0.0, 1.0, 1.2)
 	gate_t = 0.0
 	gate_ask = true
 
@@ -1710,8 +1720,12 @@ func _place_cam(delta: float, snap := false) -> void:
 	if cine_t > 0.0 and hueter:
 		cine_t -= delta
 		want = hp.lerp(boss.global_position, 0.6)
-	cam_pos = want if snap else cam_pos.lerp(want, 1.0 - exp(-delta * (3.0 if cine_t > 0.0 else 7.5)))
-	cam.fov = 30.0 if snap else lerpf(cam.fov, 33.5 if hueter else 30.0, 1.0 - exp(-delta * 2.0))
+	var torblick := gate_cine_t > 0.0 and gate != null
+	if torblick:
+		gate_cine_t -= delta
+		want = hp.lerp(gate.global_position, 0.6)
+	cam_pos = want if snap else cam_pos.lerp(want, 1.0 - exp(-delta * (3.0 if cine_t > 0.0 or torblick else 7.5)))
+	cam.fov = 30.0 if snap else lerpf(cam.fov, 36.0 if torblick else (33.5 if hueter else 30.0), 1.0 - exp(-delta * 2.0))
 	if staub:
 		staub.global_position = cam_pos + Vector3(0, 1.8, 0)
 	var off := Vector3(14.5, 27.0, 14.5) * NAH   # seit 2.6 ein Stück näher: Figuren und Tracht sind besser zu erkennen

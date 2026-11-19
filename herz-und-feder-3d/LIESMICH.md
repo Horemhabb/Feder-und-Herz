@@ -200,6 +200,18 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 3.1: Die Pforte, die Stimme und der Klang der Nacht
+
+Erste Etappe des großen Wurfs nach dem Fragebogen (siehe `SPEC_4.0.md`).
+
+- **Die Pforte ist neu.** Ein Pylon in Stein und Farbe der Stunde: zwei Türme mit Hohlkehle und Goldband, geflügelte Sonnenscheibe, Fries aus Zeichen, zwei Anubis-Wächter. Im Durchgang liegt ein gemalter Blick in die nächste Stunde (Himmel, Hügel, Sterne, ziehender Nebel, ein Licht in ihrer Farbe). Wenn der Hüter fällt, bebt der Boden, Sand rieselt, die Pforte steigt aus dem Boden, und die Kamera schaut hin. Am Ende eines Aktes (Stunde 4, 8, 12) ist sie größer. Sie wendet ihr Gesicht immer der Kamera zu.
+- **Erzähler je Stunde.** 36 Ansagen (Leitsatz, Satz des Hüters, Epilog für jede der zwölf Stunden) mit der Stimme „Samuel Storm“ von ElevenLabs. Jede spielt einmal je Figur, Stunde und Nacht.
+- **Klangkulisse in drei Schichten** (`scripts/klang.gd`): ein leiser Teppich je Landschaft (Wüste, Felder, Grab, Glas, Höhle), einzelne Geräusche aus zufälliger Richtung (Schakal, Falke, Esel, Maus, Skarabäus, Fledermäuse, Tropfen, fallende Steine, ein fernes Tor, ein Seufzen) und Quellen mit Ort im Raum: Wasserbecken, Schreine, Seelenkrüge (verstummen, wenn der Krug geöffnet ist), die Werkstatt, die Mitte jedes Reigens. 30 neue Aufnahmen (Sound Effects v2).
+- **Musik nach Lage:** Sind drei oder mehr wache Gegner in der Nähe, wechselt die Musik in den Kampf, und der Teppich tritt zurück; sechs Sekunden Ruhe beenden das.
+- **Schritte leiser und weicher:** etwa 9 dB leiser, mit Tiefpass und weichem Anschlag; sie liegen jetzt im Hintergrund.
+- **Klang auf dem Ladebildschirm:** ein 30-Sekunden-Teppich aus zwei Spuren (Ney-Flöte, Harfe, Wüstenwind, Fackeln, ferner Gesang, Sistrum), nahtlos geschleift. Browser spielen Ton erst nach einer Geste ab; darum beginnt er mit dem ersten Tippen oder Klick, der Knopf oben rechts schaltet ihn an oder aus (gemerkt), und wenn das Spiel startet, verklingt er in 2,5 Sekunden. Er steckt in der Startseite selbst (etwa 280 KB) und ist deshalb sofort da.
+- **Kosten bei ElevenLabs** für diese Fassung: etwa 3.500 Zeichen Sprache und gut 750 Credits Geräusche, zusammen unter einem Dollar.
+
 ### Fassung 3.0: Spielmenü, Werkstatt, Lexikon und eine Geschichte, die jeden abholt
 
 **Spiel**

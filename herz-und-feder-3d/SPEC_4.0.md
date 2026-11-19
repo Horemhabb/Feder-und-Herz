@@ -1,8 +1,52 @@
-# Herz und Feder · Spec Sheet für Fassung 4.0 (Entwurf)
+# Herz und Feder · Spec Sheet für Fassung 4.0
 
-Stand: 19.11.2026, nach Fassung 3.0. Dies ist ein Entwurf: Die Abschnitte nennen, was gebaut werden soll, wie ich es
-umsetzen würde, was es kostet (Aufwand, Ladezeit, Geld) und was noch zu entscheiden ist. Der Fragebogen am Ende
-sammelt die offenen Entscheidungen. Sobald er beantwortet ist, wird aus dem Entwurf die verbindliche Fassung.
+Stand: 19.11.2026, nach Fassung 3.0. **Verbindlich** seit dem ausgefüllten Fragebogen (34 von 35 Antworten, siehe
+Abschnitt 0). Die Abschnitte 2 bis 11 sind der ursprüngliche Entwurf; wo der Fragebogen anders entschieden hat, gilt Abschnitt 0.
+
+**Fortschritt:** 3.1 erledigt (Pforte, 36 Ansagen, Klangkulisse in drei Schichten, Musik nach Lage, leisere Schritte,
+Ladeklang). Offen: 3.2 Leute, Tiere, Pflanzen, Fundstücke · 3.3 Baum · 3.4 große Karten · 4.0 Akt 1 mit Türhüter.
+Befund der Messfahrt: Der Bot bleibt in Stunde 1 bei Zelle (17,9) stehen (keine wachen Gegner, 11 von 55 besiegt);
+das wird vor dem Feinschliff der Schwierigkeit in 4.0 untersucht.
+
+## 0. Entscheidungen aus dem Fragebogen
+
+| Frage | Entscheidung |
+|---|---|
+| A1 Akt 1 | Stunden 1 bis 4 |
+| A2 Umfang | Nur Akt 1 voll ausbauen; Akt 2 und 3 bekommen vorerst Akttafeln |
+| A3 Endgegner | Der Stumme Türhüter in drei Phasen, in Phase 3 fallen Sterne |
+| A4 Schwierigkeit | Gestaffelt (Normal: ein paar Tode am selben Abend; Schwer: Ausrüstung und Baum anpassen; Albtraum: gnadenlos). **Zusatz:** auch die leichteste Stufe um 25 % schwerer, Gegner gehen klüger vor |
+| A5 Niederlage beim Endgegner | Neu beginnen direkt vor seiner Arena |
+| A6 Lohn am Aktende | Ein legendäres Stück zur Wahl aus drei |
+| B1 Größe | Doppelte Fläche (etwa 150 × 110 m) |
+| B2 Dauer | 15 bis 20 Minuten je Stunde |
+| B3 Rückkehrpunkte | Ja, an entzündeten Feuerschalen |
+| B4 Reihenfolge | Zuerst nur die vier Stunden von Akt 1 vergrößern |
+| B5 Füllung | Dichte Bereiche, dazwischen stille Wege mit Fundorten. **Zusatz:** dazu Leute, Pflanzen, mehr Tiere und ab und zu typische Fundstücke aus dem alten Ägypten |
+| C1 Tiere | Skarabäen, Eidechsen, Wüstenmäuse, Falken am Himmel, Fische in den Becken, Esel, Fledermäuse in den Gräbern |
+| C2 Leute sprechen | Ja, ein Satz als Sprechblase |
+| C3 Schaden | Nein, sie weichen aus und sind unverwundbar |
+| C4 Aufträge | Etwa jede fünfte Person hat einen kleinen Auftrag |
+| C5 Wer sie sind | Offenlassen, bis die fünfte Stunde es auflöst |
+| D1 Ansagen | Mittel: Leitsatz, Satz des Hüters und Epilog je Stunde, 36 Aufnahmen (etwa 0,80 $) |
+| D2 Stimme | Samuel Storm bleibt |
+| D3 Stimmen der Figuren | Später entscheiden |
+| D4 Klangkulisse | Ja, rund 40 Geräusche, bis 0,40 $ |
+| D5 Schritte | Zu laut und zu zentral: sie sollen im Hintergrund mitlaufen |
+| D6 Musik | Die acht Stücke reichen, wenn sie auf die Lage reagieren |
+| E1 Lernregel | Ein Knoten ist nur lernbar neben einem schon gelernten |
+| E2 Umfang | Auf 25 bis 35 Knoten ausbauen, in zwei Schritten |
+| E3 Äste | Drei Äste mit je eigenem Thema |
+| E4 Umlernen | An einem eigenen Ort: Schrein des Thot |
+| E5 Vorbild | Kategorien wie bei Diablo 4 und das Freie, Verzweigte von Crimson Desert: das Beste aus beiden |
+| F1 Blick durch die Pforte | Ja, gemalt mit Bewegung |
+| F2 Szene beim Erscheinen | Ja |
+| F3 Aussehen | In Stein und Farbe der jeweiligen Stunde, am Aktende größer |
+| G1 Etappen | Reihenfolge passt |
+| G2 Zusätze | Große Karte, Gegner mit Eigenheiten je Akt, Gamepad am Rechner, Schwierigkeit nachträglich wechseln |
+| G3 Tonbudget | bis 5 $ |
+| G4 Geräte | Rechner und iPhone gleich wichtig |
+| G5 Störendes an 3.0 | keine Angabe |
 
 Warum „4.0“ und nicht „3.1“: Akte, doppelt so große Karten und ein neuer Fähigkeitenbaum ändern Spielstand,
 Balance und Aufbau der Welt. Das ist ein Versionssprung. Ich schlage vor, ihn in vier Etappen zu liefern

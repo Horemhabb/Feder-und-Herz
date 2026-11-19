@@ -758,6 +758,8 @@ func _jar(s: Dictionary, free: bool) -> void:
 	s.vis.light.light_energy = 0.0
 	s.vis.glow.emission_energy_multiplier = 0.0
 	s.vis.lid.visible = false
+	if s.get("herz_klang"):
+		s.herz_klang.stop()   # das Pochen hört auf
 	var n := Spiel.fall
 	if free:
 		_weigh(4.0)

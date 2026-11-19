@@ -11,6 +11,12 @@ WURZEL = pathlib.Path(__file__).resolve().parent.parent
 def daten(art, roh):
     return "data:%s;base64,%s" % (art, base64.b64encode(roh).decode())
 
+def klang():
+    # Ladeklang (3.1): zwei Spuren von ElevenLabs (Sound Effects v2, je 30 s, nahtlos), gemischt in
+    # tools/ton/lade_klang.mp3. Vorne und hinten stehen je 0,1 s aus dem anderen Ende der Schleife, damit
+    # die Polsterung des MP3-Kodierers nie in den Bereich fällt, den die Seite schleift (0,1 s bis 30,1 s).
+    return daten("audio/mpeg", (WURZEL / "tools/ton/lade_klang.mp3").read_bytes())
+
 def bild():
     im = Image.open(WURZEL / "ui/titel.webp").convert("RGB")
     im = im.resize((1280, round(1280 * im.height / im.width)), Image.LANCZOS)
@@ -62,6 +68,15 @@ h1 {
 @keyframes wandern { from { left: -10%; } to { left: 75%; } }
 .zeile { display: flex; justify-content: space-between; margin-top: .55em; font-size: 14px; letter-spacing: .08em; color: #c9b88e; }
 #spruch { min-height: 2.6em; margin-top: .9em; font-size: clamp(13px, 2.1vw, 16px); line-height: 1.3; color: #d9c79a; font-style: italic; transition: opacity .5s; }
+#ton {
+	position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 3;
+	min-width: 44px; height: 44px; padding: 0 14px; border-radius: 22px; cursor: pointer;
+	background: rgba(20,14,8,.72); border: 1px solid #8a6c34; color: #f0d58e;
+	font-family: "Zier", Georgia, serif; font-size: 15px; letter-spacing: .08em;
+	box-shadow: 0 0 12px rgba(240,190,90,.18); transition: opacity .4s;
+}
+#ton.aus { color: #8d7d5c; }
+#tipp { margin-top: .5em; font-size: 13px; letter-spacing: .12em; color: #a8956a; transition: opacity .6s; }
 #status-notice {
 	display: none; margin: 1em 0 0; padding: .9em 1em; border-radius: 8px;
 	background: rgba(70,24,24,.92); border: 1px solid #b0503a; color: #f2e2c8;
@@ -74,12 +89,14 @@ $GODOT_HEAD_INCLUDE
 <canvas id="canvas">Dein Browser kann kein Canvas.</canvas>
 <noscript>Dieses Spiel braucht JavaScript.</noscript>
 <div id="status">
+	<button id="ton" type="button" aria-label="Klang an oder aus">♪ Klang</button>
 	<div class="kasten">
 		<h1>HERZ UND FEDER</h1>
 		<div class="unter">DIE ZWÖLF STUNDEN DER NACHT</div>
 		<div class="leiste" id="leiste"><i id="balken"></i></div>
 		<div class="zeile"><span id="was">Die Barke wird beladen …</span><span id="wieviel"></span></div>
 		<div id="spruch"></div>
+		<div id="tipp">Tippe irgendwo, um die Nacht zu hören</div>
 		<div id="status-notice"></div>
 	</div>
 </div>
@@ -111,6 +128,66 @@ const engine = new Engine(GODOT_CONFIG);
 	}
 	naechster();
 	const uhr = setInterval(naechster, 4200);
+	// Ladeklang: Browser spielen erst nach einer Berührung oder einem Klick Ton ab (das iPhone erst recht).
+	// Darum startet er mit der ersten Geste auf der Seite; der Knopf oben rechts schaltet ihn an und aus,
+	// die Wahl bleibt für den nächsten Besuch gemerkt. Web Audio statt <audio loop>, damit die Schleife ohne Lücke läuft.
+	const knopf = document.getElementById('ton');
+	const tipp = document.getElementById('tipp');
+	let ctx = null, pegel = null, quelle = null, an = true, geladen = null, fertigWeg = false;
+	try { an = localStorage.getItem('hf_ladeklang') !== 'aus'; } catch (e) {}
+	function knopfZeigen() { knopf.textContent = an ? '♪ Klang' : '♪ Stille'; knopf.classList.toggle('aus', !an); }
+	knopfZeigen();
+	function starten() {
+		if (quelle || !an || fertigWeg) return;
+		try {
+			const AC = window.AudioContext || window.webkitAudioContext;
+			if (!AC) return;
+			if (!ctx) {
+				ctx = new AC();
+				pegel = ctx.createGain();
+				pegel.gain.value = 0;
+				pegel.connect(ctx.destination);
+			}
+			if (ctx.state === 'suspended') ctx.resume();
+			if (!geladen) geladen = fetch('@@KLANG@@').then(r => r.arrayBuffer()).then(b => new Promise((ok, nein) => ctx.decodeAudioData(b, ok, nein)));
+			geladen.then(puffer => {
+				if (quelle || !an || fertigWeg) return;
+				quelle = ctx.createBufferSource();
+				quelle.buffer = puffer;
+				quelle.loop = true;
+				quelle.loopStart = 0.1;
+				quelle.loopEnd = Math.min(30.1, puffer.duration - 0.05);
+				quelle.connect(pegel);
+				quelle.start(0, 0.1);
+				pegel.gain.cancelScheduledValues(ctx.currentTime);
+				pegel.gain.setValueAtTime(pegel.gain.value, ctx.currentTime);
+				pegel.gain.linearRampToValueAtTime(0.75, ctx.currentTime + 3.0);
+			}).catch(e => console.warn('Ladeklang', e));
+			tipp.style.opacity = 0;
+		} catch (e) { console.warn('Ladeklang', e); }
+	}
+	function ausblenden(dauer) {
+		if (!ctx || !quelle) return;
+		const q = quelle;
+		quelle = null;
+		pegel.gain.cancelScheduledValues(ctx.currentTime);
+		pegel.gain.setValueAtTime(pegel.gain.value, ctx.currentTime);
+		pegel.gain.linearRampToValueAtTime(0, ctx.currentTime + dauer);
+		setTimeout(() => { try { q.stop(); } catch (e) {} }, dauer * 1000 + 100);
+	}
+	['pointerdown', 'touchend', 'keydown', 'click'].forEach(art => document.addEventListener(art, starten, { capture: true, passive: true }));
+	knopf.addEventListener('click', ev => {
+		ev.stopPropagation();
+		an = !an;
+		try { localStorage.setItem('hf_ladeklang', an ? 'an' : 'aus'); } catch (e) {}
+		knopfZeigen();
+		if (an) starten(); else ausblenden(0.6);
+	});
+	document.addEventListener('visibilitychange', () => {
+		if (!ctx || fertigWeg) return;
+		if (document.hidden) ctx.suspend(); else ctx.resume();
+	});
+	if (!an) tipp.style.opacity = 0;
 	function mb(b) { return (b / 1048576).toFixed(b < 10485760 ? 1 : 0); }
 	function fehlschlag(err) {
 		console.error(err);
@@ -123,6 +200,12 @@ const engine = new Engine(GODOT_CONFIG);
 	function weg() {
 		if (fehler) return;
 		clearInterval(uhr);
+		// das Spiel bringt seine eigene Musik mit: der Ladeklang verklingt sanft und gibt den Klangkanal frei
+		ausblenden(2.5);
+		fertigWeg = true;
+		tipp.style.opacity = 0;
+		knopf.style.opacity = 0;
+		setTimeout(() => { if (ctx) ctx.close(); }, 3000);
 		huelle.classList.add('weg');
 		setTimeout(() => huelle.remove(), 650);
 	}
@@ -163,7 +246,7 @@ def startbild():
 def main():
     startbild()
     schrift = daten("font/woff", (WURZEL / "ui/fonts/almendra_sc.woff").read_bytes())
-    seite = SEITE.replace("@@BILD@@", bild()).replace("@@SCHRIFT@@", schrift)
+    seite = SEITE.replace("@@BILD@@", bild()).replace("@@SCHRIFT@@", schrift).replace("@@KLANG@@", klang())
     ziel = WURZEL / "web/huelle.html"
     ziel.parent.mkdir(exist_ok=True)
     ziel.write_text(seite, encoding="utf-8")

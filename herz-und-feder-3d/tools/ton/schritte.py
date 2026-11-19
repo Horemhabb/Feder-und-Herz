@@ -55,6 +55,10 @@ def stoss(n, freq, rng):
     return s + 0.15 * filt(rng.normal(0, 1, n), lambda q: tief(q, 220)) * np.exp(-t / 0.02)
 
 def schreibe(name, x):
+    # 3.1: im Hintergrund statt vorne: Höhen ab 6 kHz gedämpft, Anschlag über 6 ms weich eingeblendet
+    x = filt(x, lambda f: tief(f, 6000))
+    a = int(0.006 * SR)
+    x[:a] *= np.linspace(0, 1, a) ** 1.5
     x = norm(x, 0.89)
     x[-int(0.02 * SR):] *= np.linspace(1, 0, int(0.02 * SR))
     roh = (x * 32767).astype("<i2").tobytes()

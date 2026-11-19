@@ -482,6 +482,81 @@ static func schrein(g: Node, pos: Vector3, col: Color) -> Dictionary:
 	l.position = Vector3(0, 1.6, 0.9)
 	return {"n": n, "glow": gm, "light": l}
 
+# Pforte am Ende der Stunde (3.1): ein Pylon wie vor einem Tempel. Zwei schräge Türme mit Hohlkehle, darüber die
+# geflügelte Sonnenscheibe, im Durchgang ein gemalter Blick in die nächste Stunde, davor zwei Wächter.
+# Stein in der Mauerfarbe dieser Stunde; am Ende eines Aktes größer. Gibt {n, blick} zurück (Blick zum Aufblenden).
+static func pforte(g: Node, pos: Vector3, rot: float, stein: Material, nd: Dictionary, gross: bool) -> Dictionary:
+	var n := Node3D.new()
+	g.add_child(n)
+	n.global_position = pos
+	n.rotation.y = rot
+	if gross:
+		n.scale = Vector3.ONE * 1.35
+	var s := _begin()    # Stein
+	var go := _begin()   # Gold
+	var dk := _begin()   # dunkles Band
+	# Stufen davor
+	box(s, Vector3(7.6, 0.18, 3.2), Vector3(0, 0, 0.3))
+	box(s, Vector3(6.4, 0.16, 2.6), Vector3(0, 0.18, 0.2))
+	# zwei Türme, die sich nach oben verjüngen
+	for sx in [-1, 1]:
+		taper(s, Vector2(2.2, 1.6), Vector2(1.7, 1.2), 5.4, Vector3(sx * 2.25, 0.34, 0))
+		box(s, Vector3(1.95, 0.32, 1.42), Vector3(sx * 2.25, 5.74, 0))      # Hohlkehle oben
+		box(go, Vector3(1.8, 0.07, 1.3), Vector3(sx * 2.25, 5.66, 0.02))     # Goldband darunter
+		for i in 3:                                                           # Rillen, wo Fahnenmasten standen
+			box(dk, Vector3(0.08, 4.2, 0.05), Vector3(sx * 2.25 + (i - 1) * 0.42, 0.9, 0.83 - 0.06 * (1 - absf(sx))))
+	# Durchgang: Laibung und Sturz
+	for sx in [-1, 1]:
+		box(s, Vector3(0.36, 4.2, 1.1), Vector3(sx * 1.25, 0.34, 0))
+	box(s, Vector3(2.9, 0.75, 1.15), Vector3(0, 4.54, 0))
+	box(s, Vector3(3.2, 0.22, 1.25), Vector3(0, 5.29, 0))
+	# geflügelte Sonnenscheibe auf dem Sturz
+	var scheibe := CylinderMesh.new()
+	scheibe.top_radius = 0.26
+	scheibe.bottom_radius = 0.26
+	scheibe.height = 0.08
+	scheibe.radial_segments = 20
+	scheibe.rings = 1
+	go.append_from(scheibe, 0, Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 4.92, 0.6)))
+	for sx in [-1, 1]:
+		for i in 4:   # Schwingen aus gestaffelten Federn
+			box(go, Vector3(0.62 - i * 0.1, 0.07, 0.04), Vector3(sx * (0.62 + i * 0.05), 4.98 - i * 0.09, 0.6))
+	# der Stein der Stunde ist für Mauern gemacht, deren Kanten am Raster liegen; am Pylon mit seinen schrägen Flächen
+	# verzerrten die Mauer-UVs die Textur zu Streifen. Hier legt sie sich darum dreiseitig (triplanar) um den Körper.
+	var st3: StandardMaterial3D = (stein as StandardMaterial3D).duplicate() if stein is StandardMaterial3D else null
+	if st3:
+		var per: float = stein.get_meta("period", 2.0)
+		st3.uv1_triplanar = true
+		st3.uv1_triplanar_sharpness = 4.0
+		st3.uv1_scale = Vector3.ONE / maxf(per, 0.5)
+	var stoff := _commit([[s, st3 if st3 else stein], [go, gold()], [dk, mat("schwarz", Color(0.06, 0.06, 0.08), 0.45)]])
+	var mi := MeshInstance3D.new()
+	mi.mesh = stoff
+	n.add_child(mi)
+	# Blick in die nächste Stunde
+	var pal: Dictionary = nd.get("pal", {})
+	var himmel := Color(nd.get("mote", "#bcd0e8")).darkened(0.55)
+	var boden := Color(pal.get("dune", "#6d6756"))
+	var licht := Color(nd.get("mote", "#8fe3e0"))
+	var bm := MeshInstance3D.new()
+	var bmat := Stimmung.blick(bm, himmel, boden, licht, 2.14, 4.18)
+	bm.position = Vector3(0, 0.34 + 2.09, 0.02)
+	n.add_child(bm)
+	# zwei Wächter mit Schakalkopf, zum Kommenden gewandt
+	for sx in [-1, 1]:
+		var w := anubis(g, Vector3.ZERO, 0.0)
+		w.reparent(n, false)
+		w.position = Vector3(sx * 4.3, 0, 1.0)
+		w.scale = Vector3.ONE * 0.85
+	var l := OmniLight3D.new()
+	l.light_color = licht
+	l.light_energy = 2.6
+	l.omni_range = 11.0
+	l.position = Vector3(0, 2.2, 1.4)
+	n.add_child(l)
+	Stimmung.fries(n, Vector3(0, 4.55, 0.585), 2.6, 0.42, Color(1.0, 0.78, 0.35), 0.75)
+	return {"n": n, "blick": bmat, "licht": l}
+
 # Marke über einer Figur, die etwas zu sagen hat (3.0): ein schwebendes goldenes Anch, das Zeichen für Leben.
 # Es dreht sich langsam und leuchtet; Orte.tick bewegt es.
 static func marke(parent: Node3D, hoehe: float, col: Color) -> Node3D:

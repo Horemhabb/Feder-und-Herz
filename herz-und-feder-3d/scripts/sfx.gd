@@ -7,7 +7,7 @@ const VOL := {
 	"beam": -7.0, "potion": -6.0, "boss_appear": -3.0, "gate": -4.0, "ui": -10.0, "bolt": -8.0, "hero_die": -3.0,
 	"victory": -5.0, "skel_wake": -6.0, "skel_die": -1.0, "skel_attack": -9.0, "torch": -14.0,
 	# Geräusche von Gomo (Fassung 2.3), nach Messung eingepegelt
-	"step_sand": -17.0, "step_stein": -16.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
+	"step_sand": -25.0, "step_stein": -24.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
 	"herz_frei": -5.0, "krug_bricht": -3.0, "truhe": -2.0, "papyrus": -7.0, "aufheben": -6.0, "schaf": -8.0, "ziege": -8.0, "esel": -9.0,
 	"katze": -9.0, "skorpion": -6.0, "irrlicht": -12.0,
 	"amb_wind": -15.0, "amb_drone": -17.0,
@@ -15,6 +15,13 @@ const VOL := {
 	"mus_titel": -11.0, "mus_wueste": -9.0, "mus_duat": -11.0, "mus_kampf": -6.0,
 	"mus_felder": -9.0, "mus_grab": -3.0, "mus_rosetau": -14.0, "mus_hoehle": -9.0,
 	"vo_chapter": -1.0, "vo_boss": -1.0, "vo_epi": -1.0, "vo_death": -1.0,
+	# Klangkulisse (3.1, ElevenLabs): Grund leise, Ereignisse aus der Ferne, Quellen mit Ort
+	"amb_freiland": -21.0, "amb_felder": -21.0, "amb_grab": -20.0, "amb_rosetau": -21.0, "amb_hoehle": -20.0,
+	"ev_schakal": -14.0, "ev_falke": -15.0, "ev_fluegel": -14.0, "ev_sand": -15.0, "ev_kaefer": -14.0, "ev_maus": -13.0,
+	"ev_esel": -16.0, "ev_tropfen": -12.0, "ev_stein": -12.0, "ev_tor_fern": -14.0, "ev_fledermaus": -13.0,
+	"ev_seufzer": -15.0, "ev_glas": -14.0, "ev_fisch": -12.0,
+	"src_wasser": -10.0, "src_werkstatt": -12.0, "src_schrein": -14.0, "src_reigen": -12.0, "src_herz": -10.0,
+	"tor_auf": -3.0, "akt_ende": -4.0, "boss_stern": -4.0, "boss_phase": -2.0, "rueckkehr": -6.0, "thot": -6.0,
 }
 const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3, "step_sand": 4, "step_stein": 4}
 
@@ -120,7 +127,7 @@ func say(name: String) -> void:
 	if s == null or muted:
 		return
 	voice.stream = s
-	voice.volume_db = VOL.get(name, -2.0)
+	voice.volume_db = VOL.get(name, -2.0) if not name.begins_with("vo_h") else 0.0
 	voice.play()
 
 # ---------------------------------------------------------------- Musik
