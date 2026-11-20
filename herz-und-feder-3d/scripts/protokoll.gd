@@ -24,6 +24,13 @@ var schlechtestes := 0.0
 var ruckler := 0
 var zeiten := {}                       # Teilsystem → µs in diesem Abschnitt
 var spitzen := {}                      # Teilsystem → längster einzelner Aufruf (µs)
+const FASSUNG := "4.0.3"
+var guete := -1               # Grafikstufe, die gemessen oder gewählt wurde: gilt über die Stunden hinweg
+var guete_von_hand := false
+var gesagt := false           # der Hinweis auf Software-Grafik kam schon
+var physik_zuletzt := 0
+var uhr := 0
+var zeitlupe := 0.0     # so viel echte Zeit ging in diesem Abschnitt verloren, weil das Spiel nicht nachkam
 var fanger: Fanger
 var grafik := ""        # echter Name der Grafik (im Browser über WEBGL_debug_renderer_info)
 var software := false   # ohne Grafikkarte gerechnet (SwiftShader, llvmpipe …)
@@ -46,7 +53,7 @@ func _ready() -> void:
 	var jetzt := Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
 	pfad = "%s/protokoll_%s.txt" % [ORDNER, jetzt]
 	datei = FileAccess.open(pfad, FileAccess.WRITE)
-	schreib("Herz und Feder · Protokoll · %s" % Time.get_datetime_string_from_system())
+	schreib("Herz und Feder · Fassung %s · Protokoll · %s" % [FASSUNG, Time.get_datetime_string_from_system()])
 	schreib("System: %s · %s · Prozessorkerne %d · Web %s · Handy %s" % [OS.get_name(), OS.get_processor_name(), OS.get_processor_count(), OS.has_feature("web"), OS.has_feature("web_ios") or OS.has_feature("web_android") or OS.has_feature("mobile")])
 	schreib("Grafik: %s · %s · Fenster %s" % [RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_vendor(), str(DisplayServer.window_get_size())])
 	if OS.has_feature("web"):
@@ -63,6 +70,17 @@ func _ready() -> void:
 	fanger = Fanger.new()
 	fanger.p = self
 	OS.add_logger(fanger)
+
+# Im Browser zeichnet das Spiel so viele Bildpunkte, wie der Bildschirm hat (bei 150 % Skalierung 2,25-mal, auf Handys
+# bis 9-mal so viele wie die Seite groß ist). Ab der Stufe „Sparsam“ rechnet es mit einfacher Dichte: Der Browser
+# vergrößert das Bild dann selbst. Das entlastet auch die Oberfläche, nicht nur die 3D-Welt.
+var dichte_gesenkt := false
+func dichte_senken(an: bool) -> void:
+	if not OS.has_feature("web") or an == dichte_gesenkt:
+		return
+	dichte_gesenkt = an
+	JavaScriptBridge.eval("(function(){try{if(!window.__hf_dpr){window.__hf_dpr=window.devicePixelRatio||1}Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:function(){return %s}});window.dispatchEvent(new Event('resize'))}catch(e){}})()" % ("Math.min(1,window.__hf_dpr)" if an else "window.__hf_dpr"))
+	schreib("BILDPUNKTE %s" % ("einfache Dichte (der Browser vergrößert)" if an else "volle Dichte des Bildschirms"))
 
 func _aufraeumen() -> void:
 	var d := DirAccess.open(ORDNER)
@@ -101,6 +119,15 @@ func _process(delta: float) -> void:
 	_sperre.unlock()
 	for z in neu:
 		schreib(z)
+	# echte Zeit seit dem letzten Bild: „delta“ kappt die Engine bei acht Physikschritten (133 ms), ein langsames Gerät
+	# sähe sonst immer nach 7 Bildern/s aus, auch wenn es in Wahrheit 2 sind und das Spiel in Zeitlupe läuft
+	var jetzt := Time.get_ticks_usec()
+	var echt := (jetzt - uhr) / 1000000.0 if uhr > 0 else delta
+	uhr = jetzt
+	if echt > 2.0:
+		echt = delta   # Tab war im Hintergrund oder die Stunde wurde geladen
+	zeitlupe += maxf(0.0, echt - delta)
+	delta = echt
 	var ms := delta * 1000.0
 	bilder += 1
 	summe_ms += ms
@@ -128,14 +155,18 @@ func _abschnitt() -> void:
 	if g and "foes" in g and g.started:
 		var wach: int = g.foes.filter(func(f): return f.state == Foe.St.FIGHT).size()
 		var lichter: int = g.lichter.filter(func(l): return is_instance_valid(l) and l.visible).size() if "lichter" in g else -1
-		lage = " · 3D-Auflösung %d %%" % int(get_viewport().scaling_3d_scale * 100.0) + " · Stunde %d · Gegner %d (wach %d) · Lichter an %d · Raumklänge an %d · Grafik %s" % [Spiel.fall, g.foes.size(), wach, lichter, g.sfx.schleifen_aktiv, "niedrig" if g.low_gfx else "hoch"]
-	schreib("LEISTUNG %.0f Bilder/s · schlechtestes Bild %.0f ms · Ruckler über 50 ms: %d · Zeichenaufrufe %d · Dreiecke %d · Skript (ms je Bild): Verarbeitung %.1f, Physik %.1f%s" % [
-		bilder / t, schlechtestes, ruckler,
+		lage = " · 3D-Auflösung %d %%" % int(get_viewport().scaling_3d_scale * 100.0) + " · Stunde %d · Gegner %d (wach %d) · Lichter an %d · Raumklänge an %d · Grafik %s" % [Spiel.fall, g.foes.size(), wach, lichter, g.sfx.schleifen_aktiv, g.GUETE_NAME[g.guete]]
+	var pf := Engine.get_physics_frames()
+	var schritte := float(pf - physik_zuletzt) / maxf(1.0, bilder)
+	physik_zuletzt = pf
+	schreib("LEISTUNG %.1f Bilder/s · Zeitlupe %d %% · Physikschritte je Bild %.1f · schlechtestes Bild %.0f ms · Ruckler über 50 ms: %d · Zeichenaufrufe %d · Dreiecke %d · Skript (ms je Bild): Verarbeitung %.1f, Physik %.1f%s" % [
+		bilder / t, int(zeitlupe / t * 100.0), schritte, schlechtestes, ruckler,
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, lage])
 	if not teile.is_empty():
 		schreib("  TEILE (ms je Bild, Spitze ms): " + ", ".join(teile))
+	zeitlupe = 0.0
 	t = 0.0
 	bilder = 0
 	summe_ms = 0.0

@@ -150,14 +150,19 @@ func _ready() -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			toggle_karte())
 	hud.root.add_child(karte_ui)
-	if touch:
-		auto_low_done = true
-		set_low(true, true)
+	# Grafikstufe: was in einer früheren Stunde gemessen oder gewählt wurde, gilt weiter; Handys beginnen auf „Niedrig“
+	auto_low_done = Protokoll.guete_von_hand
 	if Protokoll.software:
-		# der Browser rechnet ohne Grafikkarte: gleich sparsam, und sagen, woran es liegt
-		guete_stufe(2, "Software-Grafik (%s)" % Protokoll.grafik)
-		get_tree().create_timer(2.0).timeout.connect(func():
-			hud.announce(null, "HINWEIS", "Dein Browser zeichnet ohne Grafikkarte", "Das Spiel kann so nur ruckeln. Abhilfe: in den Einstellungen des Browsers die Hardwarebeschleunigung einschalten (Chrome: Einstellungen › System › „Grafikbeschleunigung verwenden, falls verfügbar“) und den Browser neu starten.", 14.0))
+		# der Browser rechnet ohne Grafikkarte: gleich die sparsamste Stufe, und sagen, woran es liegt
+		guete_setzen(3, "Software-Grafik (%s)" % Protokoll.grafik)
+		if not Protokoll.gesagt:
+			Protokoll.gesagt = true
+			get_tree().create_timer(2.0).timeout.connect(func():
+				hud.announce(null, "HINWEIS", "Dein Browser zeichnet ohne Grafikkarte", "Das Spiel kann so nur ruckeln. Abhilfe: in den Einstellungen des Browsers die Hardwarebeschleunigung einschalten (Chrome: Einstellungen › System › „Grafikbeschleunigung verwenden, falls verfügbar“) und den Browser neu starten.", 14.0))
+	elif Protokoll.guete > 0:
+		guete_setzen(Protokoll.guete, "aus der vorigen Stunde übernommen")
+	elif touch:
+		guete_setzen(1, "Handy oder Tablet")
 	sfx.loop("amb_wind")
 	sfx.loop("amb_drone")
 	klang = Klang.new()
@@ -2102,9 +2107,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_ESCAPE: toggle_menu()
 			KEY_F: hud.toggle_fps()
 			KEY_G:
-				auto_low_done = true   # von Hand gewählt: die Automatik bleibt still
-				set_low(not low_gfx)
-				Protokoll.schreib("GRAFIK von Hand: %s" % ("niedrig" if low_gfx else "hoch"))
+				guete_von_hand(0 if low_gfx else 1)
+				hud.toast("Grafik: %s" % GUETE_NAME[guete])
 			KEY_V: toggle_fullscreen()
 			KEY_I: toggle_bag()
 			KEY_TAB: toggle_karte()
@@ -2156,37 +2160,55 @@ func nicht_gelernt(id: String) -> void:
 	else:
 		hud.toast("%s ist noch nicht gelernt. Der nächste Aufstieg bringt einen Punkt." % S.name, 3.5)
 
-# Grafik-Automatik in Stufen (4.0.2): 0 hoch · 1 niedrig (ohne Schatten, Glühen, Dunst; 3D-Auflösung 70 %) ·
-# 2 sparsam (3D-Auflösung 50 %). Sie greift auch auf dem Startbildschirm, sobald die Bildrate drei Sekunden unter 30
-# liegt, und schreibt jeden Schritt ins Protokoll. Wer G drückt, entscheidet selbst; dann bleibt die Automatik still.
+# Grafik in vier Stufen (4.0.3): 0 hoch · 1 niedrig (ohne Schatten, Glühen, Dunst; 3D-Auflösung 70 %, 8 Lichter) ·
+# 2 sparsam (3D 50 %, 5 Lichter, ohne Farbkorrektur) · 3 minimal (3D 35 %, 3 Lichter).
+# Die Automatik misst im laufenden Bild: liegt die Bildrate 2,5 Sekunden unter 30, geht es eine Stufe hinunter, unter 14
+# gleich zwei. Jeder Schritt steht im Protokoll; die Stufe gilt auch für die folgenden Stunden. Wer G drückt oder im
+# Menü wählt, entscheidet selbst; dann bleibt die Automatik still.
+const GUETE_NAME := ["Hoch", "Niedrig", "Sparsam", "Minimal"]
+const GUETE_3D := [1.0, 0.7, 0.5, 0.35]
+const GUETE_LICHTER := [14, 8, 5, 3]
 var guete := 0
 var guete_t := 0.0
-var guete_warte := 4.0   # nach dem Laden und nach jedem Schritt erst kurz abwarten
+var guete_warte := 3.0   # nach dem Laden und nach jedem Schritt erst kurz abwarten
 
 func _guete_tick(delta: float) -> void:
-	if autotest != null or auto_low_done or guete >= 2:
+	if autotest != null or auto_low_done or guete >= 3 or get_viewport().disable_3d:
 		return
 	guete_warte -= delta
 	if guete_warte > 0.0:
 		return
-	guete_t = guete_t + delta if Engine.get_frames_per_second() < 30 else maxf(0.0, guete_t - delta)
-	if guete_t > 3.0:
-		guete_stufe(guete + 1, "die Bildrate lag drei Sekunden unter 30 (%d Bilder/s)" % Engine.get_frames_per_second())
+	var fps := Engine.get_frames_per_second()
+	guete_t = guete_t + delta if fps < 30 else maxf(0.0, guete_t - delta)
+	if guete_t > 2.5:
+		guete_setzen(guete + (2 if fps < 14 else 1), "die Bildrate lag bei %d Bildern/s" % fps)
+		hud.toast("Grafik von selbst auf „%s“ gestellt, weil es ruckelte. Menü › Einstellungen ändert das." % GUETE_NAME[guete], 5.0)
 
-func guete_stufe(n: int, warum: String) -> void:
-	guete = clampi(n, 0, 2)
+func guete_setzen(n: int, warum: String) -> void:
+	guete = clampi(n, 0, 3)
 	guete_t = 0.0
-	guete_warte = 4.0
-	if guete >= 1 and not low_gfx:
-		set_low(true, true)
-	if guete == 2:
-		get_viewport().scaling_3d_scale = 0.5
-	Protokoll.schreib("GRAFIK Stufe %d (%s): %s" % [guete, ["hoch", "niedrig", "sparsam"][guete], warum])
-	if hud:
-		hud.toast("Grafik von selbst auf %s gestellt, weil es ruckelte. G wechselt von Hand." % ["Hoch", "Niedrig", "Sparsam (halbe 3D-Auflösung)"][guete], 5.0)
+	guete_warte = 3.0
+	Protokoll.guete = guete
+	if (guete >= 1) != low_gfx:
+		set_low(guete >= 1, true)
+	get_viewport().scaling_3d_scale = GUETE_3D[guete] * (0.85 if touch and guete >= 1 else 1.0)
+	env.adjustment_enabled = guete < 2
+	Protokoll.dichte_senken(guete >= 2)
+	Protokoll.schreib("GRAFIK Stufe %d (%s, 3D %d %%, %d Lichter): %s" % [guete, GUETE_NAME[guete], int(get_viewport().scaling_3d_scale * 100.0), GUETE_LICHTER[guete], warum])
+
+func guete_von_hand(n: int) -> void:
+	auto_low_done = true   # von Hand gewählt: die Automatik bleibt still
+	Protokoll.guete_von_hand = true
+	guete_setzen(n, "von Hand gewählt")
 
 func set_low(low: bool, still := false) -> void:
 	low_gfx = low
+	if not low:
+		guete = 0
+	elif guete == 0:
+		guete = 1
+	Protokoll.guete = guete
+	env.adjustment_enabled = guete < 2
 	hero.lantern.shadow_enabled = not low
 	moon.shadow_enabled = not low
 	env.glow_enabled = not low
@@ -2347,9 +2369,21 @@ func _physics_process_innen(delta: float) -> void:
 func _spar_tick() -> void:
 	sfx.schleifen_sparen(hero.global_position)
 	var c := cam_pos
+	# Lichter: nur die nächsten brennen (je nach Grafikstufe 14, 8, 5 oder 3). Im Kompatibilitäts-Renderer rechnet jeder
+	# Bildpunkt einer Fläche alle Lichter durch, die sie erreichen; viele Lichter sind dort das Teuerste überhaupt.
+	var nah := []
 	for l in lichter:
 		if is_instance_valid(l):
-			l.visible = l.global_position.distance_squared_to(c) < 32.0 * 32.0   # 4.0.1: das Bild reicht etwa 25 m weit; jedes Licht kostet im Kompatibilitäts-Renderer
+			var d2: float = l.global_position.distance_squared_to(c)
+			if d2 < 32.0 * 32.0:
+				nah.append([d2, l])
+			elif l.visible:
+				l.visible = false
+	nah.sort_custom(func(a, b): return a[0] < b[0])
+	for i in nah.size():
+		var an: bool = i < GUETE_LICHTER[guete]
+		if nah[i][1].visible != an:
+			nah[i][1].visible = an
 
 func _foes_sleep_far() -> void:
 	if freeze_foes:
