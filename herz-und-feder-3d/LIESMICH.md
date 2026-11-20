@@ -215,6 +215,12 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Eigenheiten je Akt** (stehen auf der Akttafel): Akt 1 – wird ein Rudel wach, ruft es die Nachbarn, auch auf „Normal“; Akt 2 – Gegner, die vier Sekunden nicht getroffen werden, heilen 2 % je Sekunde; Akt 3 – Gegner sind 12 % schneller.
 - **Schwierigkeit nachträglich wechseln:** Menü › Einstellungen › Schwierigkeit. Der Wechsel gilt ab der nächsten Stunde (oder wenn man eine Stunde neu betritt).
 
+**Teil c: Gamepad am Rechner**
+- Linker Stick: laufen · rechter Stick: zielen (sonst zielt alles auf den nächsten Gegner) · A gehalten: angreifen, A neben jemandem: sprechen · B: ausweichen · X, Y, LB, RB: Fähigkeiten 1 bis 4 · RT: Fähigkeit der rechten Maustaste · LT: Rotbier · Start: Menü · Zurück: große Karte · Steuerkreuz hoch: Fähigkeitenbaum, runter: Tasche.
+- In Fenstern: A bestätigt (bzw. erste Antwort), X und Y wählen die zweite und dritte Antwort, B schließt. Im Baum wählt das Steuerkreuz links/rechts einen Knoten, A lernt ihn.
+- Nach einer Niederlage verklingen angefangene Rufe der Rudel (sonst weckten sie nach der Rückkehr noch Nachbarn).
+- **Noch nicht mit dem Gamepad:** die Klassenwahl auf dem Startbildschirm, die Tasche und die Einstellungen im Menü (dafür braucht es Maus oder Finger).
+
 ### Fassung 3.4: Größere Stunden, Rückkehr am Feuer, die große Karte
 
 - **Doppelte Fläche für Akt 1:** Die Stunden 1 bis 4 haben 74 × 56 Zellen (etwa 148 × 112 m) statt 52 × 40. Was eine Stunde füllt, wächst mit der Fläche: im Dungeon doppelt so viele Räume (und damit Rudel, Truhen, Teppiche), im Freiland doppelt so viele Bauten, Rudelplätze, Felsen, Palmen und Türme, zwei Oasen statt einer und zwei Wehrmauern, die die Stunde in Abschnitte teilen. Dazu fünf zusätzliche Orte (drei Feuerschalen, ein Krug, ein Schrein). Stunde 1 hat jetzt rund 97 Gegner statt 55, Stunde 2 rund 52 statt 20. Die Stunden ab 5 bleiben vorerst, wie sie sind (`Karte.groesse`).

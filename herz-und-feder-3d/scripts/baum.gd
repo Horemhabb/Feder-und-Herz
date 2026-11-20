@@ -173,6 +173,23 @@ func render() -> void:
 	add_child(rr)
 	hud._pass_all(self)
 
+# Gamepad (4.0): Knoten der Reihe nach von links nach rechts wählen, A lernt
+func pad_schritt(r: int) -> void:
+	var B := Klassen.baum(Spiel.cls)
+	var keys: Array = B.knoten.keys().filter(func(k): return B.knoten[k].art != "stamm")
+	keys.sort_custom(func(a, b): return (B.knoten[a].pos as Vector2).x * 1000.0 + (B.knoten[a].pos as Vector2).y < (B.knoten[b].pos as Vector2).x * 1000.0 + (B.knoten[b].pos as Vector2).y)
+	var i := keys.find(wahl)
+	wahl = keys[(i + r + keys.size()) % keys.size()]
+	game.sfx.play("ui")
+	render()
+
+func pad_lernen() -> void:
+	if wahl != "" and hindernis(wahl) == "":
+		game.sfx.play("ui")
+		lernen(wahl)
+		game.hero.apply_stats()
+		render()
+
 # Was ist sinnvoll vorzuwählen? Der erste Knoten, der sich gerade lernen lässt, sonst die erste Fähigkeit
 func _vorschlag() -> String:
 	var B := Klassen.baum(Spiel.cls)

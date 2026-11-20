@@ -1107,6 +1107,7 @@ func show_tree() -> void:
 	var t := Baum.new()
 	t.hud = self
 	t.game = game
+	baum_ui = t
 	v.add_child(t)
 	secondary = func(): get_tree().paused = false
 
@@ -1134,7 +1135,53 @@ func press_primary() -> bool:
 	f.call()
 	return true
 
+var baum_ui: Baum
+
+# Gamepad in Fenstern (4.0): A bestätigt bzw. wählt die erste Antwort, X und Y die zweite und dritte, B schließt.
+# Im Baum wählt das Steuerkreuz links/rechts einen Knoten, A lernt ihn.
+func _pad(ev: InputEventJoypadButton) -> bool:
+	var b := ev.button_index
+	if menu_open:
+		if b == JOY_BUTTON_START or b == JOY_BUTTON_B:
+			if b == JOY_BUTTON_START or not menue.zurueck():
+				game.toggle_menu()
+			return true
+		return false
+	if tree_open and baum_ui:
+		match b:
+			JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
+				baum_ui.pad_schritt(-1 if b == JOY_BUTTON_DPAD_LEFT else 1)
+			JOY_BUTTON_A:
+				baum_ui.pad_lernen()
+			JOY_BUTTON_B, JOY_BUTTON_DPAD_UP:
+				close_bag()
+		return true
+	if karte_open or bag_open:
+		if b == JOY_BUTTON_B or b == JOY_BUTTON_BACK or b == JOY_BUTTON_DPAD_DOWN:
+			close_bag()
+		return true
+	if overlay == null:
+		return false
+	if not dialog_opts.is_empty():
+		var i := {JOY_BUTTON_A: 0, JOY_BUTTON_X: 1, JOY_BUTTON_Y: 2}.get(b, -1) as int
+		if i >= 0 and i < dialog_opts.size():
+			game.sfx.play("ui")
+			press_option(i)
+		return true
+	if b == JOY_BUTTON_A and primary.is_valid() and not (primary_btn and primary_btn.disabled):
+		game.sfx.play("ui")
+		press_primary()
+	elif b == JOY_BUTTON_B and secondary.is_valid():
+		var f := secondary
+		_close()
+		f.call()
+	return true
+
 func _input(ev: InputEvent) -> void:
+	if ev is InputEventJoypadButton and ev.pressed:
+		if _pad(ev):
+			get_viewport().set_input_as_handled()
+		return
 	if menu_open and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		game.sfx.play("ui")
