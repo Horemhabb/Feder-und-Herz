@@ -107,5 +107,10 @@ func _ready() -> void:
 	tw.tween_property(spr, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_process_innen(delta)
+	Protokoll.zeit("beute", _u)
+
+func _process_innen(delta: float) -> void:
 	age += delta
 	spr.position.y = (0.55 if kind == "item" or kind == "page" else 0.35) + sin(age * 2.4 + t0) * 0.07

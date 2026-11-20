@@ -273,7 +273,7 @@ func gen_dungeon(dkind: String) -> void:
 				rugs.append({"x": r.cx - 2, "y": r.cy - 1.2, "w": 4, "h": 2.4, "col": [Color("4a2420"), Color("2c3a4a"), Color("3f3520")].pick_random()})
 			var style: String = "lager" if r.shape == "round" else ("streife" if r.shape == "hall" else ["ruhe", "lager", "wache", "hinterhalt"].pick_random())
 			spots.append({"p": Vector2(r.cx + randf_range(-0.8, 0.8), r.cy + randf_range(-0.8, 0.8)), "style": style, "way": [Vector2(r.x + 2, r.cy), Vector2(r.x + r.w - 2, r.cy)]})
-			if r.w * r.h >= 80:
+			if r.w * r.h >= 80 and not wall(r.x + 2, r.y + 2):   # 4.0.1: in runden Räumen lag die Ecke in der Mauer
 				spots.append({"p": Vector2(r.x + 2, r.y + 2), "style": "ruhe", "extra": true})
 	var ls := links.filter(func(l): return l[0].kind != "start" and l[1].kind != "start" and l[0].kind != "boss" and l[1].kind != "boss")
 	ls.shuffle()
@@ -301,6 +301,16 @@ func _open_land(p: Vector2, rad: int) -> bool:
 			if not in_grid(cx + dx, cy + dy) or wall(cx + dx, cy + dy) or flr[gi(cx + dx, cy + dy)] != 0:
 				return false
 	return true
+
+# eine hohe Mauer (ab 50, sichtbar) im Umkreis von rad Zellen?
+func mauer_nah(p: Vector2, rad: int) -> bool:
+	for dy in range(-rad, rad + 1):
+		for dx in range(-rad, rad + 1):
+			var x := int(p.x) + dx
+			var y := int(p.y) + dy
+			if in_grid(x, y) and wall(x, y) and height(x, y) >= 50:
+				return true
+	return false
 
 # keine Mauer im Umkreis (für größere Bauten wie die Werkstatt)
 func _frei_um(p: Vector2, rad: int) -> bool:
@@ -355,7 +365,7 @@ func _ein_becken() -> void:
 		for i in randi_range(5, 7):
 			var a := randf() * TAU
 			var q := p + Vector2(cos(a), sin(a)) * randf_range(2.9, 3.9)
-			if _open_land(q, 0) and not _deko_near(q, 0.5):
+			if _open_land(q, 0) and not _deko_near(q, 0.5) and not mauer_nah(q, 2):
 				deko.append({"p": q, "kind": "palme", "r": 0.3, "face": randf() * TAU})
 		break
 
@@ -365,7 +375,7 @@ func _palmen() -> void:
 		if n >= int(round(12 * flaeche())):
 			break
 		var p := Vector2(randf_range(3, GW - 3), randf_range(3, GH - 3))
-		if p.distance_to(start) < 4 or not _open_land(p, 1) or _deko_near(p, 2.0):
+		if p.distance_to(start) < 4 or not _open_land(p, 1) or _deko_near(p, 2.0) or mauer_nah(p, 2):   # 4.0.1: Wedel ragten in Mauern
 			continue
 		deko.append({"p": p, "kind": "palme" if n % 3 != 2 else "koloss", "r": 0.3 if n % 3 != 2 else 0.8, "face": randf() * TAU})
 		n += 1
@@ -631,6 +641,8 @@ func gen_outdoor(mix: Array) -> void:
 		for q in towers:
 			if Vector2(q.x, q.y).distance_to(Vector2(x, y)) < 14:
 				free = false
+		if _deko_near(Vector2(x + 2, y + 2), 5.0):
+			free = false   # 4.0.1: Türme wuchsen sonst neben Palmen auf, deren Wedel dann in der Mauer steckten
 		if not free:
 			continue
 		for yy in range(y, y + 4):

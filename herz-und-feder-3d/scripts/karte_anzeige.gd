@@ -25,6 +25,11 @@ func setup(g: Node, k: Karte) -> void:
 	_paint()
 
 func _process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_process_innen(delta)
+	Protokoll.zeit("karte", _u)
+
+func _process_innen(delta: float) -> void:
 	if karte == null:
 		return
 	t -= delta

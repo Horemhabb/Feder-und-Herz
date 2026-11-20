@@ -20,6 +20,7 @@ boot_splash/image="res://ui/start.png"
 [autoload]
 
 Spiel="*res://scripts/spiel.gd"
+Protokoll="*res://scripts/protokoll.gd"
 
 [display]
 

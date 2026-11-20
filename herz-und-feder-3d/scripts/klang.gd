@@ -77,6 +77,7 @@ func quelle(name: String, an: Node3D, weite := 14.0, hoehe := 1.0) -> AudioStrea
 	an.add_child(p)
 	p.position = Vector3(0, hoehe, 0)
 	p.play(randf() * 4.0)
+	game.sfx.schleife_merken(p)
 	return p
 
 func quelle_bei(name: String, pos: Vector3, weite := 14.0) -> AudioStreamPlayer3D:
@@ -86,6 +87,11 @@ func quelle_bei(name: String, pos: Vector3, weite := 14.0) -> AudioStreamPlayer3
 	return quelle(name, n, weite, 0.5)
 
 func _process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_process_innen(delta)
+	Protokoll.zeit("klang", _u)
+
+func _process_innen(delta: float) -> void:
 	if game == null or game.hero == null or not game.started:
 		return
 	# einzelne Geräusche: alle sechs bis fünfzehn Sekunden eines, nie zweimal dasselbe hintereinander

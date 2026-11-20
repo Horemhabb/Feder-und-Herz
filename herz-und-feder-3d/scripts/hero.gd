@@ -185,6 +185,11 @@ func cd_of(id: String) -> float:
 	return c
 
 func _physics_process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_physics_process_innen(delta)
+	Protokoll.zeit("held", _u)
+
+func _physics_process_innen(delta: float) -> void:
 	tick_common(delta)
 	if dead:
 		return

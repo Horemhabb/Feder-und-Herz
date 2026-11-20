@@ -625,6 +625,11 @@ func _announce_next() -> void:
 		_announce_next())
 
 func _process(_d: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_process_innen(_d)
+	Protokoll.zeit("oberfläche", _u)
+
+func _process_innen(_d: float) -> void:
 	if ann_box and is_instance_valid(ann_box):
 		ann_box.visible = overlay == null   # Ankündigungen liegen nie über einem Fenster
 	if l_quer:
@@ -1339,7 +1344,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 4.0", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 4.0.1", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist

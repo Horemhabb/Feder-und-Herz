@@ -444,6 +444,11 @@ func wake(delay := 0.0) -> void:
 	_show_mark("!", Color(1.0, 0.45, 0.35), 0.8)
 
 func _physics_process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_physics_process_innen(delta)
+	Protokoll.zeit("gegner", _u)
+
+func _physics_process_innen(delta: float) -> void:
 	tick_common(delta)
 	if schild_t > 0.0:
 		# der Schild des Türhüters läuft ab, gleich was er gerade tut (auch betäubt oder im Ansturm)
