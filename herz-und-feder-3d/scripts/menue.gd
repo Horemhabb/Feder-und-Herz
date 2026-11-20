@@ -185,6 +185,10 @@ func _einstellungen() -> void:
 		_schalter("Vollbild", "An" if game.is_fullscreen() else "Aus", func(): game.toggle_fullscreen())
 	_schalter("Bildrate anzeigen", "An" if hud.l_fps.visible else "Aus", func(): hud.toggle_fps())
 	add_child(hud._para("„Niedrig“ schaltet Schatten, Glühen und Dunst ab und rechnet das Bild kleiner. Das hilft auf älteren Geräten.", 13, Hud.DIM))
+	# Protokoll (4.0.1): was beim Spielen passiert, zum Nachlesen bei Fehlern und Ruckeln
+	add_child(hud._label("PROTOKOLL", 12, Hud.GOLD))
+	_schalter("Protokoll", "Herunterladen" if OS.has_feature("web") else "Ordner öffnen", func(): hud.toast(Protokoll.ausgeben(), 6.0))
+	add_child(hud._para("Das Spiel schreibt Bildrate, Ruckler, Rechenzeit, Fehler und eine Bau-Prüfung jeder Stunde mit (Taste F9 geht auch). Die Datei kannst du weitergeben, wenn etwas nicht stimmt.", 13, Hud.DIM))
 	# Schwierigkeit nachträglich wechseln (4.0, G2): gilt ab der nächsten Stunde oder wenn man eine Stunde neu betritt
 	add_child(hud._label("SCHWIERIGKEIT", 12, Hud.GOLD))
 	var hf := HFlowContainer.new()

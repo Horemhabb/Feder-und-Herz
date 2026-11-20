@@ -157,6 +157,8 @@ func _mensch(c: Vector2i, auftrag: Dictionary) -> void:
 		if wc:
 			wc.visible = false
 	# Tracht leicht abgetönt: nicht jeder trägt dasselbe Leinen
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF   # 4.0.1: Schatten der Leute kosteten zu viel
 	_toenen(n, Color.from_hsv(randf_range(0.05, 0.13), randf_range(0.0, 0.25), randf_range(0.82, 1.0)))
 	var ap: AnimationPlayer = n.find_child("AnimationPlayer", true, false)
 	if ap:
@@ -246,7 +248,7 @@ func _leute_tick(d: float, hp: Vector3) -> void:
 		var dist := pos.distance_to(hp)
 		var nah := dist < WEIT
 		# gezeichnet nur bis 32 m: weiter weg sind sie nicht im Bild, kosten aber in den Schattenkarten
-		n.visible = dist < 32.0
+		n.visible = dist < 26.0
 		var ap: AnimationPlayer = p.ap
 		if ap:
 			ap.active = nah

@@ -200,6 +200,13 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.1: Protokoll, Bau-Prüfung, weniger Last
+
+- **Protokoll** (`scripts/protokoll.gd`, eigener Autoload): Jede Spielsitzung schreibt eine Datei nach `user://protokoll/` (die letzten acht bleiben). Darin: Rechner, Browser, Grafikkarte und Fenster; jede betretene Stunde mit Planungs- und Bauzeit; alle fünf Sekunden Bildrate, schlechtestes Bild, Zahl der Ruckler (über 50 ms), Zeichenaufrufe, Dreiecke, Gegner, eingeschaltete Lichter und Raumklänge sowie die Rechenzeit je Teilsystem (Gegner, Held, Leben, Orte, Klang, Karte, Oberfläche, Beute, Kamera) mit Spitzenwert; jeder grobe Ruckler (über 120 ms) mit Ort; alle Fehler und Warnungen der Engine und der Skripte. **Abrufen:** Taste F9 oder Menü › Einstellungen › Protokoll. Im Browser wird die Datei heruntergeladen, auf dem Rechner öffnet sich der Ordner.
+- **Bau-Prüfung jeder Stunde** (steht im Protokoll): Kulisse, die in Mauern ragt, Gegner und Orte in Mauern. Gefunden und behoben: Palmen und Kolosse wuchsen an Mauern und Türme neben Palmen (die Wedel steckten in der Mauer); in runden Räumen lag ein Rudelplatz in der Ecke außerhalb des Raumes, also in der Mauer; Gegner, die beim Verteilen in eine Mauer fallen würden, rücken jetzt auf die nächste freie Zelle. Stunden 1–5 und 9 mit zwei Seeds: 0 Auffälligkeiten.
+- **Weniger Last:** Von den Raumklängen (Fackeln, Becken, Schreine, Krüge …) spielen nur noch die sechs nächsten in Hörweite; im Browser entpackt sonst jede laufende Ogg-Schleife ihren Klang auf dem einzigen Faden des Spiels. Lichter brennen nur bis 32 m um die Kamera (vorher 44 m). Leute werfen keine Schatten mehr und werden bis 26 m gezeichnet. Die Grafik schaltet von selbst auf „Niedrig“, wenn die Bildrate drei Sekunden unter 40 liegt (vorher 28).
+- **Messung ohne Grafik** (`-- --neu --mess`): Die Skripte brauchen hier etwa 4 bis 5 ms je Bild für alles zusammen; das Ruckeln entsteht also beim Zeichnen. Wo genau, zeigt erst das Protokoll vom eigenen Gerät.
+
 ### Fassung 4.0: Der erste Akt
 
 **Teil a: Akt 1 mit Endgegner**

@@ -107,6 +107,33 @@ func loop(name: String) -> void:
 	p.play()
 	loops[name] = p
 
+# Schleifen mit Ort im Raum (Fackeln, Becken, Schreine …): Im Browser entpackt jede laufende Ogg-Schleife ihren Klang
+# auf dem einzigen Faden des Spiels. Darum spielen nur die nächsten, die man hören kann; die anderen ruhen (4.0.1).
+const SCHLEIFEN_MAX := 6
+var raum_schleifen: Array = []
+var schleifen_aktiv := 0
+
+func schleife_merken(p: AudioStreamPlayer3D) -> void:
+	raum_schleifen.append(p)
+
+func schleifen_sparen(hp: Vector3) -> void:
+	raum_schleifen = raum_schleifen.filter(func(p): return is_instance_valid(p) and p.is_inside_tree())
+	var nah := []
+	for p in raum_schleifen:
+		var d: float = (p as AudioStreamPlayer3D).global_position.distance_to(hp)
+		if d < p.max_distance + 1.5 and p.playing:
+			nah.append([d, p])
+		elif not p.stream_paused:
+			p.stream_paused = true
+	nah.sort_custom(func(a, b): return a[0] < b[0])
+	schleifen_aktiv = 0
+	for i in nah.size():
+		var an: bool = i < SCHLEIFEN_MAX
+		if nah[i][1].stream_paused == an:
+			nah[i][1].stream_paused = not an
+		if an:
+			schleifen_aktiv += 1
+
 func loop_at(name: String, parent: Node3D) -> void:
 	var s := _stream(name)
 	if s == null:
@@ -121,6 +148,7 @@ func loop_at(name: String, parent: Node3D) -> void:
 	p.volume_db = VOL.get(name, -12.0) + 4.0
 	parent.add_child(p)
 	p.play(randf() * 6.0)
+	schleife_merken(p)
 
 func say(name: String) -> void:
 	var s := _stream(name)

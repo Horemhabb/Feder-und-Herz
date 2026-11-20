@@ -105,6 +105,7 @@ func _ready() -> void:
 	leben.game = self
 	add_child(leben)
 	leben.bauen()
+	bau_pruefung()
 	for l in find_children("*", "OmniLight3D", true, false):
 		lichter.append(l)
 	hero = Hero.new()
@@ -174,6 +175,10 @@ func _ready() -> void:
 			var kt: Node = load("res://scripts/klassentest.gd").new()
 			kt.name = "Klassentest"
 			get_tree().root.add_child.call_deferred(kt)
+		if "--mess" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Mess"):
+			var ms: Node = load("res://scripts/messung.gd").new()
+			ms.name = "Mess"
+			get_tree().root.add_child.call_deferred(ms)
 		if "--bosstest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Bosstest"):
 			var bt: Node = load("res://scripts/bosstest.gd").new()
 			bt.name = "Bosstest"
@@ -270,6 +275,28 @@ func toggle_bag() -> void:
 		get_tree().paused = true
 		Spiel.neu = 0
 		hud.show_bag()
+
+# Bau-Prüfung (4.0.1): was beim Aufbau der Stunde schiefging, steht im Protokoll (Kulisse in Mauern, Gegner in Mauern …)
+func bau_pruefung() -> void:
+	var fehler := 0
+	var k := karte
+	for d in k.deko:
+		if k.mauer_nah(d.p, 2 if d.kind == "palme" or d.kind == "koloss" else 1):   # Palmwedel reichen gut zwei Meter weit
+			if fehler < 30:
+				Protokoll.schreib("  BAU: %s ragt in eine Mauer bei Zelle (%d, %d)" % [d.kind, int(d.p.x), int(d.p.y)])
+			fehler += 1
+	for f in foes:
+		var c := _sub(f.global_position)
+		if k.wall(c.x, c.y):
+			Protokoll.schreib("  BAU: Gegner %s steht in einer Mauer bei (%d, %d)" % [f.kind, c.x, c.y])
+			fehler += 1
+	for s in orte.sites:
+		var c := _sub(s.pos)
+		if k.wall(c.x, c.y):
+			Protokoll.schreib("  BAU: Ort %s steht in einer Mauer bei (%d, %d)" % [s.kind, c.x, c.y])
+			fehler += 1
+	var lichter_n := find_children("*", "Light3D", true, false).size()
+	Protokoll.schreib("  BAU-PRÜFUNG: %d Auffälligkeiten · Gegner %d · Orte %d · Kulisse %d · Leute %d · Tiere %d · Lichter %d · Knoten %d" % [fehler, foes.size(), orte.sites.size(), k.deko.size(), leben.leute.size(), leben.tiere.size(), lichter_n, get_tree().get_node_count()])
 
 # große Karte (3.4): Tab, am Handy ein Tipp auf die kleine Karte; das Spiel steht, solange sie offen ist
 func toggle_karte() -> void:
@@ -485,12 +512,15 @@ func _set_light(kind: String) -> void:
 func _build_world() -> void:
 	# die Stunde aus karte.gd: Dungeon (Stunden 2–5 und die offenen Stunden je nach Vorlage) oder Freiland
 	stimmung.clear()
+	var _u0 := Time.get_ticks_usec()
 	karte = Karte.new()
 	if hdef.has("dungeon"):
 		karte.gen_dungeon(hdef.dungeon)
 	else:
 		karte.gen_outdoor(hdef.mix)
+	var _u1 := Time.get_ticks_usec()
 	Welt.new(self, karte).bauen()
+	Protokoll.schreib("STUNDE %d (%s) · %s · Karte %d × %d · Plan %.0f ms · Bau %.0f ms" % [Spiel.fall, hdef.name, "Dungeon " + karte.kind if karte.indoor else "Freiland", Karte.GW, Karte.GH, (_u1 - _u0) / 1000.0, (Time.get_ticks_usec() - _u1) / 1000.0])
 	# Prüfbilder: „-- --zeig=hohl“ stellt drei Gegner dieser Art neben den Eingang
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--zeig=") and Foe.KINDS.has(a.substr(7)):
@@ -618,6 +648,16 @@ func _campfire(c: Vector3) -> void:
 	astar.set_point_solid(_sub(c), true)
 
 func _spawn(kind: String, pos: Vector3, pack: int, elite := "", hd := {}) -> Foe:
+	# 4.0.1: wer in einer Mauer landen würde, rückt auf die nächste freie Zelle (Rudel streuen um ihren Platz)
+	if karte and karte.wall(int(pos.x / CELL), int(pos.z / CELL)):
+		var c := Vector2i(int(pos.x / CELL), int(pos.z / CELL))
+		var gefunden := false
+		for r in range(1, 5):
+			for dy in range(-r, r + 1):
+				for dx in range(-r, r + 1):
+					if not gefunden and maxi(absi(dx), absi(dy)) == r and not karte.wall(c.x + dx, c.y + dy):
+						pos = Vector3((c.x + dx) * CELL + CELL / 2.0, pos.y, (c.y + dy) * CELL + CELL / 2.0)
+						gefunden = true
 	var f := Foe.new()
 	f.game = self
 	f.init(kind, pos, pack, elite, hd)
@@ -2131,14 +2171,23 @@ func set_low(low: bool, still := false) -> void:
 		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 
 func _physics_process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_physics_process_innen(delta)
+	Protokoll.zeit("welt-physik", _u)
+
+func _physics_process_innen(delta: float) -> void:
 	if not started:
 		return
 	clock += delta
 	shot_gap -= delta
 	_loot_tick(delta)
 	_chest_tick()
+	var _uorte := Time.get_ticks_usec()
 	orte.tick(delta)
+	Protokoll.zeit("orte", _uorte)
+	var _uleben := Time.get_ticks_usec()
 	leben.tick(delta)
+	Protokoll.zeit("leben", _uleben)
 	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)
@@ -2259,10 +2308,11 @@ func _physics_process(delta: float) -> void:
 
 # Sparen: Lichter jenseits des Bildes abschalten (alle 0,3 s), schlafende Gegner weit weg anhalten (auch ihre Animation)
 func _spar_tick() -> void:
+	sfx.schleifen_sparen(hero.global_position)
 	var c := cam_pos
 	for l in lichter:
 		if is_instance_valid(l):
-			l.visible = l.global_position.distance_squared_to(c) < 44.0 * 44.0
+			l.visible = l.global_position.distance_squared_to(c) < 32.0 * 32.0   # 4.0.1: das Bild reicht etwa 25 m weit; jedes Licht kostet im Kompatibilitäts-Renderer
 
 func _foes_sleep_far() -> void:
 	if freeze_foes:
@@ -2274,6 +2324,11 @@ func _foes_sleep_far() -> void:
 			f.process_mode = Node.PROCESS_MODE_DISABLED if far else Node.PROCESS_MODE_INHERIT
 
 func _process(delta: float) -> void:
+	var _u := Time.get_ticks_usec()
+	_process_innen(delta)
+	Protokoll.zeit("kamera+sparen", _u)
+
+func _process_innen(delta: float) -> void:
 	spar_t -= delta
 	if spar_t <= 0.0 and hero:
 		spar_t = 0.3
@@ -2297,7 +2352,7 @@ func _process(delta: float) -> void:
 		hud.refresh()
 		# kommt der Rechner nicht mit, schaltet das Spiel einmal von selbst auf niedrige Grafik
 		if autotest == null and not auto_low_done and not low_gfx and clock > 6.0 and not get_tree().paused:
-			slow_t = slow_t + delta if Engine.get_frames_per_second() < 28 else 0.0
+			slow_t = slow_t + delta if Engine.get_frames_per_second() < 40 else 0.0   # 4.0.1: früher (28) griff das zu spät
 			if slow_t > 3.0:
 				auto_low_done = true
 				set_low(true)
