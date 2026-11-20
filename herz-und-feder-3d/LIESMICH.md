@@ -215,6 +215,13 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Eigenheiten je Akt** (stehen auf der Akttafel): Akt 1 – wird ein Rudel wach, ruft es die Nachbarn, auch auf „Normal“; Akt 2 – Gegner, die vier Sekunden nicht getroffen werden, heilen 2 % je Sekunde; Akt 3 – Gegner sind 12 % schneller.
 - **Schwierigkeit nachträglich wechseln:** Menü › Einstellungen › Schwierigkeit. Der Wechsel gilt ab der nächsten Stunde (oder wenn man eine Stunde neu betritt).
 
+**Nachbesserung nach Prüfung**
+- **Türhüter nachgestimmt nach einer Duell-Messung** (`-- --autotest --neu --stunde=4 --duell`: Stufe 7–8, gewöhnliche Ausrüstung der Stufe, Start vor der Arena; der Bot tritt aus roten Kreisen). Mit dem Leben eines gewöhnlichen Hüters fiel er in 45 Sekunden, ohne dass der Bot je fiel. Jetzt: 2,2-faches Leben, 1,7-facher Schaden, dichtere Geschossringe und Sterne, größere Wellen, Wut nach 150 s. Ergebnis über drei Seeds: zweimal ohne Niederlage gewonnen, einmal fünf Niederlagen vor dem sechsten Versuch; zusammen 5 von 8 Versuchen verloren (Ziel war etwa zwei von drei). Die Streuung zwischen den Seeds ist groß.
+- **Lohn am Aktende:** Die Pforte fragt erst, wenn der Lohn gewählt ist. Er wird je Akt und Nacht nur einmal vergeben (wer Stunde 4 wiederholt, bekommt ihn nicht noch einmal).
+- **Neuversuch beim Türhüter:** Was er gerufen hat, vergeht mit dem Versuch; die Schwächung durch Feuerschalen bleibt erhalten.
+- **Rückkehr am Feuer:** nur an Schalen außer Sichtweite der Rudel (18 m), damit man nicht neben Wachen erwacht.
+- **Schwierigkeit im Menü:** Der Text sagt jetzt richtig, was sofort wirkt (Verhalten) und was ab der nächsten Stunde (Leben, Schaden).
+
 **Teil c: Gamepad am Rechner**
 - Linker Stick: laufen · rechter Stick: zielen (sonst zielt alles auf den nächsten Gegner) · A gehalten: angreifen, A neben jemandem: sprechen · B: ausweichen · X, Y, LB, RB: Fähigkeiten 1 bis 4 · RT: Fähigkeit der rechten Maustaste · LT: Rotbier · Start: Menü · Zurück: große Karte · Steuerkreuz hoch: Fähigkeitenbaum, runter: Tasche.
 - In Fenstern: A bestätigt (bzw. erste Antwort), X und Y wählen die zweite und dritte Antwort, B schließt. Im Baum wählt das Steuerkreuz links/rechts einen Knoten, A lernt ihn.

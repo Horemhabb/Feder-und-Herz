@@ -88,6 +88,7 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(2.0)
 	G = g()
+	G.auto_low_done = true   # die Grafik-Automatik bei Ruckeln würde der Prüfung von G zuvorkommen
 	G.leben.stumm = true   # die lebendige Welt (3.2) hat eigene Prüfungen; hier soll kein Fundstück dazwischenfallen
 	check("neue Figur angelegt und gespeichert (Stufe 1, Normal)", Spiel.hat_stand and Spiel.lvl == 1 and Spiel.diff == 0)
 	check("danach die Tafel der Stunde", G.hud.overlay != null and get_tree().paused and not G.started)

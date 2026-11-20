@@ -89,6 +89,8 @@ var charge_dir := Vector3.ZERO
 var charge_hit := false
 var summoned := false   # vom Hüter beschworen: keine Erfahrung, kein Fortschritt
 const HAERTER := 1.25    # 4.0: Leben und Schaden aller Gegner auf jeder Schwierigkeit
+const AKT_LEBEN := 2.2   # der Endgegner eines Aktes hält so viel mehr aus als ein Hüter
+const AKT_SCHADEN := 1.7 # und trifft so viel härter
 # klügere Gegner (4.0): Nahkämpfer kreisen ein, statt hintereinander anzulaufen; mit wenig Leben weichen sie einmal zurück
 var rueckzug_t := 0.0
 var rueckzug_war := false
@@ -747,6 +749,11 @@ func _strike(h: Hero, d: float) -> void:
 func ist_aktende() -> bool:
 	if aktende < 0:
 		aktende = 1 if kind == "boss" and Stunden.hour_of(Spiel.fall) == 4 else 0
+		if aktende == 1:
+			# nach der Duell-Messung (4.0): mit dem einfachen Leben eines Hüters fiel er in 45 s, ohne dass der Bot je fiel
+			max_hp *= AKT_LEBEN
+			hp = max_hp
+			dmg *= AKT_SCHADEN
 	return aktende == 1
 
 func _phase_pruefen() -> void:
@@ -785,19 +792,20 @@ func _schild(dauer: float) -> void:
 	schild_vis.visible = true
 
 # zurück auf Anfang, wenn der Held fällt (A5: man beginnt direkt vor der Arena neu)
-func tuerhueter_zuruecksetzen() -> void:
+func tuerhueter_zuruecksetzen(geschwaecht := 0) -> void:
 	phase = 1
 	schild_t = 0.0
 	kampf_t = 0.0
 	stampf_t = 4.0
 	stern_t = 3.0
-	hp = max_hp
+	# volles Leben, aber was Feuerschalen und Entscheidungen ihm genommen haben, bleibt genommen
+	hp = max_hp * (1.0 - minf(0.2, 0.1 * geschwaecht))
 	if schild_vis:
 		schild_vis.visible = false
 
 func _tuerhueter(delta: float, h: Hero, d: float, dirn: Vector3) -> void:
 	kampf_t += delta
-	var wut := kampf_t > 180.0
+	var wut := kampf_t > 150.0
 	var tempo := (0.7 if wut else 1.0) * (0.85 if phase == 3 else 1.0)
 	if schild_t > 0.0:
 		if schild_vis:
@@ -826,28 +834,28 @@ func _tuerhueter(delta: float, h: Hero, d: float, dirn: Vector3) -> void:
 	# Geschossringe in jeder Phase
 	if boss_t[0] <= 0.0:
 		boss_t[0] = [3.4, 2.8, 3.2][phase - 1] * tempo
-		var n := 12 + mini(10, Spiel.fall)
+		var n := 16 + mini(10, Spiel.fall)
 		var off := randf() * TAU
 		game.sfx.play_at("bolt", global_position, 0.05, 2.0)
 		for k in n:
 			var a := off + TAU * k / n
-			game.spawn_bolt(global_position + Vector3(0, 1.4, 0), Vector3(sin(a), 0, cos(a)), dmg * 0.8, 170.0 / Daten.PX, K.get("bcol", Color(0.75, 0.82, 0.95)), 3.4)
+			game.spawn_bolt(global_position + Vector3(0, 1.4, 0), Vector3(sin(a), 0, cos(a)), dmg * 1.05, 185.0 / Daten.PX, K.get("bcol", Color(0.75, 0.82, 0.95)), 3.4)
 		play(ANIM.cast, 1.6, 0.1, true)
 	# Phase 2: Wellen der Erloschenen
 	if phase >= 2:
 		welle_t -= delta
 		if welle_t <= 0.0:
 			welle_t = (14.0 if phase == 2 else 22.0) * tempo
-			game.boss_summon(self, ["fahl", "fahl", "fahl"] if phase == 2 else ["fahl", "fahl"])
+			game.boss_summon(self, ["fahl", "fahl", "fahl", "hohl"] if phase == 2 else ["fahl", "fahl", "fahl"])
 			play(ANIM.summon if ap and ap.has_animation(ANIM.summon) else ANIM.cast, 1.4, 0.1, true)
 	# Phase 3: fallende Sterne, einer genau auf dich, die anderen ringsum
 	if phase == 3:
 		stern_t -= delta
 		if stern_t <= 0.0:
-			stern_t = 2.4 * tempo
-			for i in (4 if wut else 3):
+			stern_t = 1.9 * tempo
+			for i in (5 if wut else 4):
 				var ziel: Vector3 = h.global_position + (Vector3.ZERO if i == 0 else Vector3(randf_range(-4.5, 4.5), 0, randf_range(-4.5, 4.5)))
-				game.fallender_stern(ziel, 2.1, dmg * (2.0 if wut else 1.6), self)
+				game.fallender_stern(ziel, 2.4, dmg * (2.4 if wut else 2.0), self)
 	# Ansturm wie jeder Hüter
 	if boss_t[2] <= 0.0:
 		boss_t[2] = 7.5 * tempo

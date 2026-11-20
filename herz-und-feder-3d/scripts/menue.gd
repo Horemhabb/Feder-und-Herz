@@ -195,10 +195,10 @@ func _einstellungen() -> void:
 			Spiel.diff = ii
 			Spiel.calc()
 			Spiel.speichern()
-			hud.toast("Schwierigkeit: %s. Sie gilt ab der nächsten Stunde." % Daten.DIFF[ii].name, 3.0)
+			hud.toast("Schwierigkeit: %s. Das Verhalten der Gegner gilt sofort, Leben und Schaden ab der nächsten Stunde." % Daten.DIFF[ii].name, 4.0)
 			geh("einstellungen"), i != Spiel.diff))
 	add_child(hf)
-	add_child(hud._para("%s: %s. Ein Wechsel gilt ab der nächsten Stunde (oder wenn du eine Stunde über „Stunde wechseln“ neu betrittst)." % [Daten.DIFF[Spiel.diff].name, Daten.DIFF[Spiel.diff].txt], 13, Hud.DIM))
+	add_child(hud._para("%s: %s. Ein Wechsel wirkt sofort auf das Verhalten (wie viele zugleich angreifen, ob Rudel einander rufen, wie weit Gegner sehen, wie oft Legendäres fällt); Leben und Schaden der Gegner ändern sich ab der nächsten Stunde oder wenn du eine Stunde neu betrittst." % [Daten.DIFF[Spiel.diff].name, Daten.DIFF[Spiel.diff].txt], 13, Hud.DIM))
 
 func _stunden() -> void:
 	_kopf("Stunde wechseln")

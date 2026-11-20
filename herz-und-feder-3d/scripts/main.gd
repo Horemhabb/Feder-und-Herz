@@ -1606,8 +1606,11 @@ func on_hero_dead() -> void:
 			f.alarm = -1.0   # angefangene Rufe der Rudel verklingen (sonst weckten sie nach der Rückkehr noch Nachbarn)
 		if boss.state != Foe.St.DEAD:
 			if boss.ist_aktende():
-				boss.tuerhueter_zuruecksetzen()   # der Endgegner beginnt wieder von vorn, wie du
+				boss.tuerhueter_zuruecksetzen(orte.boss_weak)   # der Endgegner beginnt wieder von vorn, wie du
 				_licht_zurueck()
+			for f in foes:
+				if f.summoned and f.state != Foe.St.DEAD:
+					f.die()   # was der Hüter gerufen hat, vergeht mit dem Versuch (sonst häuften sich die Diener)
 			boss_awake = false
 			sfx.music_set(area_music())
 			hud.boss_hide()
@@ -1628,7 +1631,7 @@ func on_hero_dead() -> void:
 			hud.toast("Du erwachst an einer Feuerschale, die du entzündet hast.", 3.0)
 		get_tree().paused = false)
 
-# Rückkehrpunkt nach einer Niederlage (3.4): die nächste entzündete Feuerschale, an der kein Gegner wartet, sonst der Eingang
+# Rückkehrpunkt nach einer Niederlage (3.4): die nächste entzündete Feuerschale, außer Sichtweite der Rudel (18 m), sonst der Eingang
 func rueckkehr_ort(tod: Vector3) -> Vector3:
 	var best := start_pos
 	var bd := tod.distance_to(start_pos)
@@ -1639,7 +1642,7 @@ func rueckkehr_ort(tod: Vector3) -> Vector3:
 		var d := tod.distance_to(p)
 		if d >= bd:
 			continue
-		if live_foes().any(func(f): return f.kind != "boss" and f.global_position.distance_to(p) < 10.0):
+		if live_foes().any(func(f): return f.kind != "boss" and f.global_position.distance_to(p) < 18.0):   # außer Sichtweite der Rudel
 			continue
 		# neben die Schale, nicht hinein: eine freie Stelle ringsum
 		for i in 8:
@@ -1654,8 +1657,16 @@ func rueckkehr_ort(tod: Vector3) -> Vector3:
 # Rückblick und Lohn: ein legendäres Stück zur Wahl aus drei (A6)
 var akt_lohn_genommen := false
 
+func _akt_lohn_key() -> String:
+	return "aktlohn_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)]
+
 func _aktende_lohn() -> void:
-	if akt_lohn_genommen or hero.dead:
+	if akt_lohn_genommen or Spiel.gesehen(_akt_lohn_key()):
+		# den Lohn gibt es einmal je Akt und Nacht: wer die Stunde wiederholt, bekommt ihn nicht noch einmal
+		gate_ask = true
+		return
+	if hero.dead:
+		get_tree().create_timer(1.0).timeout.connect(_aktende_lohn)
 		return
 	if hud.overlay != null or get_tree().paused:
 		get_tree().create_timer(1.0).timeout.connect(_aktende_lohn)
@@ -1671,6 +1682,8 @@ func _aktende_lohn() -> void:
 		var name: String = L.name
 		wahl.append(["%s (%s): %s" % [name, Daten.SLOT[L.slot].name, L.txt], func():
 			get_tree().paused = false
+			Spiel.merke(_akt_lohn_key())
+			gate_ask = true
 			var wo := Spiel.take_item(it)
 			sfx.play("legendary" if sfx._stream("legendary") else "victory")
 			hud.toast_item(-1, name, "angelegt" if wo == "angelegt" else ("in der Tasche" if wo == "tasche" else "die Tasche ist voll: es liegt vor dir"), Color(1.0, 0.62, 0.2), 5.0)
@@ -1729,7 +1742,8 @@ func _build_gate(pos: Vector3) -> void:
 	tw.tween_property(gate, "global_position:y", pos.y, 2.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw.tween_method(func(v: float): pf.blick.set_shader_parameter("auf", v), 0.0, 1.0, 1.2)
 	gate_t = 0.0
-	gate_ask = true
+	# am Ende des Aktes fragt die Pforte erst, wenn der Lohn gewählt ist (sonst ginge er verloren)
+	gate_ask = not (boss.ist_aktende() and not akt_lohn_genommen and not Spiel.gesehen(_akt_lohn_key()))
 
 func _ask_gate() -> void:
 	get_tree().paused = true
@@ -1843,8 +1857,12 @@ func stripe_fx(c: Vector3, dir: Vector3, length: float, width: float, t: float) 
 	tw.tween_property(mat, "albedo_color:a", 0.45, t)
 	tw.tween_callback(m.queue_free)
 
+var warnungen: Array = []   # angesagte Treffer am Boden: {c, r, bis} (der Spielroboter weicht ihnen aus)
+
 func warn_fx(c: Vector3, r: float, t: float) -> void:
 	# Ansage eines schweren Hiebs: roter Kreis am Boden, der sich füllt
+	warnungen = warnungen.filter(func(w): return w.bis > clock)
+	warnungen.append({"c": c, "r": r, "bis": clock + t + 0.15})
 	var m := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = r
@@ -2232,9 +2250,10 @@ func _physics_process(delta: float) -> void:
 		gate_t += delta
 		var dg := (hero.global_position - gate.global_position)
 		dg.y = 0
-		if dg.length() > 6.0:
+		var lohn_offen := boss.ist_aktende() and not akt_lohn_genommen and not Spiel.gesehen(_akt_lohn_key())
+		if dg.length() > 6.0 and not lohn_offen:
 			gate_ask = true
-		if gate_t > 3.0 and gate_ask and dg.length() < 2.2 and not hero.dead:
+		if gate_t > 3.0 and gate_ask and not lohn_offen and dg.length() < 2.2 and not hero.dead:
 			gate_ask = false
 			_ask_gate()
 

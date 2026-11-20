@@ -99,6 +99,9 @@ func run() -> void:
 	shot("phase3")
 	check("Phase 3: fallende Sterne (oder Stampfer) treffen, wer stehen bleibt", sterne_gefallen)
 	# Niederlage: neu vor der Arena, der Hüter wieder voll und in Phase 1, das Licht zurück
+	G.orte.boss_weak = 1   # eine Feuerschale hat ihn geschwächt: das soll den Neuversuch überdauern
+	G.boss_summon(B, ["fahl", "fahl"])
+	await wait(0.3)
 	h.inv = 0.0
 	h.hp = 1.0
 	h.hurt(9999.0, B.global_position, B)
@@ -106,7 +109,9 @@ func run() -> void:
 	G.hud.press_primary()
 	await wait(2.5)
 	check("Niederlage im Kampf: Neubeginn vor der Arena (tot %s, Abstand %.1f, Rückkehr %s, Arena %s)" % [h.dead, h.global_position.distance_to(G.rueck_pos), G.rueck_pos, arena], not h.dead and h.global_position.distance_to(G.rueck_pos) < 1.5 and G.rueck_pos.distance_to(arena) < 0.5)
-	check("der Türhüter beginnt von vorn (Phase 1, volles Leben), das Licht ist zurück", B.phase == 1 and B.hp >= B.max_hp * 0.99 and G.moon.light_energy > mond0 * 0.8)
+	check("der Türhüter beginnt von vorn (Phase 1), mit der Schwächung der Feuerschale (%.0f %%), das Licht ist zurück" % (B.hp / B.max_hp * 100.0), B.phase == 1 and absf(B.hp - B.max_hp * 0.9) < 1.0 and G.moon.light_energy > mond0 * 0.8)
+	var diener: int = G.foes.filter(func(f): return f.summoned and f.state != Foe.St.DEAD).size()
+	check("die gerufenen Diener sind mit dem Versuch vergangen (%d)" % diener, diener == 0)
 	# Sieg: Ende des ersten Aktes mit drei legendären Stücken zur Wahl
 	var bag0 := Spiel.bag.size() + Spiel.eq.size()
 	var legs0: Array = Spiel.eq.values().filter(func(it): return it.has("leg"))
@@ -114,9 +119,15 @@ func run() -> void:
 	B.hit(1e9, h.global_position)
 	await wait(6.5)
 	check("Ende des ersten Aktes: Tafel mit drei Stücken zur Wahl", G.hud.overlay != null and G.hud.dialog_opts.size() == 3)
+	check("die Pforte fragt erst, wenn der Lohn gewählt ist", not G.gate_ask)
 	shot("aktende")
 	G.hud.press_option(0)
 	await wait(0.5)
+	check("nach der Wahl darf die Pforte fragen, und der Lohn ist für diese Nacht vergeben", G.gate_ask and Spiel.gesehen(G._akt_lohn_key()))
+	G.akt_lohn_genommen = false
+	G._aktende_lohn()
+	await wait(0.3)
+	check("wer die Stunde wiederholt, bekommt den Lohn nicht noch einmal", G.hud.overlay == null)
 	var legs1: Array = Spiel.eq.values().filter(func(it): return it.has("leg")) + Spiel.bag.filter(func(it): return it.has("leg"))
 	check("das gewählte Stück gehört dir (legendär)", legs1.size() > legs0.size() or Spiel.bag.size() + Spiel.eq.size() > bag0)
 	print("BOSSTEST: %d ok, %d Fehler" % [ok, bad])
