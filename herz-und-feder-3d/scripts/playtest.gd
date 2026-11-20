@@ -156,6 +156,9 @@ func run() -> void:
 	check("Q trinkt Rotbier", h.hp > 60.0 and h.pots == 3)
 	await key(KEY_F)
 	check("F zeigt die Bildrate", G.hud.l_fps.visible)
+	# die Grafik-Automatik kann auf diesem Prüfrechner schon vorher gegriffen haben: von „Hoch“ aus prüfen
+	G.auto_low_done = true
+	G.set_low(false, true)
 	await key(KEY_G)
 	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
 	await key(KEY_G)

@@ -200,6 +200,14 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.2: Grafikkarte erkennen, Grafik-Automatik in Stufen
+
+Anlass: das erste Protokoll eines Spielers. Konstant etwa 135 ms je Bild (7 Bilder/s), schon auf dem Startbildschirm, während die Skripte nur wenige Millisekunden brauchten. Genau dieses Bild zeigt ein Browser, der ohne Grafikkarte zeichnet (Software-Grafik, z. B. SwiftShader): Im Prüfbrowser hier, der so zeichnet, kam Fassung 3.0 auf 2,4 und die jetzige auf etwa 6 Bilder/s.
+- **Echte Grafik im Protokoll:** Im Browser steht jetzt der echte Name der Grafik (über `WEBGL_debug_renderer_info`), dazu Pixeldichte, Kerne, Bildschirm und Browser. Zeichnet er ohne Grafikkarte, steht das als Warnung im Protokoll, das Spiel stellt sich sofort auf „Sparsam“ und sagt in einem Hinweis, wie man die Hardwarebeschleunigung einschaltet.
+- **Grafik-Automatik in Stufen:** Hoch → Niedrig (ohne Schatten, Glühen, Dunst; 3D-Auflösung 70 %) → Sparsam (3D-Auflösung 50 %). Sie greift auch auf dem Startbildschirm, wenn die Bildrate drei Sekunden unter 30 liegt, und schreibt jeden Schritt ins Protokoll. Wer G drückt, entscheidet selbst.
+- **Hinter fast dunklen Fenstern** (Startbild, Tafeln, Tasche, Baum, Karte, Menü) wird die 3D-Welt nicht mehr gezeichnet.
+- Jede Leistungszeile nennt die 3D-Auflösung.
+
 ### Fassung 4.0.1: Protokoll, Bau-Prüfung, weniger Last
 
 - **Protokoll** (`scripts/protokoll.gd`, eigener Autoload): Jede Spielsitzung schreibt eine Datei nach `user://protokoll/` (die letzten acht bleiben). Darin: Rechner, Browser, Grafikkarte und Fenster; jede betretene Stunde mit Planungs- und Bauzeit; alle fünf Sekunden Bildrate, schlechtestes Bild, Zahl der Ruckler (über 50 ms), Zeichenaufrufe, Dreiecke, Gegner, eingeschaltete Lichter und Raumklänge sowie die Rechenzeit je Teilsystem (Gegner, Held, Leben, Orte, Klang, Karte, Oberfläche, Beute, Kamera) mit Spitzenwert; jeder grobe Ruckler (über 120 ms) mit Ort; alle Fehler und Warnungen der Engine und der Skripte. **Abrufen:** Taste F9 oder Menü › Einstellungen › Protokoll. Im Browser wird die Datei heruntergeladen, auf dem Rechner öffnet sich der Ordner.
