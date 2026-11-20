@@ -330,7 +330,12 @@ func run() -> void:
 	await wait(0.6)
 	var sp: Vector2 = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
 	mouse(sp, MOUSE_BUTTON_LEFT, true)
-	await wait(2.5)
+	# wie ein Mensch: der Zeiger folgt dem Gegner (seit 4.0 kreisen Nahkämpfer ein und bleiben nicht stehen)
+	for i in 25:
+		await wait(0.1)
+		if foe.state != Foe.St.DEAD:
+			sp = G.cam.unproject_position(foe.global_position + Vector3(0, 1.0, 0))
+			mouse(sp)
 	mouse(sp, MOUSE_BUTTON_LEFT, false)
 	check("Klick auf Gegner schlägt zu (Leben %d von %d)" % [int(foe.hp), int(foe.max_hp)], foe.hp < foe.max_hp)
 	await wait(0.25)   # der Trefferstopp dauert 0,05 s und darf beim Prüfen vorbei sein
