@@ -200,6 +200,15 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0: Der erste Akt
+
+**Teil a: Akt 1 mit Endgegner**
+- **Akte:** Die zwölf Stunden sind in drei Akte geteilt (Der Abstieg 1–4, Die Wahrheit 5–8, Der Morgen 9–12). Zu Beginn jedes Aktes steht groß, wohin er führt (`Stunden.AKTE`).
+- **Der Stumme Türhüter in drei Phasen** (Stunde 4, `Foe._tuerhueter`): Phase 1 am Tor mit Geschossringen, Ansturm und einem Stampfer, den ein roter Kreis ankündigt und der fast alles Leben nimmt, wenn man nicht heraustritt. Bei zwei Dritteln hebt er einen Schild und ruft die Erloschenen von den Wegen, in Wellen auch danach (Phase 2). Bei einem Drittel zerbricht das Tor: Es wird dunkel, nur die Laterne brennt, und Sterne fallen, einer genau auf dich (Phase 3). Nach drei Minuten Kampf packt ihn die Wut. Feuerschalen und Entscheidungen schwächen ihn höchstens um ein Fünftel.
+- **Niederlage im Kampf mit einem Hüter:** Man beginnt direkt vor seiner Arena neu. Der Türhüter beginnt dann ebenfalls von vorn, mit vollem Leben, und das Licht kehrt zurück.
+- **Ende des ersten Aktes:** eine Tafel mit Rückblick (Zeit, Rückschläge, Herz) und dem Lohn: ein legendäres Stück zur Wahl aus drei, die man noch nicht trägt.
+- **Test:** `godot --path . -- --neu --bosstest` (12 Prüfungen: Phasen, Schild, Wellen, Dunkelheit, Sterne, Neubeginn vor der Arena, Lohn).
+
 ### Fassung 3.4: Größere Stunden, Rückkehr am Feuer, die große Karte
 
 - **Doppelte Fläche für Akt 1:** Die Stunden 1 bis 4 haben 74 × 56 Zellen (etwa 148 × 112 m) statt 52 × 40. Was eine Stunde füllt, wächst mit der Fläche: im Dungeon doppelt so viele Räume (und damit Rudel, Truhen, Teppiche), im Freiland doppelt so viele Bauten, Rudelplätze, Felsen, Palmen und Türme, zwei Oasen statt einer und zwei Wehrmauern, die die Stunde in Abschnitte teilen. Dazu fünf zusätzliche Orte (drei Feuerschalen, ein Krug, ein Schrein). Stunde 1 hat jetzt rund 97 Gegner statt 55, Stunde 2 rund 52 statt 20. Die Stunden ab 5 bleiben vorerst, wie sie sind (`Karte.groesse`).

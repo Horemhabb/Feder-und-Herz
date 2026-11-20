@@ -88,6 +88,15 @@ var charge_t := 0.0
 var charge_dir := Vector3.ZERO
 var charge_hit := false
 var summoned := false   # vom Hüter beschworen: keine Erfahrung, kein Fortschritt
+# Der Stumme Türhüter (4.0): Endgegner von Akt 1, drei Phasen
+var aktende := -1        # -1 noch nicht geprüft, 0 gewöhnlicher Hüter, 1 Endgegner des Aktes
+var phase := 1
+var schild_t := 0.0      # unverwundbar, solange er ruft oder das Tor zerbricht
+var kampf_t := 0.0       # wie lange der Kampf schon dauert: nach drei Minuten packt ihn die Wut
+var stampf_t := 4.0
+var stern_t := 3.0
+var welle_t := 0.0
+var schild_vis: MeshInstance3D
 var hour: Dictionary
 
 func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
@@ -426,6 +435,11 @@ func wake(delay := 0.0) -> void:
 
 func _physics_process(delta: float) -> void:
 	tick_common(delta)
+	if schild_t > 0.0:
+		# der Schild des Türhüters läuft ab, gleich was er gerade tut (auch betäubt oder im Ansturm)
+		schild_t -= delta
+		if schild_t <= 0.0 and schild_vis:
+			schild_vis.visible = false
 	slow_t -= delta
 	mark_t -= delta
 	fear_t -= delta
@@ -536,7 +550,9 @@ func _physics_process(delta: float) -> void:
 					speed *= 0.45
 			"boss":
 				_boss(delta, h, d, dirn)
-				if d > 6.0 and wind <= 0.0 and charge_t <= 0.0:
+				if schild_t > 0.0:
+					move = Vector3.ZERO   # während er ruft oder das Tor zerbricht, steht er still
+				elif d > 6.0 and wind <= 0.0 and charge_t <= 0.0:
 					move = _toward(h.global_position, dirn, delta)
 	if wind > 0.0 or act_t > 0.0 or h.dead:
 		move = Vector3.ZERO
@@ -697,8 +713,131 @@ func _strike(h: Hero, d: float) -> void:
 			if dd.length() < radius + h.radius + 0.64 + 0.56 and forward().dot(dd.normalized()) > 0.2:
 				h.hurt(dmg, global_position, self)
 
+# ---------------------------------------------------------------- Der Stumme Türhüter (4.0)
+# Er fragt nach einem Namen, den niemand mehr kennt. Phase 1 am Tor: Geschossringe, Ansturm und ein Stampfer, der fast
+# tötet, wenn man nicht aus dem roten Kreis tritt. Bei zwei Dritteln Leben ruft er die Erloschenen von den Wegen (Phase 2,
+# unverwundbar, solange er ruft). Bei einem Drittel zerbricht das Tor: Es wird dunkel, nur die Laterne leuchtet, und
+# Sterne fallen (Phase 3). Nach drei Minuten packt ihn die Wut: alles schneller und härter.
+func ist_aktende() -> bool:
+	if aktende < 0:
+		aktende = 1 if kind == "boss" and Stunden.hour_of(Spiel.fall) == 4 else 0
+	return aktende == 1
+
+func _phase_pruefen() -> void:
+	if phase == 1 and hp < max_hp * 0.66:
+		phase = 2
+		_schild(6.0)
+		welle_t = 0.0
+		game.on_boss_phase(self, 2)
+	elif phase == 2 and hp < max_hp * 0.33:
+		phase = 3
+		_schild(3.5)
+		stern_t = 2.0
+		game.on_boss_phase(self, 3)
+
+func _schild(dauer: float) -> void:
+	schild_t = dauer
+	charge_t = 0.0
+	wind = 0.0
+	if schild_vis == null:
+		schild_vis = MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = radius + 1.2
+		sm.height = (radius + 1.2) * 2.0
+		sm.radial_segments = 24
+		sm.rings = 12
+		schild_vis.mesh = sm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = Color(0.55, 0.7, 1.0, 0.22)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		schild_vis.material_override = m
+		add_child(schild_vis)
+		schild_vis.position = Vector3(0, 1.4, 0)
+	schild_vis.visible = true
+
+# zurück auf Anfang, wenn der Held fällt (A5: man beginnt direkt vor der Arena neu)
+func tuerhueter_zuruecksetzen() -> void:
+	phase = 1
+	schild_t = 0.0
+	kampf_t = 0.0
+	stampf_t = 4.0
+	stern_t = 3.0
+	hp = max_hp
+	if schild_vis:
+		schild_vis.visible = false
+
+func _tuerhueter(delta: float, h: Hero, d: float, dirn: Vector3) -> void:
+	kampf_t += delta
+	var wut := kampf_t > 180.0
+	var tempo := (0.7 if wut else 1.0) * (0.85 if phase == 3 else 1.0)
+	if schild_t > 0.0:
+		if schild_vis:
+			schild_vis.rotation.y += delta
+			schild_vis.scale = Vector3.ONE * (1.0 + sin(kampf_t * 6.0) * 0.03)
+		play(ANIM.cast, 1.2)
+		return
+	for i in 3:
+		boss_t[i] -= delta
+	stampf_t -= delta
+	# der Stampfer: roter Kreis um ihn, 1,1 s später bebt der Boden; wer drinsteht, verliert fast alles
+	if stampf_t <= 0.0 and d < 7.0:
+		stampf_t = 6.5 * tempo
+		var r := 4.2
+		game.warn_fx(global_position, r, 1.1)
+		play(ANIM.cast, 1.0, 0.1, true)
+		var wo := global_position
+		get_tree().create_timer(1.1, false).timeout.connect(func():
+			if state == St.DEAD or h.dead:
+				return
+			game.shake = maxf(game.shake, 0.7)
+			game.sfx.play_at("boss_phase" if game.sfx._stream("boss_phase") else "hit", wo, 0.05, -4.0)
+			game.ring_fx(wo, r, Color(0.75, 0.82, 0.9))
+			if flat(h.global_position - wo).length() < r + h.radius:
+				h.hurt(h.max_hp * [0.55, 0.7, 0.85][Spiel.diff] * (1.25 if wut else 1.0), wo, self))
+	# Geschossringe in jeder Phase
+	if boss_t[0] <= 0.0:
+		boss_t[0] = [3.4, 2.8, 3.2][phase - 1] * tempo
+		var n := 12 + mini(10, Spiel.fall)
+		var off := randf() * TAU
+		game.sfx.play_at("bolt", global_position, 0.05, 2.0)
+		for k in n:
+			var a := off + TAU * k / n
+			game.spawn_bolt(global_position + Vector3(0, 1.4, 0), Vector3(sin(a), 0, cos(a)), dmg * 0.8, 170.0 / Daten.PX, K.get("bcol", Color(0.75, 0.82, 0.95)), 3.4)
+		play(ANIM.cast, 1.6, 0.1, true)
+	# Phase 2: Wellen der Erloschenen
+	if phase >= 2:
+		welle_t -= delta
+		if welle_t <= 0.0:
+			welle_t = (14.0 if phase == 2 else 22.0) * tempo
+			game.boss_summon(self, ["fahl", "fahl", "fahl"] if phase == 2 else ["fahl", "fahl"])
+			play(ANIM.summon if ap and ap.has_animation(ANIM.summon) else ANIM.cast, 1.4, 0.1, true)
+	# Phase 3: fallende Sterne, einer genau auf dich, die anderen ringsum
+	if phase == 3:
+		stern_t -= delta
+		if stern_t <= 0.0:
+			stern_t = 2.4 * tempo
+			for i in (4 if wut else 3):
+				var ziel: Vector3 = h.global_position + (Vector3.ZERO if i == 0 else Vector3(randf_range(-4.5, 4.5), 0, randf_range(-4.5, 4.5)))
+				game.fallender_stern(ziel, 2.1, dmg * (2.0 if wut else 1.6), self)
+	# Ansturm wie jeder Hüter
+	if boss_t[2] <= 0.0:
+		boss_t[2] = 7.5 * tempo
+		if d < 22.4 and d > 4.0:
+			charge_dir = dirn
+			face = atan2(dirn.x, dirn.z)
+			charge_t = 0.9 + 0.85
+			charge_hit = false
+			game.stripe_fx(global_position, charge_dir, 21.6, radius * 2.0, 0.9)
+			game.sfx.play_at("boss_appear", global_position, 0.05, -6.0)
+
 # Hüter (05-update.js › bossAI): Geschossring, Beschwörung, Ansturm; unter 30 % Leben schneller
 func _boss(delta: float, h: Hero, d: float, dirn: Vector3) -> void:
+	if ist_aktende():
+		_tuerhueter(delta, h, d, dirn)
+		return
 	var fast := 0.65 if hp < max_hp * 0.3 else 1.0
 	for i in 3:
 		boss_t[i] -= delta
@@ -766,7 +905,12 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false
 		return
 	if state == St.SLEEP:
 		game.wake_pack(pack)
+	if schild_t > 0.0:
+		game.float_text(global_position + Vector3(0, 2.6, 0), "unverwundbar", Color(0.75, 0.82, 0.9))
+		return
 	hp -= amount
+	if aktende == 1 and hp > 0.0:
+		_phase_pruefen()
 	flash()
 	var k := push / (8.0 if kind == "boss" else (3.0 if K.ai == "slam" else 1.0))
 	kb += flat(global_position - from).normalized() * k

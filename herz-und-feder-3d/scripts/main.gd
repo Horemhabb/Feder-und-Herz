@@ -174,6 +174,10 @@ func _ready() -> void:
 			var kt: Node = load("res://scripts/klassentest.gd").new()
 			kt.name = "Klassentest"
 			get_tree().root.add_child.call_deferred(kt)
+		if "--bosstest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Bosstest"):
+			var bt: Node = load("res://scripts/bosstest.gd").new()
+			bt.name = "Bosstest"
+			get_tree().root.add_child.call_deferred(bt)
 		if "--playtest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Playtest"):
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
@@ -208,8 +212,13 @@ func begin() -> void:
 	get_tree().paused = false
 	Spiel.speichern()
 	hud.banner(hdef.name, Stunden.case_no(Spiel.fall))
+	if Stunden.hour_of(Spiel.fall) in [1, 5, 9] and not Spiel.gesehen("akt_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)]):
+		# Akttafel (4.0): Zu Beginn jedes Aktes steht groß, wohin er führt
+		Spiel.merke("akt_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)])
+		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
+		hud.announce(null, A.nr, A.name, A.txt, 7.0)
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
-	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args()
+	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
 		get_tree().create_timer(1.4).timeout.connect(func():
 			if hud.overlay == null and not get_tree().paused and not hero.dead:
@@ -1475,7 +1484,97 @@ func on_boss_wake(b: Foe) -> void:
 	sprich("vo_boss")
 	shake = maxf(shake, 0.6)
 
+# Der Stumme Türhüter wechselt die Phase (4.0)
+var dunkel_vorher := []   # Mondlicht und Umgebungslicht vor dem Zerbrechen des Tores
+
+func on_boss_phase(b: Foe, n: int) -> void:
+	shake = maxf(shake, 0.6)
+	sfx.play("boss_phase" if sfx._stream("boss_phase") else "boss_appear")
+	if n == 2:
+		hud.banner("Er hebt die Hand, und an den Wegen regen sich die Erloschenen.", "ER RUFT DIE ERLOSCHENEN", 5.0)
+	elif n == 3:
+		hud.banner("Das Tor hinter ihm zerbricht. Es wird dunkel, nur deine Laterne brennt. Über dir lösen sich Sterne.", "DAS TOR ZERBRICHT", 6.0)
+		if dunkel_vorher.is_empty():
+			dunkel_vorher = [moon.light_energy, env.ambient_light_energy]
+		var tw := create_tween()
+		tw.tween_property(moon, "light_energy", dunkel_vorher[0] * 0.12, 2.5)
+		tw.parallel().tween_property(env, "ambient_light_energy", dunkel_vorher[1] * 0.3, 2.5)
+
+func _licht_zurueck() -> void:
+	if dunkel_vorher.is_empty():
+		return
+	var tw := create_tween()
+	tw.tween_property(moon, "light_energy", dunkel_vorher[0], 2.0)
+	tw.parallel().tween_property(env, "ambient_light_energy", dunkel_vorher[1], 2.0)
+	dunkel_vorher = []
+
+# Ein Stern fällt (Phase 3 des Türhüters): roter Kreis am Boden, ein Lichtball stürzt schräg herab, Einschlag
+func fallender_stern(ziel: Vector3, r: float, schaden: float, von: Foe) -> void:
+	ziel.y = 0.0
+	warn_fx(ziel, r, 1.3)
+	var n := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.45
+	sm.height = 0.9
+	sm.radial_segments = 12
+	sm.rings = 6
+	n.mesh = sm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(1.0, 0.92, 0.6)
+	n.material_override = m
+	add_child(n)
+	var start := ziel + Vector3(7.0, 20.0, 5.0)
+	n.global_position = start
+	var schweif := CPUParticles3D.new()
+	schweif.amount = 24
+	schweif.lifetime = 0.5
+	schweif.local_coords = false
+	schweif.gravity = Vector3.ZERO
+	schweif.initial_velocity_min = 0.0
+	schweif.initial_velocity_max = 0.4
+	schweif.scale_amount_min = 0.5
+	schweif.scale_amount_max = 1.0
+	var q := QuadMesh.new()
+	q.size = Vector2(0.5, 0.5)
+	var qm := StandardMaterial3D.new()
+	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	qm.albedo_color = Color(1.0, 0.8, 0.45, 0.6)
+	q.material = qm
+	schweif.mesh = q
+	n.add_child(schweif)
+	var tw := n.create_tween()
+	tw.tween_property(n, "global_position", ziel + Vector3(0, 0.3, 0), 1.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		shake = maxf(shake, 0.45)
+		sfx.play_at("boss_stern" if sfx._stream("boss_stern") else "hit", ziel, 0.08, -2.0)
+		ring_fx(ziel, r, Color(1.0, 0.85, 0.5))
+		var ab := hero.global_position - ziel if hero else Vector3(99, 0, 0)
+		ab.y = 0.0
+		if hero and not hero.dead and ab.length() < r + hero.radius:
+			hero.hurt(schaden, ziel, von if is_instance_valid(von) else null)
+		n.queue_free())
+
+# Wo man nach einer Niederlage im Kampf mit einem Hüter neu beginnt (A5): direkt vor seiner Arena
+func arena_ort() -> Vector3:
+	var lair := Welt.cell_pos(karte.lair)
+	var zu := start_pos - lair
+	zu.y = 0
+	var richtung := zu.normalized()
+	for weite in [14.0, 12.0, 16.0, 10.0, 18.0]:
+		for dreh in [0.0, 0.35, -0.35, 0.7, -0.7]:
+			var q: Vector3 = lair + richtung.rotated(Vector3.UP, dreh) * weite
+			if astar.is_in_boundsv(_sub(q)) and not astar.is_point_solid(_sub(q)) and not find_path(q, lair).is_empty():
+				return q
+	return start_pos
+
 func on_boss_dead() -> void:
+	_licht_zurueck()
+	if boss.ist_aktende():
+		get_tree().create_timer(4.5).timeout.connect(_aktende_lohn)
 	hud.boss_hide()
 	sfx.music_set(area_music(), 3.0)
 	hud.banner(Worte.zieh("hueter_faellt"), "DER HÜTER IST GEFALLEN", 5.0)
@@ -1498,24 +1597,31 @@ func on_hero_dead() -> void:
 		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, Stunden.hour_txt(Spiel.fall)], func(): restart(false), "Neue Figur anlegen")
 		return
 	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 6 else "tod"), func():
+		var im_kampf := boss_awake and boss.state != Foe.St.DEAD   # vor dem Zurücksetzen merken: fiel man im Kampf mit dem Hüter?
 		sfx.hush()
 		for f in foes:
 			if f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING:
 				f.sleep_again()
 		if boss.state != Foe.St.DEAD:
+			if boss.ist_aktende():
+				boss.tuerhueter_zuruecksetzen()   # der Endgegner beginnt wieder von vorn, wie du
+				_licht_zurueck()
 			boss_awake = false
 			sfx.music_set(area_music())
 			hud.boss_hide()
 		for b in bolts:
 			b.n.queue_free()
 		bolts.clear()
-		var wo := rueckkehr_ort(hero.global_position)
+		var wo := arena_ort() if im_kampf else rueckkehr_ort(hero.global_position)
 		rueck_pos = wo
 		hero.revive(wo)
 		if pet:
 			pet.global_position = wo + Vector3(-1.2, 0, 1.2)
 		cam_pos = wo
-		if wo.distance_to(start_pos) > 1.0:
+		if im_kampf:
+			sfx.play("rueckkehr" if sfx._stream("rueckkehr") else "ui")
+			hud.toast("Du erwachst vor seiner Arena. Er wartet.", 3.0)
+		elif wo.distance_to(start_pos) > 1.0:
 			sfx.play("rueckkehr" if sfx._stream("rueckkehr") else "ui")
 			hud.toast("Du erwachst an einer Feuerschale, die du entzündet hast.", 3.0)
 		get_tree().paused = false)
@@ -1541,6 +1647,38 @@ func rueckkehr_ort(tod: Vector3) -> Vector3:
 				bd = d
 				break
 	return best
+
+# ---------------------------------------------------------------- Ende des ersten Aktes (4.0)
+# Rückblick und Lohn: ein legendäres Stück zur Wahl aus drei (A6)
+var akt_lohn_genommen := false
+
+func _aktende_lohn() -> void:
+	if akt_lohn_genommen or hero.dead:
+		return
+	if hud.overlay != null or get_tree().paused:
+		get_tree().create_timer(1.0).timeout.connect(_aktende_lohn)
+		return
+	akt_lohn_genommen = true
+	get_tree().paused = true
+	sfx.play("akt_ende" if sfx._stream("akt_ende") else "victory")
+	var pool: Array = Daten.LEGS.filter(func(L): return not L.get("quest", false) and not Spiel.has_leg(L.id))
+	pool.shuffle()
+	var wahl := []
+	for L in pool.slice(0, 3):
+		var it := Spiel.new_item(Spiel.fall + 1, 3, {"slot": L.slot, "leg": L.id})
+		var name: String = L.name
+		wahl.append(["%s (%s): %s" % [name, Daten.SLOT[L.slot].name, L.txt], func():
+			get_tree().paused = false
+			var wo := Spiel.take_item(it)
+			sfx.play("legendary" if sfx._stream("legendary") else "victory")
+			hud.toast_item(-1, name, "angelegt" if wo == "angelegt" else ("in der Tasche" if wo == "tasche" else "die Tasche ist voll: es liegt vor dir"), Color(1.0, 0.62, 0.2), 5.0)
+			if wo == "voll":
+				drop_item(hero.global_position, it)
+			hero.apply_stats()])
+	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
+		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
+		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
+	hud.show_dialog("ENDE DES ERSTEN AKTES", "Der Abstieg", "", rueck, wahl)
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
 func _build_gate(pos: Vector3) -> void:

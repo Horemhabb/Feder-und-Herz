@@ -734,7 +734,9 @@ func _weaken_boss(why: String) -> void:
 	if b == null or b.state == Foe.St.DEAD:
 		return
 	boss_weak += 1
-	b.hp = minf(b.hp, b.max_hp * (1.0 - 0.2 * boss_weak))
+	# der Endgegner eines Aktes lässt sich höchstens um ein Fünftel schwächen (4.0)
+	var abzug: float = minf(0.2, 0.1 * boss_weak) if b.ist_aktende() else 0.2 * boss_weak
+	b.hp = minf(b.hp, b.max_hp * (1.0 - abzug))
 	game.hud.banner(why, "DER HÜTER IST GESCHWÄCHT", 5.0)
 
 # ---------------------------------------------------------------- Feuerschale

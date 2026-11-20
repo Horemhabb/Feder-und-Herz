@@ -38,6 +38,16 @@ static func case_no(n: int) -> String:
 	return "%s STUNDE DER NACHT" % ORD[hour_of(n) - 1].to_upper()
 
 # Die Stunde n: ACT für 1–5, sonst Landschaft und Legendäre von ACT[base], Hüter-Gestalt von ACT[boss], alle Rudel
+# Akte (4.0): Akt 1 ist ausgebaut; Akt 2 und 3 haben vorerst ihre Tafeln (A2)
+const AKTE := [
+	{"nr": "ERSTER AKT", "name": "Der Abstieg", "txt": "Du folgst den Lichtern hinab, findest die Spur des Königssiegels und die erloschenen Sterne. Am Ende wartet der Stumme Türhüter."},
+	{"nr": "ZWEITER AKT", "name": "Die Wahrheit", "txt": "Der Sammler, dein eigener Tod, Mitternacht bei Osiris und die Schlange Apophis."},
+	{"nr": "DRITTER AKT", "name": "Der Morgen", "txt": "Die Barke wird wieder vollständig. Vor dem Tor des Ostens steht ein Schatten, den du kennst."},
+]
+
+static func akt(n: int) -> int:
+	return clampi((hour_of(n) - 1) / 4, 0, 2)
+
 static func def(n: int) -> Dictionary:
 	var h := hour_of(n)
 	if h <= ACT.size():
