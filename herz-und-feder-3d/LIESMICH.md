@@ -200,6 +200,15 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.5: Neue Symbole als bemaltes Relief
+- Alle 31 Symbole (Fähigkeiten, Schlüsselsteine, dauerhafte Stärken, Rotbier) neu gezeichnet, im Stil ägyptischer
+  Wandmalerei: Ägyptisch Blau, Malachitgrün, Rot- und Gelbocker, schwarze Kontur. Die Zeichen stehen als bemaltes Relief
+  aus dem Sandstein, mit Licht, Schlagschatten, Blattgold und einem Schein dahinter. Der Rahmen ist aus Gold, das Band
+  darin trägt die Farbe der Klasse.
+- Jedes Bild zeigt, was die Fähigkeit tut (fünf Pfeile im Fächer, Risse in der Erde, Sternentor der Duat …).
+- Gesperrte Fähigkeiten sind jetzt grau wie verblasste Farbe, statt fast schwarz: Man erkennt, was kommt.
+- Erzeugt mit `tools/symbole/wand/relief.py` (Zeichen in `zeichen.py`, braucht `pip install cairosvg`).
+
 ### Fassung 4.0.4: Kleinere Leiste
 
 - Die Leiste unten (Lebens- und Kraftkugel, Fähigkeiten) ist am Rechner von Haus aus auf 75 % verkleinert und sitzt weiter am unteren Rand. Menü › Einstellungen › „Leiste unten“ wechselt zwischen 60, 75, 90 und 100 %. Am Handy bleibt sie fingergroß.
