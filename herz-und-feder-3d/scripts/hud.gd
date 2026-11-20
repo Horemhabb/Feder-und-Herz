@@ -1292,7 +1292,7 @@ func show_intro(force_new := false) -> void:
 
 func _render_intro() -> void:
 	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 3.4", 13, GOLD))
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG 4.0", 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
