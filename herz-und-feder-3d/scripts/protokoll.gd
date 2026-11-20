@@ -25,6 +25,8 @@ var ruckler := 0
 var zeiten := {}                       # Teilsystem → µs in diesem Abschnitt
 var spitzen := {}                      # Teilsystem → längster einzelner Aufruf (µs)
 var fanger: Fanger
+var grafik := ""        # echter Name der Grafik (im Browser über WEBGL_debug_renderer_info)
+var software := false   # ohne Grafikkarte gerechnet (SwiftShader, llvmpipe …)
 var _sperre := Mutex.new()
 var _eingang := PackedStringArray()   # vom Logger (kann aus anderen Fäden kommen)
 
@@ -47,6 +49,17 @@ func _ready() -> void:
 	schreib("Herz und Feder · Protokoll · %s" % Time.get_datetime_string_from_system())
 	schreib("System: %s · %s · Prozessorkerne %d · Web %s · Handy %s" % [OS.get_name(), OS.get_processor_name(), OS.get_processor_count(), OS.has_feature("web"), OS.has_feature("web_ios") or OS.has_feature("web_android") or OS.has_feature("mobile")])
 	schreib("Grafik: %s · %s · Fenster %s" % [RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_vendor(), str(DisplayServer.window_get_size())])
+	if OS.has_feature("web"):
+		# der Browser verrät den echten Namen der Grafik nur über diese Erweiterung; dazu Pixeldichte und Kerne
+		var info = JavaScriptBridge.eval("(function(){try{var c=document.createElement('canvas');var g=c.getContext('webgl2')||c.getContext('webgl');var e=g&&g.getExtension('WEBGL_debug_renderer_info');return [(e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):'unbekannt'),(e?g.getParameter(e.UNMASKED_VENDOR_WEBGL):''),window.devicePixelRatio,navigator.hardwareConcurrency,screen.width+'x'+screen.height,navigator.userAgent].join(' | ')}catch(x){return 'unbekannt'}})()")
+		grafik = str(info)
+		schreib("Browser-Grafik: " + grafik)
+	else:
+		grafik = RenderingServer.get_video_adapter_name()
+	var g := grafik.to_lower()
+	software = g.contains("swiftshader") or g.contains("llvmpipe") or g.contains("software") or g.contains("basic render")
+	if software:
+		schreib("WARNUNG Die Grafik wird ohne Grafikkarte gerechnet (Software). Das Spiel kann so nicht flüssig laufen.")
 	fanger = Fanger.new()
 	fanger.p = self
 	OS.add_logger(fanger)
@@ -115,7 +128,7 @@ func _abschnitt() -> void:
 	if g and "foes" in g and g.started:
 		var wach: int = g.foes.filter(func(f): return f.state == Foe.St.FIGHT).size()
 		var lichter: int = g.lichter.filter(func(l): return is_instance_valid(l) and l.visible).size() if "lichter" in g else -1
-		lage = " · Stunde %d · Gegner %d (wach %d) · Lichter an %d · Raumklänge an %d · Grafik %s" % [Spiel.fall, g.foes.size(), wach, lichter, g.sfx.schleifen_aktiv, "niedrig" if g.low_gfx else "hoch"]
+		lage = " · 3D-Auflösung %d %%" % int(get_viewport().scaling_3d_scale * 100.0) + " · Stunde %d · Gegner %d (wach %d) · Lichter an %d · Raumklänge an %d · Grafik %s" % [Spiel.fall, g.foes.size(), wach, lichter, g.sfx.schleifen_aktiv, "niedrig" if g.low_gfx else "hoch"]
 	schreib("LEISTUNG %.0f Bilder/s · schlechtestes Bild %.0f ms · Ruckler über 50 ms: %d · Zeichenaufrufe %d · Dreiecke %d · Skript (ms je Bild): Verarbeitung %.1f, Physik %.1f%s" % [
 		bilder / t, schlechtestes, ruckler,
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),

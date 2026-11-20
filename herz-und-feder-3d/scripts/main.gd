@@ -153,6 +153,11 @@ func _ready() -> void:
 	if touch:
 		auto_low_done = true
 		set_low(true, true)
+	if Protokoll.software:
+		# der Browser rechnet ohne Grafikkarte: gleich sparsam, und sagen, woran es liegt
+		guete_stufe(2, "Software-Grafik (%s)" % Protokoll.grafik)
+		get_tree().create_timer(2.0).timeout.connect(func():
+			hud.announce(null, "HINWEIS", "Dein Browser zeichnet ohne Grafikkarte", "Das Spiel kann so nur ruckeln. Abhilfe: in den Einstellungen des Browsers die Hardwarebeschleunigung einschalten (Chrome: Einstellungen › System › „Grafikbeschleunigung verwenden, falls verfügbar“) und den Browser neu starten.", 14.0))
 	sfx.loop("amb_wind")
 	sfx.loop("amb_drone")
 	klang = Klang.new()
@@ -2096,7 +2101,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_K: toggle_tree()
 			KEY_ESCAPE: toggle_menu()
 			KEY_F: hud.toggle_fps()
-			KEY_G: set_low(not low_gfx)
+			KEY_G:
+				auto_low_done = true   # von Hand gewählt: die Automatik bleibt still
+				set_low(not low_gfx)
+				Protokoll.schreib("GRAFIK von Hand: %s" % ("niedrig" if low_gfx else "hoch"))
 			KEY_V: toggle_fullscreen()
 			KEY_I: toggle_bag()
 			KEY_TAB: toggle_karte()
@@ -2147,6 +2155,35 @@ func nicht_gelernt(id: String) -> void:
 		hud.toast("%s ist noch nicht gelernt. %s öffnet den Fähigkeitenbaum." % [S.name, "„Fähigk.“ oben rechts" if touch else "Taste K"], 3.5)
 	else:
 		hud.toast("%s ist noch nicht gelernt. Der nächste Aufstieg bringt einen Punkt." % S.name, 3.5)
+
+# Grafik-Automatik in Stufen (4.0.2): 0 hoch · 1 niedrig (ohne Schatten, Glühen, Dunst; 3D-Auflösung 70 %) ·
+# 2 sparsam (3D-Auflösung 50 %). Sie greift auch auf dem Startbildschirm, sobald die Bildrate drei Sekunden unter 30
+# liegt, und schreibt jeden Schritt ins Protokoll. Wer G drückt, entscheidet selbst; dann bleibt die Automatik still.
+var guete := 0
+var guete_t := 0.0
+var guete_warte := 4.0   # nach dem Laden und nach jedem Schritt erst kurz abwarten
+
+func _guete_tick(delta: float) -> void:
+	if autotest != null or auto_low_done or guete >= 2:
+		return
+	guete_warte -= delta
+	if guete_warte > 0.0:
+		return
+	guete_t = guete_t + delta if Engine.get_frames_per_second() < 30 else maxf(0.0, guete_t - delta)
+	if guete_t > 3.0:
+		guete_stufe(guete + 1, "die Bildrate lag drei Sekunden unter 30 (%d Bilder/s)" % Engine.get_frames_per_second())
+
+func guete_stufe(n: int, warum: String) -> void:
+	guete = clampi(n, 0, 2)
+	guete_t = 0.0
+	guete_warte = 4.0
+	if guete >= 1 and not low_gfx:
+		set_low(true, true)
+	if guete == 2:
+		get_viewport().scaling_3d_scale = 0.5
+	Protokoll.schreib("GRAFIK Stufe %d (%s): %s" % [guete, ["hoch", "niedrig", "sparsam"][guete], warum])
+	if hud:
+		hud.toast("Grafik von selbst auf %s gestellt, weil es ruckelte. G wechselt von Hand." % ["Hoch", "Niedrig", "Sparsam (halbe 3D-Auflösung)"][guete], 5.0)
 
 func set_low(low: bool, still := false) -> void:
 	low_gfx = low
@@ -2350,10 +2387,8 @@ func _process_innen(delta: float) -> void:
 			n.position.x = W * CELL - 2.0
 	if started:
 		hud.refresh()
-		# kommt der Rechner nicht mit, schaltet das Spiel einmal von selbst auf niedrige Grafik
-		if autotest == null and not auto_low_done and not low_gfx and clock > 6.0 and not get_tree().paused:
-			slow_t = slow_t + delta if Engine.get_frames_per_second() < 40 else 0.0   # 4.0.1: früher (28) griff das zu spät
-			if slow_t > 3.0:
-				auto_low_done = true
-				set_low(true)
-				hud.toast("Grafik von selbst auf Niedrig gestellt, weil es ruckelte. G schaltet zurück.")
+	_guete_tick(delta)
+	# hinter einem fast dunklen Fenster (Startbild, Tafel, Tasche, Baum …) muss die 3D-Welt nicht gezeichnet werden
+	var verdeckt: bool = get_tree().paused and hud.overlay != null and hud.overlay.color.a >= 0.8
+	if get_viewport().disable_3d != verdeckt:
+		get_viewport().disable_3d = verdeckt
