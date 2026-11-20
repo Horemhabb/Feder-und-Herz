@@ -45,6 +45,8 @@ func _process(_d: float) -> void:
 		elif "--namenlos" in OS.get_cmdline_user_args():
 			phase = "namenlos"
 			namenlos_bilder()
+		elif "--duell" in OS.get_cmdline_user_args():
+			duell_vorbereiten()
 	if burst > 0:
 		burst -= 1
 		if burst % 3 == 0:
@@ -147,6 +149,14 @@ func _physics_process(delta: float) -> void:
 			h.want_dir = Vector3.ZERO
 			if h.attack() and t > 8.0 and burst == 0 and n < 40:
 				burst = 9   # Folgebilder: Hieb
+	# angesagte Treffer (rote Kreise): hinaus, statt stehen zu bleiben (4.0)
+	for w in game.warnungen:
+		if w.bis > game.clock:
+			var weg: Vector3 = h.global_position - w.c
+			weg.y = 0.0
+			if weg.length() < w.r + 0.8:
+				h.want_dir = weg.normalized() if weg.length() > 0.05 else Vector3(1, 0, 0)
+				break
 	# hängt die Figur fest?
 	if (h.global_position - last_pos).length() > 0.5:
 		last_pos = h.global_position
@@ -339,6 +349,26 @@ func namenlos_bilder() -> void:
 		shot("namenlos_heim")
 	print("NAMENLOS fertig: ba_heim=%d" % Spiel.ba_heim)
 	get_tree().quit()
+
+# Duell mit dem Hüter (4.0, „-- --autotest --neu --stunde=4 --duell“): Stufe 7, durchschnittliche Ausrüstung der Stufe,
+# alle anderen Gegner fort, Start vor der Arena. Der Bot kämpft wie sonst (und tritt aus roten Kreisen); gezählt wird,
+# wie oft er fällt, bis der Hüter fällt. Die Messlatte aus dem Spec: auf „Normal“ etwa zwei von drei Versuchen verloren.
+func duell_vorbereiten() -> void:
+	Spiel.lvl = 7
+	for slot in Daten.SLOTS:
+		Spiel.eq[slot] = Spiel.new_item(Spiel.fall, 1, {"slot": slot})
+	Spiel.tree = {"r": {}, "a": {}, "p": {}, "key": false}
+	Spiel.auto_lernen()
+	Spiel.calc()
+	game.hero.apply_stats(true)
+	for f in game.foes:
+		if f != game.boss:
+			f.die()
+			f.visible = false
+	game.hero.global_position = game.arena_ort()
+	game.cam_pos = game.hero.global_position
+	game.boss.ist_aktende()   # setzt Leben und Schaden des Endgegners
+	print("DUELL: Stufe %d, Leben %d, Schaden %.0f, Hüter %d Leben, %.0f Schaden" % [Spiel.lvl, int(game.hero.max_hp), Spiel.S.dmg, int(game.boss.max_hp), game.boss.dmg])
 
 func finish(why: String) -> void:
 	var h: Hero = game.hero
