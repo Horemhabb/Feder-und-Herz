@@ -64,6 +64,8 @@ jobs:
           mkdir -p $PROJEKT/build/web
           ~/godot/godot --headless --path $PROJEKT --export-release Web
           test -s $PROJEKT/build/web/index.pck
+          # der Service Worker des Exports hielte alte Fassungen im Zwischenspeicher fest: durch den eigenen ersetzen
+          cp $PROJEKT/web/dienst.js $PROJEKT/build/web/index.service.worker.js
           touch $PROJEKT/build/web/.nojekyll
           ls -la $PROJEKT/build/web
 

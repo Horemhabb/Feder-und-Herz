@@ -11,6 +11,11 @@ WURZEL = pathlib.Path(__file__).resolve().parent.parent
 def daten(art, roh):
     return "data:%s;base64,%s" % (art, base64.b64encode(roh).decode())
 
+def fassung():
+    # steht in scripts/protokoll.gd; die Startseite zeigt sie, damit man sieht, ob die neue Fassung geladen ist
+    import re
+    return re.search(r'const FASSUNG := "([^"]+)"', (WURZEL / "scripts/protokoll.gd").read_text(encoding="utf-8")).group(1)
+
 def klang():
     # Ladeklang (3.1): zwei Spuren von ElevenLabs (Sound Effects v2, je 30 s, nahtlos), gemischt in
     # tools/ton/lade_klang.mp3. Vorne und hinten stehen je 0,1 s aus dem anderen Ende der Schleife, damit
@@ -92,7 +97,7 @@ $GODOT_HEAD_INCLUDE
 	<button id="ton" type="button" aria-label="Klang an oder aus">♪ Klang</button>
 	<div class="kasten">
 		<h1>HERZ UND FEDER</h1>
-		<div class="unter">DIE ZWÖLF STUNDEN DER NACHT</div>
+		<div class="unter">DIE ZWÖLF STUNDEN DER NACHT · FASSUNG @@FASSUNG@@</div>
 		<div class="leiste" id="leiste"><i id="balken"></i></div>
 		<div class="zeile"><span id="was">Die Barke wird beladen …</span><span id="wieviel"></span></div>
 		<div id="spruch"></div>
@@ -214,7 +219,37 @@ const engine = new Engine(GODOT_CONFIG);
 		fehlschlag('Diesem Browser fehlt etwas, das das Spiel braucht:\n' + fehlt.join('\n'));
 		return;
 	}
-	engine.startGame({
+	// Neue Fassung holen (4.0.3): Das Spiel ist eine installierbare Web-App; ihr Zwischenspeicher liefert sonst die alte
+	// Fassung, bis alle Tabs geschlossen waren. Darum vor dem Start nachsehen, ob eine neue bereitliegt, und sie sofort
+	// einsetzen (die Seite lädt dann einmal neu). Ohne Netz geht es nach vier Sekunden mit der vorhandenen weiter.
+	async function frisch() {
+		if (!('serviceWorker' in navigator)) return;
+		try {
+			const reg = await navigator.serviceWorker.getRegistration();
+			if (!reg) return;
+			await Promise.race([reg.update(), new Promise(r => setTimeout(r, 4000))]);
+			const neu = reg.installing || reg.waiting;
+			const alt = (await caches.keys()).length > 0;
+			if (!neu && !alt) return;
+			was.textContent = 'Eine neue Fassung wird geholt …';
+			if (neu) {
+				await new Promise(r => {
+					if (neu.state === 'activated') { r(); return; }
+					neu.addEventListener('statechange', () => { if (neu.state === 'activated' || neu.state === 'redundant') r(); });
+					setTimeout(r, 10000);
+				});
+				if (reg.waiting) reg.waiting.postMessage('update');
+			}
+			// alte Speicher leeren und einmal frisch laden (der Merker verhindert, dass das zweimal geschieht)
+			await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+			if (!sessionStorage.getItem('hf_frisch')) {
+				sessionStorage.setItem('hf_frisch', '1');
+				location.replace(location.pathname);
+				await new Promise(() => {});
+			}
+		} catch (e) { console.warn('Fassung prüfen', e); }
+	}
+	frisch().then(() => engine.startGame({
 		'onProgress': function (jetzt, gesamt) {
 			if (jetzt > 0 && gesamt > 0) {
 				leiste.classList.remove('offen');
@@ -230,7 +265,7 @@ const engine = new Engine(GODOT_CONFIG);
 				wieviel.textContent = jetzt > 0 ? mb(jetzt) + ' MB' : '';
 			}
 		},
-	}).then(weg, fehlschlag);
+	})).then(weg, fehlschlag);
 }());
 </script>
 </body>
@@ -246,7 +281,7 @@ def startbild():
 def main():
     startbild()
     schrift = daten("font/woff", (WURZEL / "ui/fonts/almendra_sc.woff").read_bytes())
-    seite = SEITE.replace("@@BILD@@", bild()).replace("@@SCHRIFT@@", schrift).replace("@@KLANG@@", klang())
+    seite = SEITE.replace("@@BILD@@", bild()).replace("@@SCHRIFT@@", schrift).replace("@@KLANG@@", klang()).replace("@@FASSUNG@@", fassung())
     ziel = WURZEL / "web/huelle.html"
     ziel.parent.mkdir(exist_ok=True)
     ziel.write_text(seite, encoding="utf-8")

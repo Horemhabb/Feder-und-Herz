@@ -180,11 +180,11 @@ func _einstellungen() -> void:
 	_regler("Lautstärke gesamt", "laut")
 	_regler("Musik", "musik")
 	add_child(hud._label("BILD", 12, Hud.GOLD))
-	_schalter("Grafik", "Niedrig" if game.low_gfx else "Hoch", func(): game.set_low(not game.low_gfx, true))
+	_schalter("Grafik", game.GUETE_NAME[game.guete], func(): game.guete_von_hand((game.guete + 1) % 4))
 	if game.can_fullscreen or not OS.has_feature("web"):
 		_schalter("Vollbild", "An" if game.is_fullscreen() else "Aus", func(): game.toggle_fullscreen())
 	_schalter("Bildrate anzeigen", "An" if hud.l_fps.visible else "Aus", func(): hud.toggle_fps())
-	add_child(hud._para("„Niedrig“ schaltet Schatten, Glühen und Dunst ab und rechnet das Bild kleiner. Das hilft auf älteren Geräten.", 13, Hud.DIM))
+	add_child(hud._para("Vier Stufen: „Niedrig“ schaltet Schatten, Glühen und Dunst ab und rechnet das Bild kleiner; „Sparsam“ und „Minimal“ rechnen noch kleiner und mit weniger Lichtern. Ruckelt es, stellt das Spiel die Stufe von selbst herunter.", 13, Hud.DIM))
 	# Protokoll (4.0.1): was beim Spielen passiert, zum Nachlesen bei Fehlern und Ruckeln
 	add_child(hud._label("PROTOKOLL", 12, Hud.GOLD))
 	_schalter("Protokoll", "Herunterladen" if OS.has_feature("web") else "Ordner öffnen", func(): hud.toast(Protokoll.ausgeben(), 6.0))

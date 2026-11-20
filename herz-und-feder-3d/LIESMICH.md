@@ -200,6 +200,16 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.3: Neue Fassungen kommen an, vier Grafikstufen, ehrliche Messung
+
+- **Warum Verbesserungen nicht ankamen:** Der Web-Export legt einen Service Worker an, der Seite, Programm und Spieldaten im Zwischenspeicher hält und von dort ausliefert. Eine neue Fassung kam erst an, wenn alle Tabs des Spiels geschlossen waren. Jetzt ersetzt `web/dienst.js` diesen Service Worker beim Bauen (er speichert nichts und leert die alten Speicher), und die Startseite prüft vor dem Start selbst, ob etwas Altes vorliegt, räumt es ab und lädt einmal neu. Die Ladeseite zeigt die Fassung. **Wer noch eine alte Fassung sieht:** einmal `…/Feder-und-Herz/?neu=1` öffnen.
+- **Ehrliche Messung:** Das Protokoll maß die Bildzeit über „delta“, das die Engine bei acht Physikschritten (133 ms) kappt. Jedes langsame Gerät sah deshalb nach „7 Bildern/s“ aus. Jetzt misst es die echte Zeit und nennt, wie viel davon als Zeitlupe verloren geht, dazu die Physikschritte je Bild.
+- **Vier Grafikstufen** (Menü › Einstellungen › Grafik; G wechselt zwischen Hoch und Niedrig): Hoch · Niedrig (ohne Schatten, Glühen, Dunst; 3D 70 %, 8 Lichter) · Sparsam (3D 50 %, 5 Lichter, einfache Bildpunktdichte) · Minimal (3D 35 %, 3 Lichter). Die Automatik geht bei unter 30 Bildern/s eine Stufe hinunter, unter 14 gleich zwei, und merkt sich die Stufe über die Stunden.
+- **Nur die nächsten Lichter brennen** (14, 8, 5 oder 3 je nach Stufe); vorher bis zu 50 im Umkreis.
+- **Einfache Bildpunktdichte ab „Sparsam“:** Auf Bildschirmen mit 150 % oder 200 % Skalierung und auf Handys zeichnet das Spiel sonst das 2- bis 9-Fache an Bildpunkten, auch für die Oberfläche.
+- **Messung** (`-- --neu --mess`): schaltet Teile des Bildes nacheinander ab und misst die Bildzeit.
+- **Befund im Prüfbrowser ohne Grafikkarte:** etwa 7 Bilder/s, gleich ob mit oder ohne 3D-Welt; selbst mit einem Viertel der Bildpunkte nur 13. Ohne Grafikkarte ist das Spiel nicht flüssig zu bekommen; es erkennt den Fall und sagt, wie man die Hardwarebeschleunigung einschaltet.
+
 ### Fassung 4.0.2: Grafikkarte erkennen, Grafik-Automatik in Stufen
 
 Anlass: das erste Protokoll eines Spielers. Konstant etwa 135 ms je Bild (7 Bilder/s), schon auf dem Startbildschirm, während die Skripte nur wenige Millisekunden brauchten. Genau dieses Bild zeigt ein Browser, der ohne Grafikkarte zeichnet (Software-Grafik, z. B. SwiftShader): Im Prüfbrowser hier, der so zeichnet, kam Fassung 3.0 auf 2,4 und die jetzige auf etwa 6 Bilder/s.
