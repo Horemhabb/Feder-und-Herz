@@ -63,6 +63,23 @@ func frei_neben(G: Node, pos: Vector3, r: float) -> Vector3:
 			return q
 	return pos + Vector3(r, 0, 0)
 
+func pad_knopf(b: int) -> void:
+	for gedrueckt in [true, false]:
+		var e := InputEventJoypadButton.new()
+		e.device = 0
+		e.button_index = b
+		e.pressed = gedrueckt
+		Input.parse_input_event(e)
+		await wait(0.12)
+
+func pad_achse(a: int, v: float) -> void:
+	var e := InputEventJoypadMotion.new()
+	e.device = 0
+	e.axis = a
+	e.axis_value = v
+	Input.parse_input_event(e)
+	await wait(0.1)
+
 func run() -> void:
 	await wait(1.6)
 	var G := g()
@@ -537,6 +554,29 @@ func run() -> void:
 			G3.toggle_tree()
 		await wait(0.3)
 		Spiel.auto_lernen()
+	# Gamepad (4.0): Stick läuft, B weicht aus, X wirkt Fähigkeit 1, Start öffnet das Menü, Zurück die große Karte
+	await pad_achse(JOY_AXIS_LEFT_X, 1.0)
+	var p_vor: Vector3 = G3.hero.global_position
+	await wait(0.6)
+	check("Gamepad: linker Stick läuft (%.1f m)" % p_vor.distance_to(G3.hero.global_position), p_vor.distance_to(G3.hero.global_position) > 1.0)
+	await pad_achse(JOY_AXIS_LEFT_X, 0.0)
+	await pad_knopf(JOY_BUTTON_B)
+	check("Gamepad: B weicht aus", G3.hero.dodge_cd > 0.0)
+	var id1: String = G3.hero.ORDER[0]
+	G3.hero.cd[id1] = 0.0
+	G3.hero.en = 100.0
+	await pad_knopf(JOY_BUTTON_X)
+	check("Gamepad: X wirkt die erste Fähigkeit (%s)" % id1, G3.hero.cd[id1] > 0.0)
+	await wait(0.6)
+	await pad_knopf(JOY_BUTTON_START)
+	check("Gamepad: Start öffnet das Menü", G3.hud.menu_open)
+	await pad_knopf(JOY_BUTTON_START)
+	check("Gamepad: Start schließt es wieder", not G3.hud.menu_open and not get_tree().paused)
+	await pad_knopf(JOY_BUTTON_BACK)
+	check("Gamepad: Zurück öffnet die große Karte", G3.hud.karte_open)
+	await pad_knopf(JOY_BUTTON_B)
+	check("Gamepad: B schließt sie", not G3.hud.karte_open and not get_tree().paused)
+	G3.pad = false
 	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
 	var LB: Leben = G3.leben
 	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)

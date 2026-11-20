@@ -1603,6 +1603,7 @@ func on_hero_dead() -> void:
 		for f in foes:
 			if f.state == Foe.St.FIGHT or f.state == Foe.St.WAKING:
 				f.sleep_again()
+			f.alarm = -1.0   # angefangene Rufe der Rudel verklingen (sonst weckten sie nach der Rückkehr noch Nachbarn)
 		if boss.state != Foe.St.DEAD:
 			if boss.ist_aktende():
 				boss.tuerhueter_zuruecksetzen()   # der Endgegner beginnt wieder von vorn, wie du
@@ -1959,8 +1960,69 @@ func foe_near(p: Vector3, r: float) -> Foe:
 			best = f
 	return best
 
+# E (und A am Gamepad): mit dem sprechen, was am nächsten ist. Gibt zurück, ob es etwas gab.
+func interagieren() -> bool:
+	if not leben.naechster_auftrag().is_empty():
+		leben.auftrag_reden(leben.naechster_auftrag())
+	elif orte.near_thot() and not orte.near_helfer() and not orte.near_npc():
+		orte.thot_reden()
+	elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
+		orte.werkstatt_oeffnen()
+	elif orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
+		orte.talk_helfer()
+	elif orte.near_npc():
+		orte.talk()
+	else:
+		return false
+	return true
+
+# ---------------------------------------------------------------- Gamepad (4.0, G2)
+# Linker Stick läuft, rechter Stick zielt (sonst der nächste Gegner). A greift an (gehalten) und spricht, wenn jemand
+# nah ist; B weicht aus; X, Y, LB, RB sind die Fähigkeiten 1 bis 4, RT die der rechten Maustaste, LT das Rotbier.
+# Start öffnet das Menü, Zurück die große Karte, Steuerkreuz hoch den Baum, runter die Tasche.
+var pad := false          # zuletzt mit dem Gamepad gespielt
+var pad_rt := false
+var pad_lt := false
+
+func _pad_zielen() -> void:
+	var rs := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
+	if rs.length() > 0.3:
+		var d := (Vector3(1, 0, -1).normalized() * rs.x + Vector3(1, 0, 1).normalized() * rs.y).normalized()
+		hero.aim = hero.global_position + d * 8.8
+		hero.auto_aim = false
+	else:
+		var near: Foe = foe_near(hero.global_position, 20.8)
+		hero.aim = near.global_position if near else hero.global_position + hero.forward() * 8.8
+		hero.auto_aim = true
+
+func _pad_faehigkeit(i: int) -> void:
+	var id: String = hero.ORDER[i]
+	_pad_zielen()
+	if not hero.cast(id) and not Spiel.gelernt(id):
+		nicht_gelernt(id)
+
+func _pad_taste(ev: InputEventJoypadButton) -> void:
+	match ev.button_index:
+		JOY_BUTTON_START: toggle_menu()
+		JOY_BUTTON_BACK: toggle_karte()
+		JOY_BUTTON_DPAD_UP: toggle_tree()
+		JOY_BUTTON_DPAD_DOWN: toggle_bag()
+		JOY_BUTTON_B: hero.dodge()
+		JOY_BUTTON_X: _pad_faehigkeit(0)
+		JOY_BUTTON_Y: _pad_faehigkeit(1)
+		JOY_BUTTON_LEFT_SHOULDER: _pad_faehigkeit(2)
+		JOY_BUTTON_RIGHT_SHOULDER: _pad_faehigkeit(3)
+		JOY_BUTTON_A: interagieren()
+
 func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf(ev.axis_value) > 0.3):
+		pad = true
+	elif ev is InputEventMouseMotion or ev is InputEventKey or ev is InputEventMouseButton:
+		pad = false
 	if not started or get_tree().paused:
+		return
+	if ev is InputEventJoypadButton and ev.pressed:
+		_pad_taste(ev)
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
@@ -1972,16 +2034,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_Q: hero.cast("potion")
 			KEY_SPACE: hero.dodge()
 			KEY_E:
-				if not leben.naechster_auftrag().is_empty():
-					leben.auftrag_reden(leben.naechster_auftrag())
-				elif orte.near_thot() and not orte.near_helfer() and not orte.near_npc():
-					orte.thot_reden()
-				elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
-					orte.werkstatt_oeffnen()
-				elif orte.near_helfer() and (not orte.near_npc() or hero.global_position.distance_to(orte.helfer.pos) < hero.global_position.distance_to(orte.npc.pos)):
-					orte.talk_helfer()
-				elif orte.near_npc():
-					orte.talk()
+				interagieren()
 			KEY_K: toggle_tree()
 			KEY_ESCAPE: toggle_menu()
 			KEY_F: hud.toggle_fps()
@@ -2079,38 +2132,64 @@ func _physics_process(delta: float) -> void:
 		if Input.is_physical_key_pressed(KEY_D): v.x += 1
 		if Input.is_physical_key_pressed(KEY_W): v.y -= 1
 		if Input.is_physical_key_pressed(KEY_S): v.y += 1
+		var ls := Vector2(Input.get_joy_axis(0, JOY_AXIS_LEFT_X), Input.get_joy_axis(0, JOY_AXIS_LEFT_Y))
+		if ls.length() > 0.22:
+			v = ls
 		var dir := Vector3.ZERO
 		if v.length() > 0.1:
 			dir = (Vector3(1, 0, -1).normalized() * v.x + Vector3(1, 0, 1).normalized() * v.y).normalized()
 		var mg := mouse_ground()
 		hero.aim = mg
-		var gedrueckt := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or tap_t > 0.0
-		tap_t = maxf(0.0, tap_t - delta)
-		if gedrueckt and not hud.mouse_over_ui():
-			var tgt := foe_near(mg, 1.6)
-			var to := mg - hero.global_position
-			to.y = 0
-			if tgt and (tgt.global_position - hero.global_position).length() < hero.reach() - 0.1 + tgt.radius and (not hero.ranged() or sees(hero.global_position, tgt.global_position)):
-				hero.aim = tgt.global_position
+		if pad:
+			# Gamepad: Abzüge als Tasten (RT Fähigkeit der rechten Maustaste, LT Rotbier), A gehalten greift an
+			var rt := Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT) > 0.6
+			var lt := Input.get_joy_axis(0, JOY_AXIS_TRIGGER_LEFT) > 0.6
+			if rt and not pad_rt:
+				_pad_faehigkeit(4)
+			if lt and not pad_lt:
+				hero.cast("potion")
+			pad_rt = rt
+			pad_lt = lt
+			_pad_zielen()
+			if Input.is_joy_button_pressed(0, JOY_BUTTON_A) and dir == Vector3.ZERO:
+				var ziel := _auto_target()
+				if ziel:
+					hero.aim = ziel.global_position
 				hero.attack()
-				dir = Vector3.ZERO
-			elif tgt:
-				hero.aim = tgt.global_position
-				dir = (tgt.global_position - hero.global_position)
-				dir.y = 0
-				dir = dir.normalized()
-			elif Input.is_physical_key_pressed(KEY_SHIFT):
-				hero.attack()
-				dir = Vector3.ZERO
-			elif to.length() > 0.8:
-				dir = to.normalized()
-		elif dir == Vector3.ZERO:
-			# Auto-Angriff ohne Eingabe (05-update.js): nächster Gegner in Reichweite und Sicht
-			var af := _auto_target()
-			if af:
-				hero.aim = af.global_position
-				hero.attack()
-		hero.want_dir = dir
+			elif dir == Vector3.ZERO:
+				var af0 := _auto_target()
+				if af0:
+					hero.aim = af0.global_position
+					hero.attack()
+			hero.want_dir = dir
+		else:
+			var gedrueckt := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or tap_t > 0.0
+			tap_t = maxf(0.0, tap_t - delta)
+			if gedrueckt and not hud.mouse_over_ui():
+				var tgt := foe_near(mg, 1.6)
+				var to := mg - hero.global_position
+				to.y = 0
+				if tgt and (tgt.global_position - hero.global_position).length() < hero.reach() - 0.1 + tgt.radius and (not hero.ranged() or sees(hero.global_position, tgt.global_position)):
+					hero.aim = tgt.global_position
+					hero.attack()
+					dir = Vector3.ZERO
+				elif tgt:
+					hero.aim = tgt.global_position
+					dir = (tgt.global_position - hero.global_position)
+					dir.y = 0
+					dir = dir.normalized()
+				elif Input.is_physical_key_pressed(KEY_SHIFT):
+					hero.attack()
+					dir = Vector3.ZERO
+				elif to.length() > 0.8:
+					dir = to.normalized()
+			elif dir == Vector3.ZERO:
+				# Auto-Angriff ohne Eingabe (05-update.js): nächster Gegner in Reichweite und Sicht
+				var af := _auto_target()
+				if af:
+					hero.aim = af.global_position
+					hero.attack()
+			hero.want_dir = dir
 	# höchstens zwei Nahkämpfer greifen zugleich an, die anderen lauern
 	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai != "ranged" and f.K.ai != "boss" and f.fear_t <= 0.0)
 	melee.sort_custom(func(a, b): return a.global_position.distance_squared_to(hero.global_position) < b.global_position.distance_squared_to(hero.global_position))
