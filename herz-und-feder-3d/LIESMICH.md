@@ -200,6 +200,10 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.4: Kleinere Leiste
+
+- Die Leiste unten (Lebens- und Kraftkugel, Fähigkeiten) ist am Rechner von Haus aus auf 75 % verkleinert und sitzt weiter am unteren Rand. Menü › Einstellungen › „Leiste unten“ wechselt zwischen 60, 75, 90 und 100 %. Am Handy bleibt sie fingergroß.
+
 ### Fassung 4.0.3: Neue Fassungen kommen an, vier Grafikstufen, ehrliche Messung
 
 - **Warum Verbesserungen nicht ankamen:** Der Web-Export legt einen Service Worker an, der Seite, Programm und Spieldaten im Zwischenspeicher hält und von dort ausliefert. Eine neue Fassung kam erst an, wenn alle Tabs des Spiels geschlossen waren. Jetzt ersetzt `web/dienst.js` diesen Service Worker beim Bauen (er speichert nichts und leert die alten Speicher), und die Startseite prüft vor dem Start selbst, ob etwas Altes vorliegt, räumt es ab und lädt einmal neu. Die Ladeseite zeigt die Fassung. **Wer noch eine alte Fassung sieht:** einmal `…/Feder-und-Herz/?neu=1` öffnen.

@@ -215,6 +215,7 @@ func _ready() -> void:
 	bottom.add_theme_constant_override("separation", 4)
 	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bottom)
+	leiste = bottom
 	orb_hp = Kugel.new()
 	orb_hp.setup(Color("c22a22"), "Leben", f_zier, 140.0)
 	orb_hp.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -277,6 +278,7 @@ func _ready() -> void:
 	punkt_btn.visible = false
 	punkt_btn.pressed.connect(func(): game.toggle_tree())
 	root.add_child(punkt_btn)
+	leiste_skalieren.call_deferred()
 	if game.touch:
 		# Ausweichschritt für den Daumen, unten rechts
 		var ab := Button.new()
@@ -1139,6 +1141,17 @@ func press_primary() -> bool:
 	_close()
 	f.call()
 	return true
+
+# Größe der Leiste unten (4.0.4): am Rechner von Haus aus 75 %, einstellbar im Menü; am Handy bleibt sie fingergroß.
+# Sie schrumpft zur unteren Bildmitte hin, damit sie am Rand sitzen bleibt.
+var leiste: Control
+func leiste_skalieren() -> void:
+	if leiste == null:
+		return
+	var s: float = 1.0 if game.touch else clampf(float(Spiel.einst.get("leiste", 0.75)), 0.5, 1.0)
+	leiste.pivot_offset = Vector2(leiste.size.x / 2.0, leiste.size.y + 8.0)
+	leiste.scale = Vector2(s, s)
+	punkt_btn.position.y = -188.0 * s - 56.0
 
 var baum_ui: Baum
 

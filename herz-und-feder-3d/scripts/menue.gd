@@ -181,6 +181,16 @@ func _einstellungen() -> void:
 	_regler("Musik", "musik")
 	add_child(hud._label("BILD", 12, Hud.GOLD))
 	_schalter("Grafik", game.GUETE_NAME[game.guete], func(): game.guete_von_hand((game.guete + 1) % 4))
+	if not game.touch:
+		_schalter("Leiste unten", "%d %%" % round(float(Spiel.einst.get("leiste", 0.75)) * 100.0), func():
+			var stufen := [0.6, 0.75, 0.9, 1.0]
+			var i := 0
+			for k in stufen.size():
+				if absf(stufen[k] - float(Spiel.einst.get("leiste", 0.75))) < 0.03:
+					i = k
+			Spiel.einst["leiste"] = stufen[(i + 1) % stufen.size()]
+			Spiel.einst_speichern()
+			hud.leiste_skalieren())
 	if game.can_fullscreen or not OS.has_feature("web"):
 		_schalter("Vollbild", "An" if game.is_fullscreen() else "Aus", func(): game.toggle_fullscreen())
 	_schalter("Bildrate anzeigen", "An" if hud.l_fps.visible else "Aus", func(): hud.toggle_fps())
