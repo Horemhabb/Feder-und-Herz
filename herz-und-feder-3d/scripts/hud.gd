@@ -418,6 +418,15 @@ func _quests() -> void:
 				segen.append("%s %d s" % [g.name, int(game.orte.buffs[id])])
 	l_buff.text = "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
 
+static var _grau_mat: ShaderMaterial
+static func _grau() -> ShaderMaterial:
+	if _grau_mat == null:
+		var sh := Shader.new()
+		sh.code = "shader_type canvas_item;\nvoid fragment(){vec4 c=texture(TEXTURE,UV)*COLOR;float g=dot(c.rgb,vec3(0.3,0.59,0.11));COLOR=vec4(mix(vec3(g),c.rgb,0.15)*0.85,c.a);}"
+		_grau_mat = ShaderMaterial.new()
+		_grau_mat.shader = sh
+	return _grau_mat
+
 func _label(t: String, size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = t
@@ -672,7 +681,11 @@ func refresh() -> void:
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
 		var locked: bool = not Spiel.gelernt(id)
 		u.panel.modulate = Color(1, 1, 1, 0.45) if poor and not locked else Color.WHITE
-		u.icon.modulate = Color(0.25, 0.25, 0.28, 0.7) if locked else Color.WHITE
+		# seit 4.0.5: gesperrt wie verblasste Farbe auf altem Putz (grau, hell genug, um das Bild zu erkennen)
+		var mat: Material = _grau() if locked else null
+		if u.icon.material != mat:
+			u.icon.material = mat
+		u.icon.modulate = Color(0.72, 0.7, 0.68, 0.9) if locked else Color.WHITE
 		# ungelernt: erst ab ihrer Stufe lernbar, dann wartet sie im Fähigkeitenbaum auf einen Punkt
 		# seit 3.3: auf der Stufe, aber im Baum noch kein Weg dorthin
 		var weg: bool = Spiel.nachbar_gelernt("s:" + id) if locked and id != "potion" else true
