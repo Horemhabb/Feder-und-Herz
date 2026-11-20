@@ -40,9 +40,9 @@ static func case_no(n: int) -> String:
 # Die Stunde n: ACT für 1–5, sonst Landschaft und Legendäre von ACT[base], Hüter-Gestalt von ACT[boss], alle Rudel
 # Akte (4.0): Akt 1 ist ausgebaut; Akt 2 und 3 haben vorerst ihre Tafeln (A2)
 const AKTE := [
-	{"nr": "ERSTER AKT", "name": "Der Abstieg", "txt": "Du folgst den Lichtern hinab, findest die Spur des Königssiegels und die erloschenen Sterne. Am Ende wartet der Stumme Türhüter."},
-	{"nr": "ZWEITER AKT", "name": "Die Wahrheit", "txt": "Der Sammler, dein eigener Tod, Mitternacht bei Osiris und die Schlange Apophis."},
-	{"nr": "DRITTER AKT", "name": "Der Morgen", "txt": "Die Barke wird wieder vollständig. Vor dem Tor des Ostens steht ein Schatten, den du kennst."},
+	{"nr": "ERSTER AKT", "name": "Der Abstieg", "txt": "Du folgst den Lichtern hinab, findest die Spur des Königssiegels und die erloschenen Sterne. Am Ende wartet der Stumme Türhüter.", "eigen": "Eigenheit dieses Aktes: Wird ein Rudel wach, ruft es die Nachbarn."},
+	{"nr": "ZWEITER AKT", "name": "Die Wahrheit", "txt": "Der Sammler, dein eigener Tod, Mitternacht bei Osiris und die Schlange Apophis.", "eigen": "Eigenheit dieses Aktes: Gegner, die eine Weile nicht getroffen werden, heilen sich."},
+	{"nr": "DRITTER AKT", "name": "Der Morgen", "txt": "Die Barke wird wieder vollständig. Vor dem Tor des Ostens steht ein Schatten, den du kennst.", "eigen": "Eigenheit dieses Aktes: Gegner sind schneller."},
 ]
 
 static func akt(n: int) -> int:

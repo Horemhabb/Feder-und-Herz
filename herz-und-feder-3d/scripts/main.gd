@@ -216,7 +216,7 @@ func begin() -> void:
 		# Akttafel (4.0): Zu Beginn jedes Aktes steht groß, wohin er führt
 		Spiel.merke("akt_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)])
 		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
-		hud.announce(null, A.nr, A.name, A.txt, 7.0)
+		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0)
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
 	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
@@ -696,7 +696,8 @@ func wake_pack(pack: int) -> void:
 			f.wake(k * 0.35)
 			woke.append(f)
 			k += 1
-	if Spiel.D().alarm and pack != 99:
+	# Eigenheit des ersten Aktes: Rudel rufen einander, auch auf „Normal“ (4.0)
+	if (Spiel.D().alarm or Stunden.akt(Spiel.fall) == 0) and pack != 99:
 		for f in foes:
 			if f.state == Foe.St.SLEEP and f.pack != pack and f.pack != 99 and f.alarm < 0.0:
 				for o in woke:

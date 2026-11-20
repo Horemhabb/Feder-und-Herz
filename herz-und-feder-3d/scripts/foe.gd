@@ -88,6 +88,11 @@ var charge_t := 0.0
 var charge_dir := Vector3.ZERO
 var charge_hit := false
 var summoned := false   # vom Hüter beschworen: keine Erfahrung, kein Fortschritt
+const HAERTER := 1.25    # 4.0: Leben und Schaden aller Gegner auf jeder Schwierigkeit
+# klügere Gegner (4.0): Nahkämpfer kreisen ein, statt hintereinander anzulaufen; mit wenig Leben weichen sie einmal zurück
+var rueckzug_t := 0.0
+var rueckzug_war := false
+var ruhe_seit := 0.0     # Eigenheit des zweiten Aktes: wer eine Weile nicht getroffen wurde, heilt sich
 # Der Stumme Türhüter (4.0): Endgegner von Akt 1, drei Phasen
 var aktende := -1        # -1 noch nicht geprüft, 0 gewöhnlicher Hüter, 1 Endgegner des Aktes
 var phase := 1
@@ -124,11 +129,14 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		sc = K.get("scale", 1.0)
 	K["typ"] = typ
 	var T: Dictionary = Daten.ET[typ]
-	max_hp = T.hp * 1.55 * pow(1.28, F - 1) * D.hp * (float(hdef.boss.hp) if k == "boss" and hdef.has("boss") else 1.0)
-	dmg = T.dmg * 1.25 * pow(1.2, F - 1) * D.dmg
+	# 4.0 (A4): auf jeder Stufe um ein Viertel schwerer, auch auf „Normal“
+	max_hp = T.hp * 1.55 * pow(1.28, F - 1) * D.hp * HAERTER * (float(hdef.boss.hp) if k == "boss" and hdef.has("boss") else 1.0)
+	dmg = T.dmg * 1.25 * pow(1.2, F - 1) * D.dmg * HAERTER
 	xp = T.xp * pow(1.22, F - 1) * D.xp
 	w = T.w
 	spd = (58.0 if k == "boss" else float(K.spd)) * SPD * D.spd
+	if Stunden.akt(Spiel.fall) == 2 and k != "boss":
+		spd *= 1.12   # Eigenheit des dritten Aktes: Eile
 	disp_name = K.name
 	var r := r_px / Daten.PX
 	if elite != "":
@@ -490,6 +498,19 @@ func _physics_process(delta: float) -> void:
 	var dirn := to / maxf(d, 0.001)
 	var move := Vector3.ZERO
 	var speed: float = spd * (0.4 if slow_t > 0.0 else 1.0)
+	# mit wenig Leben einmal zurückweichen, kurz Luft holen, dann wieder heran (nicht Schwärme und Hüter)
+	if not rueckzug_war and kind != "boss" and K.ai != "swarm" and hp < max_hp * 0.25 and hp > 0.0 and not summoned:
+		rueckzug_war = true
+		rueckzug_t = 1.4
+	if rueckzug_t > 0.0 and stun <= 0.0:
+		rueckzug_t -= delta
+		_go(-dirn, spd * 1.05, delta)
+		play(ANIM.run)
+		return
+	# Eigenheit des zweiten Aktes: Zähigkeit. Wer vier Sekunden nicht getroffen wurde, heilt 2 % je Sekunde.
+	ruhe_seit += delta
+	if Stunden.akt(Spiel.fall) == 1 and ruhe_seit > 4.0 and hp < max_hp and kind != "boss":
+		hp = minf(max_hp, hp + max_hp * 0.02 * delta)
 	if fear_t > 0.0 and stun <= 0.0 and kind != "boss":
 		_go(-dirn, spd * 1.15, delta)
 		play(ANIM.run)
@@ -532,6 +553,11 @@ func _physics_process(delta: float) -> void:
 				elif not slot and d < 9.0:
 					move = _wait_ring(dirn, d, h)
 					speed *= 0.6
+				elif d > reach - 0.3 and d < 6.0 and K.ai == "melee":
+					# einkreisen: jeder Angreifer nimmt eine eigene Seite, statt in einer Reihe anzulaufen
+					var seite := (float(get_instance_id() % 3) - 1.0) * 0.95
+					var ziel := h.global_position - dirn.rotated(Vector3.UP, seite) * (reach * 0.85)
+					move = _toward(ziel, flat(ziel - global_position).normalized(), delta)
 				elif d > reach - 0.3:
 					move = _toward(h.global_position, dirn, delta)
 			"ranged":
@@ -909,6 +935,7 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false
 		game.float_text(global_position + Vector3(0, 2.6, 0), "unverwundbar", Color(0.75, 0.82, 0.9))
 		return
 	hp -= amount
+	ruhe_seit = 0.0
 	if aktende == 1 and hp > 0.0:
 		_phase_pruefen()
 	flash()

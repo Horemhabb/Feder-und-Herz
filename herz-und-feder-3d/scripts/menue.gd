@@ -185,6 +185,20 @@ func _einstellungen() -> void:
 		_schalter("Vollbild", "An" if game.is_fullscreen() else "Aus", func(): game.toggle_fullscreen())
 	_schalter("Bildrate anzeigen", "An" if hud.l_fps.visible else "Aus", func(): hud.toggle_fps())
 	add_child(hud._para("„Niedrig“ schaltet Schatten, Glühen und Dunst ab und rechnet das Bild kleiner. Das hilft auf älteren Geräten.", 13, Hud.DIM))
+	# Schwierigkeit nachträglich wechseln (4.0, G2): gilt ab der nächsten Stunde oder wenn man eine Stunde neu betritt
+	add_child(hud._label("SCHWIERIGKEIT", 12, Hud.GOLD))
+	var hf := HFlowContainer.new()
+	hf.add_theme_constant_override("h_separation", 6)
+	for i in Daten.DIFF.size():
+		var ii: int = i
+		hf.add_child(_knopf(Daten.DIFF[i].name, i == Spiel.diff, func():
+			Spiel.diff = ii
+			Spiel.calc()
+			Spiel.speichern()
+			hud.toast("Schwierigkeit: %s. Sie gilt ab der nächsten Stunde." % Daten.DIFF[ii].name, 3.0)
+			geh("einstellungen"), i != Spiel.diff))
+	add_child(hf)
+	add_child(hud._para("%s: %s. Ein Wechsel gilt ab der nächsten Stunde (oder wenn du eine Stunde über „Stunde wechseln“ neu betrittst)." % [Daten.DIFF[Spiel.diff].name, Daten.DIFF[Spiel.diff].txt], 13, Hud.DIM))
 
 func _stunden() -> void:
 	_kopf("Stunde wechseln")

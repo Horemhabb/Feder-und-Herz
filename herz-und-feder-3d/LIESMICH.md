@@ -209,6 +209,12 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - **Ende des ersten Aktes:** eine Tafel mit Rückblick (Zeit, Rückschläge, Herz) und dem Lohn: ein legendäres Stück zur Wahl aus drei, die man noch nicht trägt.
 - **Test:** `godot --path . -- --neu --bosstest` (12 Prüfungen: Phasen, Schild, Wellen, Dunkelheit, Sterne, Neubeginn vor der Arena, Lohn).
 
+**Teil b: Schwierigkeit und klügere Gegner**
+- **Ein Viertel schwerer auf jeder Stufe**, auch auf „Normal“: Leben und Schaden aller Gegner ×1,25 (`Foe.HAERTER`).
+- **Klügere Gegner:** Nahkämpfer kreisen ein (jeder nimmt eine eigene Seite, statt in einer Reihe anzulaufen); mit wenig Leben weichen sie einmal kurz zurück und kommen dann wieder.
+- **Eigenheiten je Akt** (stehen auf der Akttafel): Akt 1 – wird ein Rudel wach, ruft es die Nachbarn, auch auf „Normal“; Akt 2 – Gegner, die vier Sekunden nicht getroffen werden, heilen 2 % je Sekunde; Akt 3 – Gegner sind 12 % schneller.
+- **Schwierigkeit nachträglich wechseln:** Menü › Einstellungen › Schwierigkeit. Der Wechsel gilt ab der nächsten Stunde (oder wenn man eine Stunde neu betritt).
+
 ### Fassung 3.4: Größere Stunden, Rückkehr am Feuer, die große Karte
 
 - **Doppelte Fläche für Akt 1:** Die Stunden 1 bis 4 haben 74 × 56 Zellen (etwa 148 × 112 m) statt 52 × 40. Was eine Stunde füllt, wächst mit der Fläche: im Dungeon doppelt so viele Räume (und damit Rudel, Truhen, Teppiche), im Freiland doppelt so viele Bauten, Rudelplätze, Felsen, Palmen und Türme, zwei Oasen statt einer und zwei Wehrmauern, die die Stunde in Abschnitte teilen. Dazu fünf zusätzliche Orte (drei Feuerschalen, ein Krug, ein Schrein). Stunde 1 hat jetzt rund 97 Gegner statt 55, Stunde 2 rund 52 statt 20. Die Stunden ab 5 bleiben vorerst, wie sie sind (`Karte.groesse`).
