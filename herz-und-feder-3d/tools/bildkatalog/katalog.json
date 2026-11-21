@@ -1,0 +1,383 @@
+{
+ "stil": "Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square",
+ "bilder": [
+  {
+   "id": "whirl",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Falkenkreis",
+   "wirkung": "Rundumschlag",
+   "prompt": "a falcon of Horus circling in a spiral, wings spread wide, a red arc of sweeping wind around it. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "dash",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Sturz des Falken",
+   "wirkung": "Sprung mit Aufprall",
+   "prompt": "a falcon of Horus diving head-down with talons forward, motion streaks above, small impact burst below. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "oath",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Eid der Maat",
+   "wirkung": "Schaden hoch, Schaden erlitten runter",
+   "prompt": "the feather of Maat glowing upright above a raised open hand taking an oath, gold light. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "udjat",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Blick des Udjat",
+   "wirkung": "Betäubt und löscht Geschosse",
+   "prompt": "the Eye of Horus (udjat) opening, radiating a pulse ring of light. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "beam",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Strahl des Re",
+   "wirkung": "Licht durchschlägt Gegner",
+   "prompt": "a red sun disc of Re with long straight rays ending in small hands, beam shooting downward. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "flurry",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Fäuste des Month",
+   "wirkung": "Fünf schnelle Schläge",
+   "prompt": "two clenched fists in rapid motion with several ghost afterimages and ochre impact streaks, Month the war god. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "step",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Schritt des Schu",
+   "wirkung": "Schritt durch Gegner",
+   "prompt": "a long striding leg in sandals with wind streaks, small star at the footfall, god Schu. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "mantra",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Kreis des Ka",
+   "wirkung": "Heil- und Schutzkreis",
+   "prompt": "the raised ka arms (two upstretched arms) inside a glowing ring, a red heart in the center. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "palm",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Gebs Lachen",
+   "wirkung": "Erdbeben, Getroffene zerbersten",
+   "prompt": "cracked earth with a green god-of-earth ground splitting open, flying rock shards, Geb. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "wave",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Atem des Schu",
+   "wirkung": "Atemstoß wirft zurück",
+   "prompt": "a billowing sail catching a strong wind, curling turquoise breath streams, Schu the air god. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "salve",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Neiths Fächer",
+   "wirkung": "Fünf Pfeile im Fächer",
+   "prompt": "five arrows fanned out from one point over the crossed-arrows-and-shield emblem of Neith. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "roll",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Sprung der Gazelle",
+   "wirkung": "Sprung aus der Gefahr",
+   "prompt": "a gazelle in mid-leap over a dune, dust trail. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "hetz",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Upuauts Hatz",
+   "wirkung": "Fuchs springt an und beißt",
+   "prompt": "a desert fox head in attack, snarling, ears forward, small slash marks, Wepwawet the wolf god. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "rain",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Sieben Pfeile der Sachmet",
+   "wirkung": "Pfeilregen auf Fläche",
+   "prompt": "seven arrows falling from a lion-goddess sun sky onto a circle on the ground, Sachmet. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "pierce",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Pfeil der Neith",
+   "wirkung": "Pfeil durch die Reihe",
+   "prompt": "a single long arrow piercing straight through three scarab beetles in a row. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "chain",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Zorn des Seth",
+   "wirkung": "Gewitter springt von Gegner zu Gegner",
+   "prompt": "the Seth animal head with a forked lightning bolt arcing between two small jars, storm-red. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "blink",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Schritt durch die Duat",
+   "wirkung": "Kurzer Sprung",
+   "prompt": "a five-pointed star inside a circle (Duat sign) with a swirling portal ring, figure fading. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "glass",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Seschats Maß",
+   "wirkung": "Zeitfeld, Gegner kriechen",
+   "prompt": "the palm-rib measuring staff of Seschat with a seven-petal star, a faint ring of slowed time around it. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "nova",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Hu, das Machtwort",
+   "wirkung": "Ring betäubt lange",
+   "prompt": "an open mouth speaking (god Hu, the spoken word) with concentric shock rings of light. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "meteor",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Fallender Stern der Nut",
+   "wirkung": "Stern schlägt spät und hart ein",
+   "prompt": "a star-covered arched sky goddess Nut body above, a blazing star falling from her with a fiery tail. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "potion",
+   "gruppe": "1 Fähigkeiten",
+   "name": "Rotbier der Sachmet",
+   "wirkung": "Heilt 60 % Leben",
+   "prompt": "an ochre clay beer jar with red beer foaming over the rim, a small lion-goddess stamp. Accent color: gold. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_zaeh",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Starker Ka",
+   "wirkung": "6 % mehr Leben",
+   "prompt": "the ka sign: two upraised arms with an ankh between them. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_scharf",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Auge des Horus",
+   "wirkung": "Kritische Trefferchance",
+   "prompt": "a sharp eye of Horus with a bright pupil and small star glints. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_flink",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Flügel des Ba",
+   "wirkung": "Lauftempo",
+   "prompt": "a ba-bird (human-headed soul bird) in swift flight. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_kraft",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Fülle des Hapi",
+   "wirkung": "Kraft pro Sekunde",
+   "prompt": "Nile flood waves with a lotus and overflowing water, Hapi. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_hieb",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Hand des Month",
+   "wirkung": "Schaden des Standardangriffs",
+   "prompt": "a fist gripping a curved khopesh sword. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "p_jaeger",
+   "gruppe": "2 Baum: Stärken",
+   "name": "Speer des Seth",
+   "wirkung": "Schaden gegen Elite und Hüter",
+   "prompt": "a spear piercing a coiled serpent, Seth at the prow. Accent color: dark basalt. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "k_ermittler",
+   "gruppe": "2 Baum: Schlüsselsteine",
+   "name": "Wahr an Stimme",
+   "wirkung": "Schlüsselstein der Klasse",
+   "prompt": "a golden scale of Maat balancing a heart against a feather. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "k_moench",
+   "gruppe": "2 Baum: Schlüsselsteine",
+   "name": "Hauch des Schu",
+   "wirkung": "Schlüsselstein der Klasse",
+   "prompt": "a single large ostrich feather in swirling breath. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "k_jaegerin",
+   "gruppe": "2 Baum: Schlüsselsteine",
+   "name": "Upuauts Rudel",
+   "wirkung": "Schlüsselstein der Klasse",
+   "prompt": "a jackal standard on a pole with a fox pup beside it. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "k_forensiker",
+   "gruppe": "2 Baum: Schlüsselsteine",
+   "name": "Wort des Thot",
+   "wirkung": "Schlüsselstein der Klasse",
+   "prompt": "an ibis of Thot holding a scribe's palette and reed pen. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "a_wucht",
+   "gruppe": "2 Baum: Verstärkungen",
+   "name": "Wucht",
+   "wirkung": "25 % mehr Wirkung",
+   "prompt": "a small glowing ochre flame-star, plain, simple, leaf-sized badge motif. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "a_eile",
+   "gruppe": "2 Baum: Verstärkungen",
+   "name": "Eile",
+   "wirkung": "25 % schneller bereit",
+   "prompt": "a small turquoise winged sandal or swift feather, plain, simple, leaf-sized badge motif. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_ermittler_klinge",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Klinge",
+   "wirkung": "ermittler",
+   "prompt": "a khopesh blade, emblem. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_ermittler_licht",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Licht",
+   "wirkung": "ermittler",
+   "prompt": "a sun disc with rays, emblem. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_ermittler_eid",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Eid",
+   "wirkung": "ermittler",
+   "prompt": "a feather of Maat, emblem. Accent color: lapis blue. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_moench_faust",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Faust",
+   "wirkung": "moench",
+   "prompt": "a clenched fist, emblem. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_moench_atem",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Atem",
+   "wirkung": "moench",
+   "prompt": "a sail in wind, emblem. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_moench_ka",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Ka",
+   "wirkung": "moench",
+   "prompt": "two ka arms, emblem. Accent color: turquoise. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_jaegerin_fächer",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Fächer",
+   "wirkung": "jaegerin",
+   "prompt": "a fan of arrows, emblem. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_jaegerin_neith",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Neith",
+   "wirkung": "jaegerin",
+   "prompt": "crossed arrows over a shield, emblem. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_jaegerin_sachmet",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Sachmet",
+   "wirkung": "jaegerin",
+   "prompt": "a lioness head, emblem. Accent color: carnelian red. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_forensiker_gewitter",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Gewitter",
+   "wirkung": "forensiker",
+   "prompt": "a lightning bolt, emblem. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_forensiker_sterne",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Sterne",
+   "wirkung": "forensiker",
+   "prompt": "a five-pointed star, emblem. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "ast_forensiker_wort",
+   "gruppe": "3 Baum: Astzeichen",
+   "name": "Ast Wort",
+   "wirkung": "forensiker",
+   "prompt": "a speaking mouth, emblem. Accent color: amethyst violet. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_wisp",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Irrender Ba",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a wandering ba soul bird, translucent pale blue, eerie glow, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_skorp",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Tefens Brut",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a desert scorpion with raised tail, ochre and black, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_lance",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Sebau-Krieger",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a gaunt undead spear warrior in tattered bandages, bronze spear, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_seer",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Sebau-Priesterin",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a hollow-eyed priestess in ritual wraps raising a glowing staff, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_haut",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Sebau-Koloss",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a hulking stone-skinned giant with cracked body, small head, massive fists, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_guard",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Ruheloser",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a restless mummy guardian in dark wraps with a rusty shield, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_fahl",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Erloschener",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a pale ashen spirit whose inner light has gone out, dim ember eyes, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_hohl",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Herzloser",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a hollow-chested figure with an empty gaping chest cavity, no heart, cold blue glow, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  },
+  {
+   "id": "g_boss",
+   "gruppe": "4 Gegner (Lexikon)",
+   "name": "Hüter der Stunde",
+   "wirkung": "Bild für das Lexikon",
+   "prompt": "a towering guardian of the gate with jackal head, golden collar, glowing eyes, menacing, bust portrait, dramatic low light. Ancient Egyptian painted-relief style game icon, single centered motif filling about 75% of the frame, bold clean silhouette that stays readable at 64 pixels, flat saturated tomb-painting colors (Egyptian blue, malachite green, ochre, carnelian red, ivory) with thin black outlines, small gold-leaf accents, subtle warm glow behind the motif, plain dark sandstone background, no text, no border, no frame, square"
+  }
+ ]
+}
