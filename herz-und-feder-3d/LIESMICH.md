@@ -200,6 +200,13 @@ erkennt, dazu warme Lichtinseln. Alles spielt im alten Ägypten.
 - Geprüft und verworfen: Eckenverschattung (SSAO). Mit derselben Karte (`-- --seed=4242`) verglichen, ergab sie im
   Web-Renderer keinen sichtbaren Unterschied.
 
+### Fassung 4.0.6: Symbole in der Richtung „Magie“
+- Alle 31 Symbole neu gerendert: Das Zeichen glüht von innen auf fast schwarzem, ruhigem Grund (kein Strahlenkranz,
+  nur wenige Funken). Weiche, dünne Konturen, Licht und Volumen auf den Flächen, damit es nicht nach Comic aussieht.
+  Der Rahmen ist eine dünne Goldlinie, der Schein trägt die Klassenfarbe.
+- Erzeugt mit `tools/symbole/wand/magie.py` (die Reliefs der Fassung 4.0.5 kann `relief.py` weiterhin erzeugen).
+- Neu: `tools/bildkatalog/` mit 54 fertigen Prompts für Bild-KI (Fähigkeiten, Baum, Lexikon), noch nicht benutzt.
+
 ### Fassung 4.0.5: Neue Symbole als bemaltes Relief
 - Alle 31 Symbole (Fähigkeiten, Schlüsselsteine, dauerhafte Stärken, Rotbier) neu gezeichnet, im Stil ägyptischer
   Wandmalerei: Ägyptisch Blau, Malachitgrün, Rot- und Gelbocker, schwarze Kontur. Die Zeichen stehen als bemaltes Relief
