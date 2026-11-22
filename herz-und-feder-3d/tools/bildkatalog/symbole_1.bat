@@ -57,7 +57,7 @@ def graph(text, seed, vae, praefix):
         "7": {"class_type": "KSampler", "inputs": {"model": ["2", 0], "seed": seed, "steps": 8, "cfg": 1.0, "sampler_name": "res_multistep",
                                                    "scheduler": "simple", "positive": ["4", 0], "negative": ["5", 0], "latent_image": ["6", 0], "denoise": 1.0}},
         "8": {"class_type": "VAELoader", "inputs": {"vae_name": vae}},
-        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["8", 0]}},
+        "9": {"class_type": "VAEDecodeTiled", "inputs": {"samples": ["7", 0], "vae": ["8", 0], "tile_size": 512, "overlap": 64, "temporal_size": 64, "temporal_overlap": 8}},
         "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": praefix}},
     }
 
