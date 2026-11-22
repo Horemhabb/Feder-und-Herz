@@ -1,4 +1,5 @@
 {
+ "version": "4.0.9",
  "hinweis": "Plan fuer symbole.bat. Stile, Ansichten, Seeds, Motive und Laeufe stehen hier; das Skript enthaelt keine Texte. ACHTUNG: Keine Zahlen und Prozentzeichen in Prompts schreiben, Z-Image malt sie als Schrift ins Bild (Erfahrung: '80%' wurde zum Bildmotiv).",
  "standardstil": "aegypt",
  "stile": {

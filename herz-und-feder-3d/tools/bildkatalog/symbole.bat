@@ -1,5 +1,5 @@
 @python_embeded\python.exe -x "%~f0" %* & pause & exit /b
-# Symbole (Fassung 4.0.8): ein Skript fuer Probelaeufe UND die Nachtschicht, mit dem laufenden ComfyUI (Z-Image Turbo).
+# Symbole (Fassung 4.0.9): ein Skript fuer Probelaeufe UND die Nachtschicht, mit dem laufenden ComfyUI (Z-Image Turbo).
 # Diese Datei ist zugleich Batch- und Python-Skript (die erste Zeile startet Python mit -x, das sie ueberspringt).
 # Ablage: im ComfyUI-Ordner (C:\CF), daneben die Datei symbole_plan.json. Alle Texte (Stile, Motive, Laeufe, Seeds) stehen im Plan.
 #
@@ -10,10 +10,11 @@
 #          symbole.bat probe --trocken nur die Prompts in eine Datei schreiben, ohne ComfyUI
 #
 # Was das Skript fuer die Nacht tut: haelt den Rechner wach, ueberspringt fertige Bilder, versucht ein Bild zweimal,
-# rechnet die Bilder reihum (erst alle Symbole in Variante a, dann b ...), damit bei einem Abbruch ein vollstaendiger
+# rechnet die Bilder reihum (erst alle Symbole in Variante a, dann b ...; Vergleichsstile eines Symbols direkt nacheinander), damit bei einem Abbruch ein vollstaendiger
 # Satz vorliegt, und startet ComfyUI (start.bat) neu, falls es abstuerzt (AMD-Treiber), hoechstens dreimal.
 import ctypes, datetime, glob, json, os, subprocess, sys, time, urllib.error, urllib.request, uuid
 
+VERSION = "4.0.9"   # muss zur "version" in symbole_plan.json passen
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 SERVER = os.environ.get("COMFY_SERVER", "http://127.0.0.1:8188")
 PLAN = os.path.join(ROOT, "symbole_plan.json")
@@ -184,12 +185,13 @@ def dateiname_teil(s):
 
 
 def auftraege(plan, lauf):
-    """Reihenfolge: Variante, dann Stil, dann Symbol. So liegt bei jedem Abbruch ein vollstaendiger Satz vor."""
+    """Reihenfolge: Variante, dann Symbol, dann Stil. So stehen Vergleichsbilder desselben Symbols nebeneinander in der Warteschlange,
+    und bei jedem Abbruch liegt ein vollstaendiger Satz der ersten Varianten vor."""
     icons, stile = icons_des_laufs(plan, lauf), stile_des_laufs(plan, lauf)
     liste = []
     for v in lauf["varianten"]:
-        for stil in stile:
-            for icon in icons:
+        for icon in icons:
+            for stil in stile:
                 liste.append({"id": icon["id"], "name": icon["name"], "stil": stil, "v": v, "seed": plan["seeds"][v],
                               "prompt": baue_prompt(plan, icon, stil, v),
                               "praefix": "%s_%s_%s" % (dateiname_teil(icon["id"]), stil, v)})
@@ -297,6 +299,10 @@ def main():
     plan = lade_plan()
     if plan is None:
         return
+    print("symbole.bat Version %s, Plan Version %s" % (VERSION, plan.get("version", "?")))
+    if plan.get("version") != VERSION:
+        print("ACHTUNG: Skript und Plan passen nicht zusammen. Beide Dateien neu von GitHub laden (bei Zwischenspeicher ein paar Minuten warten).")
+        return
     name = namen[0] if namen else frage_lauf(plan)
     if name not in plan["laeufe"]:
         sag("Unbekannter Lauf '%s'. Moeglich: %s" % (name, ", ".join(plan["laeufe"])))
@@ -398,6 +404,11 @@ def main():
                                       "sekunden": round(sek, 1), "prompt": a["prompt"]}
             with open(manifest_pfad, "w", encoding="utf-8") as f:
                 json.dump(list(manifest.values()), f, ensure_ascii=False, indent=1)
+            if gerechnet % 5 == 0:
+                try:
+                    tafeln(ziel, jobs)   # Zwischenstand zum Hineinschauen
+                except Exception as e:
+                    sag("Zwischentafel nicht moeglich:", e)
     except KeyboardInterrupt:
         sag("Abgebrochen.")
     finally:

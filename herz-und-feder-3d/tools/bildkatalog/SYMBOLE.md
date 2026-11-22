@@ -31,7 +31,8 @@ Z-Image malt Zahlen und Prozentzeichen gern als **Schrift ins Bild**. Aus „fil
 
 ## Nachtschicht
 - Den Standardstil legt die Zeile `"standardstil"` im Plan fest. Nach dem Probelauf dort `alt`, `positiv`, `aegypt` oder `frei` eintragen.
-- Reihenfolge: erst alle Symbole in Variante a, dann b, c, d. Bei einem Abbruch liegt also ein vollständiger Satz vor.
+- Reihenfolge: erst alle Symbole in Variante a, dann b, c, d. Bei einem Abbruch liegt also ein vollständiger Satz vor. Beim Probelauf laufen die Vergleichsstile eines Symbols direkt nacheinander, so kannst du früh Zwischenergebnisse vergleichen.
+- Alle 5 Bilder wird `uebersicht_01.jpg` neu geschrieben. Beim Start zeigt das Skript Skript- und Plan-Version (aktuell 4.0.9). Weicht sie ab, ist eine alte Datei im Umlauf.
 - Das Skript hält den Rechner wach, versucht jedes Bild zweimal und überspringt Fertiges. Stürzt ComfyUI ab, startet es `start.bat` neu (höchstens dreimal). Nach drei Fehlern in Folge hält es an.
 - Die Dauer je Bild steht nach den ersten Bildern im Fenster (mit Restzeit). Als Anhaltspunkt: etwa 2,5 Minuten je Bild (Schätzung aus einem früheren Lauf, nicht gemessen), also `probe` knapp 1 Stunde, `nacht` etwa 5,5 Stunden.
 - Nie zwei Läufe gleichzeitig auf derselben Karte starten (Grafikspeicher).
