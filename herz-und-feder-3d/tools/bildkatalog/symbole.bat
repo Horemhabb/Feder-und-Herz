@@ -263,6 +263,18 @@ def tafeln(ziel, jobs):
 
 # ---------------------------------------------------------------- Ablauf
 
+def ziffern_warnung(plan, jobs):
+    """Z-Image malt Zahlen und Prozentzeichen gern als Schrift ins Bild (aus '80%' wurde ein Bildmotiv). Darum vorher warnen."""
+    import re
+    gefunden = {}
+    for a in jobs:
+        for t in re.findall(r"\d+%?|%", a["prompt"]):
+            gefunden.setdefault(a["stil"], set()).add(t)
+    for stil, tokens in gefunden.items():
+        sag("ACHTUNG Stil '%s': Zahlen im Prompt (%s). Prozentzeichen sind riskant, Ziffern koennen als Schrift im Bild landen." % (stil, ", ".join(sorted(tokens))))
+    return gefunden
+
+
 def frage_lauf(plan):
     namen = list(plan["laeufe"].keys())
     print("\nWelcher Lauf?\n")
@@ -308,6 +320,7 @@ def main():
     sag("Lauf '%s': %s" % (name, lauf["titel"]))
     sag("%d Symbole, Stile %s, Varianten %s = %d Bilder. Ordner: %s" % (len(icons_des_laufs(plan, lauf)), "+".join(stile_des_laufs(plan, lauf)),
                                                                        "".join(lauf["varianten"]), len(jobs), ziel))
+    ziffern_warnung(plan, jobs)
     if "--trocken" in flags:
         sag("Trockenlauf: alle Prompts stehen in %s" % os.path.join(ziel, "prompts.txt"))
         return

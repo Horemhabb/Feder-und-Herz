@@ -20,8 +20,11 @@ Ohne Namen erscheint ein Menü. Zusätze: `--weiter` (Fehlendes nachholen, ohne 
 ## Was dabei herauskommt
 Ordner `ComfyUI\output\symbole\<lauf>\`: die Bilder, `uebersicht_01.jpg` (je Symbol alle Varianten nebeneinander), `leiste_64px.jpg` (Spielgröße), `manifest.json` (Seed, Prompt, Dauer je Bild), `prompts.txt`, `protokoll.txt`.
 
+## Wichtige Erfahrung: keine Zahlen im Prompt
+Z-Image malt Zahlen und Prozentzeichen gern als **Schrift ins Bild**. Aus „filling about 80% of the square“ wurden „%“, „0%“ und „9%“ als Bildmotiv. Darum steht jetzt „most of the square“ in allen Stilen, und das Skript warnt vor dem Lauf, wenn Zahlen im Prompt stehen. Ziffern aus den Namen fremder Spiele („Diablo 4“, „Baldur's Gate 3“) lösen die Warnung aus. Der Stil `frei` hat sie nicht.
+
 ## Probelauf richtig lesen
-- Der Stil `alt` ist **Wort für Wort** der Stil aus `symbole_2.bat` mit denselben Seeds. Er dient als Kontrolle. Dass Bilder auf deiner Karte exakt gleich herauskommen, ist nicht garantiert.
+- Der Stil `alt` ist **Wort für Wort** der Stil aus `symbole_2.bat` mit denselben Seeds, **nach** der Korrektur „about 80% of the square“ zu „most of the square“. Er dient als Kontrolle. Dass Bilder auf deiner Karte exakt gleich herauskommen, ist nicht garantiert.
 - `aegypt` ändert **zwei Dinge zugleich** (positive Formulierung und ägyptische Merkmale). Ob es am einen oder am anderen liegt, zeigt erst `probe_breit`.
 - Bewerte zuerst nach Gefühl und decke die Beschriftung ab. Zehn Vergleiche sind ein Hinweis, kein Beweis. Prüfe auch `leiste_64px.jpg`: erkennt man die Symbole in Spielgröße?
 - Die Prompts sind lang. Falls das Ende (die Stilvorgabe) abgeschnitten wirkt, sag Bescheid.
@@ -30,7 +33,8 @@ Ordner `ComfyUI\output\symbole\<lauf>\`: die Bilder, `uebersicht_01.jpg` (je Sym
 - Den Standardstil legt die Zeile `"standardstil"` im Plan fest. Nach dem Probelauf dort `alt`, `positiv`, `aegypt` oder `frei` eintragen.
 - Reihenfolge: erst alle Symbole in Variante a, dann b, c, d. Bei einem Abbruch liegt also ein vollständiger Satz vor.
 - Das Skript hält den Rechner wach, versucht jedes Bild zweimal und überspringt Fertiges. Stürzt ComfyUI ab, startet es `start.bat` neu (höchstens dreimal). Nach drei Fehlern in Folge hält es an.
-- Die Dauer je Bild steht nach den ersten Bildern im Fenster (mit Restzeit). Rechne damit, bevor du 132 Bilder losschickst.
+- Die Dauer je Bild steht nach den ersten Bildern im Fenster (mit Restzeit). Als Anhaltspunkt: etwa 2,5 Minuten je Bild (Schätzung aus einem früheren Lauf, nicht gemessen), also `probe` knapp 1 Stunde, `nacht` etwa 5,5 Stunden.
+- Nie zwei Läufe gleichzeitig auf derselben Karte starten (Grafikspeicher).
 - Windows-Energiesparen: Das Skript schaltet es für die Laufzeit aus. Lege den Rechner trotzdem nicht in den Ruhezustand.
 
 ## Bekannte Grenzen
