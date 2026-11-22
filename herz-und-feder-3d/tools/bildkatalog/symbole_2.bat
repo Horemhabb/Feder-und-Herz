@@ -15,7 +15,7 @@ VARIANTEN = [("a", 101), ("b", 202)]
 STIL = ("Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling "
         "about 80% of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, "
         "blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, "
-        "dramatic rim lighting, rich moody colors. Behind it only a plain dark textured surface (%s) with a soft vignette: "
+        "dramatic rim lighting, rich moody colors. Behind it only a plain dark textured surface ({TEX}) with a soft vignette: "
         "no scenery, no architecture, no landscape, no ground, no horizon, no objects in the background. "
         "Square game icon, no text, no border, no frame.")
 
@@ -135,7 +135,7 @@ def main():
             if glob.glob(os.path.join(ZIEL, "%s_%s_*.png" % (i, v))):
                 print("[%d/%d] %s (%s) schon vorhanden" % (nr, gesamt, n, v))
                 continue
-            sek = erzeuge(motiv + " " + STIL % tex, seed, vae, "icons/%s_%s" % (i, v))
+            sek = erzeuge(motiv + " " + STIL.replace("{TEX}", tex), seed, vae, "icons2/%s_%s" % (i, v))
             print("[%d/%d] %s (%s) fertig in %d s" % (nr, gesamt, n, v, sek))
     pfad = tafel(ICONS)
     print("\nFERTIG. Uebersicht:", pfad)
