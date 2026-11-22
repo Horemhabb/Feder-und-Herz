@@ -1,0 +1,478 @@
+{
+ "hinweis": "Plan fuer symbole.bat. Stile, Ansichten, Seeds, Motive und Laeufe stehen hier; das Skript enthaelt keine Texte. Jede Zeile ist von Hand aenderbar.",
+ "standardstil": "aegypt",
+ "stile": {
+  "alt": {
+   "beschreibung": "Kontrolle: genau der Stil aus symbole_2.bat (mit Verneinungen und Markennamen)",
+   "text": "{MOTIV} {ANSICHT} Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling about 80% of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. Behind it only a plain dark textured surface ({TEX}) with a soft vignette: no scenery, no architecture, no landscape, no ground, no horizon, no objects in the background. Square game icon, no text, no border, no frame."
+  },
+  "positiv": {
+   "beschreibung": "wie alt, aber die Verneinungen sind positiv umformuliert",
+   "text": "{MOTIV} {ANSICHT} Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling about 80% of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  },
+  "aegypt": {
+   "beschreibung": "wie positiv, dazu aegyptische Merkmale (Bildsprache der Grabmalerei, Einlagen aus Lapislazuli)",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian design language throughout: forms drawn the way tomb paintings and temple reliefs draw them (heads and animals in profile, stylized layered proportions), engraved lotus, papyrus and hieroglyph patterns in the metal, inlays of lapis lazuli, turquoise and carnelian. Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling about 80% of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  },
+  "frei": {
+   "beschreibung": "wie aegypt, aber ohne die Namen fremder Spiele (fuer eine spaetere Veroeffentlichung)",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian design language throughout: forms drawn the way tomb paintings and temple reliefs draw them (heads and animals in profile, stylized layered proportions), engraved lotus, papyrus and hieroglyph patterns in the metal, inlays of lapis lazuli, turquoise and carnelian. Dark fantasy game ability icon, painterly high-end digital illustration in the tradition of modern action role-playing game skill icons: a single emblem centered and filling about 80% of the square, close-up, strong readable silhouette, realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  }
+ },
+ "ansichten": {
+  "a": "",
+  "b": "Show the emblem in a dynamic three-quarter view.",
+  "c": "Show the emblem in a clean side-profile view.",
+  "d": "Show the emblem slightly tilted and dynamic, as a close-up with extra glow."
+ },
+ "seeds": {
+  "a": 101,
+  "b": 202,
+  "c": 303,
+  "d": 404
+ },
+ "laeufe": {
+  "probe": {
+   "titel": "Probelauf: die 10 bisherigen Symbole, alter gegen aegyptischer Stil",
+   "icons": [
+    "whirl",
+    "dash",
+    "oath",
+    "udjat",
+    "beam",
+    "flurry",
+    "step",
+    "mantra",
+    "palm",
+    "wave"
+   ],
+   "stile": [
+    "alt",
+    "aegypt"
+   ],
+   "varianten": [
+    "a"
+   ]
+  },
+  "probe_breit": {
+   "titel": "Probelauf breit: dieselben 10 Symbole in vier Stilen",
+   "icons": [
+    "whirl",
+    "dash",
+    "oath",
+    "udjat",
+    "beam",
+    "flurry",
+    "step",
+    "mantra",
+    "palm",
+    "wave"
+   ],
+   "stile": [
+    "alt",
+    "positiv",
+    "aegypt",
+    "frei"
+   ],
+   "varianten": [
+    "a"
+   ]
+  },
+  "rest": {
+   "titel": "Die 11 uebrigen Faehigkeiten im Standardstil, je zwei Varianten",
+   "icons": [
+    "salve",
+    "roll",
+    "hetz",
+    "rain",
+    "pierce",
+    "chain",
+    "blink",
+    "glass",
+    "nova",
+    "meteor",
+    "potion"
+   ],
+   "stile": [
+    "@standard"
+   ],
+   "varianten": [
+    "a",
+    "b"
+   ]
+  },
+  "nacht": {
+   "titel": "Nachtschicht: alle Faehigkeiten und Baumzeichen, je vier Varianten",
+   "gruppen": [
+    "faehigkeiten",
+    "staerken",
+    "schluessel",
+    "verstaerkung"
+   ],
+   "stile": [
+    "@standard"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ]
+  },
+  "aeste": {
+   "titel": "Astzeichen des Baums, je vier Varianten",
+   "gruppen": [
+    "aeste"
+   ],
+   "stile": [
+    "@standard"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ]
+  }
+ },
+ "icons": [
+  {
+   "id": "whirl",
+   "name": "Falkenkreis",
+   "gruppe": "faehigkeiten",
+   "motiv": "A golden falcon of Horus emblem seen from above, circling in a tight spiral with wings spread wide, surrounded by a ring of swirling blue-white wind.",
+   "tex": "weathered dark sandstone",
+   "hinweis": "The falcon is drawn in the Egyptian manner: head in profile with the dark Horus eye markings and a hooked beak, wing feathers in stylized layered bands inlaid with lapis lazuli and gold."
+  },
+  {
+   "id": "dash",
+   "name": "Sturz des Falken",
+   "gruppe": "faehigkeiten",
+   "motiv": "A golden falcon of Horus emblem diving steeply head-down with talons thrust forward, streaks of motion trailing behind it.",
+   "tex": "dark cracked basalt",
+   "hinweis": "The falcon is drawn in the Egyptian manner: head in profile with the dark Horus eye markings and a hooked beak, layered stylized wing feathers inlaid with lapis lazuli."
+  },
+  {
+   "id": "oath",
+   "name": "Eid der Maat",
+   "gruppe": "faehigkeiten",
+   "motiv": "The white ostrich feather of Maat glowing with golden light, floating above a raised open palm, sparkling gold motes.",
+   "tex": "dark stone with faint engraved hieroglyphs",
+   "hinweis": "The feather is the tall plumed ostrich feather of Maat, its quill inlaid with gold."
+  },
+  {
+   "id": "udjat",
+   "name": "Blick des Udjat",
+   "gruppe": "faehigkeiten",
+   "motiv": "The Eye of Horus (udjat) forged from blackened iron and hammered gold with a luminous turquoise iris, a shockwave ring of light pulsing outward.",
+   "tex": "dark scorched obsidian",
+   "hinweis": "The eye is the classic Eye of Horus with its curled tail line and brow, in profile."
+  },
+  {
+   "id": "beam",
+   "name": "Strahl des Re",
+   "gruppe": "faehigkeiten",
+   "motiv": "A blazing red-gold sun disc of Re with a rearing cobra, a straight beam of white-gold light shooting downward and ending in small glowing hands.",
+   "tex": "dark painted plaster with faint stars",
+   "hinweis": "The sun disc of Re is encircled by a rearing uraeus cobra, the rays end in small human hands in the manner of the Aten."
+  },
+  {
+   "id": "flurry",
+   "name": "Fäuste des Month",
+   "gruppe": "faehigkeiten",
+   "motiv": "Two clenched fists wrapped in linen bandages and bronze studs striking rapidly, with several ghost afterimages and ochre impact sparks.",
+   "tex": "scorched dark sandstone",
+   "hinweis": "The fists wear bronze wrist guards engraved with Egyptian patterns and the falcon-head emblem of the war god Month."
+  },
+  {
+   "id": "step",
+   "name": "Schritt des Schu",
+   "gruppe": "faehigkeiten",
+   "motiv": "A bare sandaled foot mid-stride dissolving into streaks of swirling wind and white feathers, a small star where it lands.",
+   "tex": "smoky grey stone",
+   "hinweis": "The sandal is a woven papyrus sandal with a lotus-flower toe strap."
+  },
+  {
+   "id": "mantra",
+   "name": "Kreis des Ka",
+   "gruppe": "faehigkeiten",
+   "motiv": "The Egyptian ka symbol, two raised arms, inside a glowing turquoise ring of light with a red beating heart at its center, healing sparks rising.",
+   "tex": "dark stone with faint concentric carved circles",
+   "hinweis": "The two arms are drawn exactly like the hieroglyph ka, upstretched with flat hands."
+  },
+  {
+   "id": "palm",
+   "name": "Gebs Lachen",
+   "gruppe": "faehigkeiten",
+   "motiv": "A mighty stone fist smashing into cracked earth that splits open with glowing green fissures, flying rock shards, Geb the earth god.",
+   "tex": "dark cracked earth",
+   "hinweis": "The fist and the split earth are carved like a stone relief of the earth god Geb, with green hieroglyphs glowing in the cracks."
+  },
+  {
+   "id": "wave",
+   "name": "Atem des Schu",
+   "gruppe": "faehigkeiten",
+   "motiv": "A billowing sail catching a powerful wind, curling turquoise and white breath streams, flying feathers.",
+   "tex": "dark storm-grey stone",
+   "hinweis": "The sail is a square linen Nile-boat sail with a painted wadjet eye, the wind drawn as stylized wavy lines."
+  },
+  {
+   "id": "salve",
+   "name": "Neiths Fächer",
+   "gruppe": "faehigkeiten",
+   "motiv": "Five golden-tipped arrows with red fletching fanned out from a single point over the crossed-arrows-and-shield emblem of Neith, glowing carnelian light.",
+   "tex": "dark red-brown sandstone",
+   "hinweis": "The emblem of Neith is two crossed arrows over a small round shield, drawn as in temple reliefs."
+  },
+  {
+   "id": "roll",
+   "name": "Sprung der Gazelle",
+   "gruppe": "faehigkeiten",
+   "motiv": "A golden gazelle emblem in a graceful mid-leap with a curl of dust and wind trailing beneath it, a faint red glow.",
+   "tex": "dark dune-sand stone",
+   "hinweis": "The gazelle is drawn in the flowing Egyptian relief manner with long curved horns and slender legs."
+  },
+  {
+   "id": "hetz",
+   "name": "Upuauts Hatz",
+   "gruppe": "faehigkeiten",
+   "motiv": "The snarling head of Wepwawet's desert fox, ears pricked forward, with golden slash marks and a red glow in its eyes.",
+   "tex": "dark scorched sandstone",
+   "hinweis": "The head is drawn in profile like the jackal-like Wepwawet, with tall pointed ears and a gold collar."
+  },
+  {
+   "id": "rain",
+   "name": "Sieben Pfeile der Sachmet",
+   "gruppe": "faehigkeiten",
+   "motiv": "Seven arrows falling from above in a tight volley onto a glowing carnelian circle, a lioness-goddess sun disc glowing behind them.",
+   "tex": "dark red sandstone",
+   "hinweis": "The sun disc of Sekhmet carries a rearing uraeus; the arrows are slender with reed shafts and flint tips."
+  },
+  {
+   "id": "pierce",
+   "name": "Pfeil der Neith",
+   "gruppe": "faehigkeiten",
+   "motiv": "A single long golden arrow piercing straight through three glowing scarab beetles in a row, trailing a red streak.",
+   "tex": "dark basalt",
+   "hinweis": "The scarabs are sacred Egyptian scarabs with segmented shell patterns."
+  },
+  {
+   "id": "chain",
+   "name": "Zorn des Seth",
+   "gruppe": "faehigkeiten",
+   "motiv": "The head of the Seth animal with a forked violet lightning bolt arcing from it to two small clay jars, storm-red glow.",
+   "tex": "dark stormy slate",
+   "hinweis": "The Seth animal is drawn faithfully: long downward-curved snout and tall, square-tipped upright ears."
+  },
+  {
+   "id": "blink",
+   "name": "Schritt durch die Duat",
+   "gruppe": "faehigkeiten",
+   "motiv": "A five-pointed golden star inside a circle, the Duat sign, framed by a swirling violet portal ring, a faint ghostly figure dissolving into its center.",
+   "tex": "dark star-speckled stone"
+  },
+  {
+   "id": "glass",
+   "name": "Seschats Maß",
+   "gruppe": "faehigkeiten",
+   "motiv": "The palm-rib measuring staff of Seschat topped with a seven-petal star, wrapped by a faint violet ring of slowed time, grains of sand hanging in the air.",
+   "tex": "dark engraved stone",
+   "hinweis": "The staff is the notched palm rib of Seshat, topped by her emblem of a star with a bow-shaped crown."
+  },
+  {
+   "id": "nova",
+   "name": "Hu, das Machtwort",
+   "gruppe": "faehigkeiten",
+   "motiv": "An open speaking mouth sending out concentric violet shock rings of golden light, the spoken word of the god Hu.",
+   "tex": "dark carved granite"
+  },
+  {
+   "id": "meteor",
+   "name": "Fallender Stern der Nut",
+   "gruppe": "faehigkeiten",
+   "motiv": "A blazing golden star with a fiery tail falling from the star-covered arched body of the sky goddess Nut.",
+   "tex": "dark plaster painted with faint stars",
+   "hinweis": "Nut is drawn as an elongated arched figure whose body is covered in stars, as in temple ceiling paintings."
+  },
+  {
+   "id": "potion",
+   "name": "Rotbier der Sachmet",
+   "gruppe": "faehigkeiten",
+   "motiv": "An ochre clay beer jar with red beer foaming over its rim, a small lion-goddess stamp on the clay, warm golden light.",
+   "tex": "dark worn wood",
+   "hinweis": "The jar is a tall, tapered Egyptian beer jar with a pointed base and painted bands."
+  },
+  {
+   "id": "p_zaeh",
+   "name": "Starker Ka",
+   "gruppe": "staerken",
+   "motiv": "The ka sign, two upraised arms, with an ankh between them, in hammered gold with a steady warm glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "p_scharf",
+   "name": "Auge des Horus",
+   "gruppe": "staerken",
+   "motiv": "A sharp Eye of Horus in hammered gold and blackened iron with a bright pupil and small star glints.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "p_flink",
+   "name": "Flügel des Ba",
+   "gruppe": "staerken",
+   "motiv": "A ba-bird, the human-headed soul bird, in swift flight with trailing feather streaks.",
+   "tex": "dark basalt",
+   "hinweis": "The ba is drawn in the Egyptian manner: a falcon body with a small human head in profile wearing a wig."
+  },
+  {
+   "id": "p_kraft",
+   "name": "Fülle des Hapi",
+   "gruppe": "staerken",
+   "motiv": "Nile flood waves with a blooming lotus and overflowing water, turquoise and gold.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "p_hieb",
+   "name": "Hand des Month",
+   "gruppe": "staerken",
+   "motiv": "A fist gripping a curved khopesh sword of hammered bronze and gold.",
+   "tex": "dark basalt",
+   "hinweis": "The khopesh is the sickle-shaped Egyptian sword."
+  },
+  {
+   "id": "p_jaeger",
+   "name": "Speer des Seth",
+   "gruppe": "staerken",
+   "motiv": "A spear piercing a coiled serpent, the prow of Seth's barque behind it.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "k_ermittler",
+   "name": "Wahr an Stimme",
+   "gruppe": "schluessel",
+   "motiv": "A golden scale of Maat balancing a human heart against the white feather, lapis blue glow.",
+   "tex": "dark engraved stone"
+  },
+  {
+   "id": "k_moench",
+   "name": "Hauch des Schu",
+   "gruppe": "schluessel",
+   "motiv": "A single large ostrich feather in swirling turquoise breath.",
+   "tex": "dark smoky stone"
+  },
+  {
+   "id": "k_jaegerin",
+   "name": "Upuauts Rudel",
+   "gruppe": "schluessel",
+   "motiv": "A jackal standard on a pole with a fox pup standing beside it, carnelian red glow.",
+   "tex": "dark scorched sandstone",
+   "hinweis": "The standard is the Egyptian Wepwawet standard: a jackal figure on a pole with a flat base."
+  },
+  {
+   "id": "k_forensiker",
+   "name": "Wort des Thot",
+   "gruppe": "schluessel",
+   "motiv": "An ibis of Thoth holding a scribe's palette and reed pen, violet glow.",
+   "tex": "dark plaster with faint stars",
+   "hinweis": "Thoth is drawn as a sacred ibis with a long curved beak, in profile."
+  },
+  {
+   "id": "a_wucht",
+   "name": "Wucht",
+   "gruppe": "verstaerkung",
+   "motiv": "A small glowing ochre flame-star, simple and bold, a leaf-sized badge emblem.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "a_eile",
+   "name": "Eile",
+   "gruppe": "verstaerkung",
+   "motiv": "A small turquoise winged sandal, simple and bold, a leaf-sized badge emblem.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_ermittler_klinge",
+   "name": "Ast Klinge",
+   "gruppe": "aeste",
+   "motiv": "A khopesh blade of hammered bronze, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_ermittler_licht",
+   "name": "Ast Licht",
+   "gruppe": "aeste",
+   "motiv": "A golden sun disc with straight rays, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_ermittler_eid",
+   "name": "Ast Eid",
+   "gruppe": "aeste",
+   "motiv": "The feather of Maat, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_faust",
+   "name": "Ast Faust",
+   "gruppe": "aeste",
+   "motiv": "A clenched fist wrapped in linen, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_atem",
+   "name": "Ast Atem",
+   "gruppe": "aeste",
+   "motiv": "A billowing sail in the wind, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_ka",
+   "name": "Ast Ka",
+   "gruppe": "aeste",
+   "motiv": "The two upraised arms of the ka sign, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_faecher",
+   "name": "Ast Fächer",
+   "gruppe": "aeste",
+   "motiv": "A fan of five arrows, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_neith",
+   "name": "Ast Neith",
+   "gruppe": "aeste",
+   "motiv": "Two crossed arrows over a small shield, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_sachmet",
+   "name": "Ast Sachmet",
+   "gruppe": "aeste",
+   "motiv": "The head of a lioness, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_gewitter",
+   "name": "Ast Gewitter",
+   "gruppe": "aeste",
+   "motiv": "A forked lightning bolt, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_sterne",
+   "name": "Ast Sterne",
+   "gruppe": "aeste",
+   "motiv": "A five-pointed star in a ring, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_wort",
+   "name": "Ast Wort",
+   "gruppe": "aeste",
+   "motiv": "An open speaking mouth, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  }
+ ]
+}
