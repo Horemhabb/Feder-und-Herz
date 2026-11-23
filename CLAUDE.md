@@ -24,7 +24,7 @@ cd herz-und-feder-3d
 .godot-bin/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -- --neu --playtest --seed=1
 ```
 
-Erwartet: `SPIELTEST: … ok, 0 Fehler`, Rückgabewert 0, kein `SCRIPT ERROR` (etwa 75 Sekunden). Derselbe Test läuft in `.github/workflows/bauen.yml` bei jedem Pull Request und vor jeder Veröffentlichung. Weitere Läufe: `--klassentest`, `--bosstest`, `--autotest` (brauchen einen Bildschirm: `xvfb-run -a … --rendering-driver opengl3`).
+Erwartet: `SPIELTEST: … ok, 0 Fehler`, Rückgabewert 0, kein `SCRIPT ERROR` (etwa 75 Sekunden). Derselbe Test läuft in `.github/workflows/bauen.yml` bei jedem Pull Request und vor jeder Veröffentlichung. Laufen mehrere Godot-Läufe zugleich (mehrere Agenten), teilen sie sich den Spielstandordner und stören einander: dann jeden Lauf mit eigenem `XDG_DATA_HOME=/tmp/…` starten. Weitere Läufe: `--klassentest`, `--bosstest`, `--autotest` (brauchen einen Bildschirm: `xvfb-run -a … --rendering-driver opengl3`).
 
 ## Regeln
 
