@@ -30,7 +30,7 @@ func _clear() -> void:
 func _knopf(text: String, main: bool, cb: Callable, enabled := true) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL   # Gamepad und Pfeiltasten wählen per Fokus (hud.gd)
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
 	b.add_theme_font_size_override("font_size", 15)
 	b.custom_minimum_size = Vector2(0, 40)
@@ -64,7 +64,7 @@ func _cell(it, cb: Callable, chosen: bool, caption := "") -> Control:
 	v.add_theme_constant_override("separation", 2)
 	v.mouse_filter = Control.MOUSE_FILTER_PASS
 	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
 	b.custom_minimum_size = Vector2(64, 64)
 	b.expand_icon = true
@@ -110,6 +110,7 @@ func _changed() -> void:
 	render()
 
 func render() -> void:
+	var fi := hud.fokus_index(hud.overlay) if hud.overlay != null else -1
 	_clear()
 	var S: Dictionary = Spiel.S
 	# Kopf
@@ -119,6 +120,7 @@ func render() -> void:
 	top.add_child(t)
 	top.add_child(_knopf(hud._taste("  Schließen  [Esc]  " if werkstatt else "  Schließen  [I]  "), false, func(): hud.close_bag() if werkstatt else game.toggle_bag()))
 	add_child(top)
+	add_child(hud.pad_zeile("Gamepad: Steuerkreuz oder linker Stick wählt, A nimmt das Teil in die Hand oder bestätigt, B schließt."))
 	if werkstatt:
 		add_child(hud._para("Ptah ist der Gott der Handwerker. Sein Goldschmied wertet Ausrüstung auf und fasst ihre Eigenschaften neu, gegen Material und eine Gebühr in Scherben.", 13, Hud.DIM))
 		add_child(hud._para(GRUSS[gruss], 15, Hud.PARCH))
@@ -174,8 +176,8 @@ func render() -> void:
 		for k in Spiel.wahl:
 			if Spiel.wahl[k] == "maat":
 				maat += 1
-			else:
-				isfet += 1
+			elif Spiel.wahl[k] == "isfet":
+				isfet += 1   # die Antworten an Haremhab und Hatschepsut wiegen nichts
 		add_child(hud._label("Dein Herz ist %s (%+d). Entscheidungen: %d für Maat, %d für Isfet." % [Geschichte.herz_name(Spiel.herz), int(round(Spiel.herz)), maat, isfet], 15, Hud.PARCH))
 		add_child(hud._para(Geschichte.herz_wirkung(Spiel.herz), 13, Hud.DIM))
 	add_child(_h3("Material"))
@@ -243,6 +245,8 @@ func render() -> void:
 		add_child(hud._label("Stunde wechseln und neue Figur: im Spielmenü (%s)." % ("Knopf „Menü“" if game.touch else "Esc"), 12, Hud.DIM))
 
 	hud._pass_all(self)
+	if fi >= 0:
+		hud.fokus_setzen(hud.overlay, fi)
 
 func _mat_row(icon: int, text: String, tip: String) -> Control:
 	var h := HBoxContainer.new()
@@ -283,7 +287,7 @@ func _detail() -> Control:
 	m.add_child(v)
 	var it = _sel_item()
 	if it == null:
-		v.add_child(hud._label("Tipp ein Teil an, um es anzusehen.", 14, Hud.DIM))
+		v.add_child(hud._label("Tipp ein Teil an (Gamepad: A), um es anzusehen.", 14, Hud.DIM))
 		return p
 	var worn := sel.has("eq")
 	v.add_child(hud._label(Daten.item_name(it), 20, Daten.RAR[it.rar].col))

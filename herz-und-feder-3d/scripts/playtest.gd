@@ -58,12 +58,203 @@ func _ready() -> void:
 
 # eine Stelle neben einem Gegner, von der aus er frei zu erreichen ist (die Karten sind zufällig: blind daneben gesetzt,
 # stand die Figur manchmal in einem Felsblock, und die halbe Prüfung fiel als Folgefehler um)
+# Etappe B: Oberfläche. Knopf im Bild, Rückmeldung im Kampf, Regler „Geräusche“, Gamepad-Fokus in Menü, Tasche und Klassenwahl.
+func oberflaeche(G: Node) -> void:
+	var hud: Hud = G.hud
+	# „Fähigkeitenpunkt frei“ lag einmal bei x = −197 außerhalb des Bildes (position statt Abstand im Baum gesetzt)
+	var tf0 := Spiel.tree_frei
+	Spiel.tree_frei += 2
+	await wait(0.3)
+	var pr: Rect2 = hud.punkt_btn.get_global_rect()
+	var vr: Rect2 = hud.get_viewport().get_visible_rect()
+	check("Knopf „Fähigkeitenpunkt frei“ liegt im Bild (%s im Fenster %s)" % [pr, vr], hud.punkt_btn.visible and vr.encloses(pr) and pr.size.x > 100.0)
+	Spiel.tree_frei = tf0
+	# Abklingzeit als Zahl in der Leiste
+	var id1: String = G.hero.ORDER[0]
+	G.hero.cd[id1] = 3.0
+	await wait(0.2)
+	check("Leiste: Abklingzeit steht als Zahl auf dem Feld (%s)" % hud.skill_ui[id1].cdn.text, hud.skill_ui[id1].cdn.text != "")
+	G.hero.cd[id1] = 0.0
+	# Lebensbalken über einem verletzten Gegner, Blitz am Bildrand bei einem Treffer auf die Figur
+	var hh: Hero = G.hero
+	var f: Foe = G._spawn("lance", hh.global_position + Vector3(5, 0, 0), 95)
+	await wait(0.2)
+	var bal0: int = hud.rueck.balken.size()
+	f.hit(f.max_hp * 0.3, hh.global_position, 0.0)
+	await wait(0.25)
+	check("Rückmeldung: verletzter Gegner bekommt einen Lebensbalken (%d → %d)" % [bal0, hud.rueck.balken.size()], hud.rueck.balken.has(f))
+	var inv0: float = hh.inv
+	hh.inv = 0.0
+	hh.hurt(5.0, f.global_position, null)
+	hh.inv = inv0
+	await wait(0.1)
+	check("Rückmeldung: Treffer auf die Figur lässt den Bildrand aufblitzen (%.2f)" % hud.rueck.blitz, hud.rueck.blitz > 0.1 and hud.rueck.rand.visible)
+	hh.hp = hh.max_hp
+	f.queue_free()
+	G.foes.erase(f)
+	# Regler „Geräusche“ getrennt von Musik, eigener Bus
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	hud.menue.geh("einstellungen")
+	await wait(0.2)
+	var sl: Array = hud.menue.find_children("*", "HSlider", true, false)
+	check("Einstellungen: drei Regler (gesamt, Musik, Geräusche)", sl.size() == 3)
+	var gi := AudioServer.get_bus_index("Geraeusche")
+	var laut0 := AudioServer.get_bus_volume_db(0)
+	(sl[2] as HSlider).value = 0.5
+	await wait(0.1)
+	check("Regler Geräusche wirkt auf den Geräusche-Bus, nicht auf Hauptbus und Musik (%.1f dB, Haupt %.1f)" % [AudioServer.get_bus_volume_db(gi), AudioServer.get_bus_volume_db(0)],
+		gi >= 0 and absf(AudioServer.get_bus_volume_db(gi) - linear_to_db(0.5)) < 0.1 and absf(AudioServer.get_bus_volume_db(0) - laut0) < 0.01 and float(Spiel.einst.geraeusche) == 0.5)
+	check("Geräusche laufen über den eigenen Bus, die Musik über den Hauptbus", G.sfx.pool[0].bus == &"Geraeusche" and G.sfx.pool3[0].bus == &"Geraeusche" and G.sfx.mus[0].bus == &"Master")
+	Spiel.einst["geraeusche"] = 0.0
+	Spiel.einst_laden()
+	check("Regler Geräusche bleibt gespeichert (%.2f)" % float(Spiel.einst.geraeusche), absf(float(Spiel.einst.geraeusche) - 0.5) < 0.01)
+	(sl[2] as HSlider).value = 1.0
+	await wait(0.1)
+	# Gamepad im Menü: erster Druck greift den ersten Knopf, Steuerkreuz wählt, A öffnet, B geht zurück, Stick wählt auch
+	hud.menue.geh("")
+	await wait(0.2)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	var fo: Control = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: erster Druck wählt „Weiterspielen“ (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and fo.text.contains("Weiterspielen") and hud.pad_aktiv)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: Steuerkreuz unten wählt „Lexikon“ (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and fo.text.begins_with("Lexikon"))
+	await pad_knopf(JOY_BUTTON_A)
+	check("Menü mit Gamepad: A öffnet die gewählte Seite (%s)" % hud.menue.seite, hud.menue.seite == "lexikon")
+	await pad_knopf(JOY_BUTTON_B)
+	check("Menü mit Gamepad: B geht zurück ins Menü, nicht ins Spiel", hud.menu_open and hud.menue.seite == "")
+	await pad_achse(JOY_AXIS_LEFT_Y, 1.0)
+	await wait(0.4)
+	await pad_achse(JOY_AXIS_LEFT_Y, 0.0)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: linker Stick nach unten bewegt den Fokus (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and not fo.text.contains("Weiterspielen"))
+	await pad_knopf(JOY_BUTTON_START)
+	check("Menü mit Gamepad: Start schließt das Menü", not hud.menu_open and not get_tree().paused)
+	# Tasche mit Gamepad
+	G.toggle_bag()
+	await wait(0.4)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Tasche mit Gamepad: Steuerkreuz wählt ein Feld im Fenster", hud.bag_open and fo is Button and hud.overlay.is_ancestor_of(fo))
+	await pad_knopf(JOY_BUTTON_A)
+	var ta: Tasche = hud.overlay.find_children("*", "Tasche", true, false)[0]
+	check("Tasche mit Gamepad: A greift das gewählte Teil (%s)" % str(ta.sel), hud.bag_open and not ta.sel.is_empty())
+	await pad_knopf(JOY_BUTTON_B)
+	check("Tasche mit Gamepad: B schließt sie", not hud.bag_open and not get_tree().paused)
+	# Klassenwahl mit Gamepad: zweite Karte wählen, A bestätigt die Klasse
+	hud.show_intro(true)
+	await wait(0.3)
+	var fl: Array = hud.fokussierbar(hud.overlay)
+	check("Klassenwahl: Karten, Schwierigkeit und Knöpfe sind per Fokus erreichbar (%d)" % fl.size(), fl.size() >= Klassen.ORDER.size() + 4)
+	(fl[1] as Control).grab_focus()
+	await pad_knopf(JOY_BUTTON_A)
+	check("Klassenwahl mit Gamepad: A wählt die zweite Klasse (%s)" % hud.intro_cls, hud.intro_cls == Klassen.ORDER[1])
+	hud._close()
+	get_tree().paused = false
+	hud.intro_cls = Spiel.cls
+	hud.intro_new = false
+	hud._pad_modus(false)
+
 func frei_neben(G: Node, pos: Vector3, r: float) -> Vector3:
 	for i in 8:
 		var q: Vector3 = pos + Vector3(cos(TAU * i / 8.0), 0, sin(TAU * i / 8.0)) * r
 		if G.walkable(pos, q) and not G.astar.is_point_solid(G._sub(q)):
 			return q
 	return pos + Vector3(r, 0, 0)
+
+func dialog_text(G: Node) -> String:
+	if G.hud.overlay == null:
+		return ""
+	return " ".join(G.hud.overlay.find_children("*", "Label", true, false).map(func(l): return l.text))
+
+# die Figur vor den Gast stellen, damit er im Bild ist (für die Bildschirmfotos)
+func vor_gast(G: Node, O: Orte) -> void:
+	var vorn: Vector3 = -O.gast_dir if O.gast_dir != Vector3.ZERO else (G.start_pos - O.gast.pos).normalized()
+	G.hero.global_position = O.gast.pos + vorn * 3.0
+	G.cam_pos = G.hero.global_position
+	await wait(0.8)
+
+func stunde_betreten(G: Node, n: int) -> Node:
+	G.go_hour(n)
+	await wait(2.5)
+	var N := g()
+	if get_tree().paused:
+		await key(KEY_E)
+		await wait(0.6)
+	N.leben.stumm = true
+	return N
+
+# Etappe B: Hatschepsut in der dritten Stunde, Haremhab in der vierten, Rückbezüge und die Tafel am Ende des ersten Aktes
+func geschichte_akt1(G: Node) -> void:
+	var hz := Spiel.herz
+	Spiel.wahl["2"] = "isfet"
+	var G4: Node = await stunde_betreten(G, 3)
+	var O: Orte = G4.orte
+	O.auto = false
+	check("Stunde 3: Hatschepsut steht als Umriss in einer Wand", Spiel.fall == 3 and not O.gast.is_empty() and O.GA.get("wand", false) and O.gast.vis.has("kartusche") and O.gast_dir != Vector3.ZERO)
+	O.talk()
+	await wait(0.3)
+	check("Chaemwese bemerkt die gegessene Garbe (Rückbezug auf Stunde 2)", "Krümel" in dialog_text(G4))
+	G4.hud.press_option(G4.hud.dialog_opts.size() - 1)
+	await wait(0.3)
+	O.t = 30.0
+	O.ba_zuletzt = -99.0
+	O._ba_tick(0.6, true)
+	check("dein Ba erinnert an die Garbe", O.ba_done.has("rueck0") and "satt" in G4.hud.l_toast.text)
+	if not O.gast.is_empty():
+		await vor_gast(G4, O)
+		shot("hatschepsut_wand")
+		O.talk_gast()
+		await wait(0.3)
+		check("Hatschepsut spricht (Bart, Myrrhe, Anrede nach Klasse)", get_tree().paused and "Myrrhe" in dialog_text(G4) and Geschichte.anrede() in dialog_text(G4))
+		shot("hatschepsut")
+		G4.hud.press_option(2)   # „Soll ich deinen Namen zurückschreiben?“
+		await wait(0.2)
+		check("die ungewogene Wahl: nachziehen, lassen, nachdenken", G4.hud.dialog_opts.size() == 3)
+		G4.hud.press_option(0)   # Die Kartusche nachziehen
+		await wait(0.2)
+		G4.hud.press_option(0)
+		await wait(0.3)
+		var mat: StandardMaterial3D = O.gast.vis.kartusche.get_meta("mat")
+		check("Kartusche nachgezogen: gespeichert, Herz unverändert, Kartusche glüht, Name steht", Spiel.wahl.get("3h", "") == "kartusche" and is_equal_approx(Spiel.herz, hz) and mat.emission_energy_multiplier > 1.0 and O.gast.label.text == "Maatkare" and not get_tree().paused)
+	Spiel.wahl["3"] = "maat"
+	Spiel.wahl["4"] = "isfet"
+	var G5: Node = await stunde_betreten(G4, 4)
+	var O4: Orte = G5.orte
+	O4.auto = false
+	check("Stunde 4: Haremhab steht vor der Arena des Türhüters", Spiel.fall == 4 and not O4.gast.is_empty() and O4.gast.pos.distance_to(Welt.cell_pos(G5.karte.lair)) < 30.0)
+	O4.t = 30.0
+	O4.ba_zuletzt = -99.0
+	O4._ba_tick(0.6, true)
+	check("dein Ba erinnert an die Wand der dritten Stunde", O4.ba_done.has("rueck0") and "Wand" in G5.hud.l_toast.text)
+	if not O4.gast.is_empty():
+		await vor_gast(G5, O4)
+		shot("haremhab_tor")
+		O4.talk_gast()
+		await wait(0.3)
+		var tx := dialog_text(G5)
+		check("Haremhab: Rückbezug auf den Namen (Stunde 3) und auf sein Versprechen (Stunde 2)", "Feigling" in tx and "Wort gegeben" in tx)
+		shot("haremhab")
+		G5.hud.press_option(0)   # „Warst du im Grab?“
+		await wait(0.2)
+		check("Haremhab hat die nachgezogene Kartusche gelesen", "Schief" in dialog_text(G5))
+		G5.hud.press_option(G5.hud.dialog_opts.size() - 1)
+		await wait(0.3)
+		O4.talk_gast()
+		await wait(0.3)
+		check("Haremhab später: Rückbezug auf das Herz in der Laterne (Stunde 4)", "Zwei Herzen" in dialog_text(G5))
+		G5.hud.press_option(0)
+		await wait(0.3)
+	var tafel := " ".join(Geschichte.akt1_tafel())
+	check("Tafel des ersten Aktes: jede Entscheidung in einer Zeile", "Ruder liegt auf deinem Rücken" in tafel and "gegessen" in tafel and "dein Wort" in tafel and "weiß wieder" in tafel and "Maatkare" in tafel and "zwei Herzen" in tafel)
+	G5._aktende_lohn()
+	await wait(0.3)
+	check("Ende des ersten Aktes zeigt den Rückblick und den Lohn", G5.hud.overlay != null and "Maatkare" in dialog_text(G5) and "Ba" in dialog_text(G5) and G5.hud.dialog_opts.size() >= 1)
+	G5.hud.press_option(0)
+	await wait(0.3)
+	check("danach geht es weiter", not get_tree().paused and G5.gate_ask)
 
 func pad_knopf(b: int) -> void:
 	for gedrueckt in [true, false]:
@@ -141,10 +332,20 @@ func run() -> void:
 	G.orte.auto = false   # Orte lösen erst im eigenen Abschnitt aus, damit das Umsetzen der Figur nichts anstößt
 	check("Lebens- und Kraftkugel zeigen die Werte", is_equal_approx(G.hud.orb_hp.value, h.hp / h.max_hp) and G.hud.orb_hp.text == str(int(ceil(h.hp))))
 	check("Questbuch zeigt die Aufgaben der Stunde (%d)" % G.orte.quests.size(), G.orte.quests.size() >= 3 and G.hud.quest_box.get_child_count() >= 6)
+	# Hinweise (4.1): eine neue Figur bekommt zuerst den Hinweis zum Laufen
+	var HN: Hinweise = G.hud.hinweise
+	await wait(2.6)
+	check("Hinweis „laufen“ steht in der neuen Figur, ruhig über der Leiste", HN.aktuell == "laufen" and HN.panel.visible and "laufen" in HN.label.text and HN.panel.get_global_rect().end.y < G.hud.leiste.get_global_rect().position.y + 8.0)
+	for i in 40:   # die Blende soll ganz da sein (bei langsamem Bild dauert das)
+		if HN.panel.modulate.a >= 0.99:
+			break
+		await wait(0.1)
+	shot("hinweis")
 	var p0 := h.global_position
 	await key(KEY_D, 0.9)
 	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
 	# Bewegungsgefühl: zwei Sekunden laufen in eine Richtung mit freier Bahn, dabei rutschen die Füße kaum
+	var musik_lauf: float = G.sfx.mus_t   # auch dieser Abschnitt soll das Stück der Stunde nicht verkürzen
 	await wait(0.4)
 	var bahn := [KEY_D]
 	for tasten in [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_S, KEY_D], [KEY_W, KEY_A], [KEY_W, KEY_D], [KEY_S, KEY_A]]:
@@ -168,7 +369,91 @@ func run() -> void:
 		Input.parse_input_event(e)
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
 	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
+	# Kein Flattern zwischen Stehen, Gehen und Laufen: eine Sekunde geradeaus, dann Kehrtwende. Früher sprang die Bewegung
+	# bei jeder Kehrtwende von Laufen über Gehen und Stehen zurück zum Laufen (vier Überblendungen in 0,2 s).
+	var zurueck := bahn.map(func(k): return {KEY_D: KEY_A, KEY_A: KEY_D, KEY_W: KEY_S, KEY_S: KEY_W}[k])
+	var gaenge := [h.a_idle, h.a_walk, h.a_run]
+	var flattern := [0, 0]   # [Wechsel geradeaus, Wechsel bei der Kehrtwende]
+	var lief := false
+	for runde in 2:
+		for k in (bahn if runde == 0 else zurueck):
+			var e := InputEventKey.new()
+			e.keycode = k
+			e.physical_keycode = k
+			e.pressed = true
+			Input.parse_input_event(e)
+		var alt := h.cur_anim
+		var t := 0.0
+		while t < (1.2 if runde == 0 else 0.8):
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			if h.cur_anim != alt and gaenge.has(h.cur_anim) and gaenge.has(alt) and (runde == 1 or t > 0.4):
+				flattern[runde] += 1
+			alt = h.cur_anim
+		lief = h.cur_anim == h.a_run
+		for k in (bahn if runde == 0 else zurueck):
+			var e := InputEventKey.new()
+			e.keycode = k
+			e.physical_keycode = k
+			Input.parse_input_event(e)
+	check("Gehen und Laufen flattern nicht: geradeaus %d Wechsel, bei der Kehrtwende %d (und läuft danach)" % flattern, flattern[0] == 0 and flattern[1] <= 1 and lief)
 	await wait(0.3)
+	G.sfx.mus_t = musik_lauf
+	await wait(0.3)
+	check("Hinweis „laufen“ verschwindet nach dem Laufen und ist im Spielstand gemerkt", HN.aktuell != "laufen" and not (HN.panel.visible and "laufen" in HN.label.text) and Spiel.gesehen("hinweis_laufen"))
+	# Hinweise: kommt nicht wieder, Schalter, Angriff, Heilen, Ausweichen, Text je Eingabeart
+	var pos_vor: Vector3 = h.global_position
+	h.global_position = G.start_pos   # am Eingang ist es ruhig: in der Zeit dieses Abschnitts soll kein Gegner erwachen
+	var musik_t: float = G.sfx.mus_t   # das Stück der Stunde zählt Zeit mit: dieser Abschnitt soll es nicht verkürzen
+	HN.ausgeloest.clear()
+	HN.start_pos = Vector3.ZERO
+	HN.aktiv_t = 0.0
+	await wait(1.0)
+	check("Hinweis „laufen“ kommt nicht wieder", HN.aktuell != "laufen" and not HN.ausgeloest.has("laufen"))
+	var textfehler := 0
+	for hid in Hinweise.FOLGE:
+		for m in ["maus", "pad", "touch"]:
+			var tx := HN.text_fuer(hid, m)
+			if tx == "" or "!" in tx or tx.length() > 70:
+				textfehler += 1
+	check("Texte: für jeden Hinweis und jede Eingabeart kurz und ohne Ausrufezeichen", textfehler == 0 and "Stick" in HN.text_fuer("laufen", "pad") and "Finger" in HN.text_fuer("laufen", "touch") and "Maustaste" in HN.text_fuer("laufen", "maus"))
+	Spiel.wissen.erase("hinweis_angriff")
+	h.hits = 0
+	var hf: Foe = G.foes.filter(func(f): return f.kind != "boss").back()
+	HN.ruhe = 0.3
+	HN.nah = 100000.0   # „ein Gegner in der Nähe“, ohne einen zu wecken: irgendein lebender genügt
+	Spiel.einst["hinweise"] = 0.0
+	await wait(1.0)
+	check("Schalter „Hinweise“ aus: kein Hinweis, auch mit Gegner in der Nähe", HN.aktuell == "" and not HN.panel.visible)
+	Spiel.einst["hinweise"] = 1.0
+	Spiel.wissen.erase("hinweis_angriff")
+	h.hits = 0
+	await wait(1.5)
+	check("Schalter an: bei einem Gegner in der Nähe erscheint „angriff“", HN.aktuell == "angriff" and HN.panel.visible)
+	h.aim = hf.global_position
+	h.attack()
+	await wait(0.3)
+	check("Hinweis „angriff“ verschwindet nach dem Zuschlagen und ist gemerkt", HN.aktuell != "angriff" and Spiel.gesehen("hinweis_angriff"))
+	HN.nah = 12.0
+	h.hp = h.max_hp * 0.3
+	await wait(0.9)
+	check("Leben deutlich gesunken: Hinweis „heilen“", HN.aktuell == "heilen" and "Q" in HN.label.text)
+	await key(KEY_Q)
+	await wait(0.3)
+	check("Hinweis „heilen“ verschwindet nach dem Trinken", HN.aktuell != "heilen" and Spiel.gesehen("hinweis_heilen"))
+	Spiel.pots = Daten.POTS
+	h.cd["potion"] = 0.0
+	h.hp = h.max_hp * 0.6
+	await wait(1.2)
+	check("danach „ausweichen“, solange das Leben nicht voll ist", HN.aktuell == "ausweichen")
+	await key(KEY_SPACE)
+	await wait(0.3)
+	check("Hinweis „ausweichen“ verschwindet nach dem Ausweichschritt", HN.aktuell != "ausweichen" and Spiel.gesehen("hinweis_ausweichen"))
+	h.hp = h.max_hp
+	await wait(1.0)
+	HN.ruhe = 2.5
+	G.sfx.mus_t = musik_t
+	h.global_position = pos_vor
 	p0 = h.global_position
 	var vs := get_viewport().get_visible_rect().size
 	mouse(vs * Vector2(0.35, 0.62), MOUSE_BUTTON_LEFT, true)
@@ -229,10 +514,37 @@ func run() -> void:
 	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
 	await key(KEY_G)
 	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
-	check("Musik der ersten Stunde läuft (Wüstennacht)", G.sfx.mus_list.has(G.sfx.mus_name) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
+	# Hat der Abschnitt zu den Hinweisen einen Gegner geweckt, läuft gerade die Kampfmusik: auch das ist die Musik der Stunde
+	var kampf: bool = G.sfx.mus_name == "mus_kampf"
+	check("Musik der ersten Stunde läuft (Wüstennacht; Stück „%s“, Ruhe %s, %.0f s)" % [G.sfx.mus_name, G.sfx.mus_rest, G.sfx.mus_t], (kampf or G.sfx.mus_list.has(G.sfx.mus_name)) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
+	# Schritte: Gehen und Laufen haben eigene Aufnahmen (je Untergrund vier), Laufen ist kürzer; alle unter 0,4 s
+	var schritte_da := true
+	var laenge_geh := 0.0
+	var laenge_lauf := 0.0
+	var laenge_max := 0.0
+	for ug in ["sand", "stein"]:
+		for art in ["geh", "lauf"]:
+			for i in range(1, 5):
+				var st: AudioStream = G.sfx._stream("step_%s_%s%d" % [ug, art, i])
+				if st == null:
+					schritte_da = false
+					continue
+				laenge_max = maxf(laenge_max, st.get_length())
+				if art == "geh":
+					laenge_geh += st.get_length()
+				else:
+					laenge_lauf += st.get_length()
+	check("Schritte: je Untergrund vier Geh- und vier Lauf-Aufnahmen, alle unter 0,4 s", schritte_da and laenge_max < 0.4)
+	check("Schritte: Laufen und Gehen spielen verschiedene Klänge, Laufen kürzer",
+		Sfx.schritt_name(false, true) != Sfx.schritt_name(false, false) and Sfx.schritt_name(true, true) != Sfx.schritt_name(true, false)
+		and Sfx.schritt_name(true, true).ends_with("lauf") and laenge_lauf < laenge_geh)
+	var kampf_da := true
+	for n in ["skel_die1", "skel_die2", "skel_die3", "skel_attack1", "skel_attack2", "skel_attack3", "hit3", "hurt3", "swing3"]:
+		kampf_da = kampf_da and G.sfx._stream(n) != null
+	check("Kampfgeräusche (Hieb, Treffer, Skelett) sind geladen", kampf_da)
 	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
 	# Beute, Tasche, Anlegen, Aufwerten
 	var opfer: Foe = G.foes.filter(func(f): return f.kind != "boss")[1]
@@ -245,14 +557,20 @@ func run() -> void:
 	G.drop("shard", h.global_position, 5, "", h.global_position + Vector3(0, 0, 0.5))
 	G.drop("mat", h.global_position, 20, "staub", h.global_position + Vector3(-0.5, 0, 0))
 	var sh0 := Spiel.shards
+	# genau diese drei Stücke müssen fort sein; was der besiegte Gegner gerade noch fallen lässt, zählt nicht
+	var drei: Array = G.loot.slice(n_loot)
 	await wait(1.0)
-	check("Beute wird beim Darüberstehen aufgehoben (Scherben %d -> %d)" % [sh0, Spiel.shards], Spiel.shards >= sh0 + 5 and G.loot.size() <= n_loot)
+	check("Beute wird beim Darüberstehen aufgehoben (Scherben %d -> %d)" % [sh0, Spiel.shards], Spiel.shards >= sh0 + 5 and drei.size() == 3 and drei.all(func(b): return not G.loot.has(b)))
 	check("ein Ring für den leeren Platz wird direkt angelegt", Spiel.eq.has("ring"))
 	var ring: Dictionary = Spiel.eq.ring
 	Spiel.bag.append(Spiel.new_item(1, 1, {"slot": "ruestung"}))
+	Spiel.neu = 1   # ein Teil ist in der Tasche gelandet (eben angelegt wurde es nicht)
+	await wait(3.5)
+	check("erste Beute in der Tasche: Hinweis „tasche“", HN.aktuell == "tasche" and "I" in HN.label.text)
 	await key(KEY_I)
 	await wait(0.3)
 	check("I öffnet die Tasche, Spiel steht", G.hud.bag_open and get_tree().paused and G.hud.overlay != null)
+	check("Hinweis „tasche“ ist erledigt und gemerkt", HN.aktuell != "tasche" and Spiel.gesehen("hinweis_tasche"))
 	shot("tasche")
 	Spiel.equip(Spiel.bag.size() - 1)
 	h.apply_stats()
@@ -353,11 +671,11 @@ func run() -> void:
 	check("Esc lässt den Krug stehen", not k3.done and not get_tree().paused and G.hud.overlay == null)
 	h.global_position = O.npc.pos + Vector3(2.0, 0, 0)
 	await wait(0.5)
-	check("die Figur der Stunde spricht dich an (%s)" % O.G.wer, G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == 3)
+	check("die Figur der Stunde spricht dich an (%s)" % O.G.wer, G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == O.G.fragen.size() + 1)
 	shot("gespraech")
 	await key(KEY_1)
 	await wait(0.3)
-	check("eine Frage führt zur Antwort, die andere Frage bleibt", G.hud.overlay != null and G.hud.dialog_opts.size() == 2)
+	check("eine Frage führt zur Antwort, die anderen Fragen bleiben", G.hud.overlay != null and G.hud.dialog_opts.size() == O.G.fragen.size())
 	await key(KEY_ESCAPE)
 	await wait(0.3)
 	check("nach dem Gespräch steht der Auftrag im Questbuch", O.talked and not get_tree().paused and O.quest("relikt").text == O.G.auftrag)
@@ -374,6 +692,7 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(0.3)
 	check("Entscheidung für Maat: Herz leichter, Hüter geschwächt, gemerkt", Spiel.herz > hz and G.boss.hp < boss_hp and Spiel.wahl.get("1", "") == "maat" and not get_tree().paused)
+	check("dein Ba sagt etwas zur Entscheidung", O.ba_done.has("wahl") and Worte.BA_WAHL[0][0] in G.hud.l_toast.text)
 	# Leute und ihre Sorgen: der Hirte und seine drei Schafe
 	O.helfer_talked = false
 	O.helfer.asked = false
@@ -493,6 +812,8 @@ func run() -> void:
 	check("Rückkehr: kein Gegner ist mehr wach (%d)" % awake, awake == 0)
 	await wait(2.0)
 	check("zwei Sekunden später greift am Start niemand an", h.hp == h.max_hp)
+	O._ba_tick(0.6, true)
+	check("nach der Niederlage meldet sich dein Ba", O.ba_done.keys().any(func(k): return str(k).begins_with("tod")))
 	shot("rueckkehr")
 	# Hüter fällen, Pforte, „Noch bleiben“, dann durchgehen mit Mausklick, Ende, Neustart
 	G.boss.hit(99999.0, h.global_position)
@@ -530,6 +851,21 @@ func run() -> void:
 	check("Eintreten startet die zweite Stunde", G2.started and not get_tree().paused and G2.foes.size() > 10 and G2.chests.size() > 0)
 	check("Hüter der zweiten Stunde ist die Mutter der Häute", G2.boss.K.name == "Die Mutter der Häute")
 	check("Schrein des Thot steht auch in der zweiten Stunde (Dungeon)", not G2.orte.thot.is_empty())
+	# Etappe B: Haremhab am Feldtor, mit Rückbezug auf das Ruder und einer eigenen Wahl
+	var GO: Orte = G2.orte
+	check("Stunde 2: Haremhab steht in der Stunde, mit Eintrag im Questbuch", not GO.gast.is_empty() and GO.GA.wer == "Haremhab" and not GO.quest("gast").is_empty() and GO.gast.pos.distance_to(G2.start_pos) < 40.0)
+	if not GO.gast.is_empty():
+		GO.talk_gast()
+		await wait(0.3)
+		check("Haremhab spricht und bemerkt das Ruder der ersten Stunde", G2.hud.overlay != null and get_tree().paused and "Ruder" in dialog_text(G2))
+		G2.hud.press_option(1)   # „Wer hat das Tor geöffnet?“
+		await wait(0.2)
+		check("Haremhab fragt nach einem Versprechen (drei Antworten)", G2.hud.dialog_opts.size() == 3)
+		G2.hud.press_option(0)   # „Ich sage es dir.“
+		await wait(0.2)
+		G2.hud.press_option(0)   # Gehen
+		await wait(0.3)
+		check("Wahl bei Haremhab ist gespeichert, wiegt nichts, Gespräch gemerkt", Spiel.wahl.get("2h", "") == "versprochen" and GO.gast_talked and Spiel.gesehen("gast_2") and not get_tree().paused and GO.quest("gast").done)
 	G2.go_hour(1)
 	await wait(2.5)
 	var G3 := g()
@@ -661,6 +997,7 @@ func run() -> void:
 	await pad_knopf(JOY_BUTTON_B)
 	check("Gamepad: B schließt sie", not G3.hud.karte_open and not get_tree().paused)
 	G3.pad = false
+	await oberflaeche(G3)
 	# Bewegungsgefühl: ein Krieger läuft aus 13 m auf die stehende Figur zu, dabei rutschen seine Füße kaum
 	var hh: Hero = G3.hero
 	var anlauf := Vector3(13, 0, 0)
@@ -701,5 +1038,6 @@ func run() -> void:
 		G3.hero.global_position += Vector3(3, 0, 0)
 		await wait(1.0)
 		check("Bitte: das verlorene Stück wird gefunden und gemeldet", bp.auftrag.stand == "gefunden")
+	await geschichte_akt1(G3)
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit(1 if bad > 0 else 0)   # Fehlercode für die Prüfung beim Bauen (bauen.yml)

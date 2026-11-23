@@ -16,7 +16,8 @@ const H := [
 		"gruss": ["Halt. Niemand geht durch das Tor des Westens, solange ich hier stehe. So lautete mein Befehl, und er wurde nie aufgehoben.",
 			"Aber sieh dich um. Sie gehen nicht hindurch, sie kommen nicht einmal mehr an. Die Lichter dort oben sind die Toten von Sandtor. Mahaf, der Fährmann, sollte sie übersetzen. Stattdessen führt er sie im Kreis, Nacht für Nacht."],
 		"fragen": [["Wer hat dir den Befehl gegeben?", "Ein König, dessen Namen ich vergessen habe. Das ist seltsam. Ich vergesse sonst nichts. Ich stehe hier seit vierhundert Überschwemmungen und kenne jedes Sandkorn."],
-			["Warum lässt du mich dann durch?", "Weil nur Tote durch dieses Tor kommen, Laternenträger, und du bist schon halb hindurch. Sieh mich nicht so an. Frag die, die dir die Laterne in die Hände gelegt haben."]],
+			["Warum lässt du mich dann durch?", "Weil nur Tote durch dieses Tor kommen, Laternenträger, und du bist schon halb hindurch. Sieh mich nicht so an. Frag die, die dir die Laterne in die Hände gelegt haben."],
+			["War heute schon jemand hier?", "Einer. Er ging durch, ohne zu fragen, und ich habe gegrüßt, ehe ich wusste, warum. So geht nur einer, der Generäle befehligt hat."]],
 		"quest": "Mahafs Ruder", "auftrag": "Ohne sein Ruder ist Mahaf kein Fährmann. Es liegt irgendwo im Sand jenseits der Mauer.",
 		"relikt": "Mahafs Ruder", "fund": "Ein Ruder aus Zedernholz, halb im Sand begraben. Das Blatt ist glatt gegriffen von tausend Überfahrten. Es zieht in deiner Hand nach Westen, als wüsste es den Weg.",
 		"wahl": [["Das Ruder für Mahaf aufheben", "Du bindest es dir auf den Rücken. Wenn der Fährmann fällt, soll er es wiederhaben. Wer ohne sein Werkzeug stirbt, findet auch im Tod keine Ruhe.", 8, "segen"],
@@ -34,6 +35,9 @@ const H := [
 		"wahl": [["Die Garbe den Göttern opfern", "Du legst sie nieder und sprichst die Formel, so gut du sie kennst. Über das Feld hinweg nickt Merit dir zu. Etwas in deiner Brust wird leichter.", 10, "xp"],
 			["Das Korn selbst essen", "Es schmeckt nach nichts. Aber deine Wunden schließen sich, und an deinem Gurt hängen Krüge, die vorher nicht da waren.", -8, "trank"]],
 		"ba": "Hier roch es einmal nach Brot. Erinnerst du dich an Brot?",
+		# Rückbezug auf die erste Stunde: steht im ersten Gespräch (Etappe B)
+		"rueck": {"wahl": "1", "maat": "Merit sieht auf deinen Rücken. „Du trägst ein Ruder. Dann glaubt noch jemand, dass übergesetzt wird.“",
+			"isfet": "Merit hebt den Kopf, als wittere sie etwas. „Du riechst nach Zeder und Rauch.“ Mehr sagt sie nicht dazu."},
 	},
 	{   # 3 · Der König ohne Namen
 		"wer": "Chaemwese", "bild": "P03", "titel": "Schreiber des Grabes", "model": "Skeleton_Mage", "tint": Color(0.95, 0.85, 0.65),
@@ -46,6 +50,8 @@ const H := [
 		"wahl": [["Dem König seinen Namen zurückgeben", "Du wirst ihn laut aussprechen, wenn du vor ihm stehst. Wer gerufen wird, muss antworten. Auch ein König. Auch vor der Waage.", 12, "segen"],
 			["Die Scherbe an die Grabräuber verkaufen", "Ein Königsname ist viel wert bei denen, die mit Namen handeln. Es klimpert in deinem Beutel. Der König wird weiter wach liegen.", -12, "scherben"]],
 		"ba": "Lies die Wände nicht. Was fehlt, ist das Wichtige.",
+		"rueck": {"wahl": "2", "maat": "Chaemwese schnuppert. „Gerste und Weihrauch. Du hast geopfert. Dann weißt du, wie man etwas hergibt. Das wirst du hier brauchen.“",
+			"isfet": "Chaemwese sieht auf dein Kinn. „Krümel. Gerste von den Feldern der Seligen.“ Er sagt nichts weiter. Ein Schreiber notiert nur."},
 	},
 	{   # 4 · Rosetau
 		"wer": "Ein Erloschener", "bild": "P04", "mit": "dem Erloschenen", "titel": "einst ein Unvergänglicher Stern", "model": "Mage", "tint": Color(0.6, 0.7, 0.85),
@@ -58,6 +64,8 @@ const H := [
 		"wahl": [["Das Herz dem Stern zurückgeben", "Du legst es dem Erloschenen in die Hände. Er leuchtet nicht auf. Aber er hebt den Kopf, zum ersten Mal, und sieht nach Norden, wo sein Platz am Himmel leer ist.", 14, "xp"],
 			["Das Herz in die Laterne legen", "Die Flamme wird weiß. Deine Schläge fallen schwerer, deine Hände sicherer. Irgendwo hinter dir sinkt ein Kopf zurück auf die Brust.", -14, "legende"]],
 		"ba": "Sieh nicht nach oben. Da ist nichts mehr.",
+		"rueck": {"wahl": "3", "maat": "„Du hast einem König seinen Namen zurückgegeben. Ich höre es an deinem Schritt. Wer Namen zurückgibt, geht leiser.“",
+			"isfet": "„In deinem Beutel klimpert etwas. Es klingt wie jemand, der einmal einen Namen hatte.“"},
 	},
 	{   # 5 · Die Höhle des Sokar
 		"wer": "Ein alter Richter", "bild": "P05", "mit": "dem alten Richter", "titel": "der Schatten des Sammlers", "model": "Mage", "tint": Color(0.75, 0.55, 0.95),
@@ -210,6 +218,133 @@ static func leute(n: int) -> Dictionary:
 
 static func def(n: int) -> Dictionary:
 	return H[Stunden.hour_of(n) - 1]
+
+# ---------------------------------------------------------------- Die beiden Könige (Etappe B, GESCHICHTE.md Teil 2)
+# In den Stunden 2 bis 4 steht ein Gast in der Stunde: Haremhab am Feldtor (2), Hatschepsut als Umriss in einer
+# Grabwand (3), Haremhab vor dem Tor des Stummen Türhüters (4). Ein Gespräch ist eine Reihe von Knoten:
+#   "txt"  Absätze; ein Absatz kann ein Wörterbuch sein, dann hängt er an einer Entscheidung (siehe fasse)
+#   "opts" Antworten: [Text, nächster Knoten ("" beendet), Entscheidung [Schlüssel, Wert] (wahlweise),
+#          Bedingung "offen:Schlüssel" (die Antwort steht nur da, solange das noch nicht entschieden ist)]
+# Beim ersten Mal beginnt das Gespräch bei "start", danach bei "wieder".
+# Entscheidungen der Gäste liegen in Spiel.wahl unter "2h" und "3h"; sie wiegen nichts auf der Herzwaage.
+const GAESTE := {
+	2: {"wer": "Haremhab", "titel": "General, dann König", "quest": "Ein Mann am Feldtor", "model": "Knight", "tint": Color(1.0, 0.8, 0.5),
+		"knoten": {
+			"start": {"txt": ["Am Feldtor steht ein Mann in gefälteltem Leinen und kratzt mit dem Daumennagel am Riegel. Er dreht sich nicht um.",
+					"„Siegelwachs. Ein Königsring, und der Name herausgekratzt.“ Er hält dir das Wachs hin, als wärst du ein Schreiber, der zu spät kommt. „Schlampig. Wer tilgt, muss gründlich tilgen, sonst spricht der Rest.“",
+					{"wahl": "1", "maat": "Sein Blick bleibt an dem Ruder auf deinem Rücken hängen. „Das Werkzeug eines anderen. Ordentlich festgebunden. Gut.“",
+						"isfet": "Er schnuppert. „Zedernrauch. Du hast verbrannt, was nicht dir gehörte. Ich habe Schlimmeres befohlen. Ich habe es nur aufschreiben lassen.“"}],
+				"opts": [["„Wer bist du?“", "wer"], ["„Wer hat das Tor geöffnet?“", "tor"], ["„Ich gehe weiter.“", ""]]},
+			"wer": {"txt": ["„Haremhab. General, dann König, dann habe ich aufgeräumt.“ Er sagt es, wie andere ihren Beruf sagen.",
+					"„Gewogen hat man mich nie. Nach meinem Tod bin ich an die Tore gegangen, die ich an meine Wand habe malen lassen, und halte dort Wache. Einer muss es tun. Die Götter sind beschäftigt.“"],
+				"opts": [["„Wer hat das Tor geöffnet?“", "tor"], ["„Ich gehe weiter.“", ""]]},
+			"tor": {"txt": ["„Einer, der die Waage anhalten wollte. Er hat die Brut hereingelassen, damit hier nichts mehr gewogen wird.“ Er wiegt das Wachs in der Hand. „Ich jage ihn. Du läufst ohnehin in seine Richtung.“",
+					"„Wenn du ihn findest, sagst du es mir?“"],
+				"opts": [["„Ich sage es dir.“", "versprochen", ["2h", "versprochen"]], ["„Was ich dann tue, entscheide ich selbst.“", "selbst", ["2h", "selbst"]], ["„Darüber rede ich nicht.“", ""]]},
+			"versprochen": {"txt": ["„Gut.“ Er nickt einmal, knapp, wie man einem Boten nickt. „Ich halte dich beim Wort. Ein Wort ist das Einzige, was hier unten nicht verrottet.“"],
+				"opts": [["Gehen", ""]]},
+			"selbst": {"txt": ["Er sieht dich lange an. „Das sagen alle, bis sie vor ihm stehen. Er ist freundlich, weißt du. Das ist das Gefährliche an ihm.“ Dann kratzt er weiter am Wachs."],
+				"opts": [["Gehen", ""]]},
+			"wieder": {"txt": [{"wahl": "2h", "versprochen": "Haremhab kratzt am Siegelwachs. „Ich habe dein Wort. Geh und halte es.“",
+					"selbst": "Haremhab kratzt am Siegelwachs. „Noch da? Entscheide woanders. Ordnung wartet nicht.“",
+					"sonst": "Haremhab kratzt am Siegelwachs. „Du hast mir noch nicht geantwortet.“"}],
+				"opts": [["„Wer hat das Tor geöffnet?“", "tor", [], "offen:2h"], ["Gehen", ""]]},
+		}},
+	3: {"wer": "Ein Umriss in der Wand", "titel": "es riecht nach Myrrhe", "quest": "Ein Umriss in der Wand", "model": "Rogue", "tint": Color(1.0, 0.78, 0.45), "wand": true,
+		"knoten": {
+			"start": {"txt": ["In der Wand ist ein Umriss, wo eine Gestalt war. Vom Gesicht ist nichts geblieben, nur ein Bart, gebunden mit zwei Schnüren. Es riecht nach Myrrhe.",
+					"„Nicht auf die Splitter. Die gehören dem anderen. Meine liegen woanders, und es sind mehr.“",
+					{"klasse": true, "frau": "„Ich war König. Ja, König, schau nicht so. Dich hat man heute auch falsch angeredet, Laternenträgerin, ich habe es gehört.“",
+						"mann": "„Ich war König. Ja, König, schau nicht so. Du trägst auch etwas, das dir andere in die Hände gelegt haben, Laternenträger. Ich sehe so etwas.“"}],
+				"opts": [["„Wer hat dich aus der Wand geschlagen?“", "wer"], ["„Wie heißt du?“", "name"], ["„Soll ich deinen Namen zurückschreiben?“", "frage"], ["„Später.“", ""]]},
+			"wer": {"txt": ["„Einer, der nach mir kam. Nicht aus Hass, glaube ich. Aus Ordnung. Das ist schlimmer, man kann es ihm nicht einmal übelnehmen.“",
+					"„Vorhin stand ein General vor den Splittern. Er hat nichts gesagt. Das hat mich gewundert. Generäle sagen sonst immer etwas.“"],
+				"opts": [["„Wie heißt du?“", "name"], ["„Soll ich deinen Namen zurückschreiben?“", "frage"], ["„Später.“", ""]]},
+			"name": {"txt": ["„Man hat ihn mir genommen. Ausgerechnet den, in dem die Maat stand.“ Der Umriss hebt das Kinn, so weit ein Umriss das kann. „Rate ruhig. Ich will sehen, ob du mich auch so erkennst.“"],
+				"opts": [["„Wer hat dich aus der Wand geschlagen?“", "wer"], ["„Soll ich deinen Namen zurückschreiben?“", "frage"], ["„Später.“", ""]]},
+			"frage": {"txt": ["„Tu, was du für richtig hältst. Ich will nur wissen, ob du mich auch so erkennst.“",
+					"Diese Wahl wiegt niemand. Keine Schale, keine Feder. Nur du und eine Wand."],
+				"opts": [["Die Kartusche nachziehen", "kartusche", ["3h", "kartusche"], "offen:3h"], ["Die Wand lassen", "wand", ["3h", "wand"], "offen:3h"], ["„Ich denke noch nach.“", ""]]},
+			"kartusche": {"txt": ["Du ritzt die Zeichen in den Stein, so gut du kannst: die Feder, das Paar erhobener Arme, die Sonne. Maatkare. Sie seufzt.",
+					"„Jetzt muss ich ihn wieder tragen. Danke. Wirklich.“"],
+				"opts": [["Gehen", ""]]},
+			"wand": {"txt": ["Du legst die Hand auf den Umriss. Er ist warm.", "„Siehst du“, sagt sie. „Geht doch.“"],
+				"opts": [["Gehen", ""]]},
+			"wieder": {"txt": [{"wahl": "3h", "kartusche": "In der Kartusche glänzen deine Zeichen, ein wenig schief. „Maatkare“, sagt die Wand. „Schon wieder.“ Es klingt, als lächle sie.",
+					"wand": "Der Umriss ist noch warm, wo deine Hand lag. „Du bist noch da. Geh ruhig. Ich kenne dich jetzt auch.“",
+					"sonst": "Der Umriss wartet. „Nun?“"}],
+				"opts": [["„Soll ich deinen Namen zurückschreiben?“", "frage", [], "offen:3h"], ["Gehen", ""]]},
+		}},
+	4: {"wer": "Haremhab", "titel": "vor dem Tor des Türhüters", "quest": "Haremhab am Tor", "model": "Knight", "tint": Color(1.0, 0.8, 0.5), "am_hueter": true,
+		"knoten": {
+			"start": {"txt": ["Vor dem Tor des Stummen Türhüters steht Haremhab, die Arme verschränkt, als warte er auf einen Bericht.",
+					"„Haremhab. Merk dir den Namen. Er gehört zu den wenigen, die stehen geblieben sind.“",
+					{"wahl": "3", "maat": "„Du hast einem Feigling seinen Namen zurückgegeben. Er hat ihn verkauft, um der Waage zu entgehen, und du schenkst ihm die Waage.“ Er schweigt eine Weile. „Das ist gerecht. Es gefällt mir nicht. Aber es ist gerecht.“",
+						"isfet": "„Verkauft. An Händler.“ Er spuckt in den Sand. „Einen Königsnamen verkauft man nicht. Man zerschlägt ihn. Ordnung ist kein Handel.“",
+						"sonst": "„Im Grab des Namenlosen lag eine Scherbe, und du hast sie liegen lassen. Auch eine Antwort. Keine gute.“"},
+					{"wahl": "2h", "versprochen": "„Du hast mir am Feldtor dein Wort gegeben. Ich habe es nicht vergessen. Ich vergesse nichts, das ist mein Fehler.“",
+						"selbst": "„Du wolltest selbst entscheiden. Hier unten ist das ein teures Vergnügen. Ich sehe zu, wie du bezahlst.“"}],
+				"opts": [["„Warst du im Grab, bei den Splittern?“", "splitter"], ["„Was ist mit dem Türhüter?“", "tuer"], ["Gehen", ""]]},
+			"splitter": {"txt": [{"wahl": "3h", "kartusche": "„Ich war dort.“ Er sieht an dir vorbei. „Jemand hat einen Namen in eine Wand zurückgeschrieben. Schief. Ich habe ihn gelesen.“ Mehr sagt er nicht.",
+					"wand": "„Ich war dort.“ Er sieht an dir vorbei. „In einer Wand war ein Umriss, und er war warm. Ich habe ihn nicht angefasst.“ Mehr sagt er nicht.",
+					"sonst": "„Ich war dort. Ich habe nichts gesagt.“ Er klingt, als wundere er sich selbst darüber."}],
+				"opts": [["„Was ist mit dem Türhüter?“", "tuer"], ["Gehen", ""]]},
+			"tuer": {"txt": ["„Der da lässt durch, wen er beim Namen kennt. Mich kennt er. Dich nicht. Also kämpfst du. Ich sehe zu, wie man das macht, wenn man nicht General ist.“"],
+				"opts": [["„Warst du im Grab, bei den Splittern?“", "splitter"], ["Gehen", ""]]},
+			"wieder": {"txt": [{"wahl": "4", "maat": "Haremhab sieht nach Norden, wo ein Stern den Kopf gehoben hat. „Ein Herz zurückgegeben. Ordnung wäre gewesen, es zu behalten. Ich sage nicht, dass du falsch lagst.“",
+					"isfet": "Haremhab sieht auf deine Laterne. „Zwei Herzen in einem Glas. So fängt es an. Ich weiß, wovon ich rede. Ich jage den, bei dem es so anfing.“",
+					"sonst": "„Noch da? Der Türhüter wartet nicht ewig. Doch, eigentlich schon. Geh trotzdem.“"}],
+				"opts": [["Gehen", ""]]},
+		}},
+}
+
+static func gast(n: int) -> Dictionary:
+	return GAESTE.get(Stunden.hour_of(n), {})
+
+# Anrede nach Klasse: Wüstenjägerin und Sternleserin sind Frauen
+static func frau() -> bool:
+	return Spiel.cls in ["jaegerin", "forensiker"]
+
+static func anrede() -> String:
+	return "Laternenträgerin" if frau() else "Laternenträger"
+
+# Ein Satz, der an einer Entscheidung hängt: {"wahl": Schlüssel, Wert: Satz, …, "sonst": Satz} nimmt den Satz zur
+# getroffenen Entscheidung (oder „sonst“, sonst nichts); {"klasse": true, "frau": …, "mann": …} folgt der Klasse.
+static func fasse(t: Variant) -> String:
+	if t is Dictionary:
+		if t.has("klasse"):
+			return fasse(t.frau if frau() else t.mann)
+		var w: String = str(Spiel.wahl.get(t.wahl, ""))
+		var s: String = t.get(w, t.get("sonst", "")) if w != "" else t.get("sonst", "")
+		return fasse(s) if s != "" else ""
+	return str(t).replace("{anrede}", anrede())
+
+# ---------------------------------------------------------------- Ende des ersten Aktes: Rückblick (GESCHICHTE.md Probe D)
+const TAFEL := [
+	{"wahl": "1", "maat": "Mahafs Ruder liegt auf deinem Rücken.", "isfet": "Mahafs Ruder ist Asche.", "sonst": "Mahafs Ruder liegt noch im Sand."},
+	{"wahl": "2", "maat": "Die erste Garbe liegt auf dem Opfertisch.", "isfet": "Die erste Garbe hast du gegessen.", "sonst": "Die erste Garbe liegt noch in den Ruinen."},
+	{"wahl": "2h", "versprochen": "Haremhab hat dein Wort.", "selbst": "Haremhab hat dein Wort nicht. Er sieht trotzdem zu."},
+	{"wahl": "3", "maat": "Ein König weiß wieder, wie er heißt.", "isfet": "Ein Königsname klimpert in einem fremden Beutel.", "sonst": "Die Namensscherbe liegt noch im Grab."},
+	{"wahl": "3h", "kartusche": "In einer Wand steht wieder Maatkare.", "wand": "In einer Wand ist ein warmer Umriss."},
+	{"wahl": "4", "maat": "Ein Stern sieht nach Norden.", "isfet": "In deiner Laterne brennen zwei Herzen.", "sonst": "Zwischen dem Glas von Rosetau glimmt noch ein Herz."},
+]
+const TAFEL_STIMME := {"wahl": "3h", "kartusche": "Hinter dir sagt eine Stimme, die nach Myrrhe riecht: „Schief geschrieben. Aber gelesen habe ich es.“",
+	"wand": "Hinter dir sagt eine Stimme, die nach Myrrhe riecht: „Du hast mich erkannt. Das reicht für eine ganze Nacht.“"}
+const TAFEL_BA := "Dein Ba setzt sich auf den Rand deiner Laterne. „Vier Stunden. Ich habe fast die ganze Zeit geredet, und du hast mich gelassen. Das vergesse ich dir nicht.“"
+
+# die Absätze für die Tafel am Ende des ersten Aktes: was du getragen und liegen gelassen hast, eine Stimme, dein Ba
+static func akt1_tafel() -> Array:
+	var zeilen := []
+	for d in TAFEL:
+		var s := fasse(d)
+		if s != "":
+			zeilen.append(s)
+	var out := ["\n".join(zeilen)]
+	var st := fasse(TAFEL_STIMME)
+	if st != "":
+		out.append(st)
+	out.append(TAFEL_BA)
+	return out
 
 # ---------------------------------------------------------------- Herzwaage
 const LEICHT := 25.0

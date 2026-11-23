@@ -243,12 +243,18 @@ func _physics_process_innen(delta: float) -> void:
 		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
 		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
 		if sp > 0.6:
-			step_t -= delta * sp / SPEED
-			if step_t <= 0.0:
-				step_t = 0.31
-				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+			# Klang auf den Fußaufsetzer der Bewegung gelegt (actor.gd), nicht auf einen festen Takt
+			var ton := fuss_aufgesetzt() if gang.has(a_run) else false
+			if not gang.has(a_run):
+				step_t -= delta * sp / SPEED
+				if step_t <= 0.0:
+					step_t = 0.31
+					ton = true
+			if ton:
+				game.sfx.play(Sfx.schritt_name(game.auf_stein(global_position), laeuft if gang.has(a_run) else sp > SPEED * 0.75), 0.1)
 		else:
 			step_t = 0.1
+			fuss_reset()
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
 # unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.

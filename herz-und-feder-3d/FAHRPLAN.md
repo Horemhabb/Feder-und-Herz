@@ -53,9 +53,9 @@ Grundlage: Berichte von Spieldirektor und Technikdirektor (beide haben den Code 
 |---|---|
 | **Einführung** in den ersten fünf Minuten, abschaltbar | ein Neuling kommt ohne Erklärung durch Stunde 1 |
 | **Bewegungsgefühl, klein gehalten:** Überblendbaum für Gehen und Laufen, Schrittlänge passt zur Geschwindigkeit, Treffer-Zucken, kurzer Trefferstopp | Füße rutschen nicht mehr sichtbar |
-| **Entscheidungen haben Folgen** innerhalb von Akt 1: je Wahl ein Rückbezug in einem späteren Gespräch | jede Entscheidung der Stunden 1 bis 4 taucht wieder auf |
-| **Sichtbarer Schluss von Akt 1** mit Rückblick auf die Entscheidungen und Abspann | nach Stunde 4 gibt es einen Punkt zum Aufhören |
-| Gamepad auch in Klassenwahl, Tasche und Menü; eigener Regler für Geräusche | |
+| **Entscheidungen haben Folgen** innerhalb von Akt 1: je Wahl ein Rückbezug in einem späteren Gespräch | jede Entscheidung der Stunden 1 bis 4 taucht wieder auf. **Erledigt:** dazu Haremhab (2, 4), Hatschepsut (3) und der Ba als Begleiter (GESCHICHTE.md Teil 7) |
+| **Sichtbarer Schluss von Akt 1** mit Rückblick auf die Entscheidungen und Abspann | nach Stunde 4 gibt es einen Punkt zum Aufhören. **Rückblick steht**, Abspann offen |
+| Gamepad auch in Klassenwahl, Tasche und Menü; eigener Regler für Geräusche | erledigt (Fokus per Steuerkreuz und Stick, A und B; Regler „Geräusche“ auf eigenem Bus) |
 | `main.gd` (2.428 Zeilen) in vier Teile zerlegen, Schritt für Schritt hinter den Tests | keine Datei über 1.200 Zeilen, Tests grün |
 | Automatische Bildschirmfotos je Stunde beim Bauen | der Auftraggeber sieht Änderungen im Pull Request, ohne zu starten |
 

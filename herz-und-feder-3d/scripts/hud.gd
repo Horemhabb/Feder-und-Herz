@@ -36,6 +36,9 @@ var skill_ui := {}
 var boss_box: Control
 var bar_boss: ProgressBar
 var l_boss: Label
+var bar_spur: ProgressBar
+var l_bosszahl: Label
+var boss_ghost := 1.0
 var l_banner: Label
 var l_banner_small: Label
 var banner_box: Control
@@ -60,7 +63,15 @@ var tasche_btn: Button
 var tree_btn: Button
 var l_quer: Label          # Hinweis, das Handy quer zu halten
 var intro_fall := 1        # im Startbildschirm gewählte Stunde
+var hinweise: Hinweise     # kleine Hinweise in der ersten Stunde einer neuen Figur
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
+var thema: Theme
+var tasche_farbe := Color.TRANSPARENT   # zuletzt gesetzte Farben (refresh setzt nur bei Änderung)
+var baum_farbe := Color.TRANSPARENT
+var pad_aktiv := false     # zuletzt kam die Eingabe vom Gamepad oder von den Pfeiltasten: dann zeigt jedes Fenster seinen Fokus
+var stick := Vector2.ZERO  # linker Stick, solange ein Fenster offen ist
+var stick_t := 0.0
+var rueck: Rueckmeldung    # Lebensbalken der Gegner, Trefferblitz und Warnrand (scripts/rueckmeldung.gd)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -83,10 +94,16 @@ func _ready() -> void:
 	vm.shader = vsh
 	vig.material = vm
 	root.add_child(vig)
+	rueck = Rueckmeldung.new()
+	rueck.game = game
+	rueck.hud = self
+	root.add_child(rueck)
 	var th := Theme.new()
 	th.default_font = f_text
 	th.default_font_size = 18
+	thema = th
 	root.theme = th
+	_fokus_stil()
 	add_child(root)
 	# oben links: Stunde, Name, Fortschritt
 	var tlp := PanelContainer.new()
@@ -110,11 +127,15 @@ func _ready() -> void:
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tl.add_child(quest_box)
-	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü · I Tasche · K Fähigkeiten · Tab Karte · E sprechen", 12, Color(DIM, 0.7))
+	var hint := _label("Finger halten: laufen · Gegner antippen: angreifen · Fähigkeiten unten antippen" if game.touch else "Esc Menü  ·  I Tasche  ·  K Fähigkeiten  ·  Tab Karte  ·  E sprechen", 13, Color(PARCH, 0.92))
+	hint.add_theme_stylebox_override("normal", _pille(Color(0.04, 0.035, 0.05, 0.72)))
+	hint.add_theme_constant_override("outline_size", 0)
 	hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint.position = Vector2(-560, 14)
-	hint.custom_minimum_size = Vector2(540, 0)
+	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	hint.offset_right = -18
+	hint.offset_left = -18
+	hint.offset_top = 10
+	hint.offset_bottom = 10
 	root.add_child(hint)
 	if game.touch:
 		# ohne Tastatur: Grafik, Ton und Bildrate als Knöpfe
@@ -167,11 +188,30 @@ func _ready() -> void:
 	boss_box.visible = false
 	boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(boss_box)
-	l_boss = _label("", 18, PARCH)
+	l_boss = _label("", 20, PARCH)
+	l_boss.add_theme_constant_override("outline_size", 7)
+	l_boss.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	l_boss.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boss_box.add_child(l_boss)
-	bar_boss = _bar(Color("c06be0"), 12)
-	boss_box.add_child(bar_boss)
+	# Lebensbalken des Hüters: unten eine helle Spur (zeigt, was der letzte Treffer genommen hat), darüber der Balken, darauf die Zahl
+	var stapel := Control.new()
+	stapel.custom_minimum_size = Vector2(0, 18)
+	stapel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_box.add_child(stapel)
+	bar_spur = _bar(Color(1, 1, 1, 0.6), 18)
+	bar_spur.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stapel.add_child(bar_spur)
+	bar_boss = _bar(Color("c06be0"), 18)
+	bar_boss.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bar_boss.add_theme_stylebox_override("background", StyleBoxEmpty.new())
+	stapel.add_child(bar_boss)
+	l_bosszahl = _label("", 12, PARCH)
+	l_bosszahl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l_bosszahl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l_bosszahl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l_bosszahl.add_theme_constant_override("outline_size", 5)
+	l_bosszahl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	stapel.add_child(l_bosszahl)
 	# Banner in der Bildmitte oben
 	banner_box = VBoxContainer.new()
 	banner_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -199,11 +239,11 @@ func _ready() -> void:
 	toasts.add_theme_constant_override("separation", 6)
 	toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(toasts)
-	l_toast = _label("", 14, PARCH)
-	l_toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	l_toast.position = Vector2(-300, -286)
-	l_toast.custom_minimum_size = Vector2(600, 0)
+	l_toast = _label("", 16, PARCH)
+	l_toast.add_theme_stylebox_override("normal", _pille(Color(0.04, 0.035, 0.05, 0.78), 14, 6))
 	l_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l_toast.modulate.a = 0.0
 	root.add_child(l_toast)
 	# unten: Lebenskugel, Fähigkeitenleiste mit Herzwaage und Erfahrung, Kraftkugel
@@ -272,8 +312,12 @@ func _ready() -> void:
 	punkt_btn.add_theme_stylebox_override("pressed", _flat(GOLD.darkened(0.15), 8, Color("fff0c0"), 2))
 	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
 		punkt_btn.add_theme_color_override(c, Color("14110c"))
+	# Anker unten Mitte, Lage über Abstände: ein „position“ im Baum wurde als Fensterkoordinate gelesen (Knopf lag bei −197)
 	punkt_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	punkt_btn.position = Vector2(-170, -244)
+	punkt_btn.offset_left = -170
+	punkt_btn.offset_right = 170
+	punkt_btn.offset_top = -244
+	punkt_btn.offset_bottom = -204
 	punkt_btn.custom_minimum_size = Vector2(340, 40)
 	punkt_btn.visible = false
 	punkt_btn.pressed.connect(func(): game.toggle_tree())
@@ -297,6 +341,11 @@ func _ready() -> void:
 	punkt_tw = create_tween().set_loops()
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(1.25, 1.2, 1.0, 1.0), 0.7)
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(0.85, 0.85, 0.85, 1.0), 0.7)
+	# Hinweise für neue Figuren (scripts/hinweise.gd)
+	hinweise = Hinweise.new()
+	hinweise.hud = self
+	hinweise.game = game
+	add_child(hinweise)
 
 # Herzwaage: links die Feder der Maat, rechts das Herz. Ein leichtes Herz steigt, ein schweres sinkt.
 func _draw_waage() -> void:
@@ -411,12 +460,18 @@ func _quests() -> void:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(290, 0)
 		sp.add_child(l)
+	_segen()
+
+# nur der Segen-Text (läuft jede Sekunde ab): die Aufgabenliste wird dafür nicht neu gebaut
+func _segen() -> void:
 	var segen := []
 	for id in game.orte.buffs:
 		for g in Orte.GOETTER:
 			if g.id == id:
 				segen.append("%s %d s" % [g.name, int(game.orte.buffs[id])])
-	l_buff.text = "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
+	var t := "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
+	if l_buff.text != t:
+		l_buff.text = t
 
 static var _grau_mat: ShaderMaterial
 static func _grau() -> ShaderMaterial:
@@ -505,6 +560,112 @@ func _flat(col: Color, radius := 6, border := Color(0, 0, 0, 0), bw := 0) -> Sty
 		s.corner_detail = 1
 	return s
 
+# dunkle Pille hinter Schrift, die über dem Spielbild steht (Kontrast)
+func _pille(col: Color, rand := 10, quer := 4) -> StyleBoxFlat:
+	var s := _flat(col, 9)
+	s.content_margin_left = rand
+	s.content_margin_right = rand
+	s.content_margin_top = quer
+	s.content_margin_bottom = quer
+	return s
+
+# ---------------------------------------------------------------- Gamepad und Fokus (Etappe B)
+# Jede Schaltfläche in Fenstern ist fokussierbar. Den Fokusrahmen zeigt das Spiel nur, wenn zuletzt das Gamepad oder eine
+# Pfeiltaste benutzt wurde, damit Mausspieler keinen Rahmen nach jedem Klick sehen.
+func _fokus_stil() -> void:
+	var rahmen: StyleBox = _flat(Color(1.0, 0.85, 0.4, 0.26), 8, Color("c0501f"), 3) if pad_aktiv else StyleBoxEmpty.new()
+	for typ in ["Button", "CheckBox"]:
+		thema.set_stylebox("focus", typ, rahmen)
+
+func _pad_modus(an: bool) -> void:
+	if an == pad_aktiv:
+		return
+	pad_aktiv = an
+	_fokus_stil()
+	for l in get_tree().get_nodes_in_group("pad_hinweis"):
+		l.visible = an
+	if an:
+		_fokus_pruefen.call_deferred()
+
+# alles, was im Fenster per Fokus erreichbar ist, von oben nach unten
+func fokussierbar(wurzel: Node) -> Array:
+	var out: Array = []
+	if wurzel == null:
+		return out
+	var stapel: Array = [wurzel]
+	while not stapel.is_empty():
+		var n: Node = stapel.pop_back()
+		if n is Control and n != wurzel and n.focus_mode == Control.FOCUS_ALL and n.is_visible_in_tree() and not (n is BaseButton and n.disabled):
+			out.append(n)
+		var kinder := n.get_children()
+		kinder.reverse()
+		stapel.append_array(kinder)
+	return out
+
+func fokus_index(wurzel: Node) -> int:
+	var fo := get_viewport().gui_get_focus_owner()
+	if fo == null or wurzel == null or not wurzel.is_ancestor_of(fo):
+		return -1
+	return fokussierbar(wurzel).find(fo)
+
+# nach dem Neuaufbau eines Fensters den Fokus an dieselbe Stelle setzen (nur im Gamepad-Betrieb)
+func fokus_setzen(wurzel: Node, idx: int) -> void:
+	if not pad_aktiv or wurzel == null:
+		return
+	_fokus_nach.call_deferred(wurzel, idx)
+
+func _fokus_nach(wurzel: Node, idx: int) -> void:
+	if not is_instance_valid(wurzel) or not wurzel.is_inside_tree():
+		return
+	var l := fokussierbar(wurzel)
+	if l.is_empty():
+		return
+	(l[clampi(idx, 0, l.size() - 1)] as Control).grab_focus()
+
+# Gamepad wurde berührt, aber im offenen Fenster hat nichts den Fokus: das Erste greifen
+func _fokus_pruefen() -> void:
+	if overlay != null and is_instance_valid(overlay) and get_viewport().gui_get_focus_owner() == null:
+		_fokus_nach(overlay, 0)
+
+# Schritt des Sticks (oder Pfeil) im offenen Fenster: Fokus zum Nachbarn, am Regler den Wert ändern, im Baum den Knoten
+func fokus_schritt(r: Vector2i) -> void:
+	if tree_open and baum_ui:
+		baum_ui.pad_richtung(r)
+		return
+	if karte_open or overlay == null:
+		return
+	var fo := get_viewport().gui_get_focus_owner()
+	if fo == null or not overlay.is_ancestor_of(fo):
+		_fokus_nach(overlay, 0)
+		return
+	if fo is HSlider and r.x != 0:
+		fo.value = clampf(fo.value + fo.step * r.x, fo.min_value, fo.max_value)
+		return
+	var seite := SIDE_LEFT if r.x < 0 else (SIDE_RIGHT if r.x > 0 else (SIDE_TOP if r.y < 0 else SIDE_BOTTOM))
+	var n := fo.find_valid_focus_neighbor(seite)
+	if n != null and n != fo and n.focus_mode == Control.FOCUS_ALL:
+		n.grab_focus()
+		game.sfx.play("ui", 0.05, -8.0)
+
+func _stick_tick(d: float) -> void:
+	var ui_offen := overlay != null or tree_open
+	if not ui_offen or stick.length() < 0.55:
+		stick_t = 0.0
+		return
+	stick_t -= d
+	if stick_t > 0.0:
+		return
+	stick_t = 0.26
+	var r := Vector2i(int(signf(stick.x)), 0) if absf(stick.x) >= absf(stick.y) else Vector2i(0, int(signf(stick.y)))
+	fokus_schritt(r)
+
+# Fußzeile mit den Tasten des Gamepads in Fenstern (leer, solange mit Maus gespielt wird)
+func pad_zeile(text: String) -> Control:
+	var l := _label(text, 13, TEAL)
+	l.visible = pad_aktiv
+	l.add_to_group("pad_hinweis")
+	return l
+
 func _bar(col: Color, h: int) -> ProgressBar:
 	var b := ProgressBar.new()
 	b.show_percentage = false
@@ -556,35 +717,49 @@ func _skill_box(id: String) -> Control:
 	cdr.size = Vector2(80, 80)
 	cdr.scale.y = 0.0
 	p.add_child(cdr)
-	var k := _label(Klassen.keys()[slot], 13, PARCH)
-	k.position = Vector2(8, 4)
-	k.add_theme_constant_override("outline_size", 5)
+	# Abklingzeit als Zahl in der Mitte, und ein heller Blitz, wenn die Fähigkeit wieder bereit ist
+	var cdn := _label("", 24, Color("fff2d0"))
+	cdn.position = Vector2(0, 22)
+	cdn.size = Vector2(84, 34)
+	cdn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cdn.add_theme_constant_override("outline_size", 8)
+	cdn.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	p.add_child(cdn)
+	var blitz := ColorRect.new()
+	blitz.color = Color(1.0, 0.92, 0.6, 0.0)
+	blitz.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	blitz.position = Vector2(2, 2)
+	blitz.size = Vector2(80, 80)
+	p.add_child(blitz)
+	var k := _label(Klassen.keys()[slot], 16, PARCH)
+	k.position = Vector2(7, 2)
+	k.add_theme_constant_override("outline_size", 6)
 	k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	p.add_child(k)
-	var c := _label(str(int(S.cost)) if S.cost > 0 else "", 12, PARCH)
-	c.position = Vector2(0, 60)
-	c.size = Vector2(75, 18)
+	var c := _label(str(int(S.cost)) if S.cost > 0 else "", 15, Color("cfe9ff"))
+	c.position = Vector2(0, 58)
+	c.size = Vector2(77, 22)
 	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	c.add_theme_constant_override("outline_size", 5)
+	c.add_theme_constant_override("outline_size", 7)
 	c.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	p.add_child(c)
 	# noch nicht gelernt: Hinweis mit der Stufe
-	var lock := _label("", 12, GOLD)
+	var lock := _label("", 13, GOLD)
 	lock.position = Vector2(0, 30)
 	lock.size = Vector2(84, 24)
 	lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lock.add_theme_constant_override("outline_size", 6)
 	lock.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	p.add_child(lock)
-	var nm := _label(S.name, 10, DIM)
-	nm.custom_minimum_size = Vector2(84, 30)
+	var nm := _label(S.name, 11, Color(PARCH, 0.92))
+	nm.custom_minimum_size = Vector2(84, 32)
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.add_theme_constant_override("line_spacing", -3)
-	nm.add_theme_constant_override("outline_size", 4)
-	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	nm.add_theme_constant_override("outline_size", 6)
+	nm.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	box.add_child(nm)
-	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k, "icon": ic, "lock": lock, "name": nm, "need": Klassen.unlock_lvl(Spiel.cls, id)}
+	skill_ui[id] = {"panel": p, "cd": cdr, "sub": c, "key": k, "icon": ic, "lock": lock, "name": nm, "need": Klassen.unlock_lvl(Spiel.cls, id), "cdn": cdn, "blitz": blitz, "cd_alt": 0.0}
 	return box
 
 # Ankündigung in der Bildmitte oben: neue Fähigkeit, Stufenaufstieg, freier Punkt. Mehrere stehen nacheinander an.
@@ -641,6 +816,7 @@ func _process(_d: float) -> void:
 	Protokoll.zeit("oberfläche", _u)
 
 func _process_innen(_d: float) -> void:
+	_stick_tick(_d)
 	if ann_box and is_instance_valid(ann_box):
 		ann_box.visible = overlay == null   # Ankündigungen liegen nie über einem Fenster
 	if l_quer:
@@ -656,26 +832,38 @@ func refresh() -> void:
 	orb_hp.set_text(str(int(ceil(h.hp))))
 	orb_en.value = h.en / 100.0
 	orb_en.set_text(str(int(h.en)))
-	if game.orte.dirty or not game.orte.buffs.is_empty():
+	if game.orte.dirty:
 		game.orte.dirty = false
 		_quests()
+	elif not game.orte.buffs.is_empty() or l_buff.text != "":
+		_segen()
 	if Spiel.herz != herz_alt:
 		herz_alt = Spiel.herz
 		waage.queue_redraw()
 	bar_xp.value = Spiel.xp / Daten.xp_need(Spiel.lvl)
 	l_lvl.text = "Stufe %d" % Spiel.lvl
-	if tasche_btn:
-		tasche_btn.add_theme_color_override("font_color", GOLD if Spiel.neu > 0 else PARCH)
-	if tree_btn:
-		tree_btn.add_theme_color_override("font_color", GOLD if Spiel.tree_points() > 0 else PARCH)
 	var pts: int = Spiel.tree_points()
+	# Farben nur bei Änderung setzen: jedes add_theme_color_override löst ein neues Layout aus
+	var tc := GOLD if Spiel.neu > 0 else PARCH
+	if tasche_btn and tc != tasche_farbe:
+		tasche_farbe = tc
+		tasche_btn.add_theme_color_override("font_color", tc)
+	var bc := GOLD if pts > 0 else PARCH
+	if tree_btn and bc != baum_farbe:
+		baum_farbe = bc
+		tree_btn.add_theme_color_override("font_color", bc)
 	punkt_btn.visible = pts > 0 and overlay == null
-	if pts > 0:
+	if pts > 0 and punkt_btn.visible:
 		punkt_btn.text = ("%d Fähigkeitenpunkt%s frei" % [pts, "" if pts == 1 else "e"]) + ("" if game.touch else "  ·  Taste K")
 	for id in h.ORDER:
 		var S: Dictionary = h.SK[id]
 		var u: Dictionary = skill_ui[id]
 		u.cd.scale.y = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
+		var rest: float = h.cd[id]
+		u.cdn.text = "" if rest <= 0.05 else ("%.1f" % rest if rest < 10.0 else str(int(ceil(rest))))
+		if float(u.cd_alt) > 0.05 and rest <= 0.05 and Spiel.gelernt(id):
+			_bereit_blitz(u.blitz)
+		u.cd_alt = rest
 		if id != "potion" and S.cost > 0:
 			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
@@ -690,22 +878,35 @@ func refresh() -> void:
 		# seit 3.3: auf der Stufe, aber im Baum noch kein Weg dorthin
 		var weg: bool = Spiel.nachbar_gelernt("s:" + id) if locked and id != "potion" else true
 		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else ("LERNEN" if weg else "WEG FEHLT"))
-		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl and weg else DIM)
+		var lc := GOLD if pts > 0 and u.need <= Spiel.lvl and weg else DIM
+		if u.get("lock_col") != lc:
+			u["lock_col"] = lc
+			u.lock.add_theme_color_override("font_color", lc)
 		u.name.modulate.a = 0.45 if locked else 1.0
 		if locked:
 			u.sub.text = ""
 			continue
 		if id == "potion":
 			u.sub.text = "×%d" % h.pots
-	if boss_box.visible:
-		bar_boss.value = game.boss.hp / game.boss.max_hp
+	if boss_box.visible and game.boss != null:
+		var bw: float = clampf(game.boss.hp / game.boss.max_hp, 0.0, 1.0)
+		bar_boss.value = bw
+		boss_ghost = maxf(bw, boss_ghost - 0.3 * get_process_delta_time()) if bw < boss_ghost else bw
+		bar_spur.value = boss_ghost
+		l_bosszahl.text = "%d / %d" % [int(ceil(maxf(game.boss.hp, 0.0))), int(round(game.boss.max_hp))]
 	if l_fps.visible:
 		l_fps.text = "%d Bilder/s · Grafik %s" % [Engine.get_frames_per_second(), "niedrig" if game.low_gfx else "hoch"]
+
+func _bereit_blitz(b: ColorRect) -> void:
+	var tw := b.create_tween()
+	tw.tween_property(b, "color:a", 0.55, 0.05)
+	tw.tween_property(b, "color:a", 0.0, 0.35)
 
 func toggle_fps() -> void:
 	l_fps.visible = not l_fps.visible
 
 func boss_show(name: String) -> void:
+	boss_ghost = 1.0
 	l_boss.text = name
 	boss_box.visible = true
 
@@ -766,6 +967,12 @@ func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) 
 func toast(text: String, secs := 2.2, col := PARCH) -> void:
 	l_toast.text = text
 	l_toast.add_theme_color_override("font_color", col)
+	# die Pille passt sich dem Text an: schmal bei kurzen Meldungen, höchstens 1000 Punkt breit, dann Umbruch
+	var vs := root.size
+	var w := clampf(f_text.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 32.0, 80.0, minf(1000.0, vs.x - 40.0))
+	l_toast.custom_minimum_size = Vector2(w, 0)
+	l_toast.reset_size()
+	l_toast.position = Vector2((vs.x - l_toast.size.x) / 2.0, vs.y - 292.0 - l_toast.size.y)
 	if toast_tw:
 		toast_tw.kill()
 	toast_tw = create_tween()
@@ -922,6 +1129,7 @@ func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 	var sc := ScrollContainer.new()
 	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.follow_focus = true   # Gamepad: der Rollbereich folgt dem Fokus
 	overlay.add_child(sc)
 	var mc := MarginContainer.new()
 	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1164,44 +1372,98 @@ func leiste_skalieren() -> void:
 	var s: float = 1.0 if game.touch else clampf(float(Spiel.einst.get("leiste", 0.75)), 0.5, 1.0)
 	leiste.pivot_offset = Vector2(leiste.size.x / 2.0, leiste.size.y + 8.0)
 	leiste.scale = Vector2(s, s)
-	punkt_btn.position.y = -188.0 * s - 56.0
+	punkt_btn.offset_top = -188.0 * s - 58.0
+	punkt_btn.offset_bottom = punkt_btn.offset_top + 42.0
 
 var baum_ui: Baum
 
-# Gamepad in Fenstern (4.0): A bestätigt bzw. wählt die erste Antwort, X und Y die zweite und dritte, B schließt.
-# Im Baum wählt das Steuerkreuz links/rechts einen Knoten, A lernt ihn.
+# Gamepad in Fenstern (4.0, Etappe B): Steuerkreuz und linker Stick wählen per Fokus, A bestätigt das Gewählte, B geht zurück.
+# In Gesprächen gilt zusätzlich A, X und Y für die erste bis dritte Antwort, solange nichts gewählt ist.
+# Im Baum wählt das Steuerkreuz (oder der Stick) den nächsten Knoten in dieser Richtung, A lernt, LB/RB gehen der Reihe nach.
+func _fokus_knopf() -> Control:
+	var fo := get_viewport().gui_get_focus_owner()
+	if fo != null and overlay != null and overlay.is_ancestor_of(fo) and (fo is BaseButton):
+		return fo
+	return null
+
+# A drückt den gewählten Knopf. Die Engine bindet A nicht von sich aus an „ui_accept“ (die Probe zeigt nur Enter und Leertaste),
+# darum löst das Hud den Knopf selbst aus.
+func _fokus_druecken() -> bool:
+	var fk := _fokus_knopf()
+	if fk == null or (fk as BaseButton).disabled:
+		return false
+	var bb := fk as BaseButton
+	if bb.toggle_mode:
+		bb.button_pressed = not bb.button_pressed
+	else:
+		bb.pressed.emit()
+	return true
+
 func _pad(ev: InputEventJoypadButton) -> bool:
 	var b := ev.button_index
+	var richtung := b == JOY_BUTTON_DPAD_LEFT or b == JOY_BUTTON_DPAD_RIGHT or b == JOY_BUTTON_DPAD_UP or b == JOY_BUTTON_DPAD_DOWN
 	if menu_open:
 		if b == JOY_BUTTON_START or b == JOY_BUTTON_B:
 			if b == JOY_BUTTON_START or not menue.zurueck():
 				game.toggle_menu()
 			return true
-		return false
+		if b == JOY_BUTTON_A:
+			_fokus_druecken()
+			return true
+		return false   # das Steuerkreuz geht an den Fokus des Fensters
 	if tree_open and baum_ui:
 		match b:
-			JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
-				baum_ui.pad_schritt(-1 if b == JOY_BUTTON_DPAD_LEFT else 1)
+			JOY_BUTTON_DPAD_LEFT:
+				baum_ui.pad_richtung(Vector2i(-1, 0))
+			JOY_BUTTON_DPAD_RIGHT:
+				baum_ui.pad_richtung(Vector2i(1, 0))
+			JOY_BUTTON_DPAD_UP:
+				baum_ui.pad_richtung(Vector2i(0, -1))
+			JOY_BUTTON_DPAD_DOWN:
+				baum_ui.pad_richtung(Vector2i(0, 1))
+			JOY_BUTTON_LEFT_SHOULDER:
+				baum_ui.pad_schritt(-1)
+			JOY_BUTTON_RIGHT_SHOULDER:
+				baum_ui.pad_schritt(1)
 			JOY_BUTTON_A:
 				baum_ui.pad_lernen()
-			JOY_BUTTON_B, JOY_BUTTON_DPAD_UP:
+			JOY_BUTTON_B, JOY_BUTTON_BACK:
 				close_bag()
 		return true
-	if karte_open or bag_open:
-		if b == JOY_BUTTON_B or b == JOY_BUTTON_BACK or b == JOY_BUTTON_DPAD_DOWN:
+	if karte_open:
+		if b == JOY_BUTTON_B or b == JOY_BUTTON_BACK or b == JOY_BUTTON_A:
 			close_bag()
 		return true
+	if bag_open:
+		if b == JOY_BUTTON_B or b == JOY_BUTTON_BACK:
+			close_bag()
+			return true
+		if b == JOY_BUTTON_A:
+			_fokus_druecken()
+			return true
+		return false   # das Steuerkreuz geht an den Fokus der Tasche
 	if overlay == null:
 		return false
 	if not dialog_opts.is_empty():
+		if richtung:
+			return false   # Auswahl per Fokus
+		if b == JOY_BUTTON_A and _fokus_druecken():
+			return true
 		var i := {JOY_BUTTON_A: 0, JOY_BUTTON_X: 1, JOY_BUTTON_Y: 2}.get(b, -1) as int
 		if i >= 0 and i < dialog_opts.size():
 			game.sfx.play("ui")
 			press_option(i)
 		return true
-	if b == JOY_BUTTON_A and primary.is_valid() and not (primary_btn and primary_btn.disabled):
-		game.sfx.play("ui")
-		press_primary()
+	if richtung:
+		return false
+	if b == JOY_BUTTON_A:
+		var fk := _fokus_knopf()
+		if fk != null and fk != primary_btn:
+			_fokus_druecken()   # ein anderer Knopf ist gewählt (Klasse, Schwierigkeit …): der bekommt das A
+			return true
+		if primary.is_valid() and not (primary_btn and primary_btn.disabled):
+			game.sfx.play("ui")
+			press_primary()
 	elif b == JOY_BUTTON_B and secondary.is_valid():
 		var f := secondary
 		_close()
@@ -1209,7 +1471,32 @@ func _pad(ev: InputEventJoypadButton) -> bool:
 	return true
 
 func _input(ev: InputEvent) -> void:
+	# Welche Eingabeart zuletzt kam, entscheidet, ob Fokusrahmen und Tastenzeilen in Fenstern erscheinen
+	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf(ev.axis_value) > 0.6):
+		_pad_modus(true)
+	elif ev is InputEventMouseButton or ev is InputEventScreenTouch or (ev is InputEventMouseMotion and ev.relative.length() > 3.0):
+		_pad_modus(false)
+	elif ev is InputEventKey and ev.pressed and (ev.keycode == KEY_UP or ev.keycode == KEY_DOWN or ev.keycode == KEY_LEFT or ev.keycode == KEY_RIGHT):
+		_pad_modus(true)
+	if ev is InputEventJoypadMotion and (ev.axis == JOY_AXIS_LEFT_X or ev.axis == JOY_AXIS_LEFT_Y):
+		if ev.axis == JOY_AXIS_LEFT_X:
+			stick.x = ev.axis_value
+		else:
+			stick.y = ev.axis_value
+		if overlay != null or tree_open:
+			get_viewport().set_input_as_handled()   # den Fokus steuert _stick_tick, nicht die eingebaute Auswahl (sonst zwei Schritte)
+		return
 	if ev is InputEventJoypadButton and ev.pressed:
+		# erste Berührung im offenen Fenster, noch nichts gewählt: das Erste greifen und die Taste verbrauchen
+		if overlay != null and not tree_open and not karte_open and get_viewport().gui_get_focus_owner() == null:
+			var bi: int = ev.button_index
+			var kreuz: bool = bi == JOY_BUTTON_DPAD_LEFT or bi == JOY_BUTTON_DPAD_RIGHT or bi == JOY_BUTTON_DPAD_UP or bi == JOY_BUTTON_DPAD_DOWN
+			if kreuz or (bi == JOY_BUTTON_A and (menu_open or bag_open)):
+				var l := fokussierbar(overlay)
+				if not l.is_empty():
+					(l[0] as Control).grab_focus()
+					get_viewport().set_input_as_handled()
+					return
 		if _pad(ev):
 			get_viewport().set_input_as_handled()
 		return
@@ -1242,6 +1529,11 @@ func _input(ev: InputEvent) -> void:
 		press_option(ev.keycode - KEY_1)
 		return
 	if ev.keycode == KEY_E or ev.keycode == KEY_ENTER or ev.keycode == KEY_KP_ENTER:
+		var fk := _fokus_knopf()
+		if ev.keycode != KEY_E and fk != null and fk != primary_btn:
+			return   # Enter bestätigt den gewählten Knopf (Klasse, Schwierigkeit …)
+		if not primary.is_valid() and ev.keycode != KEY_E:
+			return   # Menü, Tasche: Enter geht an den Fokus
 		get_viewport().set_input_as_handled()
 		if primary.is_valid() and not (primary_btn and primary_btn.disabled):
 			game.sfx.play("ui")   # vor dem Auslösen: danach kann die Szene schon neu geladen sein
@@ -1302,33 +1594,36 @@ func _class_card(c: String) -> Control:
 	var C: Dictionary = Klassen.CLS[c]
 	var on := c == intro_cls
 	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 92 if game.touch else 146)
+	b.custom_minimum_size = Vector2(0, 108 if game.touch else 196)
 	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("5c4a2e"), 3 if on else 1))
 	b.add_theme_stylebox_override("hover", _flat(Color("2a2731"), 8, C.col, 2))
 	b.add_theme_stylebox_override("pressed", _flat(Color("2a2731"), 8, C.col, 3))
-	var h := HBoxContainer.new()
-	h.set_anchors_preset(Control.PRESET_FULL_RECT)
-	h.offset_left = 6
-	h.offset_right = -6
-	h.offset_top = 6
-	h.offset_bottom = -6
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_theme_constant_override("separation", 6)
+	# Bild oben, Name darunter: der Name bricht zwischen Wörtern um und wird nie mehr mitten im Wort zerschnitten
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.offset_left = 6
+	v.offset_right = -6
+	v.offset_top = 6
+	v.offset_bottom = -6
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 4)
 	var tr := TextureRect.new()
 	tr.texture = Klassen.portrait(c)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.custom_minimum_size = Vector2(60 if game.touch else 100, 0)
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	tr.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tr.custom_minimum_size = Vector2(0, 56 if game.touch else 120)
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(tr)
-	var l := _label(C.name, 11 if game.touch else 14, C.col if on else PARCH)
+	v.add_child(tr)
+	var l := _label(C.name, 12 if game.touch else 15, C.col if on else PARCH)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(0, 30 if game.touch else 38)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	h.add_child(l)
-	b.add_child(h)
+	v.add_child(l)
+	b.add_child(v)
 	b.pressed.connect(func():
 		game.sfx.play("ui")
 		intro_cls = c
@@ -1369,6 +1664,7 @@ func show_intro(force_new := false) -> void:
 	_render_intro()
 
 func _render_intro() -> void:
+	var fi := fokus_index(overlay) if overlay != null else -1
 	var v := _sheet(1.0, 760, true)
 	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG " + Protokoll.FASSUNG, 13, GOLD))
 	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
@@ -1378,6 +1674,8 @@ func _render_intro() -> void:
 	else:
 		_intro_story(v)
 	_intro_rest(v)
+	if fi >= 0:
+		fokus_setzen(overlay, fi)
 
 func _intro_story(v: VBoxContainer) -> void:
 	# in schlichten Worten: worum es geht, wer du bist, was du tun sollst (3.0)
@@ -1468,5 +1766,6 @@ func _intro_rest(v: VBoxContainer) -> void:
 	else:
 		werk.add_child(sk)
 		v.add_child(werk)
+	v.add_child(pad_zeile("Gamepad: Steuerkreuz oder linker Stick wählt, A bestätigt."))
 	primary = go
 	primary_btn.grab_focus()

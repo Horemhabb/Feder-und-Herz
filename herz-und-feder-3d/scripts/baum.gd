@@ -136,6 +136,7 @@ func render() -> void:
 	close.pressed.connect(func(): game.toggle_tree())
 	top.add_child(close)
 	add_child(top)
+	add_child(hud.pad_zeile("Gamepad: Steuerkreuz oder linker Stick wählt den Knoten, A lernt, LB und RB gehen der Reihe nach, B schließt."))
 	add_child(hud._para("%s · Stufe %d · %s" % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, ("%d freie Punkte" % pts) if pts != 1 else "1 freier Punkt"], 15, Hud.GOLD if pts > 0 else Hud.DIM))
 	if Spiel.baum_neu:
 		add_child(hud._para("Der Baum ist neu gewachsen: Er hat jetzt drei Äste, und lernen lässt sich nur, was neben schon Gelerntem liegt. Deine Punkte sind zurückgegeben, verteile sie neu.", 14, Hud.GOLD))
@@ -182,6 +183,34 @@ func pad_schritt(r: int) -> void:
 	wahl = keys[(i + r + keys.size()) % keys.size()]
 	game.sfx.play("ui")
 	render()
+
+# Steuerkreuz oder Stick: der nächste Knoten in dieser Richtung (nach Abstand, Seitenabweichung zählt doppelt)
+func pad_richtung(r: Vector2i) -> void:
+	var B := Klassen.baum(Spiel.cls)
+	if wahl == "" or not B.knoten.has(wahl):
+		return
+	var von: Vector2 = B.knoten[wahl].pos
+	var rv := Vector2(r)
+	var best := ""
+	var bs := 1e9
+	for k in B.knoten:
+		if k == wahl or B.knoten[k].art == "stamm":
+			continue
+		var d: Vector2 = (B.knoten[k].pos as Vector2) - von
+		var vor := d.dot(rv)
+		if vor < 6.0:
+			continue
+		var quer := absf(d.dot(rv.orthogonal()))
+		if quer > vor * 1.6:
+			continue   # eher seitlich als in diese Richtung
+		var sc := vor + quer * 2.0
+		if sc < bs:
+			bs = sc
+			best = k
+	if best != "":
+		wahl = best
+		game.sfx.play("ui")
+		render()
 
 func pad_lernen() -> void:
 	if wahl != "" and hindernis(wahl) == "":
@@ -409,7 +438,11 @@ class BaumBild extends Control:
 				# lernbar: ein Schein, der langsam atmet
 				draw_circle(p, r + 7.0 + sin(t * 3.0) * 2.5, Color(0.56, 0.89, 0.88, 0.16))
 			if k == baum.wahl:
-				draw_arc(p, r + 9.0, 0, TAU, 40, Color(1, 1, 1, 0.75), 2.0, true)
+				# mit Gamepad deutlicher: dicker, goldener, pulsierender Ring
+				if baum.hud.pad_aktiv:
+					draw_arc(p, r + 10.0, 0, TAU, 40, Color(1.0, 0.86, 0.4, 0.8 + 0.2 * sin(t * 6.0)), 4.0, true)
+				else:
+					draw_arc(p, r + 9.0, 0, TAU, 40, Color(1, 1, 1, 0.75), 2.0, true)
 			match n.art:
 				"staerke", "schluessel":
 					var rr := r * 1.25

@@ -76,7 +76,8 @@ void fragment() {
 	float breite = 0.78 * pow(1.0 - y, 0.8) + 0.04;
 	float form = 1.0 - smoothstep(0.0, 1.0, abs(x + (w - 0.5) * 0.7 * y) / breite);
 	float a = form * smoothstep(0.0, 0.1, y) * (0.55 + 0.7 * w2);
-	ALBEDO = mix(farbe.rgb, vec3(1.0, 0.92, 0.6), clamp(form * form * (1.2 - y), 0.0, 1.0));
+	// heller als 1: Das Glühen (Environment) greift die Flamme auf und lässt sie über ihren Rand strahlen
+	ALBEDO = mix(farbe.rgb, vec3(1.0, 0.92, 0.6), clamp(form * form * (1.2 - y), 0.0, 1.0)) * 1.6;
 	ALPHA = clamp(a, 0.0, 1.0);
 }"""
 

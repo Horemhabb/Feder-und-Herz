@@ -21,6 +21,7 @@ var hud: Hud
 var cam: Camera3D
 var env: Environment
 var moon: DirectionalLight3D
+var bild: Bild          # Licht, Farbe und Luft je Stunde (bild.gd)
 var foes: Array = []
 var bolts: Array = []
 var torches: Array = []
@@ -89,6 +90,12 @@ func _ready() -> void:
 	H = Karte.GH
 	sfx = Sfx.new()
 	add_child(sfx)
+	# kurze Geräusche gleich beim Bau der Stunde laden: Sie wurden erst beim ersten Abspielen von der Platte gelesen,
+	# und das kostete mitten im Laufen bis zu 8 ms (die ersten Schritte auf Sand und Stein, der erste Hieb …)
+	for k in Sfx.VOL:
+		if not (k.begins_with("mus_") or k.begins_with("vo_") or k.begins_with("amb_")):
+			for i in Sfx.VARIANTS.get(k, 0) + 1:
+				sfx._stream(k if i == 0 else "%s%d" % [k, i])
 	if AudioServer.get_bus_effect_count(0) == 0:
 		var lim := AudioEffectHardLimiter.new()   # fängt Spitzen ab, wenn viele Treffer zugleich klingen
 		lim.ceiling_db = -0.5
@@ -100,6 +107,9 @@ func _ready() -> void:
 	add_child(orte)
 	_build_env()
 	_build_world()
+	bild = Bild.new(self)
+	add_child(bild)
+	bild.stellen()
 	orte.setup()
 	leben = Leben.new()
 	leben.game = self
@@ -108,6 +118,8 @@ func _ready() -> void:
 	bau_pruefung()
 	for l in find_children("*", "OmniLight3D", true, false):
 		lichter.append(l)
+	for tc in torches:
+		tc.l.set_meta("fackel", true)   # flackert selbst; beim Ein- und Ausblenden zählt nur der Anteil „f“
 	hero = Hero.new()
 	hero.game = self
 	add_child(hero)
@@ -189,6 +201,10 @@ func _ready() -> void:
 			var ms: Node = load("res://scripts/messung.gd").new()
 			ms.name = "Mess"
 			get_tree().root.add_child.call_deferred(ms)
+		if "--ruckeln" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Ruckeln"):
+			var rk: Node = load("res://scripts/ruckeln.gd").new()
+			rk.name = "Ruckeln"
+			get_tree().root.add_child.call_deferred(rk)
 		if "--bosstest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Bosstest"):
 			var bt: Node = load("res://scripts/bosstest.gd").new()
 			bt.name = "Bosstest"
@@ -237,7 +253,7 @@ func begin() -> void:
 		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
 		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0)
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
-	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or Fotos.laeuft()
+	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or "--ruckeln" in OS.get_cmdline_user_args() or Fotos.laeuft()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
 		get_tree().create_timer(1.4).timeout.connect(func():
 			if hud.overlay == null and not get_tree().paused and not hero.dead:
@@ -573,6 +589,7 @@ func _torch(pos: Vector3, rot: float) -> void:
 	l.position = Vector3(0, 0.7, 0.45)
 	t.add_child(l)
 	Stimmung.flamme(t, Vector3(0, 0.33, 0.42), 0.55, 0.42)
+	Bild.funken(t, Vector3(0, 0.5, 0.42), 7)
 	if torches.size() < 6:
 		sfx.loop_at("torch", t)
 	torches.append({"l": l, "ph": randf() * 10.0})
@@ -658,6 +675,7 @@ func _campfire(c: Vector3) -> void:
 	add_child(l)
 	l.global_position = c + Vector3(0, 1.0, 0)
 	torches.append({"l": l, "ph": randf() * 10.0})
+	Bild.funken(self, c + Vector3(0, 0.6, 0), 14)
 	_box(c, Vector3(1.0, 0.5, 1.0))
 	astar.set_point_solid(_sub(c), true)
 
@@ -1753,6 +1771,11 @@ func _aktende_lohn() -> void:
 	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
 		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
 		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
+	if Stunden.akt(Spiel.fall) == 0:
+		# Etappe B: Rückblick auf die Entscheidungen des ersten Aktes (Geschichte.akt1_tafel)
+		var tafel := Geschichte.akt1_tafel()
+		for i in tafel.size():
+			rueck.insert(1 + i, tafel[i])
 	hud.show_dialog("ENDE DES ERSTEN AKTES", "Der Abstieg", "", rueck, wahl)
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
@@ -1838,21 +1861,35 @@ func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
 
 # ---------------------------------------------------------------- Effekte
+# Schwebende Zahl und Meldung über einem Ort. Seit Etappe B: größer, mit dicker dunkler Kontur, springt beim Erscheinen kurz
+# auf und weicht zur Seite, damit sich Treffer nicht gegenseitig verdecken; Krit-Zahlen (big > 1) stehen länger.
 func float_text(pos: Vector3, text: String, col: Color, big := 1.0) -> void:
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
+	l.fixed_size = false
 	l.font_size = 64
-	l.outline_size = 14
+	l.outline_size = 18
+	l.outline_modulate = Color(0.05, 0.02, 0.02, 0.95)
 	l.modulate = col
-	l.pixel_size = 0.012 * big
+	l.render_priority = 5
+	l.pixel_size = 0.0125 * big
 	add_child(l)
-	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 2.2, randf_range(-0.2, 0.2))
+	var seite := randf_range(-0.7, 0.7)
+	l.global_position = pos + Vector3(seite * 0.6, 2.2, randf_range(-0.2, 0.2))
+	var y0 := l.global_position.y
+	var dauer := 1.0 + (0.3 if big > 1.2 else 0.0)
+	l.scale = Vector3.ONE * 0.35
 	var tw := create_tween()
-	tw.tween_property(l, "global_position:y", l.global_position.y + 1.6, 0.8)
-	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
-	tw.tween_callback(l.queue_free)
+	tw.tween_property(l, "scale", Vector3.ONE * (1.25 if big > 1.2 else 1.12), 0.09).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "scale", Vector3.ONE, 0.12)
+	var tw2 := create_tween().set_parallel(true)
+	tw2.tween_property(l, "global_position:y", y0 + 1.7, dauer).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(l, "global_position:x", l.global_position.x + seite * 0.9, dauer)
+	tw2.tween_property(l, "modulate:a", 0.0, dauer * 0.45).set_delay(dauer * 0.55).set_ease(Tween.EASE_IN)
+	tw2.tween_property(l, "outline_modulate:a", 0.0, dauer * 0.45).set_delay(dauer * 0.55)
+	tw2.chain().tween_callback(l.queue_free)
 
 func ring_fx(c: Vector3, r: float, col: Color) -> void:
 	var m := MeshInstance3D.new()
@@ -2015,7 +2052,11 @@ func _place_cam(delta: float, snap := false) -> void:
 	if staub:
 		staub.global_position = cam_pos + Vector3(0, 1.8, 0)
 	var off := Vector3(14.5, 27.0, 14.5) * NAH   # seit 2.6 ein Stück näher: Figuren und Tracht sind besser zu erkennen
-	var sh := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.5
+	# Schütteln als gleichmäßiges Wackeln (etwa 10 bis 17 Schwünge je Sekunde) statt neuer Zufallslage in jedem Bild:
+	# Bei 144 Bildern je Sekunde war der Zufall ein Flirren, mehr als doppelt so unruhig wie bei 60.
+	var st := Time.get_ticks_usec() * 0.000001
+	var sh := Vector3(sin(st * 71.0) + sin(st * 103.0 + 1.3), sin(st * 83.0 + 2.1) + sin(st * 61.0 + 0.4),
+		sin(st * 97.0 + 4.2) + sin(st * 67.0 + 0.9)) * 0.5 * shake * 0.5
 	cam.global_position = cam_pos + off + sh
 	cam.look_at(cam_pos + Vector3(0, 1.0, 0) + sh * 0.5, Vector3.UP)
 
@@ -2042,6 +2083,8 @@ func foe_near(p: Vector3, r: float) -> Foe:
 func interagieren() -> bool:
 	if not leben.naechster_auftrag().is_empty():
 		leben.auftrag_reden(leben.naechster_auftrag())
+	elif orte.gast_zuerst():
+		orte.talk_gast()
 	elif orte.near_thot() and not orte.near_helfer() and not orte.near_npc():
 		orte.thot_reden()
 	elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
@@ -2134,6 +2177,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if not bp.is_empty() and mouse_ground().distance_to(bp.n.global_position) < 1.6:
 			leben.auftrag_reden(bp)
 			return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.gast_talked and orte.near_gast() \
+			and mouse_ground().distance_to(orte.gast.pos) < 1.8 and not hud.mouse_over_ui():
+		orte.talk_gast()   # Haremhab oder Hatschepsut antippen: noch einmal sprechen
+		return
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.helfer_talked and orte.near_helfer() \
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()
@@ -2249,14 +2296,10 @@ func _physics_process_innen(delta: float) -> void:
 		return
 	clock += delta
 	shot_gap -= delta
-	_loot_tick(delta)
 	_chest_tick()
 	var _uorte := Time.get_ticks_usec()
 	orte.tick(delta)
 	Protokoll.zeit("orte", _uorte)
-	var _uleben := Time.get_ticks_usec()
-	leben.tick(delta)
-	Protokoll.zeit("leben", _uleben)
 	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)
@@ -2387,13 +2430,51 @@ func _spar_tick() -> void:
 			var d2: float = l.global_position.distance_squared_to(c)
 			if d2 < 32.0 * 32.0:
 				nah.append([d2, l])
-			elif l.visible:
-				l.visible = false
+			else:
+				_licht_soll(l, false)
 	nah.sort_custom(func(a, b): return a[0] < b[0])
 	for i in nah.size():
-		var an: bool = i < GUETE_LICHTER[guete]
-		if nah[i][1].visible != an:
-			nah[i][1].visible = an
+		_licht_soll(nah[i][1], i < GUETE_LICHTER[guete])
+
+# Lichter blenden weich ein und aus (4.1), statt hart zu schalten: Beim Laufen sprang sonst die Helligkeit.
+# „f“ ist der Anteil der vollen Stärke, „e0“ die volle Stärke (Fackeln flackern selbst und nehmen nur „f“).
+var licht_blende := {}   # Licht → Ziel (0 oder 1), solange es blendet
+const LICHT_BLENDE := 2.2   # je Sekunde: in knapp einer halben Sekunde ganz an oder aus
+
+func _licht_soll(l: Light3D, an: bool) -> void:
+	var ziel := 1.0 if an else 0.0
+	if licht_blende.has(l):
+		licht_blende[l] = ziel
+		return
+	if l.visible == an:
+		return
+	if an:
+		if not l.has_meta("e0"):
+			l.set_meta("e0", l.light_energy)
+		l.set_meta("f", 0.0)
+		if not l.has_meta("fackel"):
+			l.light_energy = 0.0
+		l.visible = true
+	else:
+		if not l.has_meta("fackel"):
+			l.set_meta("e0", l.light_energy)
+		l.set_meta("f", 1.0)
+	licht_blende[l] = ziel
+
+func _licht_blende_tick(delta: float) -> void:
+	for l in licht_blende.keys():
+		if not is_instance_valid(l):
+			licht_blende.erase(l)
+			continue
+		var ziel: float = licht_blende[l]
+		var f := move_toward(float(l.get_meta("f", 1.0)), ziel, delta * LICHT_BLENDE)
+		l.set_meta("f", f)
+		if not l.has_meta("fackel"):
+			l.light_energy = float(l.get_meta("e0", 1.0)) * f
+		if f == ziel:
+			licht_blende.erase(l)
+			if ziel == 0.0:
+				l.visible = false
 
 func _foes_sleep_far() -> void:
 	if freeze_foes:
@@ -2413,15 +2494,25 @@ func _process_innen(delta: float) -> void:
 	spar_t -= delta
 	if spar_t <= 0.0 and hero:
 		spar_t = 0.3
+		var _us := Time.get_ticks_usec()
 		_spar_tick()
+		Protokoll.zeit("sparen", _us)
 	shake = maxf(0.0, shake - delta * 2.2)
+	if started:
+		# Leute, Tiere und Beute, die zum Helden fliegt, bewegen sich je Bild, nicht im Physiktakt: Sie haben keine
+		# Zwischenbilder, und bei 144 Bildern je Sekunde stand eine laufende Gestalt sonst in jedem zweiten Bild still.
+		var _uleben := Time.get_ticks_usec()
+		leben.tick(delta)
+		Protokoll.zeit("leben", _uleben)
+		_loot_tick(delta)
 	_place_cam(delta)
-	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte
+	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte, die Figur dort, wo sie gezeichnet wird
 	RenderingServer.global_shader_parameter_set("cut_cam", cam.global_position)
-	RenderingServer.global_shader_parameter_set("cut_hero", hero.global_position)
+	RenderingServer.global_shader_parameter_set("cut_hero", hero.get_global_transform_interpolated().origin)
 	var t := Time.get_ticks_msec() * 0.001
+	_licht_blende_tick(delta)
 	for tc in torches:
-		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06)
+		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06) * float(tc.l.get_meta("f", 1.0))
 	for w in wisps:
 		var n: Node3D = w.n
 		n.position.x -= delta * w.sp

@@ -14,7 +14,7 @@ const GOETTER := [
 	{"id": "bastet", "name": "Bastet", "col": Color(1.0, 0.85, 0.4), "txt": "Lauftempo +25 %", "dur": 60.0},
 	{"id": "hathor", "name": "Hathor", "col": Color(1.0, 0.6, 0.85), "txt": "Fundchance +60 %", "dur": 90.0},
 ]
-const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": "", "werkstatt": "Werkstatt des Ptah", "thot": "Schrein des Thot"}
+const NAME := {"feuer": "Feuerschale", "schrein": "Schrein", "krug": "Seelenkrug", "relikt": "Fundstück", "figur": "", "helfer": "", "such": "", "werkstatt": "Werkstatt des Ptah", "thot": "Schrein des Thot", "gast": ""}
 
 var game: Node
 var thot: Dictionary = {}    # Schrein des Thot (3.3): hier wird umgelernt
@@ -40,6 +40,12 @@ var nl := {}                 # der Ba ohne Namen (2.9), falls er in dieser Stund
 var stueck := {}             # das fehlende Stück seiner Kartusche
 var kartusche_bei_dir := false
 var nl_schleier: MeshInstance3D
+var GA: Dictionary           # der Gast dieser Stunde (Geschichte.GAESTE): Haremhab oder Hatschepsut, sonst leer
+var gast := {}
+var gast_talked := false
+var gast_dir := Vector3.ZERO # Hatschepsut: in welcher Richtung die Wand liegt
+var ba_t := 0.0              # dein Ba schaut alle halbe Sekunde, ob er etwas zu sagen hat
+var tode_gesehen := 0
 
 # Was die heimgeführten Ba sagen, einer nach dem anderen. Es ergibt ein Bild, aber nie das ganze.
 const BA_WORTE := ["Wir sind nicht verloren. Man hat uns verlegt.",
@@ -52,6 +58,7 @@ const BA_SILBEN := ["Mer…", "Nebet…", "…hotep", "Sat…", "…mose", "Ta�
 func _ready() -> void:
 	G = Geschichte.def(Spiel.fall)
 	L = Geschichte.leute(Spiel.fall)
+	GA = Geschichte.gast(Spiel.fall)
 	Spiel.segen = {}
 	Spiel.calc()
 
@@ -90,6 +97,12 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			col = Color(0.56, 0.89, 0.88)
 			size = Vector3(0.9, 2.0, 0.9)
 			npc = s
+		"gast":
+			s["vis"] = _build_gast(pos)
+			text = GA.wer
+			col = Color(1.0, 0.82, 0.5)
+			size = Vector3(0.9, 2.0, 0.9)
+			gast = s
 		"helfer":
 			s["vis"] = _build_npc(pos, L.model, Color.WHITE, false, 0.72 if L.get("klein", false) else 1.0)
 			text = L.wer
@@ -130,12 +143,13 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 	l.pixel_size = 0.0055
 	l.visible = false
 	game.add_child(l)
-	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "schrein" or kind == "helfer" or kind == "werkstatt" else (1.7 if kind == "such" else 2.3), 0)
+	l.global_position = pos + Vector3(0, 3.0 if kind == "figur" or kind == "gast" or kind == "schrein" or kind == "helfer" or kind == "werkstatt" else (1.7 if kind == "such" else 2.3), 0)
 	s["label"] = l
 	# Namensschild (3.0): unter dem Namen steht in kleiner Schrift, wer das ist
 	var wer := ""
 	match kind:
 		"figur": wer = G.get("titel", "")
+		"gast": wer = GA.get("titel", "")
 		"helfer": wer = L.get("titel", "")
 		"werkstatt": wer = "Goldschmied · antippen" if game.touch else "Goldschmied · Taste E"
 		"schrein": wer = "Segen für eine Weile"
@@ -154,7 +168,7 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 		game.add_child(l2)
 		l2.global_position = l.global_position - Vector3(0, 0.3, 0)
 		s["label2"] = l2
-	if kind == "figur" or kind == "helfer":
+	if kind == "figur" or kind == "helfer" or kind == "gast":
 		# ein leiser Kreis am Boden: Hier steht jemand, mit dem man reden kann
 		game.stimmung.append(Stimmung.runenkreis(game, pos, 1.25, col, 0.42))
 	sites.append(s)
@@ -211,11 +225,15 @@ func _tint(n: Node, c: Color) -> void:
 
 # nach dem Bau der Welt: das Questbuch der Stunde
 func setup() -> void:
+	_gast_setzen()
 	quests = [{"id": "hueter", "titel": "Der Hüter", "text": "", "done": false}]
 	if not helfer.is_empty():
 		quests.append({"id": "leute", "titel": "%ss %s" % [L.wer, L.was], "text": "Sprich mit %s am Eingang." % L.wer, "done": false})
 	if not npc.is_empty():
 		quests.append({"id": "relikt", "titel": G.quest, "text": "Sprich mit %s." % G.get("mit", G.wer), "done": false})
+	if not gast.is_empty():
+		var fertig: bool = gast_talked and not (GA.get("wand", false) and not Spiel.wahl.has("3h"))
+		quests.append({"id": "gast", "titel": GA.quest, "text": "Gesprochen." if fertig else ("Sprich mit ihm." if not GA.get("wand", false) else "Irgendwo in einer Wand des Grabes."), "done": fertig})
 	if count("feuer") > 0:
 		quests.append({"id": "feuer", "titel": "Feuerschalen", "text": "", "done": false})
 	if count("krug") > 0:
@@ -282,7 +300,7 @@ func tick(delta: float) -> void:
 		var d: Vector3 = s.pos - h.global_position
 		d.y = 0.0
 		var dist := d.length()
-		s.label.visible = dist < 11.0 and (not s.done or s.kind == "figur")
+		s.label.visible = dist < 11.0 and (not s.done or s.kind == "figur" or s.kind == "gast")
 		if s.kind == "werkstatt" or s.kind == "thot":
 			s.label.visible = dist < 14.0
 		if s.has("label2"):
@@ -303,7 +321,7 @@ func tick(delta: float) -> void:
 			# Tiere stehen nicht still
 			s.vis.n.position.y = absf(sin(t * 2.4 + s.v * 1.7)) * 0.06
 			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004
-		if not frei or s.done and s.kind != "figur" and s.kind != "helfer":
+		if not frei or s.done and s.kind != "figur" and s.kind != "helfer" and s.kind != "gast":
 			continue
 		if s.kind == "werkstatt" or s.kind == "thot":
 			continue   # öffnet sich nicht im Vorbeigehen: E drücken oder antippen
@@ -317,6 +335,12 @@ func tick(delta: float) -> void:
 			if not talked and dist < 3.2 and not s.asked:
 				s.asked = true
 				talk()
+				return
+			continue
+		if s.kind == "gast":
+			if not gast_talked and dist < 3.2 and not s.asked:
+				s.asked = true
+				talk_gast()
 				return
 			continue
 		if dist < 1.9 and not s.asked:
@@ -346,9 +370,15 @@ func tick(delta: float) -> void:
 			Spiel.calc()
 			h.apply_stats()
 			dirty = true
-	# dein Ba meldet sich kurz nach dem Eintreten
+	# dein Ba meldet sich kurz nach dem Eintreten (in der allerersten Stunde stellt er sich erst vor)
 	if t > 6.0 and not ba_done.has("start") and frei:
-		ba("start", G.ba)
+		if Stunden.hour_of(Spiel.fall) == 1 and not Spiel.gesehen("ba_vorgestellt"):
+			Spiel.merke("ba_vorgestellt")
+			ba_done["vorstellung"] = true
+			ba("start", Worte.BA_VORSTELLUNG)
+		else:
+			ba("start", G.ba)
+	_ba_tick(delta, frei)
 	var q := quest("hueter")
 	var txt := hueter_text()
 	if q.text != txt:
@@ -619,11 +649,218 @@ func ba(key: String, text: String) -> void:
 		return
 	ba_done[key] = true
 	# beim allerersten Mal steht dabei, was ein Ba ist; danach kennt man ihn
+	ba_zuletzt = t
 	if Spiel.gesehen("ba_stimme"):
 		game.hud.whisper("Dein Ba flüstert: „%s“" % text)
 	else:
 		Spiel.merke("ba_stimme")
 		game.hud.whisper("Dein Ba, der Seelenvogel, der dich begleitet, flüstert: „%s“" % text)
+
+# Dein Ba im ersten Akt (Etappe B): Er meldet sich beim ersten Kampf, wenn der Hüter erwacht, nach einer Niederlage
+# und erinnert eine Weile nach der Ankunft an Entscheidungen aus früheren Stunden. Zwischen zwei Sätzen lässt er Ruhe.
+var ba_zuletzt := -99.0
+
+func _ba_tick(delta: float, frei: bool) -> void:
+	ba_t += delta
+	if ba_t < 0.5 or not frei or Stunden.akt(Spiel.fall) != 0:
+		return
+	ba_t = 0.0
+	var stunde := Stunden.hour_of(Spiel.fall)
+	if game.deaths > tode_gesehen and not game.hero.dead:
+		tode_gesehen = game.deaths
+		var s := Worte.zieh("ba_tod")
+		ba("tod%d" % game.deaths, s % game.deaths if "%d" in s else s)
+		return
+	if t - ba_zuletzt < 7.5:
+		return   # der letzte Satz steht noch da
+	if game.boss_awake and not ba_done.has("hueter"):
+		ba("hueter", Worte.BA_HUETER[stunde - 1])
+		return
+	if not ba_done.has("kampf") and game.foes.any(func(f): return f.kind != "boss" and f.state == Foe.St.FIGHT):
+		ba("kampf", Worte.BA_KAMPF[stunde - 1])
+		return
+	# Rückbezüge, einer nach dem anderen; in der ersten Stunde kommt nach der Vorstellung der Satz der Stunde
+	var rueck: Array = Worte.BA_RUECK.get(stunde, [])
+	if stunde == 1 and ba_done.has("vorstellung"):
+		rueck = [G.ba]
+	for i in rueck.size():
+		var key := "rueck%d" % i
+		if ba_done.has(key) or t < 20.0 + 25.0 * i:
+			continue
+		var s := Geschichte.fasse(rueck[i])
+		if s == "":
+			ba_done[key] = true
+			continue
+		ba(key, s)
+		return
+
+# ---------------------------------------------------------------- Die beiden Könige (Etappe B)
+# Haremhab (Stunde 2 und 4) und Hatschepsut (Stunde 3) stehen als Gast in der Stunde. Wo, sucht sich das Spiel nach
+# dem Bau der Welt: Haremhab nahe der Figur am Eingang (Stunde 2) oder vor der Arena des Hüters (Stunde 4),
+# Hatschepsut an einer Grabwand, mit dem Rücken zum Stein.
+func _gast_setzen() -> void:
+	if GA.is_empty():
+		return
+	var wand: bool = GA.get("wand", false)
+	var am_hueter: bool = GA.get("am_hueter", false)
+	var mitte: Vector3 = game.start_pos
+	if am_hueter:
+		mitte = game.arena_ort()
+	elif not npc.is_empty():
+		mitte = npc.pos
+	var p := _gast_platz(mitte, 2 if am_hueter else 4, 8 if am_hueter else (16 if wand else 8), wand, am_hueter)
+	if p.is_empty():
+		p = _gast_platz(mitte, 2, 16, false, am_hueter)   # zur Not ohne Wand, etwas weiter weg
+	if p.is_empty():
+		return
+	gast_dir = p.dir
+	add("gast", p.pos, 0)
+	gast_talked = Spiel.gesehen("gast_%d" % Stunden.hour_of(Spiel.fall))   # schon einmal gesprochen: kein Anruf im Vorbeigehen
+	gast.vis.mark.visible = not gast_talked
+	_gast_zeigen()   # wer die Stunde noch einmal betritt, sieht die Wand so, wie er sie gelassen hat
+
+func _gast_platz(mitte: Vector3, rmin: int, rmax: int, an_wand: bool, am_hueter: bool) -> Dictionary:
+	var K: Karte = game.karte
+	var C := Karte.CELL
+	var lair := Welt.cell_pos(K.lair)
+	for r in range(rmin, rmax + 1):
+		for i in 24:
+			var a := TAU * i / 24.0
+			var q: Vector3 = mitte + Vector3(cos(a), 0, sin(a)) * float(r)
+			var cx := int(q.x / C)
+			var cz := int(q.z / C)
+			if not _zelle_frei(cx, cz):
+				continue
+			q = Vector3(cx * C + C / 2.0, 0, cz * C + C / 2.0)
+			if q.distance_to(game.start_pos) < 6.0 or q.distance_to(lair) < (7.0 if am_hueter else 10.0):
+				continue
+			if sites.any(func(s): return s.pos.distance_to(q) < 3.6):
+				continue
+			var dir := Vector3.ZERO
+			if an_wand:
+				# eine Wand auf einer Seite, freier Boden auf der anderen: dort tritt sie aus dem Stein. Nur Wände im
+				# Norden oder Westen: Die Kamera schaut von Südosten herab, eine Wand dort stünde zwischen ihr und der Gestalt.
+				for o in [Vector2i(-1, 0), Vector2i(0, -1)]:
+					if K.wall(cx + o.x, cz + o.y) and _zelle_frei(cx - o.x, cz - o.y):
+						dir = Vector3(o.x, 0, o.y)
+						break
+				if dir == Vector3.ZERO:
+					continue
+			else:
+				var frei := true
+				for dz in range(-1, 2):
+					for dx in range(-1, 2):
+						if not _zelle_frei(cx + dx, cz + dz):
+							frei = false
+				if not frei:
+					continue
+			if game.find_path(game.start_pos, q).is_empty():
+				continue
+			return {"pos": q, "dir": dir}
+	return {}
+
+func _zelle_frei(cx: int, cz: int) -> bool:
+	return game.is_floor(cx, cz) and not game.astar.is_point_solid(Vector2i(cx, cz))
+
+func _build_gast(pos: Vector3) -> Dictionary:
+	var v := _build_npc(pos, GA.model, GA.tint, true, 1.0)
+	if not GA.get("wand", false):
+		return v
+	# Hatschepsut: eine Gestalt, die aus der Grabwand tritt. Hinter ihr die Steinplatte, darüber eine leere Kartusche.
+	var d := gast_dir if gast_dir != Vector3.ZERO else Vector3(0, 0, -1)
+	v.n.rotation.y = atan2(-d.x, -d.z)
+	var platte := MeshInstance3D.new()
+	var b := BoxMesh.new()
+	b.size = Vector3(2.4, 3.4, 0.35)
+	platte.mesh = b
+	platte.material_override = game.surf("gruft")
+	game.add_child(platte)
+	platte.global_position = pos + d * 0.75 + Vector3(0, 1.7, 0)
+	platte.rotation.y = atan2(d.x, d.z)
+	var k := _kartusche([])
+	game.add_child(k)
+	k.scale = Vector3.ONE * 0.42
+	k.global_position = pos + d * 0.5 + Vector3(0, 2.75, 0)
+	k.rotation.y = atan2(d.x, d.z)
+	v["kartusche"] = k
+	return v
+
+# Hatschepsuts Wand zeigt die Entscheidung: nachgezogen glüht die Kartusche, gelassen glüht der Umriss
+func _gast_zeigen() -> void:
+	if not GA.get("wand", false) or gast.is_empty():
+		return
+	var v: Dictionary = gast.get("vis", {})
+	if v.is_empty() or not v.has("kartusche"):
+		return
+	var w: String = Spiel.wahl.get("3h", "")
+	var mat: StandardMaterial3D = v.kartusche.get_meta("mat")
+	mat.emission_energy_multiplier = 1.8 if w == "kartusche" else 0.04
+	if w == "wand":
+		_tint(v.n, Color(1.0, 0.86, 0.55))
+	if w == "kartusche" and gast.has("label"):
+		gast.label.text = "Maatkare"
+
+func near_gast() -> bool:
+	return not gast.is_empty() and (gast.pos - game.hero.global_position).length() < 4.0
+
+# E spricht mit dem Gast, wenn er näher steht als die Figur der Stunde und der Mensch am Eingang
+func gast_zuerst() -> bool:
+	if not near_gast():
+		return false
+	var hp: Vector3 = game.hero.global_position
+	var d: float = gast.pos.distance_to(hp)
+	for o in [npc, helfer]:
+		if not o.is_empty() and o.pos.distance_to(hp) < d:
+			return false
+	return true
+
+func talk_gast(knoten := "") -> void:
+	if gast.is_empty() or game.hero.dead or game.hud.overlay != null:
+		return
+	get_tree().paused = true
+	if knoten == "":
+		game.sfx.play("papyrus", 0.08)
+		knoten = "wieder" if gast_talked else "start"
+	gast.vis.mark.visible = false
+	var K: Dictionary = GA.knoten[knoten]
+	var paras := []
+	for p in K.txt:
+		var s := Geschichte.fasse(p)
+		if s != "":
+			paras.append(s)
+	var opts := []
+	for o in K.get("opts", []):
+		if o.size() > 3 and str(o[3]).begins_with("offen:") and Spiel.wahl.has(str(o[3]).substr(6)):
+			continue
+		var ziel: String = o[1]
+		var wahl: Array = o[2] if o.size() > 2 else []
+		opts.append([Geschichte.fasse(o[0]), func(): _gast_weiter(ziel, wahl)])
+	if opts.is_empty():
+		opts.append(["Gehen", func(): _gast_weiter("", [])])
+	game.hud.show_dialog(GA.titel.to_upper(), gast.label.text if gast.has("label") else GA.wer, "", paras, opts, GA.get("bild", ""))
+
+func _gast_weiter(ziel: String, wahl: Array) -> void:
+	get_tree().paused = false
+	if not wahl.is_empty():
+		Spiel.wahl[wahl[0]] = wahl[1]   # ungewogen: kein Gewicht auf der Herzwaage
+		Spiel.speichern()
+		_gast_zeigen()
+		if wahl[0] == "3h":
+			game.sfx.play("aufheben" if wahl[1] == "kartusche" else "herz_frei", 0.05)
+	if ziel != "":
+		talk_gast(ziel)
+		return
+	var erstes := not gast_talked
+	gast_talked = true
+	Spiel.merke("gast_%d" % Stunden.hour_of(Spiel.fall))
+	var q := quest("gast")
+	if not q.is_empty():
+		var offen: bool = GA.get("wand", false) and not Spiel.wahl.has("3h")
+		q.done = not offen
+		q.text = "Sie wartet noch auf deine Antwort." if offen else "Gesprochen."
+		dirty = true
+	if erstes:
+		ba("gast", Worte.BA_GAST.get(Stunden.hour_of(Spiel.fall), ""))
 
 # ---------------------------------------------------------------- Leute und ihre Sorgen
 func _found(s: Dictionary) -> void:
@@ -647,6 +884,7 @@ func _found(s: Dictionary) -> void:
 	_update_quests()
 	if quest("leute").done:
 		game.hud.banner("%s wartet am Eingang auf dich." % L.wer, "ALLE %s GEFUNDEN" % L.was.to_upper(), 4.5)
+		ba("leute", Worte.zieh("ba_leute"))
 		_weigh(3.0)
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.2):
 			game._level_up()
@@ -890,8 +1128,12 @@ func _relic(s: Dictionary, w: Array) -> void:
 	if Geschichte.herz_name(Spiel.herz) != vor:
 		herz += " " + Geschichte.herz_wirkung(Spiel.herz)
 	game.sfx.play("victory" if w[2] > 0 else "boss_appear", 0.0, -8.0)
+	var wi: int = 0 if w[2] > 0 else 1
 	var weiter := func():
 		get_tree().paused = false
+		var stunde := Stunden.hour_of(Spiel.fall)
+		if stunde <= Worte.BA_WAHL.size():
+			ba("wahl", Worte.BA_WAHL[stunde - 1][wi])
 		if w[3] == "segen":
 			_weaken_boss("%s wird es spüren." % game.boss.K.name)
 		elif w[3] == "xp" and Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.6):
@@ -911,14 +1153,20 @@ func talk() -> void:
 		var maat: bool = Spiel.wahl.get(str(Stunden.hour_of(Spiel.fall)), "") == "maat"
 		var line := "%s neigt den Kopf. „Das werde ich nicht vergessen. Hier unten vergisst man wenig.“" % G.wer if maat \
 			else "%s sieht auf deine Laterne und dann weg. „Jeder trägt, was er trägt.“" % G.wer
-		_page([line], [0, 1, 2, 3])
+		var paras := [line]
+		if not talked and G.has("rueck"):
+			paras.append(Geschichte.fasse(G.rueck))
+		_page(paras.filter(func(p): return p != ""), [0, 1, 2, 3])
 	elif talked:
 		_page(["„%s“" % G.auftrag], [])
 	else:
 		var paras := []
 		for g in G.gruss:
 			paras.append("„%s“" % g)
-		_page(paras, [])
+		# Rückbezug (Etappe B): die Gestalt bemerkt, was du in der Stunde davor entschieden hast
+		if G.has("rueck"):
+			paras.append(Geschichte.fasse(G.rueck))
+		_page(paras.filter(func(p): return p != ""), [])
 
 func _page(paras: Array, asked: Array) -> void:
 	var opts := []
