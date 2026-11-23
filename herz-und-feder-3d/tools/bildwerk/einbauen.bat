@@ -133,17 +133,20 @@ def symbol(pfad, id_, zoom):
     return out.resize((256, 256), Image.LANCZOS)
 
 
-def portraet(pfad):
+def portraet(pfad, zoom=0.66, oben=0.03):
+    """Auf 717 x 960 zuschneiden. Im Gespraech erscheint das Bild nur 192 x 256 Pixel gross, darum rueckt der Zuschnitt dicht an Kopf und
+    Schultern: zoom = Anteil der Bildbreite, der bleibt (kleiner = naeher dran), oben = Abstand vom oberen Rand als Anteil der Bildhoehe."""
     im = Image.open(pfad).convert("RGB")
     w, h = im.size
     ziel = 717 / 960
-    if w / h > ziel:
-        nw = int(h * ziel)
-        im = im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
-    else:
-        nh = int(w / ziel)
-        im = im.crop((0, 0, w, nh))   # oben behalten: dort ist das Gesicht
-    return im.resize((717, 960), Image.LANCZOS)
+    cw = int(w * zoom)
+    ch = int(cw / ziel)
+    if ch > h:                      # Bild zu flach fuer diesen Zoom: Hoehe voll nutzen
+        ch = h
+        cw = int(ch * ziel)
+    x0 = (w - cw) // 2
+    y0 = min(int(h * oben), h - ch)
+    return im.crop((x0, y0, x0 + cw, y0 + ch)).resize((717, 960), Image.LANCZOS)
 
 
 # ---------------------------------------------------------------- Ablauf
@@ -220,12 +223,14 @@ def main():
 
     if "portraets" in was:
         n = 0
+        pz = einbau.get("portraet_zuschnitt", {})
         for code, rel in einbau.get("portraets", {}).items():
             pfad = quelle(rel)
             if not pfad:
                 fehlt.append(rel)
                 continue
-            schreibe(portraet(pfad), "ui/portraits/%s.webp" % code, repo, sicherung, 85)
+            z = pz.get(code, pz.get("standard", {}))
+            schreibe(portraet(pfad, z.get("zoom", 0.66), z.get("oben", 0.03)), "ui/portraits/%s.webp" % code, repo, sicherung, 85)
             n += 1
         print("%d Portraets eingebaut." % n)
         gesamt += n
