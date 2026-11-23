@@ -154,6 +154,7 @@ func run() -> void:
 	await key(KEY_D, 0.9)
 	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
 	# Bewegungsgefühl: zwei Sekunden laufen in eine Richtung mit freier Bahn, dabei rutschen die Füße kaum
+	var musik_lauf: float = G.sfx.mus_t   # auch dieser Abschnitt soll das Stück der Stunde nicht verkürzen
 	await wait(0.4)
 	var bahn := [KEY_D]
 	for tasten in [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_S, KEY_D], [KEY_W, KEY_A], [KEY_W, KEY_D], [KEY_S, KEY_A]]:
@@ -178,6 +179,7 @@ func run() -> void:
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
 	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
 	await wait(0.3)
+	G.sfx.mus_t = musik_lauf
 	await wait(0.3)
 	check("Hinweis „laufen“ verschwindet nach dem Laufen und ist im Spielstand gemerkt", HN.aktuell != "laufen" and not (HN.panel.visible and "laufen" in HN.label.text) and Spiel.gesehen("hinweis_laufen"))
 	# Hinweise: kommt nicht wieder, Schalter, Angriff, Heilen, Ausweichen, Text je Eingabeart
@@ -293,7 +295,9 @@ func run() -> void:
 	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
 	await key(KEY_G)
 	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
-	check("Musik der ersten Stunde läuft (Wüstennacht)", G.sfx.mus_list.has(G.sfx.mus_name) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
+	# Hat der Abschnitt zu den Hinweisen einen Gegner geweckt, läuft gerade die Kampfmusik: auch das ist die Musik der Stunde
+	var kampf: bool = G.sfx.mus_name == "mus_kampf"
+	check("Musik der ersten Stunde läuft (Wüstennacht)%s" % (" (gerade Kampfmusik)" if kampf else ""), (kampf or G.sfx.mus_list.has(G.sfx.mus_name)) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
