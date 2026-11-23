@@ -47,6 +47,10 @@
   "portraet_nah": {
    "beschreibung": "Nahes Porträt für Leute des Dorfes: Kopf und Schultern füllen das Bild, Kleidung aus schlichtem Leinen, kein Mond, keine Lampe im Bild, Licht nur als Farbe. Ohne Markennamen, ohne Zahlen.",
    "text": "Cinematic photorealistic close portrait, only head and shoulders, the face fills a large part of the picture, of {MOTIV} {HINWEIS} {ANSICHT} The scene is ancient Egypt, the land of the dead. The person wears only plain undyed linen, a simple wrap kilt or a straight linen dress with bare arms, perhaps a collar of small blue faience beads, black kohl around the eyes. Soft cool blue light falls from above, a faint warm amber glow touches one side of the face, a faint turquoise shimmer hangs in the air. Fine realistic detail of skin, hair and worn linen, calm intense expression. Behind the person {TEX}, completely out of focus, only soft shapes and color. Muted earthy colors against deep night blue. The picture shows only the person and the blurred background, nothing written anywhere."
+  },
+  "portraet_nah_figur": {
+   "beschreibung": "Wie portraet_nah, aber für Götter, Tote und Tiere: Schmuck aus Gold, Fayence und Karneol erlaubt, Kleidung nur wo sie hingehört.",
+   "text": "Cinematic photorealistic close portrait, only head and shoulders, the face fills a large part of the picture, of {MOTIV} {HINWEIS} {ANSICHT} The scene is ancient Egypt, the land of the dead. Any clothing is plain undyed linen, ornaments are of hammered gold, blue faience and red carnelian. Soft cool blue light falls from above, a faint warm amber glow touches one side of the face, a faint turquoise shimmer hangs in the air. Fine realistic detail of skin, fur, feathers and worn linen, calm intense expression. Behind the figure {TEX}, completely out of focus, only soft shapes and color. Muted earthy colors against deep night blue. The picture shows only the figure and the blurred background, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -203,6 +207,25 @@
    ],
    "stile": [
     "portraet_nah"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "ja, nach einbauen.bat"
+  },
+  "portraets_figuren_nah": {
+   "titel": "Porträts der Figuren, zweiter Anlauf: nah, ohne Mond und Laterne",
+   "gruppen": [
+    "figuren_nah"
+   ],
+   "stile": [
+    "portraet_nah_figur"
    ],
    "varianten": [
     "a",
@@ -754,6 +777,69 @@
    "gruppe": "leute_nah",
    "motiv": "an older neighbour woman with a fringed linen shawl, many bracelets and a curious knowing look",
    "tex": "the doorway of a mud-brick house"
+  },
+  {
+   "id": "P04",
+   "name": "Ein Erloschener",
+   "gruppe": "figuren_nah",
+   "motiv": "a gaunt pale man who was once an imperishable star, bald head, ashen grey skin with faint dead specks of starlight, eyes like dim embers, a faded blue linen robe",
+   "tex": "a dark sky with very few stars over black glass"
+  },
+  {
+   "id": "P05",
+   "name": "Ein alter Richter",
+   "gruppe": "figuren_nah",
+   "motiv": "a very old tired judge of the dead with a shaved head, a deeply lined face and sorrowful eyes, a single tall white feather tied into a plain white headband",
+   "tex": "tall dim columns and the soft golden shape of a large scale"
+  },
+  {
+   "id": "P11",
+   "name": "Isis, die Klagende",
+   "gruppe": "figuren_nah",
+   "motiv": "the goddess Isis as a grieving woman with dark braided hair and a small throne-shaped crown, the folded wings of a kite rising behind her shoulders, tear tracks on her cheeks",
+   "tex": "papyrus along a dark river"
+  },
+  {
+   "id": "P12",
+   "name": "Selket",
+   "gruppe": "figuren_nah",
+   "motiv": "the goddess Selket as a calm strong woman with a scorpion of gold resting on top of her head, its tail curled up, amber jewellery, a soft breath of mist before her lips",
+   "tex": "dark sand dunes under a reddish sky"
+  },
+  {
+   "id": "P13",
+   "name": "Der Große Kater",
+   "gruppe": "figuren_nah",
+   "motiv": "a huge noble ginger tomcat, a real cat and not a person, with a broad golden collar and a small glowing sun disc floating above his head, wise golden eyes",
+   "tex": "the ruins of a sun temple"
+  },
+  {
+   "id": "P14",
+   "name": "Der elfte Ruderer",
+   "gruppe": "figuren_nah",
+   "motiv": "a sunburnt muscular oarsman with a plain linen headcloth, the handle of a long oar resting on his shoulder, quiet loyal eyes",
+   "tex": "the dark deck of a large boat on black water"
+  },
+  {
+   "id": "P15",
+   "name": "Horus",
+   "gruppe": "figuren_nah",
+   "motiv": "the god Horus with the head of a falcon and the body of a strong man, wet from the river, a dripping collar of blue and gold, the falcon eye fierce and bright",
+   "tex": "a dark river with soft drowned shapes in the water"
+  },
+  {
+   "id": "P16",
+   "name": "Die mit dem Messer",
+   "gruppe": "figuren_nah",
+   "motiv": "a fierce goddess with wild black hair and burning amber eyes, a long flint knife held upright before her face, red glow from below on her face, old burn scars on her shoulders",
+   "tex": "the glowing edge of a deep fire pit"
+  },
+  {
+   "id": "P17",
+   "name": "Schu",
+   "gruppe": "figuren_nah",
+   "motiv": "the air god Shu as a strong bearded man with a single tall ostrich feather on his head, his bare arms raised at the edge of the picture, wind in his hair",
+   "tex": "a dawn-blue sky with drifting clouds"
   }
  ],
  "einbau": {
@@ -798,6 +884,17 @@
   "symbole_zoom": {
    "standard": 0.9
   },
-  "portraets": {}
+  "portraets": {
+   "P04": "bildwerk/portraets_figuren/P04_portraet_a",
+   "P05": "bildwerk/portraets_figuren/P05_portraet_b",
+   "P11": "bildwerk/portraets_figuren/P11_portraet_c",
+   "P12": "bildwerk/portraets_figuren/P12_portraet_b",
+   "P13": "bildwerk/portraets_figuren/P13_portraet_a",
+   "P14": "bildwerk/portraets_figuren/P14_portraet_a",
+   "P15": "bildwerk/portraets_figuren/P15_portraet_d",
+   "P16": "bildwerk/portraets_figuren/P16_portraet_b",
+   "P17": "bildwerk/portraets_figuren/P17_portraet_c"
+  },
+  "hinweis_portraets": "Porträts: Code (P04 usw.) -> Quelle. Die Figuren aus portraets_figuren sind ein Übergang (Mond und Laterne im Bild); portraets_figuren_nah soll sie ersetzen. portraet_zuschnitt: {code oder standard: {zoom, oben}}, zoom kleiner = enger."
  }
 }

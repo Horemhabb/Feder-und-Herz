@@ -49,6 +49,7 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 | 5 | `astzeichen`: zwölf Zeichen der Äste | 48 | 2 h 28 | noch kein Platz | Baum (`baum.gd`) müsste sie zeigen |
 | 6 | `gegner_lexikon`: neun Gegner als Büste | 36 | 1 h 49 | noch kein Platz | ein Lexikon im Buch des Thot wäre nötig |
 | 7 | `portraets_leute_nah`: die zwölf Leute, zweiter Anlauf (nah, Leinen, ohne Mond und Laterne) | 48 | 2 h 25 | ja, im Gesprächsfenster | ersetzt Stufe 3, die Mond und Sturmlaterne in jedem Bild zeigte |
+| 8 | `portraets_figuren_nah`: Erloschener, Richter, sieben Götter, zweiter Anlauf | 36 | 1 h 49 | ja, im Gesprächsfenster | ersetzt die Übergangsporträts aus Stufe 2 |
 
 **Vorschlag für die Nächte**
 - **Nacht 2:** Stufen 1, 2, 3 (etwa 5 h 40). Danach ist jede Gesprächsfigur mit Gesicht möglich, das ist der größte sichtbare Gewinn.
