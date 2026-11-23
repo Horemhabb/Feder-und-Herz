@@ -785,10 +785,16 @@ func _impact(n: int, at: Vector3) -> void:
 		return
 	sfx.play_at("hit", at, 0.12)
 	shake = maxf(shake, 0.22 + 0.05 * n)
-	# kurzer Stillstand beim Treffer: gibt dem Hieb Gewicht
-	if autotest == null:
-		Engine.time_scale = 0.08
-		get_tree().create_timer(0.05, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+# Trefferstopp: Die Zeit steht für einen Herzschlag fast still und gibt dem Hieb Gewicht. Früher bei jedem Treffer,
+# jetzt nur bei schweren (Foe.hit, Hero.hurt) und höchstens alle 0,4 s, sonst stottert ein langer Kampf.
+var stopp_bis := 0
+func trefferstopp(dauer := 0.07) -> void:
+	if autotest != null or Time.get_ticks_msec() < stopp_bis:
+		return
+	stopp_bis = Time.get_ticks_msec() + 400
+	Engine.time_scale = 0.05
+	get_tree().create_timer(dauer, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
 
 func hero_arc(h: Hero, reach: float, half_angle: float, mult: float, push: float, gain: bool, stun_t := 0.0) -> void:
 	var n := 0

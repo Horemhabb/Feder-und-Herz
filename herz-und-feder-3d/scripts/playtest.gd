@@ -82,6 +82,45 @@ func pad_achse(a: int, v: float) -> void:
 	Input.parse_input_event(e)
 	await wait(0.1)
 
+# Fußrutschen messen: Eine Figur bewegt sich, je Physikschritt wird die Weltlage von Knöchel und Ballen beider Füße
+# abgetastet. Aufgesetzt ist der tiefste dieser Punkte, solange er höchstens 4 cm über dem tiefsten Stand der ganzen
+# Messung steht. Wie weit er dabei waagrecht über den Boden wandert, geteilt durch die Zeit am Boden, ist das Rutschen.
+# Ergebnis: Rutschen in m/s (0 = der Fuß steht still) und Tempo der Figur über Grund in m/s.
+func fussrutschen(a: Actor, dauer: float) -> Vector2:
+	var ids := ["foot.l", "toes.l", "foot.r", "toes.r"].map(func(n): return a.skel.find_bone(n))
+	# Bewegung im Physiktakt abspielen, damit Figur und Knochen zum selben Zeitpunkt gelesen werden
+	var takt := a.ap.callback_mode_process
+	a.ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+	var proben := []
+	var t := 0.0
+	while t < dauer:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		var gt := a.skel.global_transform
+		var tief := Vector3(0, INF, 0)
+		var welcher := -1
+		for i in ids:
+			var p: Vector3 = gt * a.skel.get_bone_global_pose(i).origin
+			if p.y < tief.y:
+				tief = p
+				welcher = i
+		proben.append([tief, a.global_position, welcher])
+	a.ap.callback_mode_process = takt
+	var boden := INF
+	for p in proben:
+		boden = minf(boden, p[0].y)
+	var rutsch := 0.0
+	var am_boden := 0.0
+	for i in range(1, proben.size()):
+		var p: Vector3 = proben[i][0]
+		var q: Vector3 = proben[i - 1][0]
+		# nur derselbe Punkt zählt: wechselt der Fuß, ist das ein Schritt und kein Rutschen
+		if proben[i][2] == proben[i - 1][2] and p.y < boden + 0.04 and q.y < boden + 0.04:
+			rutsch += Vector2(p.x - q.x, p.z - q.z).length()
+			am_boden += t / proben.size()
+	var weg: Vector3 = proben[-1][1] - proben[0][1]
+	return Vector2(rutsch / maxf(am_boden, 0.01), Vector2(weg.x, weg.z).length() / t)
+
 func run() -> void:
 	await wait(1.6)
 	var G := g()
@@ -105,6 +144,31 @@ func run() -> void:
 	var p0 := h.global_position
 	await key(KEY_D, 0.9)
 	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
+	# Bewegungsgefühl: zwei Sekunden laufen in eine Richtung mit freier Bahn, dabei rutschen die Füße kaum
+	await wait(0.4)
+	var bahn := [KEY_D]
+	for tasten in [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_S, KEY_D], [KEY_W, KEY_A], [KEY_W, KEY_D], [KEY_S, KEY_A]]:
+		var v := Vector2((1 if tasten.has(KEY_D) else 0) - (1 if tasten.has(KEY_A) else 0), (1 if tasten.has(KEY_S) else 0) - (1 if tasten.has(KEY_W) else 0))
+		var r := (Vector3(1, 0, -1) * v.x + Vector3(1, 0, 1) * v.y).normalized()
+		if G.walkable(h.global_position, h.global_position + r * 15.0):
+			bahn = tasten
+			break
+	for k in bahn:
+		var e := InputEventKey.new()
+		e.keycode = k
+		e.physical_keycode = k
+		e.pressed = true
+		Input.parse_input_event(e)
+	await wait(0.3)   # anlaufen
+	var rh: Vector2 = await fussrutschen(h, 2.0)
+	for k in bahn:
+		var e := InputEventKey.new()
+		e.keycode = k
+		e.physical_keycode = k
+		Input.parse_input_event(e)
+	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
+	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
+	await wait(0.3)
 	p0 = h.global_position
 	var vs := get_viewport().get_visible_rect().size
 	mouse(vs * Vector2(0.35, 0.62), MOUSE_BUTTON_LEFT, true)
@@ -361,7 +425,7 @@ func run() -> void:
 			mouse(sp)
 	mouse(sp, MOUSE_BUTTON_LEFT, false)
 	check("Klick auf Gegner schlägt zu (Leben %d von %d)" % [int(foe.hp), int(foe.max_hp)], foe.hp < foe.max_hp)
-	await wait(0.25)   # der Trefferstopp dauert 0,05 s und darf beim Prüfen vorbei sein
+	await wait(0.25)   # der Trefferstopp dauert 0,07 s und darf beim Prüfen vorbei sein
 	# Handy: ein Fingertipp, der im selben Bild losgelassen wird, muss trotzdem treffen
 	G.touch = true
 	# ein unverletzter Gegner, der stillhält und frei zu sehen ist (der vorige kann schon gefallen sein; Schwärme huschen weg).
@@ -597,6 +661,29 @@ func run() -> void:
 	await pad_knopf(JOY_BUTTON_B)
 	check("Gamepad: B schließt sie", not G3.hud.karte_open and not get_tree().paused)
 	G3.pad = false
+	# Bewegungsgefühl: ein Krieger läuft aus 13 m auf die stehende Figur zu, dabei rutschen seine Füße kaum
+	var hh: Hero = G3.hero
+	var anlauf := Vector3(13, 0, 0)
+	for i in 8:
+		var r := Vector3(13, 0, 0).rotated(Vector3.UP, TAU * i / 8.0)
+		if G3.walkable(hh.global_position, hh.global_position + r):
+			anlauf = r
+			break
+	var krieger: Foe = G3._spawn("lance", hh.global_position + anlauf, 95)
+	await wait(0.2)
+	krieger.wake()
+	await wait(0.5)
+	var rk: Vector2 = await fussrutschen(krieger, 2.0)
+	# vorher 6,2 m/s; der Rest kommt aus der Gehbewegung der Skelette selbst (schlurft auch beim besten Tempo)
+	check("Gegner geht heran: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rk.x, rk.y], rk.y > 1.0 and rk.x < 2.0)
+	# Treffer-Zucken: kurz gekippt, danach wieder gerade
+	krieger.hit(1.0, hh.global_position)
+	await wait(0.06)
+	var gekippt := absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z)
+	await wait(0.4)
+	check("Treffer: der Gegner zuckt kurz (%.2f) und steht danach wieder gerade" % gekippt, gekippt > 0.05 and absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z) < 0.001)
+	G3.foes.erase(krieger)
+	krieger.queue_free()
 	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
 	var LB: Leben = G3.leben
 	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)
