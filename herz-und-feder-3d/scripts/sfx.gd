@@ -1,13 +1,14 @@
 class_name Sfx extends Node
 # Ton: Geräusche von ElevenLabs (audio/*.ogg), Musik von Gomo Sounds (audio/mus_*.ogg). Lautstärken stehen hier an einer Stelle.
+# Neu in 4.1: Schritte, Hiebe, Treffer und Skelette sind ElevenLabs-Aufnahmen, auf 0 ms geschnitten und nach LUFS angeglichen (tools/ton/klang_bauen.py).
 # Geräusche des Helden spielen ohne Ort, Geräusche von Gegnern und Fackeln mit Ort im Raum.
 
 const VOL := {
-	"step": -13.0, "swing": -9.0, "hit": -4.0, "hurt": -5.0, "whirl": -5.0, "dash": -6.0, "oath": -6.0, "udjat": -4.0,
+	"step": -13.0, "swing": -9.0, "hit": -1.0, "hurt": -0.5, "whirl": -5.0, "dash": -6.0, "oath": -6.0, "udjat": -4.0,
 	"beam": -7.0, "potion": -6.0, "boss_appear": -3.0, "gate": -4.0, "ui": -10.0, "bolt": -8.0, "hero_die": -3.0,
-	"victory": -5.0, "skel_wake": -6.0, "skel_die": -1.0, "skel_attack": -9.0, "torch": -14.0,
+	"victory": -5.0, "skel_wake": -6.0, "skel_die": -2.0, "skel_attack": -1.0, "torch": -14.0,
 	# Geräusche von Gomo (Fassung 2.3), nach Messung eingepegelt
-	"step_sand": -25.0, "step_stein": -24.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
+	"step_sand_geh": -23.0, "step_stein_geh": -24.0, "step_sand_lauf": -20.0, "step_stein_lauf": -21.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
 	"herz_frei": -5.0, "krug_bricht": -3.0, "truhe": -2.0, "papyrus": -7.0, "aufheben": -6.0, "schaf": -8.0, "ziege": -8.0, "esel": -9.0,
 	"katze": -9.0, "skorpion": -6.0, "irrlicht": -12.0,
 	"amb_wind": -15.0, "amb_drone": -17.0,
@@ -23,7 +24,8 @@ const VOL := {
 	"src_wasser": -10.0, "src_werkstatt": -12.0, "src_schrein": -14.0, "src_reigen": -12.0, "src_herz": -10.0,
 	"tor_auf": -3.0, "akt_ende": -4.0, "boss_stern": -4.0, "boss_phase": -2.0, "rueckkehr": -6.0, "thot": -6.0,
 }
-const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3, "step_sand": 4, "step_stein": 4}
+const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3, "skel_die": 3, "skel_attack": 3,
+	"step_sand_geh": 4, "step_stein_geh": 4, "step_sand_lauf": 4, "step_stein_lauf": 4}
 
 var streams := {}
 var pool: Array = []
@@ -65,6 +67,10 @@ func _stream(key: String) -> AudioStream:
 		var path := "res://audio/%s.ogg" % key
 		streams[key] = load(path) if ResourceLoader.exists(path) else null
 	return streams[key]
+
+# Schritt je Untergrund und Gangart: Laufen klingt härter und kürzer als Gehen (eigene Aufnahmen, nicht dieselben schneller abgespielt)
+static func schritt_name(stein: bool, lauf: bool) -> String:
+	return "step_%s_%s" % ["stein" if stein else "sand", "lauf" if lauf else "geh"]
 
 func _pick(name: String) -> String:
 	return "%s%d" % [name, randi_range(1, VARIANTS[name])] if VARIANTS.has(name) else name

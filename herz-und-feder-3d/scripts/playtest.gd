@@ -301,6 +301,31 @@ func run() -> void:
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
+	# Schritte: Gehen und Laufen haben eigene Aufnahmen (je Untergrund vier), Laufen ist kürzer; alle unter 0,4 s
+	var schritte_da := true
+	var laenge_geh := 0.0
+	var laenge_lauf := 0.0
+	var laenge_max := 0.0
+	for ug in ["sand", "stein"]:
+		for art in ["geh", "lauf"]:
+			for i in range(1, 5):
+				var st: AudioStream = G.sfx._stream("step_%s_%s%d" % [ug, art, i])
+				if st == null:
+					schritte_da = false
+					continue
+				laenge_max = maxf(laenge_max, st.get_length())
+				if art == "geh":
+					laenge_geh += st.get_length()
+				else:
+					laenge_lauf += st.get_length()
+	check("Schritte: je Untergrund vier Geh- und vier Lauf-Aufnahmen, alle unter 0,4 s", schritte_da and laenge_max < 0.4)
+	check("Schritte: Laufen und Gehen spielen verschiedene Klänge, Laufen kürzer",
+		Sfx.schritt_name(false, true) != Sfx.schritt_name(false, false) and Sfx.schritt_name(true, true) != Sfx.schritt_name(true, false)
+		and Sfx.schritt_name(true, true).ends_with("lauf") and laenge_lauf < laenge_geh)
+	var kampf_da := true
+	for n in ["skel_die1", "skel_die2", "skel_die3", "skel_attack1", "skel_attack2", "skel_attack3", "hit3", "hurt3", "swing3"]:
+		kampf_da = kampf_da and G.sfx._stream(n) != null
+	check("Kampfgeräusche (Hieb, Treffer, Skelett) sind geladen", kampf_da)
 	# Angriff mit der Maus auf einen Gegner (mit Treffer-Stillstand)
 	# Beute, Tasche, Anlegen, Aufwerten
 	var opfer: Foe = G.foes.filter(func(f): return f.kind != "boss")[1]

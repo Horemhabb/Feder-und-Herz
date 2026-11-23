@@ -251,7 +251,7 @@ func _physics_process_innen(delta: float) -> void:
 					step_t = 0.31
 					ton = true
 			if ton:
-				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+				game.sfx.play(Sfx.schritt_name(game.auf_stein(global_position), laeuft if gang.has(a_run) else sp > SPEED * 0.75), 0.1)
 		else:
 			step_t = 0.1
 			fuss_reset()

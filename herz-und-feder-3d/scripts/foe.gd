@@ -597,6 +597,9 @@ func _physics_process_innen(delta: float) -> void:
 		if wind <= 0.0:
 			face = atan2(move.x, move.z) if speed >= spd * 0.7 else atan2(dirn.x, dirn.z)
 		fortbewegen(speed, clampf(speed / maxf(spd, 0.1), 0.4, 1.4) * (1.0 if kind != "boss" else 1.3), ANIM.run if kind != "boss" else ANIM.walk)
+		# leise Schritte mit Ort im Raum, nur in Hörweite des Helden und nur bei gemessenen Schritten (nicht Irrlichter, Ba, Skorpion)
+		if gang.has(a_run) and fuss_aufgesetzt() and h.global_position.distance_squared_to(global_position) < 256.0:
+			game.sfx.play_at(Sfx.schritt_name(game.auf_stein(global_position), laeuft), global_position, 0.1, -8.0 if kind != "boss" else -3.0)
 	elif wind <= 0.0 and act_t <= 0.0:
 		face = atan2(dirn.x, dirn.z)
 		play(ANIM.idle)

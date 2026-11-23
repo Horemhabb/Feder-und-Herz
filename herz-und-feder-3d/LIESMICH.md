@@ -337,9 +337,13 @@ Erste Etappe des großen Wurfs nach dem Fragebogen (siehe `SPEC_4.0.md`).
 - **Questbuch:** je Aufgabe ein Zeichen, der Stand rechts, ein Fortschrittsbalken; Erledigtes schrumpft auf eine Zeile mit Haken.
 - **Figuren:** schwebendes Anch statt Ausrufezeichen, Namensschild mit Beruf, ein leiser Kreis am Boden.
 - **Welt:** gewebte Teppiche mit Borte und Rauten (vorher einfarbig rot), Nadeln aus dunklem Wüstenglas (vorher türkis leuchtend), Seelenkrug als Kanope mit Kopfdeckel, Schild und Speer am Ständer, Treffer blitzen auf, ohne die Figur weiß zu übermalen.
-- **Schritte neu** (`tools/ton/schritte.py`): je vier Einzelschritte für Sand und Stein aus vier neuen Aufnahmen von ElevenLabs (Sound Effects v2, zusammen etwa 70 Credits), geschichtet aus Tritt, Sohle und Körnern. Die alten Schritte hatten fast alle Energie zwischen 500 und 2000 Hz und mehrere Klacker je Datei: das klang hohl.
+- **Schritte neu** (frühere Fassung, `tools/ton/schritte.py`, inzwischen ersetzt durch `tools/ton/klang_bauen.py`): je vier Einzelschritte für Sand und Stein aus vier neuen Aufnahmen von ElevenLabs (Sound Effects v2, zusammen etwa 70 Credits), geschichtet aus Tritt, Sohle und Körnern. Die alten Schritte hatten fast alle Energie zwischen 500 und 2000 Hz und mehrere Klacker je Datei: das klang hohl.
 
 **Tests:** Spieltest 97 Prüfungen, vier Klassentests (je 23 bis 24), Bots, Browser im Handy-Format. Neue Prüfbilder: `-- --autotest --ort=werkstatt,figur,helfer,krug`.
+
+### Ton-Nachlese (Schritte und Kampf)
+- **Schritte getrennt für Gehen und Laufen** (`step_sand_geh1–4`, `step_sand_lauf1–4`, `step_stein_geh1–4`, `step_stein_lauf1–4`): Laufen ist kürzer (unter 0,25 s), härter und im Spiel 3 dB lauter, alle Dateien auf gleiche Lautheit gebracht und bei 0 ms eingesetzt. Held und Gegner mit gemessenen Schritten (Skelette, Krieger) wählen nach `laeuft`; Gegner leise und mit Ort, nur in 16 m Hörweite des Helden.
+- **Kampf neu:** `swing1–3`, `hit1–3`, `hurt1–3`, `skel_die1–3`, `skel_attack1–3` (zuvor `skel_die`, `skel_attack` je eine Datei). Rohaufnahmen liegen in `tools/ton/roh_klang/`, gebaut mit `python3 -I tools/ton/klang_bauen.py`.
 
 ### Fassung 2.9.1: Der Schleier
 
