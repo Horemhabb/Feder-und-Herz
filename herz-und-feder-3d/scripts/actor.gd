@@ -20,6 +20,7 @@ var flash_t := 0.0
 var kb := Vector3.ZERO
 var stun := 0.0
 static var flash_mat: StandardMaterial3D
+var ruhe_overlay: Material   # Randlicht der Stunde (bild.gd), liegt außerhalb des Aufblitzens auf der Figur
 
 # Bewegungsgefühl: Stehen, Gehen und Laufen folgen dem Tempo über Grund (fortbewegen), Treffer lassen die Figur zucken
 var a_idle := ""
@@ -53,6 +54,9 @@ func setup(path: String, scl: float, r: float) -> void:
 			if g.x > 0.01:
 				gang[n] = [g.x * scl, g.y]
 	_collect(model)
+	ruhe_overlay = Bild.rand_fuer(self)
+	for m in meshes:
+		m.material_overlay = ruhe_overlay
 	var col := CollisionShape3D.new()
 	var sh := CapsuleShape3D.new()
 	sh.radius = r
@@ -286,7 +290,7 @@ func tick_common(delta: float) -> void:
 		flash_t -= delta
 		if flash_t <= 0.0:
 			for m in meshes:
-				m.material_overlay = null
+				m.material_overlay = ruhe_overlay
 	if zuck_t > 0.0:
 		# schnell weg, langsam zurück: die Neigung steigt im ersten Fünftel an und klingt dann aus
 		zuck_t -= delta

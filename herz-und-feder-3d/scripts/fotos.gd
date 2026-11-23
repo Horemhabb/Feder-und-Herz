@@ -11,6 +11,7 @@ const AUS := "res://test_out/fotos"
 var bilder := 0
 var bad := 0
 var t_start := 0
+var bildzeiten: Array = []
 
 # Läuft dieser Start als Fotolauf? (main.gd fragt, ohne etwas zu laden)
 static func laeuft() -> bool:
@@ -192,6 +193,10 @@ func run() -> void:
 			shot("stunde_%02d_rudel" % h)
 			if h == liste[0]:
 				await kampfbild(G, f)
+			# Bildzeit vor dem Rudel: unter xvfb nur zum Vergleich zweier Fassungen tauglich, nicht als echte Bildrate
+			var b := await bildzeit()
+			bildzeiten.append(b)
+			print("  BILDZEIT Stunde %d: %.1f ms" % [h, b])
 		print("  Stunde %d: %.1f s" % [h, (Time.get_ticks_msec() - t_h) / 1000.0])
 	# Fähigkeitenbaum und Tasche zuletzt: mit etwas Stufe, gelernten Fähigkeiten und Beute, damit sie nicht leer aussehen
 	G = g()
@@ -278,7 +283,20 @@ func check_stunde(G: Node, h: int) -> void:
 	if G.foes.is_empty():
 		fehler("Stunde %d: keine Gegner gebaut" % h)
 
+func bildzeit(n := 40) -> float:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var u := Time.get_ticks_usec()
+	for i in n:
+		await get_tree().process_frame
+	return (Time.get_ticks_usec() - u) / 1000.0 / n
+
 func ende() -> void:
+	if not bildzeiten.is_empty():
+		var s := 0.0
+		for b in bildzeiten:
+			s += b
+		print("FOTOS: Bildzeit im Mittel %.1f ms über %d Stunden" % [s / bildzeiten.size(), bildzeiten.size()])
 	print("FOTOS: %d Bilder, %d Fehler, %.0f Sekunden" % [bilder, bad, (Time.get_ticks_msec() - t_start) / 1000.0])
 	print("FOTOS: %d Bilder" % bilder)
 	get_tree().quit(1 if (bad > 0 or bilder == 0) else 0)

@@ -13,7 +13,7 @@ Kurz halten und aktuell halten. Wer hier etwas ändert, das nicht mehr stimmt, b
 
 ## Aufbau des Codes (`herz-und-feder-3d/scripts/`)
 
-Alles wird im Code gebaut, `main.tscn` enthält nur einen Knoten. Große Dateien: `main.gd` (2.400 Zeilen, soll zerlegt werden), `hud.gd`, `foe.gd`, `orte.gd`. Texte der Geschichte: `geschichte.gd`, `stunden.gd`, `worte.gd`. Die Skripte greifen über `game` (untypisiert) auf `main.gd` zu: Tippfehler fallen erst zur Laufzeit auf, darum immer den Spieltest laufen lassen.
+Alles wird im Code gebaut, `main.tscn` enthält nur einen Knoten. Große Dateien: `main.gd` (2.400 Zeilen, soll zerlegt werden), `hud.gd`, `foe.gd`, `orte.gd`. Licht, Farbe und Luft je Stunde: `bild.gd` (Tabelle `STUNDE`; `-- --webbild` zeigt am Desktop das Bild der Webfassung). Texte der Geschichte: `geschichte.gd`, `stunden.gd`, `worte.gd`. Die Skripte greifen über `game` (untypisiert) auf `main.gd` zu: Tippfehler fallen erst zur Laufzeit auf, darum immer den Spieltest laufen lassen.
 
 ## Prüfen
 

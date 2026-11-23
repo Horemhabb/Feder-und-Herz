@@ -30,6 +30,8 @@ void fragment() {
 		}
 	}
 	ALBEDO = texture(tex_albedo, UV).rgb * tint.rgb;
+	// Fuß der Mauer dunkler: Hier kommt weniger Licht hin. Das stellt die Mauer auf den Boden, statt dass sie schwebt.
+	ALBEDO *= mix(0.42, 1.0, smoothstep(0.0, 1.5, wpos.y));
 	if (use_normal) {
 		NORMAL_MAP = texture(tex_normal, UV).rgb;
 		NORMAL_MAP_DEPTH = normal_depth;

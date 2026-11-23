@@ -21,6 +21,7 @@ var hud: Hud
 var cam: Camera3D
 var env: Environment
 var moon: DirectionalLight3D
+var bild: Bild          # Licht, Farbe und Luft je Stunde (bild.gd)
 var foes: Array = []
 var bolts: Array = []
 var torches: Array = []
@@ -106,6 +107,9 @@ func _ready() -> void:
 	add_child(orte)
 	_build_env()
 	_build_world()
+	bild = Bild.new(self)
+	add_child(bild)
+	bild.stellen()
 	orte.setup()
 	leben = Leben.new()
 	leben.game = self
@@ -114,6 +118,8 @@ func _ready() -> void:
 	bau_pruefung()
 	for l in find_children("*", "OmniLight3D", true, false):
 		lichter.append(l)
+	for tc in torches:
+		tc.l.set_meta("fackel", true)   # flackert selbst; beim Ein- und Ausblenden zählt nur der Anteil „f“
 	hero = Hero.new()
 	hero.game = self
 	add_child(hero)
@@ -583,6 +589,7 @@ func _torch(pos: Vector3, rot: float) -> void:
 	l.position = Vector3(0, 0.7, 0.45)
 	t.add_child(l)
 	Stimmung.flamme(t, Vector3(0, 0.33, 0.42), 0.55, 0.42)
+	Bild.funken(t, Vector3(0, 0.5, 0.42), 7)
 	if torches.size() < 6:
 		sfx.loop_at("torch", t)
 	torches.append({"l": l, "ph": randf() * 10.0})
@@ -668,6 +675,7 @@ func _campfire(c: Vector3) -> void:
 	add_child(l)
 	l.global_position = c + Vector3(0, 1.0, 0)
 	torches.append({"l": l, "ph": randf() * 10.0})
+	Bild.funken(self, c + Vector3(0, 0.6, 0), 14)
 	_box(c, Vector3(1.0, 0.5, 1.0))
 	astar.set_point_solid(_sub(c), true)
 
@@ -2422,13 +2430,51 @@ func _spar_tick() -> void:
 			var d2: float = l.global_position.distance_squared_to(c)
 			if d2 < 32.0 * 32.0:
 				nah.append([d2, l])
-			elif l.visible:
-				l.visible = false
+			else:
+				_licht_soll(l, false)
 	nah.sort_custom(func(a, b): return a[0] < b[0])
 	for i in nah.size():
-		var an: bool = i < GUETE_LICHTER[guete]
-		if nah[i][1].visible != an:
-			nah[i][1].visible = an
+		_licht_soll(nah[i][1], i < GUETE_LICHTER[guete])
+
+# Lichter blenden weich ein und aus (4.1), statt hart zu schalten: Beim Laufen sprang sonst die Helligkeit.
+# „f“ ist der Anteil der vollen Stärke, „e0“ die volle Stärke (Fackeln flackern selbst und nehmen nur „f“).
+var licht_blende := {}   # Licht → Ziel (0 oder 1), solange es blendet
+const LICHT_BLENDE := 2.2   # je Sekunde: in knapp einer halben Sekunde ganz an oder aus
+
+func _licht_soll(l: Light3D, an: bool) -> void:
+	var ziel := 1.0 if an else 0.0
+	if licht_blende.has(l):
+		licht_blende[l] = ziel
+		return
+	if l.visible == an:
+		return
+	if an:
+		if not l.has_meta("e0"):
+			l.set_meta("e0", l.light_energy)
+		l.set_meta("f", 0.0)
+		if not l.has_meta("fackel"):
+			l.light_energy = 0.0
+		l.visible = true
+	else:
+		if not l.has_meta("fackel"):
+			l.set_meta("e0", l.light_energy)
+		l.set_meta("f", 1.0)
+	licht_blende[l] = ziel
+
+func _licht_blende_tick(delta: float) -> void:
+	for l in licht_blende.keys():
+		if not is_instance_valid(l):
+			licht_blende.erase(l)
+			continue
+		var ziel: float = licht_blende[l]
+		var f := move_toward(float(l.get_meta("f", 1.0)), ziel, delta * LICHT_BLENDE)
+		l.set_meta("f", f)
+		if not l.has_meta("fackel"):
+			l.light_energy = float(l.get_meta("e0", 1.0)) * f
+		if f == ziel:
+			licht_blende.erase(l)
+			if ziel == 0.0:
+				l.visible = false
 
 func _foes_sleep_far() -> void:
 	if freeze_foes:
@@ -2464,8 +2510,9 @@ func _process_innen(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("cut_cam", cam.global_position)
 	RenderingServer.global_shader_parameter_set("cut_hero", hero.get_global_transform_interpolated().origin)
 	var t := Time.get_ticks_msec() * 0.001
+	_licht_blende_tick(delta)
 	for tc in torches:
-		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06)
+		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06) * float(tc.l.get_meta("f", 1.0))
 	for w in wisps:
 		var n: Node3D = w.n
 		n.position.x -= delta * w.sp
