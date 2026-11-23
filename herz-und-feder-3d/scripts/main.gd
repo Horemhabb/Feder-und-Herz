@@ -89,6 +89,12 @@ func _ready() -> void:
 	H = Karte.GH
 	sfx = Sfx.new()
 	add_child(sfx)
+	# kurze Geräusche gleich beim Bau der Stunde laden: Sie wurden erst beim ersten Abspielen von der Platte gelesen,
+	# und das kostete mitten im Laufen bis zu 8 ms (die ersten Schritte auf Sand und Stein, der erste Hieb …)
+	for k in Sfx.VOL:
+		if not (k.begins_with("mus_") or k.begins_with("vo_") or k.begins_with("amb_")):
+			for i in Sfx.VARIANTS.get(k, 0) + 1:
+				sfx._stream(k if i == 0 else "%s%d" % [k, i])
 	if AudioServer.get_bus_effect_count(0) == 0:
 		var lim := AudioEffectHardLimiter.new()   # fängt Spitzen ab, wenn viele Treffer zugleich klingen
 		lim.ceiling_db = -0.5
@@ -189,6 +195,10 @@ func _ready() -> void:
 			var ms: Node = load("res://scripts/messung.gd").new()
 			ms.name = "Mess"
 			get_tree().root.add_child.call_deferred(ms)
+		if "--ruckeln" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Ruckeln"):
+			var rk: Node = load("res://scripts/ruckeln.gd").new()
+			rk.name = "Ruckeln"
+			get_tree().root.add_child.call_deferred(rk)
 		if "--bosstest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Bosstest"):
 			var bt: Node = load("res://scripts/bosstest.gd").new()
 			bt.name = "Bosstest"
@@ -237,7 +247,7 @@ func begin() -> void:
 		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
 		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0)
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
-	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or Fotos.laeuft()
+	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or "--ruckeln" in OS.get_cmdline_user_args() or Fotos.laeuft()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
 		get_tree().create_timer(1.4).timeout.connect(func():
 			if hud.overlay == null and not get_tree().paused and not hero.dead:
@@ -2015,7 +2025,11 @@ func _place_cam(delta: float, snap := false) -> void:
 	if staub:
 		staub.global_position = cam_pos + Vector3(0, 1.8, 0)
 	var off := Vector3(14.5, 27.0, 14.5) * NAH   # seit 2.6 ein Stück näher: Figuren und Tracht sind besser zu erkennen
-	var sh := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * shake * 0.5
+	# Schütteln als gleichmäßiges Wackeln (etwa 10 bis 17 Schwünge je Sekunde) statt neuer Zufallslage in jedem Bild:
+	# Bei 144 Bildern je Sekunde war der Zufall ein Flirren, mehr als doppelt so unruhig wie bei 60.
+	var st := Time.get_ticks_usec() * 0.000001
+	var sh := Vector3(sin(st * 71.0) + sin(st * 103.0 + 1.3), sin(st * 83.0 + 2.1) + sin(st * 61.0 + 0.4),
+		sin(st * 97.0 + 4.2) + sin(st * 67.0 + 0.9)) * 0.5 * shake * 0.5
 	cam.global_position = cam_pos + off + sh
 	cam.look_at(cam_pos + Vector3(0, 1.0, 0) + sh * 0.5, Vector3.UP)
 
@@ -2249,14 +2263,10 @@ func _physics_process_innen(delta: float) -> void:
 		return
 	clock += delta
 	shot_gap -= delta
-	_loot_tick(delta)
 	_chest_tick()
 	var _uorte := Time.get_ticks_usec()
 	orte.tick(delta)
 	Protokoll.zeit("orte", _uorte)
-	var _uleben := Time.get_ticks_usec()
-	leben.tick(delta)
-	Protokoll.zeit("leben", _uleben)
 	_foes_sleep_far()
 	_shots_tick(delta)
 	_zones_tick(delta)
@@ -2413,12 +2423,21 @@ func _process_innen(delta: float) -> void:
 	spar_t -= delta
 	if spar_t <= 0.0 and hero:
 		spar_t = 0.3
+		var _us := Time.get_ticks_usec()
 		_spar_tick()
+		Protokoll.zeit("sparen", _us)
 	shake = maxf(0.0, shake - delta * 2.2)
+	if started:
+		# Leute, Tiere und Beute, die zum Helden fliegt, bewegen sich je Bild, nicht im Physiktakt: Sie haben keine
+		# Zwischenbilder, und bei 144 Bildern je Sekunde stand eine laufende Gestalt sonst in jedem zweiten Bild still.
+		var _uleben := Time.get_ticks_usec()
+		leben.tick(delta)
+		Protokoll.zeit("leben", _uleben)
+		_loot_tick(delta)
 	_place_cam(delta)
-	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte
+	# Durchblick der Mauern (mauer.gdshader): Kamera und Figur als globale Werte, die Figur dort, wo sie gezeichnet wird
 	RenderingServer.global_shader_parameter_set("cut_cam", cam.global_position)
-	RenderingServer.global_shader_parameter_set("cut_hero", hero.global_position)
+	RenderingServer.global_shader_parameter_set("cut_hero", hero.get_global_transform_interpolated().origin)
 	var t := Time.get_ticks_msec() * 0.001
 	for tc in torches:
 		tc.l.light_energy = tc.get("e", 1.9) * (1.0 + sin(t * 9.0 + tc.ph) * 0.11 + sin(t * 23.0 + tc.ph * 2.0) * 0.06)

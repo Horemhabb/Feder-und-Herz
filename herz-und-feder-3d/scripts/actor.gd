@@ -27,6 +27,8 @@ var a_walk := ""
 var a_run := ""
 var gang := {}         # Bewegung → [Tempo über Grund bei Abspieltempo 1 in m/s, Phase, in der der linke Fuß aufsetzt]
 var laeuft := false    # zeigt gerade die Laufbewegung (statt Gehen)
+var stehen_t := 0.0    # so lange ist die Figur schon fast ohne Tempo
+var gehen_t := 0.0     # so lange ist sie schon langsam genug zum Gehen, zeigt aber noch das Laufen
 var zuck_t := 0.0
 var zuck := Vector2.ZERO   # Neigung beim Treffer in Blickrichtung der Figur: x nach vorn, y zur Seite (Bogenmaß)
 static var gang_cache := {}   # je Modell und Bewegung einmal berechnet
@@ -175,13 +177,23 @@ func schritt_tempo(anim_name: String) -> Vector2:
 # (an einer Mauer weniger) begrenzt es. Das Abspieltempo folgt der Schrittlänge, damit die Füße nicht rutschen.
 # Zwischen Gehen und Laufen liegt eine Schwelle mit etwas Spiel, damit es nicht hin und her springt; beim Wechsel
 # setzt die neue Bewegung mit demselben Fuß fort und wird kurz überblendet.
+# Schneller werden geht sofort, langsamer erst, wenn es eine Weile anhält: Bei einer Kehrtwende steht die Figur nur einen
+# Wimpernschlag still und ist kaum 0,14 s unter der Schwelle. Früher sprang sie dabei von Laufen über Gehen und Stehen
+# zurück zum Laufen, vier Überblendungen in einer Fünftelsekunde: Die Beine hakten bei jedem Haken.
 # ersatz, ersatz_anim: Abspieltempo und Bewegung für Figuren ohne gemessene Schritte (Ba, Skorpion), wie bisher.
 func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
 	var v := minf(soll, Vector2(get_real_velocity().x, get_real_velocity().z).length() + 0.3)
+	var dt := get_physics_process_delta_time()
 	if v < 0.35:
-		play(a_idle, 1.0, 0.2)
-		laeuft = false
-		return
+		stehen_t += dt
+		if stehen_t >= 0.1 or (cur_anim != a_walk and cur_anim != a_run):
+			play(a_idle, 1.0, 0.2)
+			laeuft = false
+			gehen_t = 0.0
+			return
+		v = 0.35   # nur ein Augenblick ohne Tempo (Kehrtwende): die Beine laufen langsam weiter
+	else:
+		stehen_t = 0.0
 	if not gang.has(a_run):
 		play(ersatz_anim if ersatz_anim != "" and ap and ap.has_animation(ersatz_anim) else a_run, ersatz)
 		return
@@ -189,7 +201,14 @@ func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
 	if gang.has(a_walk):
 		var g_geh: float = gang[a_walk][0]
 		var schwelle := sqrt(g_geh * g_lauf)
-		laeuft = v > schwelle * (0.9 if laeuft else 1.1)
+		if not laeuft or v > schwelle * 0.9:
+			laeuft = v > schwelle * (0.9 if laeuft else 1.1)
+			gehen_t = 0.0
+		else:
+			gehen_t += dt
+			if gehen_t >= 0.2:
+				laeuft = false
+				gehen_t = 0.0
 	else:
 		laeuft = true
 	var anim := a_run if laeuft else a_walk

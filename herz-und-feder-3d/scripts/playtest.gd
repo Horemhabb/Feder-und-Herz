@@ -178,6 +178,34 @@ func run() -> void:
 		Input.parse_input_event(e)
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
 	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
+	# Kein Flattern zwischen Stehen, Gehen und Laufen: eine Sekunde geradeaus, dann Kehrtwende. Früher sprang die Bewegung
+	# bei jeder Kehrtwende von Laufen über Gehen und Stehen zurück zum Laufen (vier Überblendungen in 0,2 s).
+	var zurueck := bahn.map(func(k): return {KEY_D: KEY_A, KEY_A: KEY_D, KEY_W: KEY_S, KEY_S: KEY_W}[k])
+	var gaenge := [h.a_idle, h.a_walk, h.a_run]
+	var flattern := [0, 0]   # [Wechsel geradeaus, Wechsel bei der Kehrtwende]
+	var lief := false
+	for runde in 2:
+		for k in (bahn if runde == 0 else zurueck):
+			var e := InputEventKey.new()
+			e.keycode = k
+			e.physical_keycode = k
+			e.pressed = true
+			Input.parse_input_event(e)
+		var alt := h.cur_anim
+		var t := 0.0
+		while t < (1.2 if runde == 0 else 0.8):
+			await get_tree().physics_frame
+			t += get_physics_process_delta_time()
+			if h.cur_anim != alt and gaenge.has(h.cur_anim) and gaenge.has(alt) and (runde == 1 or t > 0.4):
+				flattern[runde] += 1
+			alt = h.cur_anim
+		lief = h.cur_anim == h.a_run
+		for k in (bahn if runde == 0 else zurueck):
+			var e := InputEventKey.new()
+			e.keycode = k
+			e.physical_keycode = k
+			Input.parse_input_event(e)
+	check("Gehen und Laufen flattern nicht: geradeaus %d Wechsel, bei der Kehrtwende %d (und läuft danach)" % flattern, flattern[0] == 0 and flattern[1] <= 1 and lief)
 	await wait(0.3)
 	G.sfx.mus_t = musik_lauf
 	await wait(0.3)
