@@ -65,6 +65,98 @@ func frei_neben(G: Node, pos: Vector3, r: float) -> Vector3:
 			return q
 	return pos + Vector3(r, 0, 0)
 
+func dialog_text(G: Node) -> String:
+	if G.hud.overlay == null:
+		return ""
+	return " ".join(G.hud.overlay.find_children("*", "Label", true, false).map(func(l): return l.text))
+
+# die Figur vor den Gast stellen, damit er im Bild ist (für die Bildschirmfotos)
+func vor_gast(G: Node, O: Orte) -> void:
+	var vorn: Vector3 = -O.gast_dir if O.gast_dir != Vector3.ZERO else (G.start_pos - O.gast.pos).normalized()
+	G.hero.global_position = O.gast.pos + vorn * 3.0
+	G.cam_pos = G.hero.global_position
+	await wait(0.8)
+
+func stunde_betreten(G: Node, n: int) -> Node:
+	G.go_hour(n)
+	await wait(2.5)
+	var N := g()
+	if get_tree().paused:
+		await key(KEY_E)
+		await wait(0.6)
+	N.leben.stumm = true
+	return N
+
+# Etappe B: Hatschepsut in der dritten Stunde, Haremhab in der vierten, Rückbezüge und die Tafel am Ende des ersten Aktes
+func geschichte_akt1(G: Node) -> void:
+	var hz := Spiel.herz
+	Spiel.wahl["2"] = "isfet"
+	var G4: Node = await stunde_betreten(G, 3)
+	var O: Orte = G4.orte
+	O.auto = false
+	check("Stunde 3: Hatschepsut steht als Umriss in einer Wand", Spiel.fall == 3 and not O.gast.is_empty() and O.GA.get("wand", false) and O.gast.vis.has("kartusche") and O.gast_dir != Vector3.ZERO)
+	O.talk()
+	await wait(0.3)
+	check("Chaemwese bemerkt die gegessene Garbe (Rückbezug auf Stunde 2)", "Krümel" in dialog_text(G4))
+	G4.hud.press_option(G4.hud.dialog_opts.size() - 1)
+	await wait(0.3)
+	O.t = 30.0
+	O.ba_zuletzt = -99.0
+	O._ba_tick(0.6, true)
+	check("dein Ba erinnert an die Garbe", O.ba_done.has("rueck0") and "satt" in G4.hud.l_toast.text)
+	if not O.gast.is_empty():
+		await vor_gast(G4, O)
+		shot("hatschepsut_wand")
+		O.talk_gast()
+		await wait(0.3)
+		check("Hatschepsut spricht (Bart, Myrrhe, Anrede nach Klasse)", get_tree().paused and "Myrrhe" in dialog_text(G4) and Geschichte.anrede() in dialog_text(G4))
+		shot("hatschepsut")
+		G4.hud.press_option(2)   # „Soll ich deinen Namen zurückschreiben?“
+		await wait(0.2)
+		check("die ungewogene Wahl: nachziehen, lassen, nachdenken", G4.hud.dialog_opts.size() == 3)
+		G4.hud.press_option(0)   # Die Kartusche nachziehen
+		await wait(0.2)
+		G4.hud.press_option(0)
+		await wait(0.3)
+		var mat: StandardMaterial3D = O.gast.vis.kartusche.get_meta("mat")
+		check("Kartusche nachgezogen: gespeichert, Herz unverändert, Kartusche glüht, Name steht", Spiel.wahl.get("3h", "") == "kartusche" and is_equal_approx(Spiel.herz, hz) and mat.emission_energy_multiplier > 1.0 and O.gast.label.text == "Maatkare" and not get_tree().paused)
+	Spiel.wahl["3"] = "maat"
+	Spiel.wahl["4"] = "isfet"
+	var G5: Node = await stunde_betreten(G4, 4)
+	var O4: Orte = G5.orte
+	O4.auto = false
+	check("Stunde 4: Haremhab steht vor der Arena des Türhüters", Spiel.fall == 4 and not O4.gast.is_empty() and O4.gast.pos.distance_to(Welt.cell_pos(G5.karte.lair)) < 30.0)
+	O4.t = 30.0
+	O4.ba_zuletzt = -99.0
+	O4._ba_tick(0.6, true)
+	check("dein Ba erinnert an die Wand der dritten Stunde", O4.ba_done.has("rueck0") and "Wand" in G5.hud.l_toast.text)
+	if not O4.gast.is_empty():
+		await vor_gast(G5, O4)
+		shot("haremhab_tor")
+		O4.talk_gast()
+		await wait(0.3)
+		var tx := dialog_text(G5)
+		check("Haremhab: Rückbezug auf den Namen (Stunde 3) und auf sein Versprechen (Stunde 2)", "Feigling" in tx and "Wort gegeben" in tx)
+		shot("haremhab")
+		G5.hud.press_option(0)   # „Warst du im Grab?“
+		await wait(0.2)
+		check("Haremhab hat die nachgezogene Kartusche gelesen", "Schief" in dialog_text(G5))
+		G5.hud.press_option(G5.hud.dialog_opts.size() - 1)
+		await wait(0.3)
+		O4.talk_gast()
+		await wait(0.3)
+		check("Haremhab später: Rückbezug auf das Herz in der Laterne (Stunde 4)", "Zwei Herzen" in dialog_text(G5))
+		G5.hud.press_option(0)
+		await wait(0.3)
+	var tafel := " ".join(Geschichte.akt1_tafel())
+	check("Tafel des ersten Aktes: jede Entscheidung in einer Zeile", "Ruder liegt auf deinem Rücken" in tafel and "gegessen" in tafel and "dein Wort" in tafel and "weiß wieder" in tafel and "Maatkare" in tafel and "zwei Herzen" in tafel)
+	G5._aktende_lohn()
+	await wait(0.3)
+	check("Ende des ersten Aktes zeigt den Rückblick und den Lohn", G5.hud.overlay != null and "Maatkare" in dialog_text(G5) and "Ba" in dialog_text(G5) and G5.hud.dialog_opts.size() >= 1)
+	G5.hud.press_option(0)
+	await wait(0.3)
+	check("danach geht es weiter", not get_tree().paused and G5.gate_ask)
+
 func pad_knopf(b: int) -> void:
 	for gedrueckt in [true, false]:
 		var e := InputEventJoypadButton.new()
@@ -478,11 +570,11 @@ func run() -> void:
 	check("Esc lässt den Krug stehen", not k3.done and not get_tree().paused and G.hud.overlay == null)
 	h.global_position = O.npc.pos + Vector3(2.0, 0, 0)
 	await wait(0.5)
-	check("die Figur der Stunde spricht dich an (%s)" % O.G.wer, G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == 3)
+	check("die Figur der Stunde spricht dich an (%s)" % O.G.wer, G.hud.overlay != null and get_tree().paused and G.hud.dialog_opts.size() == O.G.fragen.size() + 1)
 	shot("gespraech")
 	await key(KEY_1)
 	await wait(0.3)
-	check("eine Frage führt zur Antwort, die andere Frage bleibt", G.hud.overlay != null and G.hud.dialog_opts.size() == 2)
+	check("eine Frage führt zur Antwort, die anderen Fragen bleiben", G.hud.overlay != null and G.hud.dialog_opts.size() == O.G.fragen.size())
 	await key(KEY_ESCAPE)
 	await wait(0.3)
 	check("nach dem Gespräch steht der Auftrag im Questbuch", O.talked and not get_tree().paused and O.quest("relikt").text == O.G.auftrag)
@@ -499,6 +591,7 @@ func run() -> void:
 	await key(KEY_E)
 	await wait(0.3)
 	check("Entscheidung für Maat: Herz leichter, Hüter geschwächt, gemerkt", Spiel.herz > hz and G.boss.hp < boss_hp and Spiel.wahl.get("1", "") == "maat" and not get_tree().paused)
+	check("dein Ba sagt etwas zur Entscheidung", O.ba_done.has("wahl") and Worte.BA_WAHL[0][0] in G.hud.l_toast.text)
 	# Leute und ihre Sorgen: der Hirte und seine drei Schafe
 	O.helfer_talked = false
 	O.helfer.asked = false
@@ -618,6 +711,8 @@ func run() -> void:
 	check("Rückkehr: kein Gegner ist mehr wach (%d)" % awake, awake == 0)
 	await wait(2.0)
 	check("zwei Sekunden später greift am Start niemand an", h.hp == h.max_hp)
+	O._ba_tick(0.6, true)
+	check("nach der Niederlage meldet sich dein Ba", O.ba_done.keys().any(func(k): return str(k).begins_with("tod")))
 	shot("rueckkehr")
 	# Hüter fällen, Pforte, „Noch bleiben“, dann durchgehen mit Mausklick, Ende, Neustart
 	G.boss.hit(99999.0, h.global_position)
@@ -655,6 +750,21 @@ func run() -> void:
 	check("Eintreten startet die zweite Stunde", G2.started and not get_tree().paused and G2.foes.size() > 10 and G2.chests.size() > 0)
 	check("Hüter der zweiten Stunde ist die Mutter der Häute", G2.boss.K.name == "Die Mutter der Häute")
 	check("Schrein des Thot steht auch in der zweiten Stunde (Dungeon)", not G2.orte.thot.is_empty())
+	# Etappe B: Haremhab am Feldtor, mit Rückbezug auf das Ruder und einer eigenen Wahl
+	var GO: Orte = G2.orte
+	check("Stunde 2: Haremhab steht in der Stunde, mit Eintrag im Questbuch", not GO.gast.is_empty() and GO.GA.wer == "Haremhab" and not GO.quest("gast").is_empty() and GO.gast.pos.distance_to(G2.start_pos) < 40.0)
+	if not GO.gast.is_empty():
+		GO.talk_gast()
+		await wait(0.3)
+		check("Haremhab spricht und bemerkt das Ruder der ersten Stunde", G2.hud.overlay != null and get_tree().paused and "Ruder" in dialog_text(G2))
+		G2.hud.press_option(1)   # „Wer hat das Tor geöffnet?“
+		await wait(0.2)
+		check("Haremhab fragt nach einem Versprechen (drei Antworten)", G2.hud.dialog_opts.size() == 3)
+		G2.hud.press_option(0)   # „Ich sage es dir.“
+		await wait(0.2)
+		G2.hud.press_option(0)   # Gehen
+		await wait(0.3)
+		check("Wahl bei Haremhab ist gespeichert, wiegt nichts, Gespräch gemerkt", Spiel.wahl.get("2h", "") == "versprochen" and GO.gast_talked and Spiel.gesehen("gast_2") and not get_tree().paused and GO.quest("gast").done)
 	G2.go_hour(1)
 	await wait(2.5)
 	var G3 := g()
@@ -826,5 +936,6 @@ func run() -> void:
 		G3.hero.global_position += Vector3(3, 0, 0)
 		await wait(1.0)
 		check("Bitte: das verlorene Stück wird gefunden und gemeldet", bp.auftrag.stand == "gefunden")
+	await geschichte_akt1(G3)
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit(1 if bad > 0 else 0)   # Fehlercode für die Prüfung beim Bauen (bauen.yml)

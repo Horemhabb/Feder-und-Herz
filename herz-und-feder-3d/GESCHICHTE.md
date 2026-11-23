@@ -1,6 +1,6 @@
 # Geschichte: Feder und Herz
 
-Entwurf des Narrative Lead, Fassung 2 vom 23.11.2026, mit den Entscheidungen des Auftraggebers (Teil 8). Kein Code, nur Stoff und Plan.
+Entwurf des Narrative Lead, Fassung 3 vom 23.11.2026, mit den Entscheidungen des Auftraggebers (Teil 8). Stoff und Plan; was davon im Spiel steht, sagt Teil 7.
 Zeichen: **[steht]** ist im Spiel (Datei und Zeile), **[neu]** ist mein Vorschlag, **[vorläufig]** heißt: vom Auftraggeber noch nicht bestätigt.
 
 ---
@@ -48,10 +48,9 @@ Zeichen: **[steht]** ist im Spiel (Datei und Zeile), **[neu]** ist mein Vorschla
 
 **Der Gegenspieler:** Der Sammler ist Mitleid, das zu Kontrolle wurde: „Ich benutze niemanden. Ich bewahre.“ (`:65`) Er ist, was die Figur werden kann. Sein Schatten in Stunde 12 ist das Festhalten, das nach dem Wiegen übrig blieb.
 
-**Die leise Ebene [vorläufig: an drei Stellen ausgesprochen]:** Die Laterne ist das Ich, das Licht war nie in ihr. Gesagt wird es fast nur dreimal: vom Richter (5), von Hatschepsut (6) und vom Ba an der Waage.
+**Die leise Ebene (entschieden: an drei Stellen ausgesprochen):** Die Laterne ist das Ich, das Licht war nie in ihr. Gesagt wird es fast nur dreimal: vom Richter (5), von Hatschepsut (6) und vom Ba an der Waage.
 
-**Die Begleitfigur (entschieden: mehr Humor).** Geprüft habe ich den **Ba** (schon im Spiel, flüstert in jeder Stunde, `orte.gd:617`, sieht ohnehin zu und wird am Schluss eins mit der Figur), den **Großen Kater** (Re selbst, eitel und sehr komisch, aber erst ab Stunde 5 an Bord, und ein Gott als Gehilfe verkleinert die Sonne) und den **Fuchs** (warm, aber nur bei der Wüstenjägerin, und er spricht nicht).
-**Empfehlung: der Ba.** Sein Humor ist der eines Zeugen: trocken, liebevoll, nie über die Toten. Er redet viel in Akt 1, weniger in Akt 2, fast nichts in Akt 3. An der Waage hat er einen einzigen Satz, „Ich habe die ganze Nacht geredet. Jetzt du.“, und schweigt dann für immer, weil er nicht mehr getrennt ist. Man merkt erst an seiner Stille, wie sehr man ihn mochte; so dient der Humor dem bittersüßen Schluss. Der Kater kommt ab Stunde 5 als Gast an die Pforten, der Fuchs bekommt bei der Jägerin seinen Moment an der Waage.
+**Die Begleitfigur (entschieden: der Ba allein).** Der **Ba** ist schon im Spiel, flüstert in jeder Stunde (`orte.gd`, `ba()`), sieht ohnehin zu und wird am Schluss eins mit der Figur. Sein Humor ist der eines Zeugen: trocken, liebevoll, nie über die Toten. Er redet viel in Akt 1, weniger in Akt 2, fast nichts in Akt 3. An der Waage hat er einen einzigen Satz, „Ich habe die ganze Nacht geredet. Jetzt du.“, und schweigt dann für immer, weil er nicht mehr getrennt ist. Man merkt erst an seiner Stille, wie sehr man ihn mochte; so dient der Humor dem bittersüßen Schluss. Der Große Kater bleibt die Gestalt der achten Stunde und nichts darüber hinaus; der Fuchs bekommt bei der Jägerin seinen Moment an der Waage.
 
 **Vier Klassen, eine Geschichte:** ein Satz je Klasse an fünf Stellen (Senu, Richter, Erinnerung in 8, Waage, Akt-Tafeln), sonst alles gemeinsam. Anrede „Laternenträger“ oder „Laternenträgerin“.
 
@@ -99,6 +98,8 @@ Figur und Entscheidung stehen im Spiel; Kernfrage und Folgen sind neu. Jede Wahl
 | 11 Messer | Gnade oder Ordnung? | Urteil vollstrecken / Herz einstecken | **Schatten**: „So hat es bei mir angefangen. Mit einem.“ An der Waage liegt das fremde Herz mit auf der Schale. |
 | 12 Schu | Kann ich mich wiegen lassen? | Feder zurück / Blei in den Kiel | Bestimmt, ob die Waage ehrlich wiegt (Teil 6). |
 
+**[steht] seit Etappe B:** alle Folgen innerhalb von Akt 1 (Merit, Chaemwese und der Erloschene greifen die Wahl der Stunde davor auf, der Ba erinnert daran, Haremhab in 4 an Namen, Wort, Wand und Herz, die Tafel an alles). Neu dazu: In Stunde 2 fragt Haremhab, ob die Figur ihm den Täter meldet (`2h`: versprochen / selbst, ungewogen); Rückbezug in Stunde 4 und auf der Tafel. Die Folgen ab Stunde 5 stehen noch nicht.
+
 **Hatschepsut und Haremhab durch die Nacht [neu]:**
 
 | Std. | Hatschepsut | Haremhab |
@@ -110,7 +111,7 @@ Figur und Entscheidung stehen im Spiel; Kernfrage und Folgen sind neu. Jede Wahl
 | 5 | „Willkommen. Es ist nicht so schlimm, wie man sagt. Es ist anders schlimm.“ | „Tot. Gut. Dann kannst du nicht mehr desertieren.“ |
 | 6 | **Ihre Szene**: Bart, Rolle, Ich (Probe B, Schluss) | hält Wache und hört zu |
 | 7 | spricht mit Isis die Worte | **Seine Stunde**: am Bug gegen Apophis, hier ist er ganz im Recht. |
-| 8 | „Wer nicht gerufen wird, ist nicht ausgelöscht. Nur allein.“ | stellt die Wahl. **Vorläufiges Ende [vorläufig]**: Ruhepunkt mit einem Satz Ausblick: „Vier Stunden noch. Und am Ende ist ein Platz frei, den einer haben will.“ |
+| 8 | „Wer nicht gerufen wird, ist nicht ausgelöscht. Nur allein.“ | stellt die Wahl. **Ende von Akt 2 (entschieden)**: Ruhepunkt mit einem Satz Ausblick: „Vier Stunden noch. Und am Ende ist ein Platz frei, den einer haben will.“ |
 | 9–10 | rudert mit und lacht über sich | wird stiller, zählt bei Horus die gerufenen Namen mit |
 | 11 | | **Sein Riss**: Er sucht Echnaton in der Grube. Die Göttin: „Der ist nicht hier.“ |
 | 12 | Zeugin an der Waage | wird gewogen (Probe F) |
@@ -170,9 +171,8 @@ Ein König weiß wieder, wie er heißt. / Ein Königsname klimpert in einem frem
 In einer Wand steht wieder Maatkare. / In einer Wand ist ein warmer Umriss.
 Ein Stern sieht nach Norden. / In deiner Laterne brennen zwei Herzen.“
 
-**E · Begleitfigur, zwei Proben zum Vergleich**
-*Der Ba (empfohlen):* Stunde 1: „Ich bin dein Ba. Ich flattere, du gehst. Wir sind ein gutes Paar, solange du nicht fragst, wer führt.“ · Nach einer Niederlage: „Wieder aufgestanden. Ich zähle nicht mit. Doch. Sieben.“ · Stunde 7: „Ich bin ein Vogel. Er ist eine Schlange. Ich sage das nur, damit es jemand gesagt hat.“ · An der Waage, als Letztes: „Ich habe die ganze Nacht geredet. Jetzt du.“
-*Der Große Kater (Gast ab Stunde 5):* Stunde 5: „Tot. Ja. Willkommen. Ich sterbe seit Anbeginn jede Nacht, und sieh mich an: Fell wie neu.“ · Stunde 9: „Zwölf Ruderer. Mir hätten elf gereicht, aber ich bin ja nicht der, der rudert.“ · Stunde 11: „Feuer. Ich bin die Sonne, Kind. Halt trotzdem Abstand.“ · An der Waage putzt er eine Pfote und sagt nichts. Dann: „Ich gehe jetzt auf. Komm nach, wenn du fertig bist.“
+**E · Begleitfigur: der Ba**
+Stunde 1: „Ich bin dein Ba. Ich flattere, du gehst. Wir sind ein gutes Paar, solange du nicht fragst, wer führt.“ · Nach einer Niederlage: „Wieder aufgestanden. Ich zähle nicht mit. Doch. Sieben.“ · Stunde 7: „Ich bin ein Vogel. Er ist eine Schlange. Ich sage das nur, damit es jemand gesagt hat.“ · An der Waage, als Letztes: „Ich habe die ganze Nacht geredet. Jetzt du.“
 
 **F · Schluss, die Waage** (neue Szene nach dem Schatten; Varianten in eckigen Klammern)
 „Die Halle ist still. Zweiundvierzig Richter, und ein Platz ist leer.
@@ -208,13 +208,13 @@ Haremhab sieht sie lange an. Dann legt er sein Herz auf die Schale, ohne dass ma
 ## 7. Umfang ehrlich
 
 **Billig (reiner Text, Nachschlagen in `Spiel.wahl`):** Rückbezüge, zweite und dritte Fragen, Leute-Zeilen, Buchseiten, Klassensätze, Anrede nach Klasse (kleine Hilfsfunktion), Widersprüche, Ruder-Fehler (`:267`, ein `if`), Akt-1-Tafel mit Entscheidungen (`main.gd:1743`).
-**Begleitfigur Ba:** etwa 80 neue Sätze in Stapeln von `worte.gd`, die vorhandenen im Ton angleichen. **Keine neue Mechanik**, `ba()` (`orte.gd:617`) trägt das. Ein sichtbarer Ba neben der Figur wäre mittel (`models/chars/Ba.glb` gibt es). Der Kater als Gast: etwa 25 Sätze und ein Auftritt an den Pforten.
+**Begleitfigur Ba:** etwa 80 neue Sätze in Stapeln von `worte.gd`, die vorhandenen im Ton angleichen. **Keine neue Mechanik**, `ba()` in `orte.gd` trägt das. Ein sichtbarer Ba neben der Figur wäre mittel (`models/chars/Ba.glb` gibt es).
 **Hatschepsut und Haremhab:** etwa 40 Gesprächsabsätze. Haremhab in Akt 1 ist billig (Gestalt aus dem Baukasten am Eingang von Stunde 2 und vor dem Türhüter). Hatschepsut als Umriss in der Wand ist mittel (neues Wandstück mit Licht und Dialog, ähnlich dem Ba ohne Namen). Die Wahl im Verzeichnis (8) ist mittel: neuer Dialog und ein Speicherfeld. **Hindernis:** Der Fahrplan friert Bildarbeit bis Etappe D ein; bis dahin sprechen beide ohne gemalte Porträts.
 **Teuer:** Waage als eigene Halle mit Zeugen, Licht aus, letzter Wahl und Haremhabs Wiegen; Haremhab am Bug im Apophis-Kampf (der Kampf steht ohnehin im Fahrplan); Schatten mit eigenem Gesicht.
 
 **Reihenfolge nach dem Fahrplan:**
 1. **Sofort:** Ruder-Fehler, Merits Satz, Widersprüche, Anrede. Ein Abend.
-2. **Etappe B, Akt 1 rund:** Rückbezüge 1→2, 2→3, 3→4, 4→Tafel; Ba als Begleiter; Haremhab in 2 und 4, Hatschepsut in 3; Tafel mit Rückblick und Abspann. Drei bis vier Abende Schreiben, eine Stunde Lesen für den Auftraggeber.
+2. **Etappe B, Akt 1 rund [steht]:** Rückbezüge 1→2, 2→3, 3→4, 4→Tafel; Ba als Begleiter; Haremhab in 2 und 4, Hatschepsut in 3; Tafel mit Rückblick. Stand im Spiel: Gäste und Tafel in `geschichte.gd` (`GAESTE`, `TAFEL`, `fasse`), Ba-Sätze in `worte.gd` (`BA_*`, `ba_tod`, `ba_leute`), Ablauf in `orte.gd` (`_gast_setzen`, `talk_gast`, `_ba_tick`), Tafel in `main.gd` (`_aktende_lohn`). Neue Wahlen in `Spiel.wahl`: `2h` (Haremhab: versprochen/selbst) und `3h` (Hatschepsut: kartusche/wand), beide ungewogen. Offen: Abspann.
 3. **Etappe C:** Fremde fragen: „Wann hast du geahnt, dass du tot bist?“ und „Welchen der beiden Könige mochtest du?“
 4. **Etappe D, Akt 2:** Stunden 5–8, Hatschepsut in 6, Haremhab am Bug in 7, Verzeichnis in 8, Porträts, Seiten 13–18, vorläufiges Ende.
 5. **Ohne Termin:** Akt 3, Waage, Enden; bis dahin das Textfenster mit neuen Sätzen.
@@ -223,17 +223,14 @@ Haremhab sieht sie lange an. Dann legt er sein Herz auf die Schale, ohne dass ma
 
 ## 8. Entscheidungen und offene Fragen
 
-**Entschieden vom Auftraggeber:** F1 bittersüß und versöhnlich · F2 je Klasse ein Beruf, Lichttragen als Klammer · F3 die Fresserin droht, jedes Ende ist ein Weitergehen, das schwerste selbstgewählt · F4 mehr Humor mit einer komischen Begleitfigur (mein Vorschlag: der Ba) · Hatschepsut und Haremhab mit tragender Rolle.
+**Entschieden vom Auftraggeber:** F1 bittersüß und versöhnlich · F2 je Klasse ein Beruf, Lichttragen als Klammer · F3 die Fresserin droht, jedes Ende ist ein Weitergehen, das schwerste selbstgewählt · F4 mehr Humor mit einer komischen Begleitfigur · Hatschepsut und Haremhab mit tragender Rolle.
 
-**Vorläufig, vom Auftraggeber noch nicht bestätigt:** F5 Spirituelles leise an drei Stellen (5, 6, Waage) · F6 ernst, nicht ausgemalt · F7 Akt 2 endet mit einem Ruhepunkt und einem Satz Ausblick.
+**Entschieden am 23.11.2026:**
+- **F5 = a:** Spirituelles leise an drei Stellen (Richter in 5, Hatschepsut in 6, Ba an der Waage).
+- **F6 = a:** ernst, nicht ausgemalt.
+- **F7 = a:** Akt 2 endet mit einem Ruhepunkt und einem Satz Ausblick.
+- **N1 = a:** Der Ba allein ist die komische Begleitfigur. Der Große Kater als Gast entfällt.
+- **N2 = a:** Die beiden Pharaonen bleiben nah am Belegten, Lücken bleiben Lücken.
+- **N3 = a:** Haremhabs Ende hängt von der Wahl in Stunde 8 ab: versöhnt, oder er nimmt den leeren Richterplatz.
 
-**Neue Fragen:**
-
-**N1 Wer ist die Begleitfigur?** a) der Ba allein · b) der Ba, dazu der Große Kater als Gast ab Stunde 5 · c) der Kater als eigentlicher Begleiter.
-*Empfehlung: b.* Der Ba schließt den Bogen an der Waage; der Kater bringt in Akt 2 und 3 frischen Witz, ohne die Sonne zum Gehilfen zu machen.
-
-**N2 Wie nah an der Geschichte bleiben die beiden Pharaonen?** a) nah am Belegten, Lücken als Lücken · b) frei, nur Name und Grundzug · c) mit erfundenen Lebensdingen (Liebe, Verrat, Feindschaft untereinander).
-*Empfehlung: a.* Ihre wahren Geschichten sind stärker als alles Erfundene und passen schon genau.
-
-**N3 Wie endet Haremhab?** a) je nach Stunde 8: versöhnt, oder er nimmt den leeren Richterplatz · b) immer versöhnt · c) er bleibt ungewogen Wächter der Tore.
-*Empfehlung: a.* So hat seine Entscheidung echtes Gewicht, und auch die härtere Fassung bleibt bittersüß statt böse.
+**Offene Fragen:** keine.

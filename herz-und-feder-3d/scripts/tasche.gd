@@ -174,8 +174,8 @@ func render() -> void:
 		for k in Spiel.wahl:
 			if Spiel.wahl[k] == "maat":
 				maat += 1
-			else:
-				isfet += 1
+			elif Spiel.wahl[k] == "isfet":
+				isfet += 1   # die Antworten an Haremhab und Hatschepsut wiegen nichts
 		add_child(hud._label("Dein Herz ist %s (%+d). Entscheidungen: %d für Maat, %d für Isfet." % [Geschichte.herz_name(Spiel.herz), int(round(Spiel.herz)), maat, isfet], 15, Hud.PARCH))
 		add_child(hud._para(Geschichte.herz_wirkung(Spiel.herz), 13, Hud.DIM))
 	add_child(_h3("Material"))

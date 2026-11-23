@@ -1763,6 +1763,11 @@ func _aktende_lohn() -> void:
 	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
 		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
 		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
+	if Stunden.akt(Spiel.fall) == 0:
+		# Etappe B: Rückblick auf die Entscheidungen des ersten Aktes (Geschichte.akt1_tafel)
+		var tafel := Geschichte.akt1_tafel()
+		for i in tafel.size():
+			rueck.insert(1 + i, tafel[i])
 	hud.show_dialog("ENDE DES ERSTEN AKTES", "Der Abstieg", "", rueck, wahl)
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
@@ -2056,6 +2061,8 @@ func foe_near(p: Vector3, r: float) -> Foe:
 func interagieren() -> bool:
 	if not leben.naechster_auftrag().is_empty():
 		leben.auftrag_reden(leben.naechster_auftrag())
+	elif orte.gast_zuerst():
+		orte.talk_gast()
 	elif orte.near_thot() and not orte.near_helfer() and not orte.near_npc():
 		orte.thot_reden()
 	elif orte.near_werkstatt() and not orte.near_helfer() and not orte.near_npc():
@@ -2148,6 +2155,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if not bp.is_empty() and mouse_ground().distance_to(bp.n.global_position) < 1.6:
 			leben.auftrag_reden(bp)
 			return
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.gast_talked and orte.near_gast() \
+			and mouse_ground().distance_to(orte.gast.pos) < 1.8 and not hud.mouse_over_ui():
+		orte.talk_gast()   # Haremhab oder Hatschepsut antippen: noch einmal sprechen
+		return
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and orte.helfer_talked and orte.near_helfer() \
 			and mouse_ground().distance_to(orte.helfer.pos) < 1.8 and not hud.mouse_over_ui():
 		orte.talk_helfer()

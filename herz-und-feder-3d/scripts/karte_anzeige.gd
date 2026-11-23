@@ -163,6 +163,8 @@ func _draw() -> void:
 					draw_colored_polygon(PackedVector2Array([q + Vector2(0, -4) * z, q + Vector2(4, 0) * z, q + Vector2(0, 4) * z, q + Vector2(-4, 0) * z]), Color(1.0, 0.85, 0.4))
 			"figur":
 				draw_circle(q, 2.5 * z, Color(0.56, 0.89, 0.88))
+			"gast":
+				draw_circle(q, 2.5 * z, Color(1.0, 0.8, 0.45))
 			"helfer":
 				draw_circle(q, 2.5 * z, Color(0.8, 1.0, 0.6))
 			"thot":
