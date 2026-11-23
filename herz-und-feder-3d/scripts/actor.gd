@@ -203,6 +203,34 @@ func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
 	else:
 		play(anim, tempo, 0.2)
 
+# Wahr, wenn seit dem letzten Aufruf ein Fuß aufgesetzt hat (links in der gemessenen Phase, rechts eine halbe Runde später).
+# So fällt der Klang der Schritte genau auf die Bewegung, beim Gehen wie beim Laufen. Beim Stehen mit fuss_reset() aufrufen.
+var _ph_alt := -1.0
+var _ph_anim := ""
+func fuss_aufgesetzt() -> bool:
+	if ap == null or (cur_anim != a_run and cur_anim != a_walk) or not gang.has(cur_anim):
+		_ph_alt = -1.0
+		return false
+	var laenge := anim_len(cur_anim)
+	if laenge <= 0.0:
+		return false
+	var ph := fposmod(ap.current_animation_position / laenge, 1.0)
+	var treffer := false
+	if _ph_alt >= 0.0 and _ph_anim == cur_anim:
+		var d := fposmod(ph - _ph_alt, 1.0)
+		if d < 0.5:
+			var p0: float = gang[cur_anim][1]
+			for k in 2:
+				var z := fposmod(p0 + 0.5 * k - _ph_alt, 1.0)
+				if z > 0.0 and z <= d:
+					treffer = true
+	_ph_alt = ph
+	_ph_anim = cur_anim
+	return treffer
+
+func fuss_reset() -> void:
+	_ph_alt = -1.0
+
 # Treffer-Zucken: Die Figur kippt kurz vom Treffer weg und federt zurück, ohne dass die laufende Bewegung abbricht.
 # staerke 1 für einen gewöhnlichen Treffer, mehr für schwere.
 func zucken(von: Vector3, staerke := 1.0) -> void:
