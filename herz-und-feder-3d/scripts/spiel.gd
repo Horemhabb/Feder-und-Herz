@@ -30,7 +30,7 @@ var tree := {"r": {}, "a": {}, "p": {}, "key": false}   # Fähigkeitenbaum: Rän
 var pots := Daten.POTS   # Rotbier: wird nicht gespeichert, wie in der 2D-Fassung
 var herz := 0.0          # Herzwaage: über null leicht (Maat), unter null schwer (Isfet); −100 bis 100
 var ba_heim := 0         # so viele Ba ohne Namen hat die Figur heimgeführt (2.9); jeder sagt einen Satz mehr
-var einst := {"laut": 1.0, "musik": 1.0, "leiste": 0.75, "hinweise": 1.0}   # Einstellungen (3.0); „hinweise“ (4.1): 1 = an, 0 = aus: gelten für alle Figuren, eigene Datei
+var einst := {"laut": 1.0, "musik": 1.0, "geraeusche": 1.0, "leiste": 0.75, "hinweise": 1.0}   # Einstellungen (3.0); „hinweise“ (4.1): 1 = an, 0 = aus; „geraeusche“ (Etappe B): Regler für Schritte, Kampf und Umgebung, getrennt von der Musik; gelten für alle Figuren, eigene Datei
 const EINST_DATEI := "user://einstellungen.json"
 var wissen := {}         # was die Figur schon gesehen, gehört oder erklärt bekommen hat (3.0): Lexikon, Hinweise, Textwahl
 var baum_neu := false   # 3.3: der alte Baum passte nicht mehr, die Punkte sind zurückgegeben (einmal sagen)

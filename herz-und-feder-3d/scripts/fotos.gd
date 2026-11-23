@@ -134,6 +134,16 @@ func run() -> void:
 		fehler("kein Startbildschirm da (Start ohne --neu?)")
 	await wait(1.0)
 	shot("00_titel")
+	# dieselbe Tafel mit dem Gamepad: die zweite Klasse ist gewählt, Rahmen und Tastenzeile sind da
+	G.hud._pad_modus(true)
+	var fk: Array = G.hud.fokussierbar(G.hud.overlay)
+	if fk.size() > 1:
+		(fk[1] as Control).grab_focus()
+	await wait(0.4)
+	shot("00_titel_pad")
+	G.hud._pad_modus(false)
+	if fk.size() > 0:
+		(fk[fk.size() - 1] as Control).release_focus()
 	if not G.hud.press_primary():
 		fehler("der Startknopf ließ sich nicht drücken")
 		return ende()
@@ -180,6 +190,8 @@ func run() -> void:
 			freimachen(G)
 			ruhig(G)
 			shot("stunde_%02d_rudel" % h)
+			if h == liste[0]:
+				await kampfbild(G, f)
 		print("  Stunde %d: %.1f s" % [h, (Time.get_ticks_msec() - t_h) / 1000.0])
 	# Fähigkeitenbaum und Tasche zuletzt: mit etwas Stufe, gelernten Fähigkeiten und Beute, damit sie nicht leer aussehen
 	G = g()
@@ -210,11 +222,54 @@ func run() -> void:
 	await wait(0.8)
 	if G.hud.bag_open:
 		shot("zusatz_tasche")
+		G.hud._pad_modus(true)
+		G.hud._fokus_pruefen()
+		await wait(0.3)
+		shot("zusatz_tasche_pad")
+		G.hud._pad_modus(false)
 		G.toggle_bag()
 	else:
 		fehler("die Tasche öffnete sich nicht")
 	await wait(0.3)
+	await padbilder(G)
 	ende()
+
+# Kampf mit Rückmeldung (Etappe B): Lebensbalken über verletzten Gegnern, Schadenszahlen, Treffer auf die Figur,
+# Abklingzeiten in der Leiste. Die Figur ist dabei unverwundbar, der Treffer wird nur vorgeführt.
+func kampfbild(G: Node, f: Foe) -> void:
+	var h: Hero = G.hero
+	var rudel: Array = G.foes.filter(func(o): return o.pack == f.pack and o.state != Foe.St.DEAD)
+	var n := 0
+	for o in rudel:
+		o.hit(o.max_hp * (0.25 + 0.15 * (n % 3)), h.global_position, 2.0, 0.0, n == 1)
+		n += 1
+		await wait(0.18)
+	for id in h.ORDER:
+		if Spiel.gelernt(id):
+			h.cd[id] = h.cd_of(id) * 0.6
+	await wait(0.25)
+	h.inv = 0.0
+	h.hurt(h.max_hp * 0.08, f.global_position, f)
+	h.inv = 9999.0
+	await wait(0.1)
+	print("  Rückmeldung: Blitz %.2f, Rand sichtbar %s, Größe %s, Balken %d" % [G.hud.rueck.blitz, G.hud.rueck.rand.visible, G.hud.rueck.rand.size, G.hud.rueck.sichtbar_anzahl])
+	shot("zusatz_kampf")
+
+# Menü und Tasche so, wie sie mit dem Gamepad aussehen: Fokusrahmen und Tastenzeile
+func padbilder(G: Node) -> void:
+	freimachen(G)
+	G.hud._pad_modus(true)
+	G.toggle_menu()
+	await wait(0.5)
+	G.hud._fokus_pruefen()
+	await wait(0.3)
+	shot("zusatz_menue_pad")
+	G.hud.menue.geh("einstellungen")
+	await wait(0.4)
+	shot("zusatz_einstellungen_pad")
+	G.toggle_menu()
+	await wait(0.3)
+	freimachen(G)
 
 # Stimmt die Stunde? Name der Tafel gegen die Stunde, die verlangt war
 func check_stunde(G: Node, h: int) -> void:

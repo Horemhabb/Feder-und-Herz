@@ -18,7 +18,7 @@ func _clear() -> void:
 func _knopf(text: String, main: bool, cb: Callable, enabled := true, breit := 0.0) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL   # Gamepad und Pfeiltasten wählen per Fokus (hud.gd)
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
 	b.add_theme_font_size_override("font_size", 17)
 	b.custom_minimum_size = Vector2(breit, 46)
@@ -62,6 +62,7 @@ func _kopf(titel: String) -> void:
 	add_child(top)
 
 func render() -> void:
+	var fi := hud.fokus_index(hud.overlay) if hud.overlay != null else -1
 	_clear()
 	match seite:
 		"lexikon": _lexikon()
@@ -71,6 +72,8 @@ func render() -> void:
 		"figur": _figur()
 		_: _haupt()
 	hud._pass_all(self)
+	if fi >= 0:
+		hud.fokus_setzen(hud.overlay, fi)
 
 func _haupt() -> void:
 	add_child(hud._para("PAUSE", 13, Hud.GOLD, true))
@@ -90,6 +93,9 @@ func _haupt() -> void:
 	v.add_child(_knopf("Neue Figur anlegen", false, func(): geh("figur"), true, 360))
 	add_child(mitte)
 	add_child(hud._para("Dein Fortschritt wird laufend gespeichert.", 12, Hud.DIM, true))
+	var pz := hud.pad_zeile("Gamepad: Steuerkreuz oder linker Stick wählt, A bestätigt, B oder Start geht zurück.")
+	pz.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(pz)
 
 func _lexikon() -> void:
 	_kopf("Lexikon")
@@ -148,27 +154,46 @@ func _schalter(name: String, wert: String, cb: Callable) -> void:
 		render(), true, 190))
 	add_child(h)
 
-func _regler(name: String, key: String) -> void:
+func _regler(name: String, key: String, probe := "") -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	var l := hud._label(name, 16, Hud.PARCH)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(l)
-	var wert := hud._label("%d %%" % round(float(Spiel.einst[key]) * 100.0), 14, Hud.DIM)
+	var wert := hud._label("%d %%" % round(float(Spiel.einst.get(key, 1.0)) * 100.0), 14, Hud.DIM)
 	wert.custom_minimum_size = Vector2(56, 0)
 	wert.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var s := HSlider.new()
 	s.min_value = 0.0
 	s.max_value = 1.0
 	s.step = 0.05
-	s.value = float(Spiel.einst[key])
+	s.value = float(Spiel.einst.get(key, 1.0))
 	s.custom_minimum_size = Vector2(240, 30)
-	s.focus_mode = Control.FOCUS_NONE
+	s.focus_mode = Control.FOCUS_ALL
+	s.tooltip_text = "Pfeiltasten oder Steuerkreuz links und rechts ändern den Wert."
+	var zieht := [false]
 	s.value_changed.connect(func(v: float):
 		Spiel.einst[key] = v
 		wert.text = "%d %%" % round(v * 100.0)
-		game.sfx.einst_anwenden())
-	s.drag_ended.connect(func(_c): Spiel.einst_speichern())
+		game.sfx.einst_anwenden()
+		if not zieht[0]:
+			# per Taste oder Gamepad geändert: gleich speichern und zur Probe kurz anspielen
+			Spiel.einst_speichern()
+			if probe != "":
+				game.sfx.play(probe))
+	s.drag_started.connect(func(): zieht[0] = true)
+	s.drag_ended.connect(func(_c):
+		zieht[0] = false
+		Spiel.einst_speichern()
+		if probe != "":
+			game.sfx.play(probe))
+	# gewählter Regler: Name und Wert leuchten golden (der Fokusrahmen der Knöpfe passt nicht auf einen Regler)
+	s.focus_entered.connect(func():
+		l.add_theme_color_override("font_color", Hud.RUBRIK)
+		wert.add_theme_color_override("font_color", Hud.RUBRIK))
+	s.focus_exited.connect(func():
+		l.add_theme_color_override("font_color", Hud.INK)   # das Menü liegt auf Papyrus: Tinte, nicht Pergamentfarbe
+		wert.add_theme_color_override("font_color", Hud.INK_DIM))
 	h.add_child(s)
 	h.add_child(wert)
 	add_child(h)
@@ -183,6 +208,7 @@ func _einstellungen() -> void:
 	_schalter("Ton", "Aus" if game.sfx.muted else "An", func(): game.sfx.set_muted(not game.sfx.muted))
 	_regler("Lautstärke gesamt", "laut")
 	_regler("Musik", "musik")
+	_regler("Geräusche (Schritte, Kampf, Umgebung)", "geraeusche", "hit")
 	add_child(hud._label("BILD", 12, Hud.GOLD))
 	_schalter("Grafik", game.GUETE_NAME[game.guete], func(): game.guete_von_hand((game.guete + 1) % 4))
 	if not game.touch:

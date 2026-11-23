@@ -58,6 +58,105 @@ func _ready() -> void:
 
 # eine Stelle neben einem Gegner, von der aus er frei zu erreichen ist (die Karten sind zufällig: blind daneben gesetzt,
 # stand die Figur manchmal in einem Felsblock, und die halbe Prüfung fiel als Folgefehler um)
+# Etappe B: Oberfläche. Knopf im Bild, Rückmeldung im Kampf, Regler „Geräusche“, Gamepad-Fokus in Menü, Tasche und Klassenwahl.
+func oberflaeche(G: Node) -> void:
+	var hud: Hud = G.hud
+	# „Fähigkeitenpunkt frei“ lag einmal bei x = −197 außerhalb des Bildes (position statt Abstand im Baum gesetzt)
+	var tf0 := Spiel.tree_frei
+	Spiel.tree_frei += 2
+	await wait(0.3)
+	var pr: Rect2 = hud.punkt_btn.get_global_rect()
+	var vr: Rect2 = hud.get_viewport().get_visible_rect()
+	check("Knopf „Fähigkeitenpunkt frei“ liegt im Bild (%s im Fenster %s)" % [pr, vr], hud.punkt_btn.visible and vr.encloses(pr) and pr.size.x > 100.0)
+	Spiel.tree_frei = tf0
+	# Abklingzeit als Zahl in der Leiste
+	var id1: String = G.hero.ORDER[0]
+	G.hero.cd[id1] = 3.0
+	await wait(0.2)
+	check("Leiste: Abklingzeit steht als Zahl auf dem Feld (%s)" % hud.skill_ui[id1].cdn.text, hud.skill_ui[id1].cdn.text != "")
+	G.hero.cd[id1] = 0.0
+	# Lebensbalken über einem verletzten Gegner, Blitz am Bildrand bei einem Treffer auf die Figur
+	var hh: Hero = G.hero
+	var f: Foe = G._spawn("lance", hh.global_position + Vector3(5, 0, 0), 95)
+	await wait(0.2)
+	var bal0: int = hud.rueck.balken.size()
+	f.hit(f.max_hp * 0.3, hh.global_position, 0.0)
+	await wait(0.25)
+	check("Rückmeldung: verletzter Gegner bekommt einen Lebensbalken (%d → %d)" % [bal0, hud.rueck.balken.size()], hud.rueck.balken.has(f))
+	var inv0: float = hh.inv
+	hh.inv = 0.0
+	hh.hurt(5.0, f.global_position, null)
+	hh.inv = inv0
+	await wait(0.1)
+	check("Rückmeldung: Treffer auf die Figur lässt den Bildrand aufblitzen (%.2f)" % hud.rueck.blitz, hud.rueck.blitz > 0.1 and hud.rueck.rand.visible)
+	hh.hp = hh.max_hp
+	f.queue_free()
+	G.foes.erase(f)
+	# Regler „Geräusche“ getrennt von Musik, eigener Bus
+	await key(KEY_ESCAPE)
+	await wait(0.3)
+	hud.menue.geh("einstellungen")
+	await wait(0.2)
+	var sl: Array = hud.menue.find_children("*", "HSlider", true, false)
+	check("Einstellungen: drei Regler (gesamt, Musik, Geräusche)", sl.size() == 3)
+	var gi := AudioServer.get_bus_index("Geraeusche")
+	var laut0 := AudioServer.get_bus_volume_db(0)
+	(sl[2] as HSlider).value = 0.5
+	await wait(0.1)
+	check("Regler Geräusche wirkt auf den Geräusche-Bus, nicht auf Hauptbus und Musik (%.1f dB, Haupt %.1f)" % [AudioServer.get_bus_volume_db(gi), AudioServer.get_bus_volume_db(0)],
+		gi >= 0 and absf(AudioServer.get_bus_volume_db(gi) - linear_to_db(0.5)) < 0.1 and absf(AudioServer.get_bus_volume_db(0) - laut0) < 0.01 and float(Spiel.einst.geraeusche) == 0.5)
+	check("Geräusche laufen über den eigenen Bus, die Musik über den Hauptbus", G.sfx.pool[0].bus == &"Geraeusche" and G.sfx.pool3[0].bus == &"Geraeusche" and G.sfx.mus[0].bus == &"Master")
+	Spiel.einst["geraeusche"] = 0.0
+	Spiel.einst_laden()
+	check("Regler Geräusche bleibt gespeichert (%.2f)" % float(Spiel.einst.geraeusche), absf(float(Spiel.einst.geraeusche) - 0.5) < 0.01)
+	(sl[2] as HSlider).value = 1.0
+	await wait(0.1)
+	# Gamepad im Menü: erster Druck greift den ersten Knopf, Steuerkreuz wählt, A öffnet, B geht zurück, Stick wählt auch
+	hud.menue.geh("")
+	await wait(0.2)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	var fo: Control = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: erster Druck wählt „Weiterspielen“ (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and fo.text.contains("Weiterspielen") and hud.pad_aktiv)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: Steuerkreuz unten wählt „Lexikon“ (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and fo.text.begins_with("Lexikon"))
+	await pad_knopf(JOY_BUTTON_A)
+	check("Menü mit Gamepad: A öffnet die gewählte Seite (%s)" % hud.menue.seite, hud.menue.seite == "lexikon")
+	await pad_knopf(JOY_BUTTON_B)
+	check("Menü mit Gamepad: B geht zurück ins Menü, nicht ins Spiel", hud.menu_open and hud.menue.seite == "")
+	await pad_achse(JOY_AXIS_LEFT_Y, 1.0)
+	await wait(0.4)
+	await pad_achse(JOY_AXIS_LEFT_Y, 0.0)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Menü mit Gamepad: linker Stick nach unten bewegt den Fokus (%s)" % [fo.text if fo is Button else "nichts"], fo is Button and not fo.text.contains("Weiterspielen"))
+	await pad_knopf(JOY_BUTTON_START)
+	check("Menü mit Gamepad: Start schließt das Menü", not hud.menu_open and not get_tree().paused)
+	# Tasche mit Gamepad
+	G.toggle_bag()
+	await wait(0.4)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	await pad_knopf(JOY_BUTTON_DPAD_DOWN)
+	fo = hud.get_viewport().gui_get_focus_owner()
+	check("Tasche mit Gamepad: Steuerkreuz wählt ein Feld im Fenster", hud.bag_open and fo is Button and hud.overlay.is_ancestor_of(fo))
+	await pad_knopf(JOY_BUTTON_A)
+	var ta: Tasche = hud.overlay.find_children("*", "Tasche", true, false)[0]
+	check("Tasche mit Gamepad: A greift das gewählte Teil (%s)" % str(ta.sel), hud.bag_open and not ta.sel.is_empty())
+	await pad_knopf(JOY_BUTTON_B)
+	check("Tasche mit Gamepad: B schließt sie", not hud.bag_open and not get_tree().paused)
+	# Klassenwahl mit Gamepad: zweite Karte wählen, A bestätigt die Klasse
+	hud.show_intro(true)
+	await wait(0.3)
+	var fl: Array = hud.fokussierbar(hud.overlay)
+	check("Klassenwahl: Karten, Schwierigkeit und Knöpfe sind per Fokus erreichbar (%d)" % fl.size(), fl.size() >= Klassen.ORDER.size() + 4)
+	(fl[1] as Control).grab_focus()
+	await pad_knopf(JOY_BUTTON_A)
+	check("Klassenwahl mit Gamepad: A wählt die zweite Klasse (%s)" % hud.intro_cls, hud.intro_cls == Klassen.ORDER[1])
+	hud._close()
+	get_tree().paused = false
+	hud.intro_cls = Spiel.cls
+	hud.intro_new = false
+	hud._pad_modus(false)
+
 func frei_neben(G: Node, pos: Vector3, r: float) -> Vector3:
 	for i in 8:
 		var q: Vector3 = pos + Vector3(cos(TAU * i / 8.0), 0, sin(TAU * i / 8.0)) * r
@@ -417,7 +516,7 @@ func run() -> void:
 	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
 	# Hat der Abschnitt zu den Hinweisen einen Gegner geweckt, läuft gerade die Kampfmusik: auch das ist die Musik der Stunde
 	var kampf: bool = G.sfx.mus_name == "mus_kampf"
-	check("Musik der ersten Stunde läuft (Wüstennacht)%s" % (" (gerade Kampfmusik)" if kampf else ""), (kampf or G.sfx.mus_list.has(G.sfx.mus_name)) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
+	check("Musik der ersten Stunde läuft (Wüstennacht; Stück „%s“, Ruhe %s, %.0f s)" % [G.sfx.mus_name, G.sfx.mus_rest, G.sfx.mus_t], (kampf or G.sfx.mus_list.has(G.sfx.mus_name)) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
@@ -896,6 +995,7 @@ func run() -> void:
 	await pad_knopf(JOY_BUTTON_B)
 	check("Gamepad: B schließt sie", not G3.hud.karte_open and not get_tree().paused)
 	G3.pad = false
+	await oberflaeche(G3)
 	# Bewegungsgefühl: ein Krieger läuft aus 13 m auf die stehende Figur zu, dabei rutschen seine Füße kaum
 	var hh: Hero = G3.hero
 	var anlauf := Vector3(13, 0, 0)

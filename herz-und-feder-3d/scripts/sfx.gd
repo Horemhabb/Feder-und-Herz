@@ -39,9 +39,26 @@ var mus_list: Array = []   # Stücke der Stunde: wechseln sich alle anderthalb M
 var mus_i := 0
 var mus_t := 0.0
 
+# Eigener Bus für alles außer der Musik (Etappe B): Der Regler „Geräusche“ im Menü wirkt auf ihn, die Musik hat ihren eigenen Regler.
+const BUS_GERAEUSCHE := "Geraeusche"
+
+func _bus_anlegen() -> void:
+	if AudioServer.get_bus_index(BUS_GERAEUSCHE) < 0:
+		AudioServer.add_bus()
+		var i := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(i, BUS_GERAEUSCHE)
+		AudioServer.set_bus_send(i, "Master")
+
+# Jeder Spieler, der nicht zur Musik gehört (auch die von klang.gd und die Schleifen mit Ort), landet beim Hinzufügen auf dem Geräusche-Bus
+func _spieler_dazu(n: Node) -> void:
+	if (n is AudioStreamPlayer or n is AudioStreamPlayer3D) and n.bus == &"Master" and not n.has_meta("musik"):
+		n.bus = BUS_GERAEUSCHE
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_bus_anlegen()
 	einst_anwenden()
+	get_tree().node_added.connect(_spieler_dazu)
 	for i in 10:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -58,6 +75,7 @@ func _ready() -> void:
 	add_child(voice)
 	for i in 2:
 		var m := AudioStreamPlayer.new()
+		m.set_meta("musik", true)   # bleibt auf dem Hauptbus: hat ihren eigenen Regler
 		m.volume_db = -80.0
 		add_child(m)
 		mus.append(m)
@@ -246,6 +264,9 @@ func hush() -> void:
 # Lautstärke aus den Einstellungen (Spielmenü): gesamt über den Hauptkanal, Musik zusätzlich für sich
 func einst_anwenden() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(Spiel.einst.laut))))
+	var gb := AudioServer.get_bus_index(BUS_GERAEUSCHE)
+	if gb >= 0:
+		AudioServer.set_bus_volume_db(gb, linear_to_db(maxf(0.001, float(Spiel.einst.get("geraeusche", 1.0)))))
 
 func set_muted(m: bool) -> void:
 	muted = m

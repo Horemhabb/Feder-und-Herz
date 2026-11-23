@@ -169,6 +169,8 @@ func _zeigen(frei: bool) -> void:
 		panel.size = Vector2.ZERO   # schrumpft auf die Größe des Textes
 		var vb := hud.root.get_global_rect()
 		var unten := vb.end.y - 188.0 * hud.leiste.scale.y - 14.0
+		if hud.punkt_btn.visible:
+			unten -= 52.0   # der goldene Knopf „Fähigkeitenpunkt frei“ sitzt unmittelbar über der Leiste: der Hinweis darüber
 		panel.position = Vector2(vb.position.x + (vb.size.x - panel.size.x) / 2.0, unten - panel.size.y)
 	if soll == _sichtbar_id:
 		return

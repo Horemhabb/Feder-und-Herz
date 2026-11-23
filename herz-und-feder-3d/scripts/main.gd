@@ -1853,21 +1853,35 @@ func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
 
 # ---------------------------------------------------------------- Effekte
+# Schwebende Zahl und Meldung über einem Ort. Seit Etappe B: größer, mit dicker dunkler Kontur, springt beim Erscheinen kurz
+# auf und weicht zur Seite, damit sich Treffer nicht gegenseitig verdecken; Krit-Zahlen (big > 1) stehen länger.
 func float_text(pos: Vector3, text: String, col: Color, big := 1.0) -> void:
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
+	l.fixed_size = false
 	l.font_size = 64
-	l.outline_size = 14
+	l.outline_size = 18
+	l.outline_modulate = Color(0.05, 0.02, 0.02, 0.95)
 	l.modulate = col
-	l.pixel_size = 0.012 * big
+	l.render_priority = 5
+	l.pixel_size = 0.0125 * big
 	add_child(l)
-	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 2.2, randf_range(-0.2, 0.2))
+	var seite := randf_range(-0.7, 0.7)
+	l.global_position = pos + Vector3(seite * 0.6, 2.2, randf_range(-0.2, 0.2))
+	var y0 := l.global_position.y
+	var dauer := 1.0 + (0.3 if big > 1.2 else 0.0)
+	l.scale = Vector3.ONE * 0.35
 	var tw := create_tween()
-	tw.tween_property(l, "global_position:y", l.global_position.y + 1.6, 0.8)
-	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
-	tw.tween_callback(l.queue_free)
+	tw.tween_property(l, "scale", Vector3.ONE * (1.25 if big > 1.2 else 1.12), 0.09).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "scale", Vector3.ONE, 0.12)
+	var tw2 := create_tween().set_parallel(true)
+	tw2.tween_property(l, "global_position:y", y0 + 1.7, dauer).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(l, "global_position:x", l.global_position.x + seite * 0.9, dauer)
+	tw2.tween_property(l, "modulate:a", 0.0, dauer * 0.45).set_delay(dauer * 0.55).set_ease(Tween.EASE_IN)
+	tw2.tween_property(l, "outline_modulate:a", 0.0, dauer * 0.45).set_delay(dauer * 0.55)
+	tw2.chain().tween_callback(l.queue_free)
 
 func ring_fx(c: Vector3, r: float, col: Color) -> void:
 	var m := MeshInstance3D.new()
