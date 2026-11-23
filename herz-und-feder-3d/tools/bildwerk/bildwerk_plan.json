@@ -1,0 +1,689 @@
+{
+ "version": "5.0.0",
+ "hinweis": "Plan für bildwerk.bat und einbauen.bat. Alle Texte stehen hier, die Skripte enthalten keine. Keine Zahlen und Prozentzeichen in Prompts.",
+ "regeln": [
+  "Keine Ziffern und kein Prozentzeichen im Prompt: Z-Image malt sie als Schrift ins Bild (aus '80%' wurden %, 0% und 9%).",
+  "Keine Wörter, die Schrift nahelegen: 'Hu, the spoken word' ergab einmal den Schriftzug HU.",
+  "Ägyptische Merkmale positiv und genau beschreiben (Kopf im Profil, Einlagen aus Lapislazuli): das trägt.",
+  "Seltene Wesen kennt das Modell nicht: das Seth-Tier wurde zu Anubis. Lieber über Gegenstände und Wirkung zeigen.",
+  "Das Tier zuerst und ausdrücklich nennen: aus 'lioness-goddess sun disc' wurde ein Hund.",
+  "Wörter wie square, plaque, tile, coin, medallion locken Tafeln und Rahmen an.",
+  "Das Wort für den Hintergrund bestimmt die Helligkeit: 'grey stone' gab hellgrauen Grund, darum immer 'dark ...'.",
+  "Hände und Füße bekommen oft vier Finger oder Zehen: verdecken (Bandagen, Sandalen) oder in der Auswahl meiden.",
+  "Neue Stile erst als Probe mit gleichem Seed gegen den alten Stil prüfen, dann in die Nacht.",
+  "Höchstens etwa ein Megapixel, Entschlüsseln in Kacheln (AMD-Treiber). Etwa drei Minuten je Bild, eine Nacht reicht für gut hundert Bilder.",
+  "Lange Prompts kosten Zeit (Text-Encoder auf dem Prozessor): etwa 25 Sekunden mehr je Bild."
+ ],
+ "stile": {
+  "alt": {
+   "beschreibung": "Kontrolle: der Stil aus symbole_2.bat nach der Korrektur '80%' zu 'most of the square' (mit Verneinungen und Markennamen)",
+   "text": "{MOTIV} {ANSICHT} Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling most of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. Behind it only a plain dark textured surface ({TEX}) with a soft vignette: no scenery, no architecture, no landscape, no ground, no horizon, no objects in the background. Square game icon, no text, no border, no frame."
+  },
+  "positiv": {
+   "beschreibung": "wie alt, aber die Verneinungen sind positiv umformuliert",
+   "text": "{MOTIV} {ANSICHT} Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling most of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  },
+  "aegypt": {
+   "beschreibung": "wie positiv, dazu aegyptische Merkmale (Bildsprache der Grabmalerei, Einlagen aus Lapislazuli)",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian design language throughout: forms drawn the way tomb paintings and temple reliefs draw them (heads and animals in profile, stylized layered proportions), engraved lotus, papyrus and hieroglyph patterns in the metal, inlays of lapis lazuli, turquoise and carnelian. Dark fantasy game ability icon in the style of Diablo 4 and Baldur's Gate 3 skill icons: a single emblem centered and filling most of the square, close-up, strong readable silhouette, painterly digital illustration with realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  },
+  "frei": {
+   "beschreibung": "wie aegypt, aber ohne die Namen fremder Spiele (fuer eine spaetere Veroeffentlichung)",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian design language throughout: forms drawn the way tomb paintings and temple reliefs draw them (heads and animals in profile, stylized layered proportions), engraved lotus, papyrus and hieroglyph patterns in the metal, inlays of lapis lazuli, turquoise and carnelian. Dark fantasy game ability icon, painterly high-end digital illustration in the tradition of modern action role-playing game skill icons: a single emblem centered and filling most of the square, close-up, strong readable silhouette, realistic hammered gold, blackened iron and gemstone materials, glowing magical light and a few drifting embers coming from the emblem itself, dramatic rim lighting, rich moody colors. The emblem floats in front of nothing but a plain, empty, dark textured surface ({TEX}) with a soft vignette. A clean, unframed square game icon showing only the pictorial emblem."
+  },
+  "portraet": {
+   "beschreibung": "Porträts wie P01 bis P03: fotorealistisch, Nacht, Mondlicht, warme Lampe, ein Hauch türkiser Geisterschein. Ohne Markennamen, ohne Zahlen.",
+   "text": "Cinematic photorealistic portrait, head and upper body, of {MOTIV} {HINWEIS} {ANSICHT} The scene is ancient Egypt, the land of the dead, at night: cold blue moonlight from above and a warm oil-lamp glow from one side, a faint turquoise ghostly shimmer, fine realistic detail of skin, fur, worn linen, leather and dull bronze, calm intense expression. Behind the figure {TEX}, softly out of focus with shallow depth of field. Muted earthy colors against deep night blue. The picture shows only the figure and the blurred scene, nothing written anywhere."
+  },
+  "textur": {
+   "beschreibung": "Kachelbare Bodentexturen und Wandtexturen: gerade von oben, gleichmäßiges Licht, das Muster läuft bis an jeden Rand. Die Naht glättet einbauen.bat.",
+   "text": "Seamless tileable game texture of {MOTIV} {HINWEIS} Photographed straight from above, perfectly flat and orthographic, soft even shadowless light, uniform density, the pattern continues to every edge of the frame, high detail, realistic material, ancient Egypt. Only the material surface fills the whole image."
+  },
+  "lexikon": {
+   "beschreibung": "Bilder fürs Lexikon der Gegner: dunkle Büste, dramatisches Licht, im Stil der Porträts.",
+   "text": "Cinematic dark fantasy creature portrait, head and upper body, of {MOTIV} {HINWEIS} {ANSICHT} The Egyptian underworld at night, dramatic low light, cold moonlight and a red ember glow, fine realistic detail on wrappings, bronze and stone. Behind it {TEX}, softly out of focus. The picture shows only the creature and the blurred scene, nothing written anywhere."
+  }
+ },
+ "ansichten": {
+  "emblem": {
+   "a": "",
+   "b": "Show the emblem in a dynamic three-quarter view.",
+   "c": "Show the emblem in a clean side-profile view.",
+   "d": "Show the emblem slightly tilted and dynamic, as a close-up with extra glow."
+  },
+  "portraet": {
+   "a": "",
+   "b": "The person is slightly turned to one side and looks past the viewer.",
+   "c": "The person looks directly at the viewer.",
+   "d": "Seen from a slightly lower angle, more dramatic light."
+  },
+  "textur": {
+   "a": "",
+   "b": "",
+   "c": "",
+   "d": ""
+  }
+ },
+ "seeds": {
+  "a": 101,
+  "b": 202,
+  "c": 303,
+  "d": 404
+ },
+ "stufen": {
+  "symbole_neu": {
+   "titel": "Sieben Symbole neu, die im ersten Lauf nicht getragen haben",
+   "gruppen": [
+    "symbole_neu"
+   ],
+   "stile": [
+    "aegypt"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "emblem",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, nach einbauen.bat"
+  },
+  "portraets_figuren": {
+   "titel": "Porträts: Figuren der Geschichte (Erloschener, Richter, sieben Götter)",
+   "gruppen": [
+    "portraets_figuren"
+   ],
+   "stile": [
+    "portraet"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "ja, nach einbauen.bat"
+  },
+  "portraets_leute": {
+   "titel": "Porträts: die zwölf Leute mit ihren Sorgen",
+   "gruppen": [
+    "portraets_leute"
+   ],
+   "stile": [
+    "portraet"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "ja, nach einbauen.bat"
+  },
+  "texturen_stunden": {
+   "titel": "Texturen für die Stunden 6 bis 12 (Wand und Boden)",
+   "gruppen": [
+    "texturen_stunden"
+   ],
+   "stile": [
+    "textur"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "braucht noch Code (Claude)"
+  },
+  "astzeichen": {
+   "titel": "Astzeichen des Fähigkeitenbaums",
+   "gruppen": [
+    "astzeichen"
+   ],
+   "stile": [
+    "aegypt"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "emblem",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "noch kein Platz im Spiel"
+  },
+  "gegner_lexikon": {
+   "titel": "Gegner fürs Lexikon",
+   "gruppen": [
+    "gegner_lexikon"
+   ],
+   "stile": [
+    "lexikon"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "noch kein Platz im Spiel"
+  }
+ },
+ "motive": [
+  {
+   "id": "chain_neu",
+   "name": "Zorn des Seth",
+   "gruppe": "symbole_neu",
+   "motiv": "A forked violet lightning bolt splitting a dark storm and striking down between two small red clay jars, a tall golden was-sceptre with a forked foot standing beside it, crackling violet light.",
+   "tex": "dark stormy slate",
+   "hinweis": "The was-sceptre is the straight Egyptian staff of power with a two-pronged foot.",
+   "datei": "chain"
+  },
+  {
+   "id": "rain_neu",
+   "name": "Sieben Pfeile der Sachmet",
+   "gruppe": "symbole_neu",
+   "motiv": "The roaring head of a golden lioness crowned with a red sun disc and a rearing cobra, seven slender arrows raining down in front of her onto a glowing carnelian circle.",
+   "tex": "dark red sandstone",
+   "hinweis": "The lioness is Sekhmet: a powerful female lion with golden fur, fierce eyes and no mane.",
+   "datei": "rain"
+  },
+  {
+   "id": "step_neu",
+   "name": "Schritt des Schu",
+   "gruppe": "symbole_neu",
+   "motiv": "A single tall white ostrich feather riding a swirling gust of turquoise wind that leaves three glowing golden footprints behind it.",
+   "tex": "dark basalt",
+   "hinweis": "The feather is the plumed ostrich feather that the air god Shu wears on his head.",
+   "datei": "step"
+  },
+  {
+   "id": "wave_neu",
+   "name": "Atem des Schu",
+   "gruppe": "symbole_neu",
+   "motiv": "A billowing white linen sail on a golden mast with a painted wadjet eye, blown by curling turquoise wind streams and flying white feathers.",
+   "tex": "dark basalt",
+   "hinweis": "The sail belongs to a slender Nile boat; the wind is drawn as stylized wavy lines.",
+   "datei": "wave"
+  },
+  {
+   "id": "p_kraft_neu",
+   "name": "Fülle des Hapi",
+   "gruppe": "symbole_neu",
+   "motiv": "A free-standing golden statuette of the Nile god Hapi with a round belly and a crown of papyrus, holding a blooming lotus, turquoise Nile water spilling from a jar in his arms.",
+   "tex": "dark basalt",
+   "datei": "p_kraft"
+  },
+  {
+   "id": "oath_neu",
+   "name": "Eid der Maat",
+   "gruppe": "symbole_neu",
+   "motiv": "A raised open hand taking an oath, the tall white feather of Maat standing upright on its palm, golden light around it.",
+   "tex": "dark basalt",
+   "hinweis": "The hand is drawn like in tomb paintings, palm forward, slender fingers close together.",
+   "datei": "oath"
+  },
+  {
+   "id": "p_flink_neu",
+   "name": "Flügel des Ba",
+   "gruppe": "symbole_neu",
+   "motiv": "A ba-bird in swift flight: a golden bird body with a small human head in profile wearing a striped headcloth, a clearly human face.",
+   "tex": "dark basalt",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon.",
+   "datei": "p_flink"
+  },
+  {
+   "id": "P04",
+   "name": "Ein Erloschener",
+   "gruppe": "portraets_figuren",
+   "motiv": "a gaunt pale man who was once an imperishable star, his skin ashen grey with faint dead specks of starlight, eyes like dim embers, wrapped in a faded blue priest's robe",
+   "tex": "a dark sky with very few stars over a desert of black glass"
+  },
+  {
+   "id": "P05",
+   "name": "Ein alter Richter",
+   "gruppe": "portraets_figuren",
+   "motiv": "a very old, tired judge of the dead with a deeply lined face, a single tall white feather of Maat tied into his headband, a heavy grey linen mantle, sorrowful eyes",
+   "tex": "a dim hall of tall columns with a large golden scale in the distance"
+  },
+  {
+   "id": "P11",
+   "name": "Isis, die Klagende",
+   "gruppe": "portraets_figuren",
+   "motiv": "the goddess Isis as a grieving woman with dark braided hair and a small throne-shaped crown, large folded wings of a kite behind her shoulders, tear tracks on her cheeks",
+   "tex": "the moonlit bank of a dark river with papyrus"
+  },
+  {
+   "id": "P12",
+   "name": "Selket",
+   "gruppe": "portraets_figuren",
+   "motiv": "the goddess Selket as a calm strong woman wearing a golden crown in the shape of a scorpion, amber jewellery, a soft breath of mist before her lips",
+   "tex": "a warm desert night with dunes and a low red moon"
+  },
+  {
+   "id": "P13",
+   "name": "Der Große Kater",
+   "gruppe": "portraets_figuren",
+   "motiv": "a huge noble ginger tomcat with a golden collar and a small glowing sun disc above his head, holding a flint knife under one paw, wise golden eyes",
+   "tex": "the ruins of a sun temple at night with a single torch"
+  },
+  {
+   "id": "P14",
+   "name": "Der elfte Ruderer",
+   "gruppe": "portraets_figuren",
+   "motiv": "a sunburnt muscular oarsman of the sun barque with a linen headcloth and a long oar over his shoulder, sitting beside an empty rowing bench, quiet loyal eyes",
+   "tex": "the dark deck of a large boat on black water under stars"
+  },
+  {
+   "id": "P15",
+   "name": "Horus",
+   "gruppe": "portraets_figuren",
+   "motiv": "the god Horus as a tall warrior with the head of a falcon, wet from the river, a dripping blue-and-gold collar, holding out a hand to someone below",
+   "tex": "a dark river with drowned shapes in the water"
+  },
+  {
+   "id": "P16",
+   "name": "Die mit dem Messer",
+   "gruppe": "portraets_figuren",
+   "motiv": "a fierce goddess with wild black hair and burning amber eyes holding a long flint knife, red light from below on her face, scars of old burns on her arms",
+   "tex": "the glowing edge of a deep fire pit"
+  },
+  {
+   "id": "P17",
+   "name": "Schu",
+   "gruppe": "portraets_figuren",
+   "motiv": "the air god Shu as a strong bearded man with a single tall ostrich feather on his head, both arms raised high as if holding up the sky, wind in his clothes",
+   "tex": "a dawn-blue sky with drifting clouds above a desert"
+  },
+  {
+   "id": "P06",
+   "name": "Djau, Schafhirte",
+   "gruppe": "portraets_leute",
+   "motiv": "a lean shepherd in his thirties with a sheepskin over his shoulder and a wooden crook, worried friendly eyes",
+   "tex": "a moonlit desert hillside with a few sheep in the far distance"
+  },
+  {
+   "id": "P07",
+   "name": "Ipi, Bäuerin",
+   "gruppe": "portraets_leute",
+   "motiv": "a sturdy farm woman with a headscarf and strong hands, a sack of barley on her hip, determined face",
+   "tex": "a barley field at night with an oil lamp"
+  },
+  {
+   "id": "P08",
+   "name": "Hori, Steinmetz",
+   "gruppe": "portraets_leute",
+   "motiv": "a broad stonemason with white stone dust in his beard and on his arms, a copper chisel tucked into his belt",
+   "tex": "a half-finished temple wall with scaffolding"
+  },
+  {
+   "id": "P09",
+   "name": "Tia, Wasserträgerin",
+   "gruppe": "portraets_leute",
+   "motiv": "a young water carrier with a clay water jar on her shoulder, damp linen, quick watchful eyes",
+   "tex": "a dry well in a ruined village at night"
+  },
+  {
+   "id": "P10",
+   "name": "Nefru, ein Kind",
+   "gruppe": "portraets_leute",
+   "motiv": "a small girl with a side lock of hair and big searching eyes, holding a little woven basket for her kittens",
+   "tex": "a dark alley of mud-brick houses with a single lamp"
+  },
+  {
+   "id": "P18",
+   "name": "Chui, Eseltreiber",
+   "gruppe": "portraets_leute",
+   "motiv": "a wiry donkey driver with a rope over his shoulder and a straw hat, sly grin, dusty tunic",
+   "tex": "a dusty road at night with a donkey in the distance"
+  },
+  {
+   "id": "P19",
+   "name": "Meni, Fischer",
+   "gruppe": "portraets_leute",
+   "motiv": "a weathered fisherman with a rolled net over his arm and wet hair, salt in his stubble",
+   "tex": "a reed bank of a black river at night"
+  },
+  {
+   "id": "P20",
+   "name": "Baket, Bäckerin",
+   "gruppe": "portraets_leute",
+   "motiv": "a round cheerful baker woman with flour on her forearms and a basket of flat loaves",
+   "tex": "the warm glow of a clay bread oven at night"
+  },
+  {
+   "id": "P21",
+   "name": "Senbi, Zimmermann der Barke",
+   "gruppe": "portraets_leute",
+   "motiv": "a grey-haired carpenter with a bronze adze and wood shavings on his apron, calm careful hands",
+   "tex": "the wooden hull of a large boat under construction at night"
+  },
+  {
+   "id": "P22",
+   "name": "Iti, Wäscherin",
+   "gruppe": "portraets_leute",
+   "motiv": "a tired washerwoman with wet sleeves and a bundle of white linen, strands of hair stuck to her forehead",
+   "tex": "a stone washing place at a canal at night"
+  },
+  {
+   "id": "P23",
+   "name": "Pepi, Ziegenjunge",
+   "gruppe": "portraets_leute",
+   "motiv": "a cheeky boy of about ten years with a reed flute and a goat rope in his hand, bare feet",
+   "tex": "a rocky hillside at night with a goat silhouette"
+  },
+  {
+   "id": "P24",
+   "name": "Henut, Nachbarin",
+   "gruppe": "portraets_leute",
+   "motiv": "an older neighbour woman with a fringed shawl and many bracelets, curious knowing look",
+   "tex": "the doorway of a mud-brick house with a lamp inside"
+  },
+  {
+   "id": "w06_osiris",
+   "name": "Wand: Leib des Osiris",
+   "gruppe": "texturen_stunden",
+   "motiv": "a dark green-black granite wall with thin inlaid gold lines of Osiris figures and hieroglyph bands, polished and slightly worn",
+   "tex": ""
+  },
+  {
+   "id": "t06_osiris",
+   "name": "Boden: Leib des Osiris",
+   "gruppe": "texturen_stunden",
+   "motiv": "black basalt floor slabs covered with a thin layer of dark Nile silt and fine cracks",
+   "tex": ""
+  },
+  {
+   "id": "w07_apophis",
+   "name": "Wand: Sandbank des Apophis",
+   "gruppe": "texturen_stunden",
+   "motiv": "a crumbling mud-brick riverbank wall with wet dark sand and serpent-scale ripples pressed into it",
+   "tex": ""
+  },
+  {
+   "id": "t07_apophis",
+   "name": "Boden: Sandbank des Apophis",
+   "gruppe": "texturen_stunden",
+   "motiv": "wet dark river sand with long winding ripple marks like the tracks of a giant snake",
+   "tex": ""
+  },
+  {
+   "id": "w08_goetter",
+   "name": "Wand: Grüfte der Götter",
+   "gruppe": "texturen_stunden",
+   "motiv": "painted limestone with faded murals of gods in red ochre, blue and green, flaking plaster",
+   "tex": ""
+  },
+  {
+   "id": "t08_goetter",
+   "name": "Boden: Grüfte der Götter",
+   "gruppe": "texturen_stunden",
+   "motiv": "polished pale limestone floor slabs with faint gold dust in the joints",
+   "tex": ""
+  },
+  {
+   "id": "w09_ruderer",
+   "name": "Wand: Die Ruderer",
+   "gruppe": "texturen_stunden",
+   "motiv": "a ship hull of tightly bound papyrus reed bundles tied with ropes",
+   "tex": ""
+  },
+  {
+   "id": "t09_ruderer",
+   "name": "Boden: Die Ruderer",
+   "gruppe": "texturen_stunden",
+   "motiv": "the worn wooden deck planks of a large ancient boat with pegs and rope marks",
+   "tex": ""
+  },
+  {
+   "id": "w10_nun",
+   "name": "Wand: Die Ertrunkenen im Nun",
+   "gruppe": "texturen_stunden",
+   "motiv": "wet stone blocks covered with green river algae and white mineral crusts",
+   "tex": ""
+  },
+  {
+   "id": "t10_nun",
+   "name": "Boden: Die Ertrunkenen im Nun",
+   "gruppe": "texturen_stunden",
+   "motiv": "shallow dark water over smooth pebbles and silt with faint ripples",
+   "tex": ""
+  },
+  {
+   "id": "w11_feuer",
+   "name": "Wand: Die Feuergruben",
+   "gruppe": "texturen_stunden",
+   "motiv": "scorched red-black volcanic rock with thin glowing orange cracks",
+   "tex": ""
+  },
+  {
+   "id": "t11_feuer",
+   "name": "Boden: Die Feuergruben",
+   "gruppe": "texturen_stunden",
+   "motiv": "grey ash and scattered glowing embers on burnt ground",
+   "tex": ""
+  },
+  {
+   "id": "w12_osten",
+   "name": "Wand: Das Tor des Ostens",
+   "gruppe": "texturen_stunden",
+   "motiv": "rose granite blocks with carved sun discs, lit like early dawn",
+   "tex": ""
+  },
+  {
+   "id": "t12_osten",
+   "name": "Boden: Das Tor des Ostens",
+   "gruppe": "texturen_stunden",
+   "motiv": "golden-beige paving stones with fine carved lotus borders",
+   "tex": ""
+  },
+  {
+   "id": "ast_ermittler_klinge",
+   "name": "Ast Klinge",
+   "gruppe": "astzeichen",
+   "motiv": "A khopesh blade of hammered bronze, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_ermittler_licht",
+   "name": "Ast Licht",
+   "gruppe": "astzeichen",
+   "motiv": "A golden sun disc with straight rays, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_ermittler_eid",
+   "name": "Ast Eid",
+   "gruppe": "astzeichen",
+   "motiv": "The feather of Maat, a simple bold emblem, lapis blue glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_faust",
+   "name": "Ast Faust",
+   "gruppe": "astzeichen",
+   "motiv": "A clenched fist wrapped in linen, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_atem",
+   "name": "Ast Atem",
+   "gruppe": "astzeichen",
+   "motiv": "A billowing sail in the wind, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_moench_ka",
+   "name": "Ast Ka",
+   "gruppe": "astzeichen",
+   "motiv": "The two upraised arms of the ka sign, a simple bold emblem, turquoise glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_faecher",
+   "name": "Ast Fächer",
+   "gruppe": "astzeichen",
+   "motiv": "A fan of five arrows, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_neith",
+   "name": "Ast Neith",
+   "gruppe": "astzeichen",
+   "motiv": "Two crossed arrows over a small shield, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_jaegerin_sachmet",
+   "name": "Ast Sachmet",
+   "gruppe": "astzeichen",
+   "motiv": "The head of a lioness, a simple bold emblem, carnelian red glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_gewitter",
+   "name": "Ast Gewitter",
+   "gruppe": "astzeichen",
+   "motiv": "A forked lightning bolt, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_sterne",
+   "name": "Ast Sterne",
+   "gruppe": "astzeichen",
+   "motiv": "A five-pointed star in a ring, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "ast_forensiker_wort",
+   "name": "Ast Wort",
+   "gruppe": "astzeichen",
+   "motiv": "An open speaking mouth, a simple bold emblem, violet glow.",
+   "tex": "dark basalt"
+  },
+  {
+   "id": "g_wisp",
+   "name": "Irrender Ba",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a wandering ba soul bird with a small human face, translucent pale blue and glowing",
+   "tex": "a dark desert sky"
+  },
+  {
+   "id": "g_skorp",
+   "name": "Tefens Brut",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a large desert scorpion with its tail raised, ochre and black armour",
+   "tex": "a field of broken barley stalks at night"
+  },
+  {
+   "id": "g_lance",
+   "name": "Sebau-Krieger",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a gaunt undead spear warrior in tattered bandages with a bronze spear",
+   "tex": "a ruined mud-brick wall"
+  },
+  {
+   "id": "g_seer",
+   "name": "Sebau-Priesterin",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a hollow-eyed priestess in ritual wraps raising a glowing staff",
+   "tex": "a dim tomb corridor"
+  },
+  {
+   "id": "g_haut",
+   "name": "Sebau-Koloss",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a hulking stone-skinned giant with a cracked body, a small head and massive fists",
+   "tex": "a collapsed temple"
+  },
+  {
+   "id": "g_guard",
+   "name": "Ruheloser",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a restless mummy guardian in dark wraps with a rusty round shield",
+   "tex": "a burial chamber"
+  },
+  {
+   "id": "g_fahl",
+   "name": "Erloschener",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a pale ashen spirit whose inner light has gone out, dim ember eyes",
+   "tex": "a plain of black glass"
+  },
+  {
+   "id": "g_hohl",
+   "name": "Herzloser",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a hollow-chested figure with an empty gaping chest, cold blue glow inside",
+   "tex": "a cave full of clay jars"
+  },
+  {
+   "id": "g_boss",
+   "name": "Hüter der Stunde",
+   "gruppe": "gegner_lexikon",
+   "motiv": "a towering gate guardian with the head of a jackal, a golden collar and glowing eyes",
+   "tex": "a massive dark gate"
+  }
+ ],
+ "einbau": {
+  "hinweis": "Je Symbol: Quelle unter ComfyUI\\output ohne _00001_.png. Nach dem Lauf symbole_neu kannst du bei den sieben neu gerechneten Symbolen auf bildwerk/symbole_neu/<id>_aegypt_<a-d> umstellen. zoom < 1 schneidet enger zu (Rand und Boden weg).",
+  "symbole": {
+   "whirl": "symbole/nacht/whirl_aegypt_c",
+   "dash": "symbole/nacht/dash_aegypt_d",
+   "oath": "symbole/nacht/oath_aegypt_b",
+   "udjat": "symbole/nacht/udjat_aegypt_a",
+   "beam": "symbole/nacht/beam_aegypt_c",
+   "flurry": "symbole/nacht/flurry_aegypt_c",
+   "step": "symbole/nacht/step_aegypt_a",
+   "mantra": "symbole/nacht/mantra_aegypt_a",
+   "palm": "symbole/nacht/palm_aegypt_c",
+   "wave": "symbole/nacht/wave_aegypt_b",
+   "salve": "symbole/nacht/salve_aegypt_a",
+   "roll": "symbole/nacht/roll_aegypt_b",
+   "hetz": "symbole/nacht/hetz_aegypt_b",
+   "rain": "symbole/nacht/rain_aegypt_d",
+   "pierce": "symbole/nacht/pierce_aegypt_b",
+   "chain": "symbole/nacht/chain_aegypt_c",
+   "blink": "symbole/nacht/blink_aegypt_a",
+   "glass": "symbole/nacht/glass_aegypt_a",
+   "nova": "symbole/nacht/nova_aegypt_c",
+   "meteor": "symbole/nacht/meteor_aegypt_b",
+   "potion": "symbole/nacht/potion_aegypt_c",
+   "p_zaeh": "symbole/nacht/p_zaeh_aegypt_b",
+   "p_scharf": "symbole/nacht/p_scharf_aegypt_b",
+   "p_flink": "symbole/nacht/p_flink_aegypt_a",
+   "p_kraft": "symbole/nacht/p_kraft_aegypt_a",
+   "p_hieb": "symbole/nacht/p_hieb_aegypt_b",
+   "p_jaeger": "symbole/nacht/p_jaeger_aegypt_c",
+   "k_ermittler": "symbole/nacht/k_ermittler_aegypt_b",
+   "k_moench": "symbole/nacht/k_moench_aegypt_d",
+   "k_jaegerin": "symbole/nacht/k_jaegerin_aegypt_a",
+   "k_forensiker": "symbole/nacht/k_forensiker_aegypt_c"
+  },
+  "noch_ohne_platz": {
+   "a_wucht": "symbole/nacht/a_wucht_aegypt_a",
+   "a_eile": "symbole/nacht/a_eile_aegypt_c"
+  },
+  "symbole_zoom": {
+   "standard": 0.9
+  },
+  "portraets": {}
+ }
+}
