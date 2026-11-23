@@ -557,8 +557,10 @@ func run() -> void:
 	G.drop("shard", h.global_position, 5, "", h.global_position + Vector3(0, 0, 0.5))
 	G.drop("mat", h.global_position, 20, "staub", h.global_position + Vector3(-0.5, 0, 0))
 	var sh0 := Spiel.shards
+	# genau diese drei Stücke müssen fort sein; was der besiegte Gegner gerade noch fallen lässt, zählt nicht
+	var drei: Array = G.loot.slice(n_loot)
 	await wait(1.0)
-	check("Beute wird beim Darüberstehen aufgehoben (Scherben %d -> %d)" % [sh0, Spiel.shards], Spiel.shards >= sh0 + 5 and G.loot.size() <= n_loot)
+	check("Beute wird beim Darüberstehen aufgehoben (Scherben %d -> %d)" % [sh0, Spiel.shards], Spiel.shards >= sh0 + 5 and drei.size() == 3 and drei.all(func(b): return not G.loot.has(b)))
 	check("ein Ring für den leeren Platz wird direkt angelegt", Spiel.eq.has("ring"))
 	var ring: Dictionary = Spiel.eq.ring
 	Spiel.bag.append(Spiel.new_item(1, 1, {"slot": "ruestung"}))
