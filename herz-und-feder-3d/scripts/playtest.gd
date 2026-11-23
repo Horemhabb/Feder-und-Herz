@@ -141,6 +141,15 @@ func run() -> void:
 	G.orte.auto = false   # Orte lösen erst im eigenen Abschnitt aus, damit das Umsetzen der Figur nichts anstößt
 	check("Lebens- und Kraftkugel zeigen die Werte", is_equal_approx(G.hud.orb_hp.value, h.hp / h.max_hp) and G.hud.orb_hp.text == str(int(ceil(h.hp))))
 	check("Questbuch zeigt die Aufgaben der Stunde (%d)" % G.orte.quests.size(), G.orte.quests.size() >= 3 and G.hud.quest_box.get_child_count() >= 6)
+	# Hinweise (4.1): eine neue Figur bekommt zuerst den Hinweis zum Laufen
+	var HN: Hinweise = G.hud.hinweise
+	await wait(2.6)
+	check("Hinweis „laufen“ steht in der neuen Figur, ruhig über der Leiste", HN.aktuell == "laufen" and HN.panel.visible and "laufen" in HN.label.text and HN.panel.get_global_rect().end.y < G.hud.leiste.get_global_rect().position.y + 8.0)
+	for i in 40:   # die Blende soll ganz da sein (bei langsamem Bild dauert das)
+		if HN.panel.modulate.a >= 0.99:
+			break
+		await wait(0.1)
+	shot("hinweis")
 	var p0 := h.global_position
 	await key(KEY_D, 0.9)
 	check("D läuft (%.1f m)" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5)
@@ -169,6 +178,61 @@ func run() -> void:
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
 	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
 	await wait(0.3)
+	await wait(0.3)
+	check("Hinweis „laufen“ verschwindet nach dem Laufen und ist im Spielstand gemerkt", HN.aktuell != "laufen" and not (HN.panel.visible and "laufen" in HN.label.text) and Spiel.gesehen("hinweis_laufen"))
+	# Hinweise: kommt nicht wieder, Schalter, Angriff, Heilen, Ausweichen, Text je Eingabeart
+	var pos_vor: Vector3 = h.global_position
+	h.global_position = G.start_pos   # am Eingang ist es ruhig: in der Zeit dieses Abschnitts soll kein Gegner erwachen
+	var musik_t: float = G.sfx.mus_t   # das Stück der Stunde zählt Zeit mit: dieser Abschnitt soll es nicht verkürzen
+	HN.ausgeloest.clear()
+	HN.start_pos = Vector3.ZERO
+	HN.aktiv_t = 0.0
+	await wait(1.0)
+	check("Hinweis „laufen“ kommt nicht wieder", HN.aktuell != "laufen" and not HN.ausgeloest.has("laufen"))
+	var textfehler := 0
+	for hid in Hinweise.FOLGE:
+		for m in ["maus", "pad", "touch"]:
+			var tx := HN.text_fuer(hid, m)
+			if tx == "" or "!" in tx or tx.length() > 70:
+				textfehler += 1
+	check("Texte: für jeden Hinweis und jede Eingabeart kurz und ohne Ausrufezeichen", textfehler == 0 and "Stick" in HN.text_fuer("laufen", "pad") and "Finger" in HN.text_fuer("laufen", "touch") and "Maustaste" in HN.text_fuer("laufen", "maus"))
+	Spiel.wissen.erase("hinweis_angriff")
+	h.hits = 0
+	var hf: Foe = G.foes.filter(func(f): return f.kind != "boss").back()
+	HN.ruhe = 0.3
+	HN.nah = 100000.0   # „ein Gegner in der Nähe“, ohne einen zu wecken: irgendein lebender genügt
+	Spiel.einst["hinweise"] = 0.0
+	await wait(1.0)
+	check("Schalter „Hinweise“ aus: kein Hinweis, auch mit Gegner in der Nähe", HN.aktuell == "" and not HN.panel.visible)
+	Spiel.einst["hinweise"] = 1.0
+	Spiel.wissen.erase("hinweis_angriff")
+	h.hits = 0
+	await wait(1.5)
+	check("Schalter an: bei einem Gegner in der Nähe erscheint „angriff“", HN.aktuell == "angriff" and HN.panel.visible)
+	h.aim = hf.global_position
+	h.attack()
+	await wait(0.3)
+	check("Hinweis „angriff“ verschwindet nach dem Zuschlagen und ist gemerkt", HN.aktuell != "angriff" and Spiel.gesehen("hinweis_angriff"))
+	HN.nah = 12.0
+	h.hp = h.max_hp * 0.3
+	await wait(0.9)
+	check("Leben deutlich gesunken: Hinweis „heilen“", HN.aktuell == "heilen" and "Q" in HN.label.text)
+	await key(KEY_Q)
+	await wait(0.3)
+	check("Hinweis „heilen“ verschwindet nach dem Trinken", HN.aktuell != "heilen" and Spiel.gesehen("hinweis_heilen"))
+	Spiel.pots = Daten.POTS
+	h.cd["potion"] = 0.0
+	h.hp = h.max_hp * 0.6
+	await wait(1.2)
+	check("danach „ausweichen“, solange das Leben nicht voll ist", HN.aktuell == "ausweichen")
+	await key(KEY_SPACE)
+	await wait(0.3)
+	check("Hinweis „ausweichen“ verschwindet nach dem Ausweichschritt", HN.aktuell != "ausweichen" and Spiel.gesehen("hinweis_ausweichen"))
+	h.hp = h.max_hp
+	await wait(1.0)
+	HN.ruhe = 2.5
+	G.sfx.mus_t = musik_t
+	h.global_position = pos_vor
 	p0 = h.global_position
 	var vs := get_viewport().get_visible_rect().size
 	mouse(vs * Vector2(0.35, 0.62), MOUSE_BUTTON_LEFT, true)
@@ -250,9 +314,13 @@ func run() -> void:
 	check("ein Ring für den leeren Platz wird direkt angelegt", Spiel.eq.has("ring"))
 	var ring: Dictionary = Spiel.eq.ring
 	Spiel.bag.append(Spiel.new_item(1, 1, {"slot": "ruestung"}))
+	Spiel.neu = 1   # ein Teil ist in der Tasche gelandet (eben angelegt wurde es nicht)
+	await wait(3.5)
+	check("erste Beute in der Tasche: Hinweis „tasche“", HN.aktuell == "tasche" and "I" in HN.label.text)
 	await key(KEY_I)
 	await wait(0.3)
 	check("I öffnet die Tasche, Spiel steht", G.hud.bag_open and get_tree().paused and G.hud.overlay != null)
+	check("Hinweis „tasche“ ist erledigt und gemerkt", HN.aktuell != "tasche" and Spiel.gesehen("hinweis_tasche"))
 	shot("tasche")
 	Spiel.equip(Spiel.bag.size() - 1)
 	h.apply_stats()

@@ -60,6 +60,7 @@ var tasche_btn: Button
 var tree_btn: Button
 var l_quer: Label          # Hinweis, das Handy quer zu halten
 var intro_fall := 1        # im Startbildschirm gewählte Stunde
+var hinweise: Hinweise     # kleine Hinweise in der ersten Stunde einer neuen Figur
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 
 func _ready() -> void:
@@ -297,6 +298,11 @@ func _ready() -> void:
 	punkt_tw = create_tween().set_loops()
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(1.25, 1.2, 1.0, 1.0), 0.7)
 	punkt_tw.tween_property(punkt_btn, "modulate", Color(0.85, 0.85, 0.85, 1.0), 0.7)
+	# Hinweise für neue Figuren (scripts/hinweise.gd)
+	hinweise = Hinweise.new()
+	hinweise.hud = self
+	hinweise.game = game
+	add_child(hinweise)
 
 # Herzwaage: links die Feder der Maat, rechts das Herz. Ein leichtes Herz steigt, ein schweres sinkt.
 func _draw_waage() -> void:

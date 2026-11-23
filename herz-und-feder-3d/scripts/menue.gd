@@ -175,6 +175,10 @@ func _regler(name: String, key: String) -> void:
 
 func _einstellungen() -> void:
 	_kopf("Einstellungen")
+	add_child(hud._label("HILFE", 12, Hud.GOLD))
+	_schalter("Hinweise für neue Figuren", "An" if float(Spiel.einst.get("hinweise", 1.0)) > 0.5 else "Aus", func():
+		Spiel.einst["hinweise"] = 0.0 if float(Spiel.einst.get("hinweise", 1.0)) > 0.5 else 1.0
+		Spiel.einst_speichern())
 	add_child(hud._label("TON", 12, Hud.GOLD))
 	_schalter("Ton", "Aus" if game.sfx.muted else "An", func(): game.sfx.set_muted(not game.sfx.muted))
 	_regler("Lautstärke gesamt", "laut")
