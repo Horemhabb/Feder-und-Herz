@@ -13,7 +13,7 @@
 # und stellt alle Rueckfragen vor dem Start, damit die Nacht nicht an einer Frage haengen bleibt.
 import ctypes, datetime, glob, json, os, re, subprocess, sys, time, urllib.error, urllib.request, uuid
 
-VERSION = "5.0.0"   # muss zur "version" in bildwerk_plan.json passen
+VERSION = "5.1.0"   # muss zur "version" in bildwerk_plan.json passen
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 SERVER = os.environ.get("COMFY_SERVER", "http://127.0.0.1:8188")
 PLAN = os.path.join(ROOT, "bildwerk_plan.json")

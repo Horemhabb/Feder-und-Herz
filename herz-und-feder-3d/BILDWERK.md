@@ -1,6 +1,6 @@
 # Bildwerk: Masterplan für die Bilder des Spiels
 
-Stand 23.11.2026, nach der ersten Nachtschicht (132 Symbole in 6 h 19 min, kein Fehlschlag).
+Version 5.1.0. Stand 23.11.2026, nach der ersten Nachtschicht (132 Symbole in 6 h 19 min, kein Fehlschlag).
 
 Ziel: Der PC rechnet nachts mit ComfyUI (Z-Image Turbo, RX 6800 XT), tagsüber wird ausgewählt und eingebaut.
 Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). Was erzeugt ist, soll schnell im Spiel sichtbar werden.
@@ -36,6 +36,7 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 9. **Neue Stile zuerst als Probe** mit gleichem Seed gegen den alten Stil, erst dann in die Nacht.
 10. **Höchstens etwa ein Megapixel**, Entschlüsseln in Kacheln (AMD-Treiber). Etwa 3 Minuten je Bild, eine Nacht reicht für 110 bis 120 Bilder.
 11. **Lange Prompts kosten Zeit** (Text-Encoder auf dem Prozessor): etwa 25 Sekunden je Bild.
+12. **Licht nur als Farbe beschreiben.** „moonlight“ und „oil-lamp“ werden wörtlich gemalt: Mond und moderne Sturmlaterne in jedem Porträt. Kleidung als schlichtes Leinen benennen, sonst kommen Ledergürtel, Schürzen und Strohhüte.
 
 ## 3. Stufen, die jetzt bereit sind
 
@@ -47,6 +48,7 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 | 4 | `texturen_stunden`: Wand und Boden der Stunden 6 bis 12 | 56 | 2 h 52 | erst nach Code | Naht glätten und Normalenkarte wie `tools/texturen.py`, dann `main.gd` erweitern (Claude) |
 | 5 | `astzeichen`: zwölf Zeichen der Äste | 48 | 2 h 28 | noch kein Platz | Baum (`baum.gd`) müsste sie zeigen |
 | 6 | `gegner_lexikon`: neun Gegner als Büste | 36 | 1 h 49 | noch kein Platz | ein Lexikon im Buch des Thot wäre nötig |
+| 7 | `portraets_leute_nah`: die zwölf Leute, zweiter Anlauf (nah, Leinen, ohne Mond und Laterne) | 48 | 2 h 25 | ja, im Gesprächsfenster | ersetzt Stufe 3, die Mond und Sturmlaterne in jedem Bild zeigte |
 
 **Vorschlag für die Nächte**
 - **Nacht 2:** Stufen 1, 2, 3 (etwa 5 h 40). Danach ist jede Gesprächsfigur mit Gesicht möglich, das ist der größte sichtbare Gewinn.

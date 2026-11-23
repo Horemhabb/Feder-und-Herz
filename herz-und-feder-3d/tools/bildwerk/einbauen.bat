@@ -14,7 +14,7 @@ import glob, json, os, shutil, subprocess, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 PLAN = os.path.join(ROOT, "bildwerk_plan.json")
 OUTPUT = os.path.join(ROOT, "ComfyUI", "output")

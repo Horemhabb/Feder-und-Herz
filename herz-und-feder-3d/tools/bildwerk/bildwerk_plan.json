@@ -1,5 +1,5 @@
 {
- "version": "5.0.0",
+ "version": "5.1.0",
  "hinweis": "Plan für bildwerk.bat und einbauen.bat. Alle Texte stehen hier, die Skripte enthalten keine. Keine Zahlen und Prozentzeichen in Prompts.",
  "regeln": [
   "Keine Ziffern und kein Prozentzeichen im Prompt: Z-Image malt sie als Schrift ins Bild (aus '80%' wurden %, 0% und 9%).",
@@ -12,7 +12,8 @@
   "Hände und Füße bekommen oft vier Finger oder Zehen: verdecken (Bandagen, Sandalen) oder in der Auswahl meiden.",
   "Neue Stile erst als Probe mit gleichem Seed gegen den alten Stil prüfen, dann in die Nacht.",
   "Höchstens etwa ein Megapixel, Entschlüsseln in Kacheln (AMD-Treiber). Etwa drei Minuten je Bild, eine Nacht reicht für gut hundert Bilder.",
-  "Lange Prompts kosten Zeit (Text-Encoder auf dem Prozessor): etwa 25 Sekunden mehr je Bild."
+  "Lange Prompts kosten Zeit (Text-Encoder auf dem Prozessor): etwa 25 Sekunden mehr je Bild.",
+  "Licht nur als Farbe beschreiben: 'moonlight' und 'oil-lamp' werden wörtlich gemalt (Mond und moderne Sturmlaterne in jedem Bild). Kleidung als schlichtes Leinen benennen, sonst kommen Ledergürtel, Schürzen und Strohhüte."
  ],
  "stile": {
   "alt": {
@@ -42,6 +43,10 @@
   "lexikon": {
    "beschreibung": "Bilder fürs Lexikon der Gegner: dunkle Büste, dramatisches Licht, im Stil der Porträts.",
    "text": "Cinematic dark fantasy creature portrait, head and upper body, of {MOTIV} {HINWEIS} {ANSICHT} The Egyptian underworld at night, dramatic low light, cold moonlight and a red ember glow, fine realistic detail on wrappings, bronze and stone. Behind it {TEX}, softly out of focus. The picture shows only the creature and the blurred scene, nothing written anywhere."
+  },
+  "portraet_nah": {
+   "beschreibung": "Nahes Porträt für Leute des Dorfes: Kopf und Schultern füllen das Bild, Kleidung aus schlichtem Leinen, kein Mond, keine Lampe im Bild, Licht nur als Farbe. Ohne Markennamen, ohne Zahlen.",
+   "text": "Cinematic photorealistic close portrait, only head and shoulders, the face fills a large part of the picture, of {MOTIV} {HINWEIS} {ANSICHT} The scene is ancient Egypt, the land of the dead. The person wears only plain undyed linen, a simple wrap kilt or a straight linen dress with bare arms, perhaps a collar of small blue faience beads, black kohl around the eyes. Soft cool blue light falls from above, a faint warm amber glow touches one side of the face, a faint turquoise shimmer hangs in the air. Fine realistic detail of skin, hair and worn linen, calm intense expression. Behind the person {TEX}, completely out of focus, only soft shapes and color. Muted earthy colors against deep night blue. The picture shows only the person and the blurred background, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -62,6 +67,12 @@
    "b": "",
    "c": "",
    "d": ""
+  },
+  "portraet_nah": {
+   "a": "",
+   "b": "The person is slightly turned to one side and looks past the viewer.",
+   "c": "The person looks directly at the viewer.",
+   "d": "Seen from a slightly lower angle, with a little more dramatic light."
   }
  },
  "seeds": {
@@ -184,6 +195,25 @@
    "breite": 896,
    "hoehe": 1152,
    "im_spiel": "noch kein Platz im Spiel"
+  },
+  "portraets_leute_nah": {
+   "titel": "Porträts der Leute, zweiter Anlauf: nah, Leinen, ohne Mond und Laterne",
+   "gruppen": [
+    "leute_nah"
+   ],
+   "stile": [
+    "portraet_nah"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "ja, nach einbauen.bat"
   }
  },
  "motive": [
@@ -640,6 +670,90 @@
    "gruppe": "gegner_lexikon",
    "motiv": "a towering gate guardian with the head of a jackal, a golden collar and glowing eyes",
    "tex": "a massive dark gate"
+  },
+  {
+   "id": "P06",
+   "name": "Djau, Schafhirte",
+   "gruppe": "leute_nah",
+   "motiv": "a lean young shepherd with short dark curly hair, a sheepskin over one shoulder and a wooden crook beside him, worried friendly eyes",
+   "tex": "a pale desert hillside in soft haze"
+  },
+  {
+   "id": "P07",
+   "name": "Ipi, Bäuerin",
+   "gruppe": "leute_nah",
+   "motiv": "a sturdy farm woman with a plain linen headcloth and strong bare arms, a few ears of barley at her shoulder, determined face",
+   "tex": "golden barley stalks"
+  },
+  {
+   "id": "P08",
+   "name": "Hori, Steinmetz",
+   "gruppe": "leute_nah",
+   "motiv": "a broad stonemason with a grey beard dusted white with stone powder, a copper chisel in his hand, calm tired eyes",
+   "tex": "a wall of pale sandstone blocks"
+  },
+  {
+   "id": "P09",
+   "name": "Tia, Wassträgerin",
+   "gruppe": "leute_nah",
+   "motiv": "a young woman with a short black wig, damp linen dress and a clay water jar on her shoulder, quick watchful eyes",
+   "tex": "a mud-brick village wall"
+  },
+  {
+   "id": "P10",
+   "name": "Nefru, ein Kind",
+   "gruppe": "leute_nah",
+   "motiv": "a small girl with a side lock of dark hair and big searching eyes, holding two tiny kittens in her arms",
+   "tex": "a mud-brick alley in soft shadow"
+  },
+  {
+   "id": "P18",
+   "name": "Chui, Eseltreiber",
+   "gruppe": "leute_nah",
+   "motiv": "a wiry donkey driver with a shaved head and a plain linen headcloth, a rope over his shoulder, sly grin, dusty skin",
+   "tex": "a dusty road with the soft shape of a donkey"
+  },
+  {
+   "id": "P19",
+   "name": "Meni, Fischer",
+   "gruppe": "leute_nah",
+   "motiv": "a weathered fisherman with a rolled fishing net over his shoulder, wet hair, salt in his stubble",
+   "tex": "tall reeds along a dark river"
+  },
+  {
+   "id": "P20",
+   "name": "Baket, Bäckerin",
+   "gruppe": "leute_nah",
+   "motiv": "a round cheerful baker woman with a white linen cap, flour on her cheeks and arms, holding flat loaves of bread",
+   "tex": "the soft orange glow of a clay bread oven"
+  },
+  {
+   "id": "P21",
+   "name": "Senbi, Zimmermann der Barke",
+   "gruppe": "leute_nah",
+   "motiv": "a grey-haired carpenter with a bronze adze in his hand and wood shavings on his shoulders, calm careful eyes",
+   "tex": "the curved wooden hull of a large boat"
+  },
+  {
+   "id": "P22",
+   "name": "Iti, Wäscherin",
+   "gruppe": "leute_nah",
+   "motiv": "a tired washerwoman with wet linen sleeves and a bundle of white linen in her arms, strands of hair stuck to her forehead",
+   "tex": "a stone washing place by a canal"
+  },
+  {
+   "id": "P23",
+   "name": "Pepi, Ziegenjunge",
+   "gruppe": "leute_nah",
+   "motiv": "a cheeky boy of about ten years with a shaved head and a side lock of hair, a reed flute at his lips",
+   "tex": "a rocky hillside with the soft shape of a goat"
+  },
+  {
+   "id": "P24",
+   "name": "Henut, Nachbarin",
+   "gruppe": "leute_nah",
+   "motiv": "an older neighbour woman with a fringed linen shawl, many bracelets and a curious knowing look",
+   "tex": "the doorway of a mud-brick house"
   }
  ],
  "einbau": {
