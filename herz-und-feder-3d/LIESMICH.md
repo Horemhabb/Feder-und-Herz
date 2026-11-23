@@ -1,8 +1,8 @@
-# Herz und Feder · 3D-Fassung 2.7.1
+# Herz und Feder · 3D-Fassung 4.0
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
-Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
-ob sich Bewegung, Licht und Ton in 3D echter anfühlen.
+Diese Fassung ist das Spiel. Der Ordner `nebelmark/` enthält die frühere Webfassung in HTML und wird nicht weiterentwickelt.
+Was als Nächstes dran ist, steht in `FAHRPLAN.md`.
 
 ## So startest du die Probe (Windows)
 

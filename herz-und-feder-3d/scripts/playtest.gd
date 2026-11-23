@@ -48,6 +48,8 @@ func check(what: String, cond: bool) -> void:
 
 func shot(tag: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://test_out"))
+	if DisplayServer.get_name() == "headless":
+		return   # ohne Bildschirm (Prüfung beim Bauen) gibt es kein Bild
 	get_viewport().get_texture().get_image().save_png("res://test_out/pt_%s.png" % tag)
 
 func _ready() -> void:
@@ -599,4 +601,4 @@ func run() -> void:
 		await wait(1.0)
 		check("Bitte: das verlorene Stück wird gefunden und gemeldet", bp.auftrag.stand == "gefunden")
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
-	get_tree().quit()
+	get_tree().quit(1 if bad > 0 else 0)   # Fehlercode für die Prüfung beim Bauen (bauen.yml)
