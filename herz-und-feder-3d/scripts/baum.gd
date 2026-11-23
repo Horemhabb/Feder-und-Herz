@@ -308,6 +308,13 @@ class BaumBild extends Control:
 				return Klassen.portrait(Spiel.cls)
 		return null
 
+	# Anteil, den man von jedem Rand der Symbole abschneidet (Goldrahmen und Ecken, siehe ui/symbole/)
+	const RAHMEN_RAND := 0.09
+
+	# Symbole aus ui/symbole/ tragen einen Rahmen; Porträt und gezeichnete Zeichen nicht
+	static func rahmen_ab(tex: Texture2D) -> bool:
+		return tex.resource_path.begins_with("res://ui/symbole/")
+
 	static func radius(art: String) -> float:
 		return {"stamm": 34.0, "faehigkeit": 30.0, "staerke": 24.0, "blatt": 15.0, "schluessel": 32.0}.get(art, 20.0)
 
@@ -414,7 +421,25 @@ class BaumBild extends Control:
 					draw_circle(p, r, Color(0.1, 0.09, 0.11))
 					draw_arc(p, r, 0, TAU, 40, ring, 3.0, true)
 			var tex := symbol(k)
-			if tex:
+			if tex and rahmen_ab(tex):
+				# Symbole mit eingebranntem Rahmen: nur das Innere zeigen, an der Form des Knotens abgeschnitten
+				var halb := r * 1.25 if n.art in ["staerke", "schluessel"] else r
+				var rand := halb - 2.0   # knapp innerhalb des Rings
+				var form := PackedVector2Array()
+				if n.art in ["staerke", "schluessel"]:
+					form = PackedVector2Array([Vector2(0, -rand), Vector2(rand, 0), Vector2(0, rand), Vector2(-rand, 0)])
+				else:
+					for i in 40:
+						form.append(Vector2.from_angle(i * TAU / 40.0) * rand)
+				var uvs := PackedVector2Array()
+				for q in form:
+					uvs.append(Vector2(RAHMEN_RAND, RAHMEN_RAND) + (q / (halb * 2.0) + Vector2(0.5, 0.5)) * (1.0 - 2.0 * RAHMEN_RAND))
+				var farbe := Color.WHITE if gel else Color(0.55, 0.52, 0.5, 0.85)
+				var pts := PackedVector2Array()
+				for q in form:
+					pts.append(p + q)
+				draw_colored_polygon(pts, farbe, uvs, tex)
+			elif tex:
 				var s := r * (1.5 if n.art != "stamm" else 1.7)
 				draw_texture_rect(tex, Rect2(p - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color.WHITE if gel or n.art == "stamm" else Color(0.55, 0.52, 0.5, 0.85))
 			elif n.art == "blatt":
