@@ -264,5 +264,9 @@ static func urteil(n: int) -> String:
 			return "DAS URTEIL: WAHR AN STIMME. Die Feder sinkt, dein Herz steigt. Thot schreibt deinen Namen in das Buch, und Schu hebt dich mit der Sonne über den Horizont. In Sandtor wird es Morgen. Im Norden, wo ein Platz am Himmel leer war, geht ein Stern auf, der nie mehr untergeht."
 		if h <= SCHWER:
 			return "DAS URTEIL: ZU SCHWER. Die Schale sinkt. Die Fresserin steht auf. Da tritt ein Schatten zwischen euch, und er trägt den Schurz eines Richters. „Jetzt verstehst du mich“, sagt er und hält dir einen Krug hin. Auf dem Siegel steht dein Name. Die Nacht beginnt von vorn, und diesmal trägst du keine Laterne. Du trägst Krüge."
-		return "DAS URTEIL: IN DER SCHWEBE. Die Waage findet keine Seite. Thot legt die Binse weg und sieht dich lange an. „Es fehlt ein Fährmann“, sagt er. Am Ufer liegt ein Ruder aus Zedernholz. Du kennst es. Jede Nacht kommen Lichter gegen den Wind, und einer muss sie übersetzen."
+		# das Ruder am Ufer hängt an der Wahl der ersten Stunde: aufgehoben (oder nie gefunden) oder verbrannt
+		var ruder := "Am Ufer liegt ein Ruder aus Zedernholz. Du kennst es."
+		if Spiel.wahl.get("1", "") == "isfet":
+			ruder = "Am Ufer liegt ein Ruder aus Treibholz, grob gebunden. Das aus Zedernholz hast du verbrannt, und sein Rauch hängt noch in deiner Laterne."
+		return "DAS URTEIL: IN DER SCHWEBE. Die Waage findet keine Seite. Thot legt die Binse weg und sieht dich lange an. „Es fehlt ein Fährmann“, sagt er. " + ruder + " Jede Nacht kommen Lichter gegen den Wind, und einer muss sie übersetzen."
 	return ""

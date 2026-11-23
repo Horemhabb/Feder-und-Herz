@@ -1,6 +1,6 @@
 # Bildwerk: Masterplan für die Bilder des Spiels
 
-Version 5.1.0. Stand 23.11.2026, nach der ersten Nachtschicht (132 Symbole in 6 h 19 min, kein Fehlschlag).
+Version 5.2.0. Stand 23.11.2026, nach der ersten Nachtschicht (132 Symbole in 6 h 19 min, kein Fehlschlag).
 
 Ziel: Der PC rechnet nachts mit ComfyUI (Z-Image Turbo, RX 6800 XT), tagsüber wird ausgewählt und eingebaut.
 Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). Was erzeugt ist, soll schnell im Spiel sichtbar werden.
@@ -49,12 +49,18 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 | 5 | `astzeichen`: zwölf Zeichen der Äste | 48 | 2 h 28 | noch kein Platz | Baum (`baum.gd`) müsste sie zeigen |
 | 6 | `gegner_lexikon`: neun Gegner als Büste | 36 | 1 h 49 | noch kein Platz | ein Lexikon im Buch des Thot wäre nötig |
 | 7 | `portraets_leute_nah`: die zwölf Leute, zweiter Anlauf (nah, Leinen, ohne Mond und Laterne) | 48 | 2 h 25 | ja, im Gesprächsfenster | ersetzt Stufe 3, die Mond und Sturmlaterne in jedem Bild zeigte |
+| 9 | `texturen_neu`: alle 17 vorhandenen Texturen (Wände w01–w05, Böden t06 t07 t09–t12, Fels f01, Requisiten p01–p05) als Auswahl neben den alten | 51 (je 3 Varianten) | 2 h 35 | ja, ersetzt die gleichnamigen Dateien | `einbauen.bat texturen`: Helligkeit ausgleichen, Naht glätten, Normalenkarte |
 | 8 | `portraets_figuren_nah`: Erloschener, Richter, sieben Götter, zweiter Anlauf | 36 | 1 h 49 | ja, im Gesprächsfenster | ersetzt die Übergangsporträts aus Stufe 2 |
 
 **Vorschlag für die Nächte**
 - **Nacht 2:** Stufen 1, 2, 3 (etwa 5 h 40). Danach ist jede Gesprächsfigur mit Gesicht möglich, das ist der größte sichtbare Gewinn.
 - **Nacht 3:** Stufe 4 und 5 (etwa 5 h 20). Parallel baut Claude den Code für die neuen Texturen.
 - **Nacht 4:** Stufe 6 plus die ersten Stufen aus Abschnitt 4.
+
+### Texturen im Einbau
+
+`einbauen.bat texturen` liest `einbau.texturen` (Spieldatei → Quelle), gleicht den Lichtverlauf aus, blendet große Sprünge an der Naht über, glättet die Naht und erzeugt die Normalenkarte (`_n.jpg`, ohne Relief nur für `texturen_ohne_relief`). Ergebnis: `textures/<name>.jpg` (1024 × 1024). Test mit einem absichtlich nicht kachelbaren Bild: Naht von 26 auf 0,75 (1 = so glatt wie das Bild selbst).
+**Stunden 6 bis 12** haben im Spiel noch keine eigenen Oberflächen (`welt.gd › LOOK` kennt nur vier Stundenarten plus Freiland, `main.gd › SURF` die Dateinamen). Für Stufe 4 braucht es dort neue Einträge (Claude).
 
 ## 4. Spätere Stufen (noch nicht im Plan)
 

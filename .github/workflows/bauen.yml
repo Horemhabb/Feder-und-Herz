@@ -1,12 +1,14 @@
 name: Bauen und veröffentlichen
 
-# Baut bei jedem Push nach main die Web-Fassung von herz-und-feder-3d und stellt sie auf GitHub Pages
+# Prüft bei jedem Pull Request (Spieltest) und baut bei jedem Push nach main die Web-Fassung von herz-und-feder-3d und stellt sie auf GitHub Pages
 # (Adresse steht im Lauf unter „deploy“). Mac und Windows ruhen vorerst: Ihre Voreinstellungen liegen in
 # export_presets.cfg, über die Plattformen wird am Ende entschieden.
+# Der Job „fotos“ (nur bei Pull Requests) nimmt Bildschirmfotos aller zwölf Stunden auf; er hält den Bau nie auf.
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -58,6 +60,13 @@ jobs:
           ~/godot/godot --headless --path $PROJEKT --import || true
           ~/godot/godot --headless --path $PROJEKT --import
 
+      - name: Spieltest (bricht den Bau ab, bevor etwas veröffentlicht wird)
+        run: |
+          set -o pipefail
+          timeout 900 ~/godot/godot --headless --path $PROJEKT -- --neu --playtest --seed=1 2>&1 | tee spieltest.log | grep -E "^SPIELTEST|  FEHLER  |SCRIPT ERROR" || true
+          grep -q "^SPIELTEST: [0-9]* ok, 0 Fehler" spieltest.log || { echo "Der Spieltest ist nicht sauber durchgelaufen."; tail -40 spieltest.log; exit 1; }
+          if grep -q "SCRIPT ERROR" spieltest.log; then echo "Skriptfehler im Spieltest:"; grep -A3 "SCRIPT ERROR" spieltest.log | head -40; exit 1; fi
+
       - name: Web-Fassung exportieren
         run: |
           set -e
@@ -74,7 +83,62 @@ jobs:
         with:
           path: ${{ env.PROJEKT }}/build/web
 
+  # Bildschirmfotos für den Pull Request: Software-Grafik unter xvfb, Bilder als Artefakt „bildschirmfotos“.
+  # Läuft neben „bauen“, nie davor oder danach, und färbt den Lauf nicht rot, wenn er scheitert.
+  fotos:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot aus dem Zwischenspeicher
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-nurweb-v2
+
+      - name: Godot laden
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          V=$GODOT_VERSION
+          B=https://github.com/godotengine/godot-builds/releases/download/$V-stable
+          mkdir -p ~/godot
+          curl -sSL -o g.zip $B/Godot_v$V-stable_linux.x86_64.zip
+          unzip -q -o g.zip -d ~/godot && rm g.zip
+          mv ~/godot/Godot_v$V-stable_linux.x86_64 ~/godot/godot
+
+      - name: Bildschirm ohne Grafikkarte (xvfb, Mesa)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libglx-mesa0 libegl1 libxcursor1 libxinerama1 libxi6 libxrandr2 libxkbcommon0 libfontconfig1 libasound2t64
+
+      - name: Projekt importieren
+        run: |
+          ~/godot/godot --headless --path $PROJEKT --import || true
+          ~/godot/godot --headless --path $PROJEKT --import
+
+      - name: Fotos aufnehmen
+        run: |
+          mkdir -p $PROJEKT/test_out/fotos
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 900 xvfb-run -a -s "-screen 0 1280x720x24" ~/godot/godot --path $PROJEKT --rendering-driver opengl3 --resolution 1280x720 -- --neu --fotos --seed=1 2>&1 | tee $PROJEKT/test_out/fotos/fotos.log | grep -E "^FOTOS|  FEHLER  |SCRIPT ERROR" || true
+          grep -q "^FOTOS: [0-9]* Bilder, 0 Fehler" $PROJEKT/test_out/fotos/fotos.log
+
+      - name: Bilder als Artefakt „bildschirmfotos“ hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bildschirmfotos
+          path: ${{ env.PROJEKT }}/test_out/fotos
+          if-no-files-found: warn
+
   deploy:
+    if: github.event_name != 'pull_request'
     needs: bauen
     runs-on: ubuntu-latest
     environment:

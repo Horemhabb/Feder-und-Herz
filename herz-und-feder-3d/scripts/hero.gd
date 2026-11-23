@@ -45,6 +45,9 @@ func _ready() -> void:
 	cls = Spiel.cls if Klassen.CLS.has(Spiel.cls) else "ermittler"
 	C = Klassen.CLS[cls]
 	ANIM = C.anim
+	a_idle = ANIM.idle
+	a_walk = ANIM.walk
+	a_run = ANIM.run
 	ORDER = Klassen.order(cls)
 	for id in ORDER:
 		SK[id] = Klassen.SK[id]
@@ -237,14 +240,14 @@ func _physics_process_innen(delta: float) -> void:
 	turn(delta)
 	if busy <= 0.0:
 		var sp := vel.length()
+		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
+		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
 		if sp > 0.6:
-			play(ANIM.run, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
 				step_t = 0.31
 				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
 		else:
-			play(ANIM.idle)
 			step_t = 0.1
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
@@ -557,6 +560,9 @@ func hurt(amount: float, from: Vector3, src: Foe = null) -> void:
 		a *= 0.7
 	hp -= a
 	flash()
+	zucken(from, 1.0 + 4.0 * a / max_hp)
+	if a >= max_hp * 0.2:
+		game.trefferstopp()   # schwerer Treffer: kurzer Trefferstopp
 	kb += flat(global_position - from).normalized() * 4.0
 	game.shake = maxf(game.shake, 0.35)
 	game.sfx.play("hurt", 0.1)

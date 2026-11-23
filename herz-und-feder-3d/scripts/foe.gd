@@ -130,6 +130,9 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		r_px = K.r
 		sc = K.get("scale", 1.0)
 	K["typ"] = typ
+	a_idle = ANIM.idle
+	a_walk = ANIM.walk
+	a_run = ANIM.run
 	var T: Dictionary = Daten.ET[typ]
 	# 4.0 (A4): auf jeder Stufe um ein Viertel schwerer, auch auf „Normal“
 	max_hp = T.hp * 1.55 * pow(1.28, F - 1) * D.hp * HAERTER * (float(hdef.boss.hp) if k == "boss" and hdef.has("boss") else 1.0)
@@ -232,8 +235,9 @@ func _reigen(delta: float) -> void:
 	var ziel := reigen_c + lok.rotated(Vector3.UP, home_face)
 	var dir := flat(ziel - global_position)
 	if dir.length() > 0.15:
-		_go(dir.normalized(), spd * clampf(dir.length() * 0.35, 0.15, 0.55), delta)
-		play(ANIM.walk if ap and ap.has_animation(ANIM.walk) else ANIM.run, 0.7)
+		var tempo := spd * clampf(dir.length() * 0.35, 0.15, 0.55)
+		_go(dir.normalized(), tempo, delta)
+		fortbewegen(tempo, 0.7, ANIM.walk)
 	else:
 		play(ANIM.idle)
 
@@ -512,7 +516,7 @@ func _physics_process_innen(delta: float) -> void:
 	if rueckzug_t > 0.0 and stun <= 0.0:
 		rueckzug_t -= delta
 		_go(-dirn, spd * 1.05, delta)
-		play(ANIM.run)
+		fortbewegen(spd * 1.05)
 		return
 	# Eigenheit des zweiten Aktes: Zähigkeit. Wer vier Sekunden nicht getroffen wurde, heilt 2 % je Sekunde.
 	ruhe_seit += delta
@@ -520,7 +524,7 @@ func _physics_process_innen(delta: float) -> void:
 		hp = minf(max_hp, hp + max_hp * 0.02 * delta)
 	if fear_t > 0.0 and stun <= 0.0 and kind != "boss":
 		_go(-dirn, spd * 1.15, delta)
-		play(ANIM.run)
+		fortbewegen(spd * 1.15)
 		return
 	if stun > 0.0:
 		wind = 0.0
@@ -592,7 +596,7 @@ func _physics_process_innen(delta: float) -> void:
 	if move.length() > 0.05:
 		if wind <= 0.0:
 			face = atan2(move.x, move.z) if speed >= spd * 0.7 else atan2(dirn.x, dirn.z)
-		play(ANIM.run if kind != "boss" else ANIM.walk, clampf(speed / maxf(spd, 0.1), 0.4, 1.4) * (1.0 if kind != "boss" else 1.3))
+		fortbewegen(speed, clampf(speed / maxf(spd, 0.1), 0.4, 1.4) * (1.0 if kind != "boss" else 1.3), ANIM.run if kind != "boss" else ANIM.walk)
 	elif wind <= 0.0 and act_t <= 0.0:
 		face = atan2(dirn.x, dirn.z)
 		play(ANIM.idle)
@@ -684,7 +688,7 @@ func _idle(delta: float, h: Hero) -> void:
 			if dir.length() > 0.6:
 				var md := _toward(target, dir.normalized(), delta)
 				_go(md, spd * 0.4, delta)
-				play(ANIM.walk if ap and ap.has_animation(ANIM.walk) else ANIM.run, 0.8)
+				fortbewegen(spd * 0.4, 0.8, ANIM.walk)
 			else:
 				play(ANIM.idle)
 		"ruhe":
@@ -694,7 +698,7 @@ func _idle(delta: float, h: Hero) -> void:
 				var back := flat(home - global_position)
 				var dir := back.normalized() if back.length() > 4.4 else Vector3(sin(home_face + idle_t), 0, cos(home_face + idle_t))
 				_go(dir, spd * 0.3, delta)
-				play(ANIM.walk if ap and ap.has_animation(ANIM.walk) else ANIM.run, 0.6)
+				fortbewegen(spd * 0.3, 0.6, ANIM.walk)
 			else:
 				play(ANIM.idle)
 		_:
@@ -952,6 +956,10 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false
 	if aktende == 1 and hp > 0.0:
 		_phase_pruefen()
 	flash()
+	zucken(from, (1.6 if crit else 1.0) / (2.0 if kind == "boss" else 1.0))
+	# schwerer Treffer (Krit oder mehr als ein Drittel des Lebens auf einmal): kurzer Trefferstopp
+	if crit or amount >= max_hp * 0.34:
+		game.trefferstopp()
 	var k := push / (8.0 if kind == "boss" else (3.0 if K.ai == "slam" else 1.0))
 	kb += flat(global_position - from).normalized() * k
 	if stun_t > 0.0:

@@ -193,6 +193,10 @@ func _ready() -> void:
 			var bt: Node = load("res://scripts/bosstest.gd").new()
 			bt.name = "Bosstest"
 			get_tree().root.add_child.call_deferred(bt)
+		if Fotos.laeuft() and not get_tree().root.has_node("Fotos"):
+			var ft: Node = load("res://scripts/fotos.gd").new()
+			ft.name = "Fotos"
+			get_tree().root.add_child.call_deferred(ft)
 		if "--playtest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Playtest"):
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
@@ -233,7 +237,7 @@ func begin() -> void:
 		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
 		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0)
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
-	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args()
+	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or Fotos.laeuft()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
 		get_tree().create_timer(1.4).timeout.connect(func():
 			if hud.overlay == null and not get_tree().paused and not hero.dead:
@@ -781,10 +785,16 @@ func _impact(n: int, at: Vector3) -> void:
 		return
 	sfx.play_at("hit", at, 0.12)
 	shake = maxf(shake, 0.22 + 0.05 * n)
-	# kurzer Stillstand beim Treffer: gibt dem Hieb Gewicht
-	if autotest == null:
-		Engine.time_scale = 0.08
-		get_tree().create_timer(0.05, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+# Trefferstopp: Die Zeit steht für einen Herzschlag fast still und gibt dem Hieb Gewicht. Früher bei jedem Treffer,
+# jetzt nur bei schweren (Foe.hit, Hero.hurt) und höchstens alle 0,4 s, sonst stottert ein langer Kampf.
+var stopp_bis := 0
+func trefferstopp(dauer := 0.07) -> void:
+	if autotest != null or Time.get_ticks_msec() < stopp_bis:
+		return
+	stopp_bis = Time.get_ticks_msec() + 400
+	Engine.time_scale = 0.05
+	get_tree().create_timer(dauer, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
 
 func hero_arc(h: Hero, reach: float, half_angle: float, mult: float, push: float, gain: bool, stun_t := 0.0) -> void:
 	var n := 0

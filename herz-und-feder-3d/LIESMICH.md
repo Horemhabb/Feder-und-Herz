@@ -1,8 +1,8 @@
-# Herz und Feder · 3D-Fassung 2.7.1
+# Herz und Feder · 3D-Fassung 4.0
 
 Die zwölf Stunden der Nacht in der Spiel-Engine Godot (begonnen als Probe der ersten Stunde, „Das Tor des Westens“).
-Die Webfassung (Ordner `nebelmark/`) bleibt das eigentliche Spiel. Diese Probe soll zeigen,
-ob sich Bewegung, Licht und Ton in 3D echter anfühlen.
+Diese Fassung ist das Spiel. Der Ordner `nebelmark/` enthält die frühere Webfassung in HTML und wird nicht weiterentwickelt.
+Was als Nächstes dran ist, steht in `FAHRPLAN.md`.
 
 ## So startest du die Probe (Windows)
 
@@ -42,6 +42,16 @@ Das Projekt hat vier Export-Voreinstellungen (`export_presets.cfg`): **macOS**, 
   größere Anzeige, Knöpfe für Vollbild, Beutel, Grafik, Ton und Bildrate, niedrige Grafik und geringere 3D-Auflösung.
   Finger halten heißt laufen, Gegner antippen heißt angreifen (auch ein flüchtiger Tipp), Fähigkeiten unten antippen (auch mit dem zweiten Finger im Laufen).
   Am Rechner lässt sich der Handy-Modus mit `godot --path . -- --touch` ansehen.
+
+## Prüfläufe: Bildschirmfotos aller Stunden
+
+`-- --neu --fotos --seed=1` legt eine neue Figur an, besucht die zwölf Stunden und speichert nach `test_out/fotos/` je Stunde zwei Bilder (`stunde_01_start.png` am Eingang, `stunde_01_rudel.png` vor dem ersten Rudel) sowie Titelbild, Fähigkeitenbaum und Tasche; am Ende steht `FOTOS: n Bilder`, der Rückgabewert ist 0 (bei Fehlern 1, ein schwarzes oder einfarbiges Bild zählt als Fehler). Eine Auswahl: `--fotos=1,5,7` oder `--fotos=3-6`. Ohne Grafikkarte, mit Software-Rendering (etwa 70 Sekunden für alle zwölf Stunden, 27 Bilder):
+
+```
+xvfb-run -a -s "-screen 0 1280x720x24" .godot-bin/Godot_v4.7.2-stable_linux.x86_64 --path . --rendering-driver opengl3 --resolution 1280x720 -- --neu --fotos --seed=1
+```
+
+Mit Grafikkarte genügt `godot --path . -- --neu --fotos`. Achtung: `--neu` löscht den eigenen Spielstand; wer ihn behalten will, setzt vorher einen eigenen Datenordner (Linux: `XDG_DATA_HOME=/tmp/fotodaten`). Bei Pull Requests läuft derselbe Lauf als Job „fotos“ in `bauen.yml`; die Bilder hängen als Artefakt „bildschirmfotos“ am Lauf.
 
 ## Steuerung
 

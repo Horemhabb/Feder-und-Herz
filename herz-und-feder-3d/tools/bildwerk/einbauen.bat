@@ -1,5 +1,5 @@
 @python_embeded\python.exe -x "%~f0" %* & pause & exit /b
-# Einbauen (Fassung 5.0.0): bringt die ausgewaehlten Bilder aus ComfyUI ins Spiel.
+# Einbauen (Fassung 5.2.0): bringt die ausgewaehlten Bilder aus ComfyUI ins Spiel.
 # Symbole: zuschneiden, Rahmen wie tools/symbole/wand/magie.py (abgerundete Tafel, duenne Goldlinie, Schein in der Klassenfarbe),
 # 256 x 256 als WebP nach herz-und-feder-3d/ui/symbole/. Portraets: auf 717 x 960 zuschneiden, WebP nach ui/portraits/.
 # Die Auswahl steht in bildwerk_plan.json unter "einbau". Ablage: C:\CF neben bildwerk.bat und bildwerk_plan.json.
@@ -7,6 +7,7 @@
 # Aufruf:  einbauen.bat            Symbole und Portraets aus der Auswahl einbauen
 #          einbauen.bat symbole    nur die Symbole
 #          einbauen.bat portraets  nur die Portraets
+#          einbauen.bat texturen   nur die Texturen (Helligkeit ausgleichen, Naht glaetten, Normalenkarte, nach textures/)
 #
 # Das Skript sucht dein Repo (Ordner mit herz-und-feder-3d\project.godot) und merkt sich den Ort in bildwerk_ort.txt.
 # Findet es keins, landen die Dateien nur in ComfyUI\output\bildwerk\fuers_spiel\ (zum Hochladen von Hand).
@@ -14,7 +15,7 @@ import glob, json, os, shutil, subprocess, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-VERSION = "5.1.0"
+VERSION = "5.2.0"
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 PLAN = os.path.join(ROOT, "bildwerk_plan.json")
 OUTPUT = os.path.join(ROOT, "ComfyUI", "output")
@@ -148,6 +149,70 @@ def portraet(pfad, zoom=0.66, oben=0.03):
     y0 = min(int(h * oben), h - ch)
     return im.crop((x0, y0, x0 + cw, y0 + ch)).resize((717, 960), Image.LANCZOS)
 
+# ---------------------------------------------------------------- Texturen (wie tools/texturen.py)
+
+NAHT = 3   # Pixel beiderseits der Kachelnaht, die ueberblendet werden (bei 1024 Pixeln)
+
+
+def ausgleich(a, staerke=0.7):
+    """KI-Bilder haben oft einen Helligkeitsverlauf (Mitte heller als der Rand): wiederholt sieht man Flecken. Ausgleich mit einem sehr weichen Mittelwert."""
+    n = a.shape[0]
+    p = n // 4
+    t = np.pad(a, ((p, p), (p, p), (0, 0)), mode="wrap")
+    weich = np.asarray(Image.fromarray(t).filter(ImageFilter.GaussianBlur(n / 10)))[p:-p, p:-p].astype(np.float32)
+    mittel = weich.reshape(-1, 3).mean(0)
+    flach = a.astype(np.float32) * (mittel / np.maximum(weich, 8.0))
+    return np.clip(a.astype(np.float32) * (1 - staerke) + flach * staerke, 0, 255).astype(np.uint8)
+
+
+def naht_glaetten(a):
+    n = a.shape[0]
+    r = np.roll(np.roll(a, n // 2, 0), n // 2, 1).astype(np.float32)
+    blur = np.asarray(Image.fromarray(r.astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.0))).astype(np.float32)
+    w = np.clip(1.0 - np.abs(np.arange(n) - (n // 2 - 0.5)) / NAHT, 0, 1)
+    wmax = np.maximum(w[None, :, None], w[:, None, None])
+    r = r * (1 - wmax) + blur * wmax
+    return np.clip(np.roll(np.roll(r, -(n // 2), 0), -(n // 2), 1), 0, 255).astype(np.uint8)
+
+
+def kreuzblende(a, breite=0.15):
+    """Grosse Spruenge an der Naht (z. B. ein Lichtverlauf im Bild): den Rand weich in die um die halbe Bildgroesse verschobene Fassung ueberblenden.
+    Danach passen linker und rechter Rand lueckenlos aneinander. Kostet etwas Schaerfe nahe dem Rand, darum nur wenn noetig."""
+    n = a.shape[0]
+    d = np.minimum(np.arange(n), n - 1 - np.arange(n)) / (breite * n)
+    d = np.clip(d, 0, 1)
+    w = d * d * (3 - 2 * d)
+    r = a.astype(np.float32)
+    r = r * w[None, :, None] + np.roll(r, n // 2, 1) * (1 - w[None, :, None])
+    r = r * w[:, None, None] + np.roll(r, n // 2, 0) * (1 - w[:, None, None])
+    return np.clip(r, 0, 255).astype(np.uint8)
+
+
+def normalenkarte(im, staerke=2.2):
+    h = np.asarray(im.convert("L").filter(ImageFilter.GaussianBlur(1.2))).astype(np.float32) / 255.0
+    dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
+    dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
+    nx, ny, nz = -dx * staerke * 8, dy * staerke * 8, np.ones_like(h)
+    l = np.sqrt(nx * nx + ny * ny + nz * nz)
+    return Image.fromarray(((np.stack([nx / l, ny / l, nz / l], -1) * 0.5 + 0.5) * 255).astype(np.uint8))
+
+
+def naht_mass(a):
+    g = a.astype(np.float32).mean(2)
+    return (np.abs(g[:, 0] - g[:, -1]).mean() / np.abs(np.diff(g, axis=1)).mean() + np.abs(g[0, :] - g[-1, :]).mean() / np.abs(np.diff(g, axis=0)).mean()) / 2
+
+
+def textur(pfad):
+    """Quelle (1024 Pixel) -> kachelbares Bild und Normalenkarte."""
+    a = np.asarray(Image.open(pfad).convert("RGB").resize((1024, 1024), Image.LANCZOS))
+    vorher = naht_mass(a)
+    a = ausgleich(a)
+    if naht_mass(a) > 3.0:
+        a = kreuzblende(a)
+    a = naht_glaetten(a)
+    im = Image.fromarray(a)
+    return im, normalenkarte(im), vorher, naht_mass(a)
+
 
 # ---------------------------------------------------------------- Ablauf
 
@@ -197,7 +262,7 @@ def main():
     if plan.get("version") != VERSION:
         print("ACHTUNG: Skript und Plan passen nicht zusammen. Beide Dateien neu von GitHub laden.")
         return
-    was = sys.argv[1:] or ["symbole", "portraets"]
+    was = sys.argv[1:] or ["symbole", "portraets", "texturen"]
     einbau = plan.get("einbau", {})
     repo = finde_repo()
     print("Repo:", repo or "keins (nur Ordner fuers_spiel)")
@@ -233,6 +298,24 @@ def main():
             schreibe(portraet(pfad, z.get("zoom", 0.66), z.get("oben", 0.03)), "ui/portraits/%s.webp" % code, repo, sicherung, 85)
             n += 1
         print("%d Portraets eingebaut." % n)
+        gesamt += n
+
+    if "texturen" in was:
+        n = 0
+        ohne = set(einbau.get("texturen_ohne_relief", []))
+        for name, rel in einbau.get("texturen", {}).items():
+            pfad = quelle(rel)
+            if not pfad:
+                fehlt.append(rel)
+                continue
+            bild, relief, v, nach = textur(pfad)
+            schreibe(bild, "textures/%s.jpg" % name, repo, sicherung, 88)
+            if name not in ohne:
+                schreibe(relief, "textures/%s_n.jpg" % name, repo, sicherung, 92)
+            print("  %s: Naht vorher %.2f, nachher %.2f (1.0 = so glatt wie das Bild selbst)" % (name, v, nach))
+            n += 1
+        if n:
+            print("%d Texturen eingebaut." % n)
         gesamt += n
 
     if fehlt:
