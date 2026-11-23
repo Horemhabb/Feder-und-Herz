@@ -1,5 +1,5 @@
 {
- "version": "5.1.0",
+ "version": "5.2.0",
  "hinweis": "Plan für bildwerk.bat und einbauen.bat. Alle Texte stehen hier, die Skripte enthalten keine. Keine Zahlen und Prozentzeichen in Prompts.",
  "regeln": [
   "Keine Ziffern und kein Prozentzeichen im Prompt: Z-Image malt sie als Schrift ins Bild (aus '80%' wurden %, 0% und 9%).",
@@ -237,6 +237,24 @@
    "breite": 896,
    "hoehe": 1152,
    "im_spiel": "ja, nach einbauen.bat"
+  },
+  "texturen_neu": {
+   "titel": "Texturen neu: alle 17 vorhandenen (Wände, Böden, Fels, Requisiten) als Auswahl neben den alten",
+   "gruppen": [
+    "texturen_neu"
+   ],
+   "stile": [
+    "textur"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, nach einbauen.bat texturen (ersetzt die gleichnamigen Dateien)"
   }
  },
  "motive": [
@@ -840,6 +858,125 @@
    "gruppe": "figuren_nah",
    "motiv": "the air god Shu as a strong bearded man with a single tall ostrich feather on his head, his bare arms raised at the edge of the picture, wind in his hair",
    "tex": "a dawn-blue sky with drifting clouds"
+  },
+  {
+   "id": "w01_sandstein",
+   "name": "Wand: sandstein",
+   "gruppe": "texturen_neu",
+   "motiv": "large pale sandstone wall blocks with fine joints, light weathering and faint tool marks",
+   "tex": ""
+  },
+  {
+   "id": "w02_granit",
+   "name": "Wand: granit",
+   "gruppe": "texturen_neu",
+   "motiv": "dark grey granite wall blocks with pink speckles, softly worn edges and thin dark joints",
+   "tex": ""
+  },
+  {
+   "id": "w03_lehm",
+   "name": "Wand: lehm",
+   "gruppe": "texturen_neu",
+   "motiv": "a sun-dried mud-brick wall with chopped straw in the bricks, uneven plaster patches and fine cracks",
+   "tex": ""
+  },
+  {
+   "id": "w04_grab",
+   "name": "Wand: grab",
+   "gruppe": "texturen_neu",
+   "motiv": "a pale limestone tomb wall with faint traces of painted red and blue bands, flaking plaster and hairline cracks",
+   "tex": ""
+  },
+  {
+   "id": "w05_hoehle",
+   "name": "Wand: hoehle",
+   "gruppe": "texturen_neu",
+   "motiv": "a rough cave wall of dark violet-grey rock with thin mineral veins and a few small crystals",
+   "tex": ""
+  },
+  {
+   "id": "t06_pflaster",
+   "name": "Boden: pflaster",
+   "gruppe": "texturen_neu",
+   "motiv": "irregular rounded cobblestones in warm grey and rose tones with sandy joints",
+   "tex": ""
+  },
+  {
+   "id": "t07_gruft",
+   "name": "Boden: gruft",
+   "gruppe": "texturen_neu",
+   "motiv": "worn dark limestone floor slabs with fine dust in the joints and faint chisel marks",
+   "tex": ""
+  },
+  {
+   "id": "t09_sand",
+   "name": "Boden: sand",
+   "gruppe": "texturen_neu",
+   "motiv": "fine desert sand in warm beige with soft wind ripples and a few small pebbles",
+   "tex": ""
+  },
+  {
+   "id": "t10_feld",
+   "name": "Boden: feld",
+   "gruppe": "texturen_neu",
+   "motiv": "dry cracked field earth with stubble of cut barley straw and small clods",
+   "tex": ""
+  },
+  {
+   "id": "t11_glas",
+   "name": "Boden: glas",
+   "gruppe": "texturen_neu",
+   "motiv": "a floor of fused desert glass, glassy green-blue sand with fine bubbles and hairline cracks",
+   "tex": ""
+  },
+  {
+   "id": "t12_hoehlenboden",
+   "name": "Boden: hoehlenboden",
+   "gruppe": "texturen_neu",
+   "motiv": "an uneven dark cave floor of packed grey-violet dust with small stones",
+   "tex": ""
+  },
+  {
+   "id": "f01_fels",
+   "name": "Fels: fels",
+   "gruppe": "texturen_neu",
+   "motiv": "a weathered desert rock face with horizontal layers, deep cracks and warm ochre and grey tones",
+   "tex": ""
+  },
+  {
+   "id": "p01_ton",
+   "name": "Requisit: ton",
+   "gruppe": "texturen_neu",
+   "motiv": "a smooth fired clay surface in terracotta with fine kiln marks and slight unevenness",
+   "tex": ""
+  },
+  {
+   "id": "p02_holz",
+   "name": "Requisit: holz",
+   "gruppe": "texturen_neu",
+   "motiv": "weathered dark wooden planks with visible grain, knots and small cracks",
+   "tex": ""
+  },
+  {
+   "id": "p03_palmrinde",
+   "name": "Requisit: palmrinde",
+   "gruppe": "texturen_neu",
+   "motiv": "rough palm trunk bark with ring-like scars and a fibrous texture",
+   "tex": ""
+  },
+  {
+   "id": "p04_palmblatt",
+   "name": "Requisit: palmblatt",
+   "gruppe": "texturen_neu",
+   "motiv": "a green palm leaf surface with fine parallel veins and a few dry brown tips",
+   "tex": ""
+  },
+  {
+   "id": "p05_korb",
+   "name": "Requisit: korb",
+   "gruppe": "texturen_neu",
+   "motiv": "a tight weave of golden brown reed straw as in a basket",
+   "tex": ""
   }
  ],
  "einbau": {
@@ -895,6 +1032,11 @@
    "P16": "bildwerk/portraets_figuren/P16_portraet_b",
    "P17": "bildwerk/portraets_figuren/P17_portraet_c"
   },
-  "hinweis_portraets": "Porträts: Code (P04 usw.) -> Quelle. Die Figuren aus portraets_figuren sind ein Übergang (Mond und Laterne im Bild); portraets_figuren_nah soll sie ersetzen. portraet_zuschnitt: {code oder standard: {zoom, oben}}, zoom kleiner = enger."
+  "hinweis_portraets": "Porträts: Code (P04 usw.) -> Quelle. Die Figuren aus portraets_figuren sind ein Übergang (Mond und Laterne im Bild); portraets_figuren_nah soll sie ersetzen. portraet_zuschnitt: {code oder standard: {zoom, oben}}, zoom kleiner = enger.",
+  "texturen": {},
+  "texturen_ohne_relief": [
+   "p04_palmblatt"
+  ],
+  "hinweis_texturen": "Texturen: Name der Spieldatei (z. B. t06_pflaster) -> Quelle (z. B. bildwerk/texturen_neu/t06_pflaster_textur_a). einbauen.bat texturen gleicht die Helligkeit aus, glättet die Kachelnaht und erzeugt die Normalenkarte (_n), Ergebnis nach textures/."
  }
 }
