@@ -486,6 +486,20 @@ func run() -> void:
 	Spiel.max_fall = 6
 	check("Tuch der Gewogenen erst ab der sechsten Stunde", not vorher and Geschichte.hat_tuch() and Geschichte.urteil(5).contains("Tuch"))
 	Spiel.max_fall = mf
+	# Ende „In der Schwebe“: das Ruder am Ufer folgt der Entscheidung der ersten Stunde
+	var w0: Variant = Spiel.wahl.get("1")
+	var hz0 := Spiel.herz
+	Spiel.herz = 0.0
+	Spiel.wahl["1"] = "maat"
+	var ende_maat := Geschichte.urteil(12)
+	Spiel.wahl["1"] = "isfet"
+	var ende_isfet := Geschichte.urteil(12)
+	check("Ende „In der Schwebe“: Ruder aus Zedernholz nur, wenn es aufgehoben wurde", ende_maat.contains("Du kennst es") and not ende_maat.contains("verbrannt") and ende_isfet.contains("verbrannt") and not ende_isfet.contains("Du kennst es"))
+	if w0 == null:
+		Spiel.wahl.erase("1")
+	else:
+		Spiel.wahl["1"] = w0
+	Spiel.herz = hz0
 	# Tuchfarbe: das festgehaltene Urteil gilt, auch wenn sich das Herz danach ändert
 	var u0 := Spiel.urteil5
 	var h0 := Spiel.herz
