@@ -66,6 +66,8 @@ var intro_fall := 1        # im Startbildschirm gewählte Stunde
 var hinweise: Hinweise     # kleine Hinweise in der ersten Stunde einer neuen Figur
 var tap_frame := -1        # Bild, in dem zuletzt ein Fähigkeitenknopf ausgelöst wurde (Finger meldet sich doppelt)
 var thema: Theme
+var tasche_farbe := Color.TRANSPARENT   # zuletzt gesetzte Farben (refresh setzt nur bei Änderung)
+var baum_farbe := Color.TRANSPARENT
 var pad_aktiv := false     # zuletzt kam die Eingabe vom Gamepad oder von den Pfeiltasten: dann zeigt jedes Fenster seinen Fokus
 var stick := Vector2.ZERO  # linker Stick, solange ein Fenster offen ist
 var stick_t := 0.0
@@ -458,12 +460,18 @@ func _quests() -> void:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(290, 0)
 		sp.add_child(l)
+	_segen()
+
+# nur der Segen-Text (läuft jede Sekunde ab): die Aufgabenliste wird dafür nicht neu gebaut
+func _segen() -> void:
 	var segen := []
 	for id in game.orte.buffs:
 		for g in Orte.GOETTER:
 			if g.id == id:
 				segen.append("%s %d s" % [g.name, int(game.orte.buffs[id])])
-	l_buff.text = "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
+	var t := "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
+	if l_buff.text != t:
+		l_buff.text = t
 
 static var _grau_mat: ShaderMaterial
 static func _grau() -> ShaderMaterial:
@@ -824,21 +832,28 @@ func refresh() -> void:
 	orb_hp.set_text(str(int(ceil(h.hp))))
 	orb_en.value = h.en / 100.0
 	orb_en.set_text(str(int(h.en)))
-	if game.orte.dirty or not game.orte.buffs.is_empty():
+	if game.orte.dirty:
 		game.orte.dirty = false
 		_quests()
+	elif not game.orte.buffs.is_empty() or l_buff.text != "":
+		_segen()
 	if Spiel.herz != herz_alt:
 		herz_alt = Spiel.herz
 		waage.queue_redraw()
 	bar_xp.value = Spiel.xp / Daten.xp_need(Spiel.lvl)
 	l_lvl.text = "Stufe %d" % Spiel.lvl
-	if tasche_btn:
-		tasche_btn.add_theme_color_override("font_color", GOLD if Spiel.neu > 0 else PARCH)
-	if tree_btn:
-		tree_btn.add_theme_color_override("font_color", GOLD if Spiel.tree_points() > 0 else PARCH)
 	var pts: int = Spiel.tree_points()
+	# Farben nur bei Änderung setzen: jedes add_theme_color_override löst ein neues Layout aus
+	var tc := GOLD if Spiel.neu > 0 else PARCH
+	if tasche_btn and tc != tasche_farbe:
+		tasche_farbe = tc
+		tasche_btn.add_theme_color_override("font_color", tc)
+	var bc := GOLD if pts > 0 else PARCH
+	if tree_btn and bc != baum_farbe:
+		baum_farbe = bc
+		tree_btn.add_theme_color_override("font_color", bc)
 	punkt_btn.visible = pts > 0 and overlay == null
-	if pts > 0:
+	if pts > 0 and punkt_btn.visible:
 		punkt_btn.text = ("%d Fähigkeitenpunkt%s frei" % [pts, "" if pts == 1 else "e"]) + ("" if game.touch else "  ·  Taste K")
 	for id in h.ORDER:
 		var S: Dictionary = h.SK[id]
@@ -863,7 +878,10 @@ func refresh() -> void:
 		# seit 3.3: auf der Stufe, aber im Baum noch kein Weg dorthin
 		var weg: bool = Spiel.nachbar_gelernt("s:" + id) if locked and id != "potion" else true
 		u.lock.text = "" if not locked else ("AB STUFE %d" % u.need if u.need > Spiel.lvl else ("LERNEN" if weg else "WEG FEHLT"))
-		u.lock.add_theme_color_override("font_color", GOLD if pts > 0 and u.need <= Spiel.lvl and weg else DIM)
+		var lc := GOLD if pts > 0 and u.need <= Spiel.lvl and weg else DIM
+		if u.get("lock_col") != lc:
+			u["lock_col"] = lc
+			u.lock.add_theme_color_override("font_color", lc)
 		u.name.modulate.a = 0.45 if locked else 1.0
 		if locked:
 			u.sub.text = ""
