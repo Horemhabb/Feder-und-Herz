@@ -169,8 +169,9 @@ func run() -> void:
 		e.physical_keycode = k
 		Input.parse_input_event(e)
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
-	# seit 4.1 läuft die Bewegung nicht langsamer als 0,9-fach (Zeitlupe), dafür darf der Fuß beim Aufsetzen etwas rutschen
-	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 2.5)
+	# seit dem Trab (Sprint mit dem Gehen gemischt, 2,5 m je Schritt) passt das Abspieltempo bei vollem Tempo zur Schrittlänge:
+	# gemessen 0,5 m/s; mit dem Sprint auf mindestens 0,9-fach gehalten waren es 1,7 (Grenze damals 2,5)
+	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
 	# zwei Schritte je Durchlauf der Bewegung, bei 0,9-fachem Tempo gut zwei je Sekunde (der alte Takt gab über sechs)
 	check("Laufen: der Schrittklang kommt mit den Füßen (%d in 2 s)" % klang, klang >= 3 and klang <= 5)
 	await wait(0.3)
