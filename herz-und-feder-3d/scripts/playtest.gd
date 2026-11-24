@@ -160,14 +160,19 @@ func run() -> void:
 		e.pressed = true
 		Input.parse_input_event(e)
 	await wait(0.3)   # anlaufen
+	var s0: int = h.schritte
 	var rh: Vector2 = await fussrutschen(h, 2.0)
+	var klang: int = h.schritte - s0
 	for k in bahn:
 		var e := InputEventKey.new()
 		e.keycode = k
 		e.physical_keycode = k
 		Input.parse_input_event(e)
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
-	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
+	# seit 4.1 läuft die Bewegung nicht langsamer als 0,9-fach (Zeitlupe), dafür darf der Fuß beim Aufsetzen etwas rutschen
+	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 2.5)
+	# zwei Schritte je Durchlauf der Bewegung, bei 0,9-fachem Tempo gut zwei je Sekunde (der alte Takt gab über sechs)
+	check("Laufen: der Schrittklang kommt mit den Füßen (%d in 2 s)" % klang, klang >= 3 and klang <= 5)
 	await wait(0.3)
 	p0 = h.global_position
 	var vs := get_viewport().get_visible_rect().size

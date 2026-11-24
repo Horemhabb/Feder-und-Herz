@@ -176,7 +176,11 @@ func schritt_tempo(anim_name: String) -> Vector2:
 # Zwischen Gehen und Laufen liegt eine Schwelle mit etwas Spiel, damit es nicht hin und her springt; beim Wechsel
 # setzt die neue Bewegung mit demselben Fuß fort und wird kurz überblendet.
 # ersatz, ersatz_anim: Abspieltempo und Bewegung für Figuren ohne gemessene Schritte (Ba, Skorpion), wie bisher.
-func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
+# mindest_takt: kleinstes Abspieltempo beim Laufen. Die Laufbewegung der Modelle ist ein Sprint (gut vier Meter je
+# Schritt); auf das Tempo der Figur gebremst, wirkt sie wie Zeitlupe und schwebt zwischen den Schritten. Mit einer
+# Untergrenze bleibt der Takt lebendig, dafür rutscht der Fuß beim Aufsetzen ein wenig. Dann wird auch früher vom
+# Gehen ins Laufen gewechselt, damit das Gehen nicht hastig trippelt.
+func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "", mindest_takt := 0.0) -> void:
 	var v := minf(soll, Vector2(get_real_velocity().x, get_real_velocity().z).length() + 0.3)
 	if v < 0.35:
 		play(a_idle, 1.0, 0.2)
@@ -188,12 +192,12 @@ func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
 	var g_lauf: float = gang[a_run][0]
 	if gang.has(a_walk):
 		var g_geh: float = gang[a_walk][0]
-		var schwelle := sqrt(g_geh * g_lauf)
+		var schwelle := minf(g_geh * 1.4, g_lauf) if mindest_takt > 0.0 else sqrt(g_geh * g_lauf)
 		laeuft = v > schwelle * (0.9 if laeuft else 1.1)
 	else:
 		laeuft = true
 	var anim := a_run if laeuft else a_walk
-	var tempo := clampf(v / gang[anim][0], 0.3, 2.6)
+	var tempo := clampf(v / gang[anim][0], mindest_takt if laeuft else 0.3, 2.6)
 	if cur_anim != anim and (cur_anim == a_run or cur_anim == a_walk) and gang.has(cur_anim):
 		# im Schritt bleiben: die Phase des alten Laufs auf den neuen übertragen
 		var alt: Animation = ap.get_animation(cur_anim)
@@ -214,6 +218,12 @@ func zucken(von: Vector3, staerke := 1.0) -> void:
 	d = d.normalized().rotated(Vector3.UP, -model.rotation.y)
 	zuck = Vector2(d.z, d.x) * 0.28 * clampf(staerke, 0.5, 1.8)
 	zuck_t = ZUCK_DAUER
+
+# Wo steht die laufende Geh- oder Laufbewegung (0 bis 1)? -1, wenn gerade keine mit gemessenen Schritten läuft.
+func gang_phase() -> float:
+	if ap == null or not gang.has(cur_anim) or ap.current_animation != cur_anim:
+		return -1.0
+	return fposmod(ap.current_animation_position / anim_len(cur_anim), 1.0)
 
 func anim_len(anim: String) -> float:
 	return ap.get_animation(anim).length if ap and ap.has_animation(anim) else 0.6

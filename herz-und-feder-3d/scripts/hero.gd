@@ -3,7 +3,7 @@ class_name Hero extends Actor
 # Standardangriff und Fähigkeiten folgen 04-combat.js › basicAttack und cast; Entfernungen sind aus Weltpixeln in Meter
 # umgerechnet (Daten.PX). Alle tragen die Laterne mit dem Funken des Re.
 
-const SPEED := 6.4
+const SPEED := 7.2   # 4.0: 6,4; mit dem lebendigeren Lauftakt etwas schneller (4.1)
 
 var cls := "ermittler"
 var C: Dictionary          # Klassendaten
@@ -33,6 +33,10 @@ var dash_dir := Vector3.ZERO
 var dash_slam := Vector2.ZERO   # Aufprall am Ende eines Sprungs: Radius, Stärke (0 = ohne Schaden)
 var casts := 0           # gewirkte Fähigkeiten (Wort des Thot: jede fünfte ist frei)
 var step_t := 0.0
+var step_phase := -1.0   # Phase der Geh- oder Laufbewegung im letzten Bild (Schrittklang beim Aufsetzen)
+var step_anim := ""
+var schritte := 0        # gezählte Schrittklänge (für den Spieltest)
+const LAUF_TAKT := 0.9   # kleinstes Abspieltempo beim Laufen (actor.gd › fortbewegen)
 var vel := Vector3.ZERO
 var lantern: OmniLight3D
 var aura: OmniLight3D
@@ -241,7 +245,18 @@ func _physics_process_innen(delta: float) -> void:
 	if busy <= 0.0:
 		var sp := vel.length()
 		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
-		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
+		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25, "", LAUF_TAKT)
+		schrittklang(sp, delta)
+	else:
+		step_anim = ""   # nach einem Hieb setzt die Bewegung neu an, ohne einen Schritt nachzuholen
+
+# Schrittklang genau dann, wenn ein Fuß aufsetzt: links bei der gemessenen Phase, rechts eine halbe Bewegung später.
+# Vorher lief ein eigener Takt neben den Beinen her und klang doppelt so schnell, wie die Füße gingen.
+func schrittklang(sp: float, delta: float) -> void:
+	var ph := gang_phase()
+	if ph < 0.0:
+		# Figur ohne gemessene Schritte: der alte Takt
+		step_anim = ""
 		if sp > 0.6:
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
@@ -249,6 +264,18 @@ func _physics_process_innen(delta: float) -> void:
 				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
 		else:
 			step_t = 0.1
+		return
+	if step_anim == cur_anim and step_phase >= 0.0:
+		var links: float = gang[cur_anim][1]
+		for auf in [links, fposmod(links + 0.5, 1.0)]:
+			# überschritten seit dem letzten Bild (auch über das Ende der Schleife hinweg)
+			var bis := fposmod(auf - step_phase, 1.0)
+			if bis > 0.0 and bis <= fposmod(ph - step_phase, 1.0):
+				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+				schritte += 1
+				break
+	step_anim = cur_anim
+	step_phase = ph
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
 # unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.
