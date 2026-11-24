@@ -196,8 +196,9 @@ func run() -> void:
 	await get_tree().physics_frame
 	var auf: int = auf_zahl
 	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
-	# seit 4.1 läuft die Bewegung nicht langsamer als 0,9-fach (Zeitlupe), dafür darf der Fuß beim Aufsetzen etwas rutschen
-	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 2.5)
+	# seit dem Trab (Sprint mit dem Gehen gemischt, 2,5 m je Schritt) passt das Abspieltempo bei vollem Tempo zur Schrittlänge:
+	# gemessen 0,5 m/s; mit dem Sprint auf mindestens 0,9-fach gehalten waren es 1,7 (Grenze damals 2,5)
+	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
 	# so viele Klänge wie Fußaufsätze (Knochenhöhen), gleich in welchem Tempo die Bewegung läuft
 	check("Laufen: der Schrittklang kommt mit den Füßen (%d Klänge, %d Aufsätze in 2 s)" % [klang, auf], auf >= 3 and absi(klang - auf) <= 1)
 	# Gehen: langsamer, mit der Bewegung zum Gehen
