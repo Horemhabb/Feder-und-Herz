@@ -147,7 +147,6 @@ func fussaufsaetze(a: Actor, dauer: float) -> void:
 			elif not unten and hh < 0.06:
 				unten = true
 				n += 1
-				if OS.get_environment("HZ_DBG") != "": print("DBG-AUF f%d k=%d" % [f, k])
 	auf_zahl = n
 
 func run() -> void:
@@ -207,7 +206,6 @@ func run() -> void:
 	await wait(0.5)
 	s0 = h.schritte
 	var gehen := h.cur_anim
-	print("DBG-GANG ", h.gang, " v=", h.vel.length())
 	fussaufsaetze(h, 2.5)
 	await wait(2.5)
 	await get_tree().physics_frame

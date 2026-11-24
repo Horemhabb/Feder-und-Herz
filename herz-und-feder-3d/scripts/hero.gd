@@ -305,7 +305,6 @@ func schrittklang(sp: float, delta: float) -> void:
 			if step_sperre[f] <= 0.0 and sp > 0.6:
 				step_sperre[f] = 0.15
 				schritte += 1
-				if OS.get_environment("HZ_DBG") != "": print("DBG-TRITT %.3f f%d h=%.3f anim=%s" % [jetzt, f, h[f], cur_anim])
 				# Gehen leiser als Laufen
 				tritt(lerpf(-4.0, 0.0, clampf((sp / SPEED - 0.3) / 0.5, 0.0, 1.0)))
 
