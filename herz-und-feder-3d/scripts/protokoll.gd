@@ -24,7 +24,6 @@ var schlechtestes := 0.0
 var ruckler := 0
 var zeiten := {}                       # Teilsystem → µs in diesem Abschnitt
 var spitzen := {}                      # Teilsystem → längster einzelner Aufruf (µs)
-const FASSUNG := "4.0.6"
 var guete := -1               # Grafikstufe, die gemessen oder gewählt wurde: gilt über die Stunden hinweg
 var guete_von_hand := false
 var gesagt := false           # der Hinweis auf Software-Grafik kam schon
@@ -53,7 +52,7 @@ func _ready() -> void:
 	var jetzt := Time.get_datetime_string_from_system().replace(":", "-").replace("T", "_")
 	pfad = "%s/protokoll_%s.txt" % [ORDNER, jetzt]
 	datei = FileAccess.open(pfad, FileAccess.WRITE)
-	schreib("Herz und Feder · Fassung %s · Protokoll · %s" % [FASSUNG, Time.get_datetime_string_from_system()])
+	schreib("Herz und Feder · Fassung %s · Protokoll · %s" % [Spiel.FASSUNG, Time.get_datetime_string_from_system()])
 	schreib("System: %s · %s · Prozessorkerne %d · Web %s · Handy %s" % [OS.get_name(), OS.get_processor_name(), OS.get_processor_count(), OS.has_feature("web"), OS.has_feature("web_ios") or OS.has_feature("web_android") or OS.has_feature("mobile")])
 	schreib("Grafik: %s · %s · Fenster %s" % [RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_vendor(), str(DisplayServer.window_get_size())])
 	if OS.has_feature("web"):

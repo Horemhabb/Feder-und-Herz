@@ -3,7 +3,7 @@ class_name Hero extends Actor
 # Standardangriff und Fähigkeiten folgen 04-combat.js › basicAttack und cast; Entfernungen sind aus Weltpixeln in Meter
 # umgerechnet (Daten.PX). Alle tragen die Laterne mit dem Funken des Re.
 
-const SPEED := 6.4
+const SPEED := 7.2   # 4.0: 6,4; mit dem lebendigeren Lauftakt etwas schneller (4.1)
 
 var cls := "ermittler"
 var C: Dictionary          # Klassendaten
@@ -33,6 +33,18 @@ var dash_dir := Vector3.ZERO
 var dash_slam := Vector2.ZERO   # Aufprall am Ende eines Sprungs: Radius, Stärke (0 = ohne Schaden)
 var casts := 0           # gewirkte Fähigkeiten (Wort des Thot: jede fünfte ist frei)
 var step_t := 0.0
+var step_ids := []                 # Knochen der Füße: Knöchel und Ballen, links dann rechts (Schrittklang)
+var step_boden := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])   # tiefster Stand je Knochen, steigt langsam wieder
+var step_unten := [true, true]     # steht der Fuß gerade unten (aufgesetzt)?
+var step_sperre := [0.0, 0.0]      # Mindestabstand je Fuß bis zum nächsten Klang
+var step_zeit := -1.0              # Zeitpunkt des letzten Blicks auf die Füße (nach einer Pause neu ansetzen)
+var schritte := 0        # gezählte Schrittklänge (für den Spieltest)
+# Laufen: Der Sprint der Modelle (Running_A) wird mit dem Gehen zu einem Trab gemischt (actor.gd › trab_bauen):
+# halb Laufen, halb Gehen, 0,7 s für zwei Schritte. Bei SPEED ergibt das etwa 2,9 Schritte je Sekunde zu 2,5 m (der Sprint
+# hatte über 4 m und schwebte), der Fuß steht beim Aufsetzen still, ohne dass die Bewegung gebremst oder gehetzt wird.
+const TRAB_ANTEIL := 0.5
+const TRAB_DAUER := 0.7
+const LAUF_TAKT := 0.9   # kleinstes Abspieltempo beim Laufen (actor.gd › fortbewegen)
 var vel := Vector3.ZERO
 var lantern: OmniLight3D
 var aura: OmniLight3D
@@ -59,6 +71,7 @@ func _ready() -> void:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
+	a_run = trab_bauen("Trab", TRAB_ANTEIL, TRAB_DAUER)
 	if modell == C.get("neu_tuch", ""):
 		tuch_faerben(Geschichte.urteil_art())
 	collision_layer = 2
@@ -241,14 +254,59 @@ func _physics_process_innen(delta: float) -> void:
 	if busy <= 0.0:
 		var sp := vel.length()
 		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
-		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25)
+		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25, "", LAUF_TAKT)
+		schrittklang(sp, delta)
+
+# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur (main.gd › untergrund). laut_db: leiser beim Gehen.
+func tritt(laut_db := 0.0) -> void:
+	game.sfx.play("step_" + game.untergrund(global_position), 0.12, laut_db)   # Sand, Stein, Erde oder Glas
+
+# Schrittklang genau dann, wenn ein Fuß aufsetzt, ganz gleich, welche Bewegung in welchem Tempo läuft: Je Fuß wird die
+# Höhe von Knöchel und Ballen über dem eigenen tiefsten Stand gelesen (die Figur steht bei y = 0, die Bewegung
+# schwebt aber knapp darüber oder taucht ein). Ein Tritt ist, wenn der Fuß von oben unter 6 cm über diesen Stand
+# fällt; erst nach 12 cm kann er wieder abheben und neu aufsetzen (Spiel gegen Zittern), und je Fuß gilt 0,15 s
+# Mindestabstand. Der tiefste Stand steigt langsam (3 cm/s), damit er sich dem Boden anpasst, wenn die Bewegung wechselt.
+# Vorher lief ein fester Takt neben den Beinen her (0,31 s) und klang doppelt so schnell, wie die Füße gingen.
+const TRITT_NAH := 0.06
+const TRITT_HOCH := 0.12
+func schrittklang(sp: float, delta: float) -> void:
+	if step_ids.is_empty():
+		for n in ["foot.l", "toes.l", "foot.r", "toes.r"]:
+			step_ids.append(skel.find_bone(n) if skel else -1)
+	if step_ids.has(-1):
+		# Figur ohne Füße: der alte Takt
 		if sp > 0.6:
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
 				step_t = 0.31
-				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+				tritt()
 		else:
 			step_t = 0.1
+		return
+	var jetzt := Time.get_ticks_msec() / 1000.0
+	var pause := jetzt - step_zeit
+	var neu_ansetzen := pause > 0.1   # eine Pause (Hieb, Satz, Stand): ohne Klang neu ansetzen
+	step_zeit = jetzt
+	var gt := skel.global_transform
+	var h := [0.0, 0.0]
+	for i in 4:
+		var y: float = (gt * skel.get_bone_global_pose(step_ids[i])).origin.y - global_position.y
+		step_boden[i] = minf(y, step_boden[i] + 0.03 * minf(pause, 2.0))
+		h[i / 2] = y - step_boden[i] if i % 2 == 0 else minf(h[i / 2], y - step_boden[i])
+	for f in 2:
+		step_sperre[f] -= delta
+		if neu_ansetzen:
+			step_unten[f] = h[f] < TRITT_NAH
+		elif step_unten[f]:
+			if h[f] > TRITT_HOCH:
+				step_unten[f] = false
+		elif h[f] < TRITT_NAH:
+			step_unten[f] = true
+			if step_sperre[f] <= 0.0 and sp > 0.6:
+				step_sperre[f] = 0.15
+				schritte += 1
+				# Gehen leiser als Laufen
+				tritt(lerpf(-4.0, 0.0, clampf((sp / SPEED - 0.3) / 0.5, 0.0, 1.0)))
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
 # unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.

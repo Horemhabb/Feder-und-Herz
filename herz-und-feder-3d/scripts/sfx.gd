@@ -7,7 +7,7 @@ const VOL := {
 	"beam": -7.0, "potion": -6.0, "boss_appear": -3.0, "gate": -4.0, "ui": -10.0, "bolt": -8.0, "hero_die": -3.0,
 	"victory": -5.0, "skel_wake": -6.0, "skel_die": -1.0, "skel_attack": -9.0, "torch": -14.0,
 	# Geräusche von Gomo (Fassung 2.3), nach Messung eingepegelt
-	"step_sand": -25.0, "step_stein": -24.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
+	"step_sand": -22.0, "step_stein": -26.0, "step_erde": -23.0, "step_glas": -25.0, "ausweichen": -6.0, "aufstieg": -7.0, "feuer_an": -4.0, "feuer_brennt": -13.0, "segen": -5.0,
 	"herz_frei": -5.0, "krug_bricht": -3.0, "truhe": -2.0, "papyrus": -7.0, "aufheben": -6.0, "schaf": -8.0, "ziege": -8.0, "esel": -9.0,
 	"katze": -9.0, "skorpion": -6.0, "irrlicht": -12.0,
 	"amb_wind": -15.0, "amb_drone": -17.0,
@@ -23,7 +23,7 @@ const VOL := {
 	"src_wasser": -10.0, "src_werkstatt": -12.0, "src_schrein": -14.0, "src_reigen": -12.0, "src_herz": -10.0,
 	"tor_auf": -3.0, "akt_ende": -4.0, "boss_stern": -4.0, "boss_phase": -2.0, "rueckkehr": -6.0, "thot": -6.0,
 }
-const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3, "step_sand": 4, "step_stein": 4}
+const VARIANTS := {"step": 3, "swing": 3, "hit": 3, "hurt": 3, "step_sand": 4, "step_stein": 4, "step_erde": 4, "step_glas": 4}
 
 var streams := {}
 var pool: Array = []

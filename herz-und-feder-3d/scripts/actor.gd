@@ -27,6 +27,7 @@ var a_walk := ""
 var a_run := ""
 var gang := {}         # Bewegung → [Tempo über Grund bei Abspieltempo 1 in m/s, Phase, in der der linke Fuß aufsetzt]
 var laeuft := false    # zeigt gerade die Laufbewegung (statt Gehen)
+var flug_anteil := 0.0   # Anteil einer Bewegung ohne Bodenkontakt (0 bis 1), von schritt_tempo gesetzt
 var zuck_t := 0.0
 var zuck := Vector2.ZERO   # Neigung beim Treffer in Blickrichtung der Figur: x nach vorn, y zur Seite (Bogenmaß)
 static var gang_cache := {}   # je Modell und Bewegung einmal berechnet
@@ -157,6 +158,11 @@ func schritt_tempo(anim_name: String) -> Vector2:
 			links = float(i) / N
 	if schritte.is_empty():
 		return Vector2.ZERO
+	var luft := 0
+	for p in proben:
+		if p[0].y >= boden + 0.10:
+			luft += 1
+	flug_anteil = float(luft) / proben.size()
 	# Das Tempo, bei dem der aufgesetzte Fuß am wenigsten über den Boden wandert (Modelle schauen entlang +Z).
 	# Gesucht statt gemittelt: Beim Gehen rollt der Fuß ab, ein Mittelwert läge dort ein Viertel zu hoch.
 	var bestes := 0.0
@@ -171,12 +177,73 @@ func schritt_tempo(anim_name: String) -> Vector2:
 			bestes = v
 	return Vector2(bestes, maxf(links, 0.0))
 
+# Mischt aus Laufen und Gehen eine eigene Schleife (Trab): Jede Spur ist die Mischung beider Bewegungen an derselben
+# Stelle des Schritts (Phase des linken Aufsetzens gleich gelegt), anteil_lauf 1 = ganz Laufen, 0 = ganz Gehen.
+# Der Lauf der Modelle ist ein Sprint mit gut vier Metern je Schritt und langer Flugphase; mit dem Gehen gemischt
+# wird der Schritt kürzer, die Beine schwingen weniger weit und der Körper hebt sich weniger. dauer: Länge der
+# Schleife in Sekunden (zwei Schritte). Gibt den Namen zurück, bei Misserfolg den alten Laufnamen.
+func trab_bauen(name_neu: String, anteil_lauf: float, dauer: float) -> String:
+	if ap == null or not gang.has(a_run) or not gang.has(a_walk):
+		return a_run
+	var lauf: Animation = ap.get_animation(a_run)
+	var geh: Animation = ap.get_animation(a_walk)
+	var neu := Animation.new()
+	neu.length = dauer
+	neu.loop_mode = Animation.LOOP_LINEAR
+	var versatz: float = gang[a_walk][1] - gang[a_run][1]
+	var N := 32
+	for i in lauf.get_track_count():
+		var typ := lauf.track_get_type(i)
+		if typ != Animation.TYPE_POSITION_3D and typ != Animation.TYPE_ROTATION_3D and typ != Animation.TYPE_SCALE_3D:
+			continue
+		var pfad := lauf.track_get_path(i)
+		var j := geh.find_track(pfad, typ)
+		var t := neu.add_track(typ)
+		neu.track_set_path(t, pfad)
+		for k in N + 1:
+			var ph := float(k) / N
+			var tl := fposmod(ph, 1.0) * lauf.length
+			var tg := fposmod(ph + versatz, 1.0) * geh.length
+			match typ:
+				Animation.TYPE_ROTATION_3D:
+					var q: Quaternion = lauf.rotation_track_interpolate(i, tl)
+					if j >= 0:
+						q = geh.rotation_track_interpolate(j, tg).slerp(q, anteil_lauf)
+					neu.rotation_track_insert_key(t, ph * dauer, q)
+				Animation.TYPE_POSITION_3D:
+					var v: Vector3 = lauf.position_track_interpolate(i, tl)
+					if j >= 0:
+						v = geh.position_track_interpolate(j, tg).lerp(v, anteil_lauf)
+					neu.position_track_insert_key(t, ph * dauer, v)
+				_:
+					var sc: Vector3 = lauf.scale_track_interpolate(i, tl)
+					if j >= 0:
+						sc = geh.scale_track_interpolate(j, tg).lerp(sc, anteil_lauf)
+					neu.scale_track_insert_key(t, ph * dauer, sc)
+	var bib := ap.get_animation_library(&"")
+	if bib == null:
+		bib = AnimationLibrary.new()
+		ap.add_animation_library(&"", bib)
+	if bib.has_animation(name_neu):
+		bib.remove_animation(name_neu)
+	bib.add_animation(name_neu, neu)
+	var g := schritt_tempo(name_neu)
+	if g.x <= 0.01:
+		bib.remove_animation(name_neu)
+		return a_run
+	gang[name_neu] = [g.x * model.scale.x, g.y]
+	return name_neu
+
 # Stehen, Gehen oder Laufen nach dem Tempo über Grund. soll: gewolltes Tempo ohne Rückstoß; das wirkliche Tempo
 # (an einer Mauer weniger) begrenzt es. Das Abspieltempo folgt der Schrittlänge, damit die Füße nicht rutschen.
 # Zwischen Gehen und Laufen liegt eine Schwelle mit etwas Spiel, damit es nicht hin und her springt; beim Wechsel
 # setzt die neue Bewegung mit demselben Fuß fort und wird kurz überblendet.
 # ersatz, ersatz_anim: Abspieltempo und Bewegung für Figuren ohne gemessene Schritte (Ba, Skorpion), wie bisher.
-func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
+# mindest_takt: kleinstes Abspieltempo beim Laufen. Die Laufbewegung der Modelle ist ein Sprint (gut vier Meter je
+# Schritt); auf das Tempo der Figur gebremst, wirkt sie wie Zeitlupe und schwebt zwischen den Schritten. Mit einer
+# Untergrenze bleibt der Takt lebendig, dafür rutscht der Fuß beim Aufsetzen ein wenig. Dann wird auch früher vom
+# Gehen ins Laufen gewechselt, damit das Gehen nicht hastig trippelt.
+func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "", mindest_takt := 0.0) -> void:
 	var v := minf(soll, Vector2(get_real_velocity().x, get_real_velocity().z).length() + 0.3)
 	if v < 0.35:
 		play(a_idle, 1.0, 0.2)
@@ -188,12 +255,12 @@ func fortbewegen(soll: float, ersatz := 1.0, ersatz_anim := "") -> void:
 	var g_lauf: float = gang[a_run][0]
 	if gang.has(a_walk):
 		var g_geh: float = gang[a_walk][0]
-		var schwelle := sqrt(g_geh * g_lauf)
+		var schwelle := minf(g_geh * 1.4, g_lauf) if mindest_takt > 0.0 else sqrt(g_geh * g_lauf)
 		laeuft = v > schwelle * (0.9 if laeuft else 1.1)
 	else:
 		laeuft = true
 	var anim := a_run if laeuft else a_walk
-	var tempo := clampf(v / gang[anim][0], 0.3, 2.6)
+	var tempo := clampf(v / gang[anim][0], mindest_takt if laeuft else 0.3, 2.6)
 	if cur_anim != anim and (cur_anim == a_run or cur_anim == a_walk) and gang.has(cur_anim):
 		# im Schritt bleiben: die Phase des alten Laufs auf den neuen übertragen
 		var alt: Animation = ap.get_animation(cur_anim)
@@ -214,6 +281,12 @@ func zucken(von: Vector3, staerke := 1.0) -> void:
 	d = d.normalized().rotated(Vector3.UP, -model.rotation.y)
 	zuck = Vector2(d.z, d.x) * 0.28 * clampf(staerke, 0.5, 1.8)
 	zuck_t = ZUCK_DAUER
+
+# Wo steht die laufende Geh- oder Laufbewegung (0 bis 1)? -1, wenn gerade keine mit gemessenen Schritten läuft.
+func gang_phase() -> float:
+	if ap == null or not gang.has(cur_anim) or ap.current_animation != cur_anim:
+		return -1.0
+	return fposmod(ap.current_animation_position / anim_len(cur_anim), 1.0)
 
 func anim_len(anim: String) -> float:
 	return ap.get_animation(anim).length if ap and ap.has_animation(anim) else 0.6
