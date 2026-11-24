@@ -250,9 +250,9 @@ func _physics_process_innen(delta: float) -> void:
 	else:
 		step_anim = ""   # nach einem Hieb setzt die Bewegung neu an, ohne einen Schritt nachzuholen
 
-# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur.
+# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur (main.gd › untergrund).
 func tritt() -> void:
-	game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+	game.sfx.play("step_" + game.untergrund(global_position), 0.12)   # Sand, Stein, Erde oder Glas
 
 # Schrittklang genau dann, wenn ein Fuß aufsetzt: links bei der gemessenen Phase, rechts eine halbe Bewegung später.
 # Vorher lief ein eigener Takt neben den Beinen her und klang doppelt so schnell, wie die Füße gingen.

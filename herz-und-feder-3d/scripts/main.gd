@@ -1530,6 +1530,28 @@ func auf_stein(p: Vector3) -> bool:
 		return false
 	return karte.flr[cy * Karte.GW + cx] == 2
 
+# Bodenart unter einem Punkt für den Klang der Schritte: sand, stein, erde oder glas.
+# Draußen ist Freiland Sand, Pflaster und Wege sind Stein; drinnen entscheidet die Oberfläche aus welt.gd › LOOK.
+func untergrund(p: Vector3) -> String:
+	if karte == null:
+		return "sand"
+	var cx := int(p.x / Karte.CELL)
+	var cy := int(p.z / Karte.CELL)
+	var f := 0
+	if cx >= 0 and cy >= 0 and cx < Karte.GW and cy < Karte.GH:
+		f = karte.flr[cy * Karte.GW + cx]
+	if not karte.indoor:
+		return "stein" if f == 2 or f == 3 else "sand"
+	var look: Dictionary = Welt.LOOK.get(karte.kind, Welt.LOOK[""])
+	match look.room if f == 0 else look.path:
+		"sand":
+			return "sand"
+		"feld":
+			return "erde"
+		"glas":
+			return "glas"
+	return "stein"
+
 func area_music() -> Array:
 	if karte and karte.indoor:
 		return [MUSIK.get(karte.kind, "mus_duat"), "mus_duat"]
