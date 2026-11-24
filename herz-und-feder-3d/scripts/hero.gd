@@ -36,6 +36,11 @@ var step_t := 0.0
 var step_phase := -1.0   # Phase der Geh- oder Laufbewegung im letzten Bild (Schrittklang beim Aufsetzen)
 var step_anim := ""
 var schritte := 0        # gezählte Schrittklänge (für den Spieltest)
+# Laufen: Der Sprint der Modelle (Running_A) wird mit dem Gehen zu einem Trab gemischt (actor.gd › trab_bauen):
+# halb Laufen, halb Gehen, 0,7 s für zwei Schritte. Bei SPEED ergibt das etwa 2,9 Schritte je Sekunde zu 2,5 m (der Sprint
+# hatte über 4 m und schwebte), der Fuß steht beim Aufsetzen still, ohne dass die Bewegung gebremst oder gehetzt wird.
+const TRAB_ANTEIL := 0.5
+const TRAB_DAUER := 0.7
 const LAUF_TAKT := 0.9   # kleinstes Abspieltempo beim Laufen (actor.gd › fortbewegen)
 var vel := Vector3.ZERO
 var lantern: OmniLight3D
@@ -63,6 +68,7 @@ func _ready() -> void:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
+	a_run = trab_bauen("Trab", TRAB_ANTEIL, TRAB_DAUER)
 	if modell == C.get("neu_tuch", ""):
 		tuch_faerben(Geschichte.urteil_art())
 	collision_layer = 2
