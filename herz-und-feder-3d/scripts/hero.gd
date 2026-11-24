@@ -250,6 +250,10 @@ func _physics_process_innen(delta: float) -> void:
 	else:
 		step_anim = ""   # nach einem Hieb setzt die Bewegung neu an, ohne einen Schritt nachzuholen
 
+# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur.
+func tritt() -> void:
+	game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+
 # Schrittklang genau dann, wenn ein Fuß aufsetzt: links bei der gemessenen Phase, rechts eine halbe Bewegung später.
 # Vorher lief ein eigener Takt neben den Beinen her und klang doppelt so schnell, wie die Füße gingen.
 func schrittklang(sp: float, delta: float) -> void:
@@ -261,7 +265,7 @@ func schrittklang(sp: float, delta: float) -> void:
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
 				step_t = 0.31
-				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+				tritt()
 		else:
 			step_t = 0.1
 		return
@@ -271,7 +275,7 @@ func schrittklang(sp: float, delta: float) -> void:
 			# überschritten seit dem letzten Bild (auch über das Ende der Schleife hinweg)
 			var bis := fposmod(auf - step_phase, 1.0)
 			if bis > 0.0 and bis <= fposmod(ph - step_phase, 1.0):
-				game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+				tritt()
 				schritte += 1
 				break
 	step_anim = cur_anim
