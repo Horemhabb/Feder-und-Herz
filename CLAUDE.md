@@ -33,3 +33,4 @@ Erwartet: `SPIELTEST: … ok, 0 Fehler`, Rückgabewert 0, kein `SCRIPT ERROR` (e
 - Der Windows-PC lädt über `tools/sync.bat` auf den Zweig `mac-pc` hoch.
 - Prompts für ComfyUI: keine Ziffern, Licht nur als Farbe, weitere Regeln in `BILDWERK.md`.
 - Neue Kommentare und Texte im Spiel auf Deutsch, im Ton der vorhandenen.
+- Bei jeder Änderung, die man im Spiel merkt, `Spiel.FASSUNG` (`scripts/spiel.gd`) erhöhen. Sie steht auf dem Titel und im Menü, dahinter der Bau (GitHub) oder „eigener Stand“ (PC).

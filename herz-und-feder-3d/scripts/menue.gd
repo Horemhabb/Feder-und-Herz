@@ -90,6 +90,7 @@ func _haupt() -> void:
 	v.add_child(_knopf("Neue Figur anlegen", false, func(): geh("figur"), true, 360))
 	add_child(mitte)
 	add_child(hud._para("Dein Fortschritt wird laufend gespeichert.", 12, Hud.DIM, true))
+	add_child(hud._para(Spiel.fassung_txt(), 11, Hud.DIM, true))
 
 func _lexikon() -> void:
 	_kopf("Lexikon")
