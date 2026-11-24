@@ -33,8 +33,11 @@ var dash_dir := Vector3.ZERO
 var dash_slam := Vector2.ZERO   # Aufprall am Ende eines Sprungs: Radius, Stärke (0 = ohne Schaden)
 var casts := 0           # gewirkte Fähigkeiten (Wort des Thot: jede fünfte ist frei)
 var step_t := 0.0
-var step_phase := -1.0   # Phase der Geh- oder Laufbewegung im letzten Bild (Schrittklang beim Aufsetzen)
-var step_anim := ""
+var step_ids := []                 # Knochen der Füße: Knöchel und Ballen, links dann rechts (Schrittklang)
+var step_boden := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])   # tiefster Stand je Knochen, steigt langsam wieder
+var step_unten := [true, true]     # steht der Fuß gerade unten (aufgesetzt)?
+var step_sperre := [0.0, 0.0]      # Mindestabstand je Fuß bis zum nächsten Klang
+var step_zeit := -1.0              # Zeitpunkt des letzten Blicks auf die Füße (nach einer Pause neu ansetzen)
 var schritte := 0        # gezählte Schrittklänge (für den Spieltest)
 const LAUF_TAKT := 0.9   # kleinstes Abspieltempo beim Laufen (actor.gd › fortbewegen)
 var vel := Vector3.ZERO
@@ -247,20 +250,25 @@ func _physics_process_innen(delta: float) -> void:
 		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
 		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25, "", LAUF_TAKT)
 		schrittklang(sp, delta)
-	else:
-		step_anim = ""   # nach einem Hieb setzt die Bewegung neu an, ohne einen Schritt nachzuholen
 
-# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur.
-func tritt() -> void:
-	game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12)
+# Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur. laut_db: leiser (negativ) beim Gehen.
+func tritt(laut_db := 0.0) -> void:
+	game.sfx.play("step_stein" if game.auf_stein(global_position) else "step_sand", 0.12, laut_db)
 
-# Schrittklang genau dann, wenn ein Fuß aufsetzt: links bei der gemessenen Phase, rechts eine halbe Bewegung später.
-# Vorher lief ein eigener Takt neben den Beinen her und klang doppelt so schnell, wie die Füße gingen.
+# Schrittklang genau dann, wenn ein Fuß aufsetzt, ganz gleich, welche Bewegung in welchem Tempo läuft: Je Fuß wird die
+# Höhe von Knöchel und Ballen über dem eigenen tiefsten Stand gelesen (die Figur steht bei y = 0, die Bewegung
+# schwebt aber knapp darüber oder taucht ein). Ein Tritt ist, wenn der Fuß von oben unter 6 cm über diesen Stand
+# fällt; erst nach 12 cm kann er wieder abheben und neu aufsetzen (Spiel gegen Zittern), und je Fuß gilt 0,15 s
+# Mindestabstand. Der tiefste Stand steigt langsam (3 cm/s), damit er sich dem Boden anpasst, wenn die Bewegung wechselt.
+# Vorher lief ein fester Takt neben den Beinen her (0,31 s) und klang doppelt so schnell, wie die Füße gingen.
+const TRITT_NAH := 0.06
+const TRITT_HOCH := 0.12
 func schrittklang(sp: float, delta: float) -> void:
-	var ph := gang_phase()
-	if ph < 0.0:
-		# Figur ohne gemessene Schritte: der alte Takt
-		step_anim = ""
+	if step_ids.is_empty():
+		for n in ["foot.l", "toes.l", "foot.r", "toes.r"]:
+			step_ids.append(skel.find_bone(n) if skel else -1)
+	if step_ids.has(-1):
+		# Figur ohne Füße: der alte Takt
 		if sp > 0.6:
 			step_t -= delta * sp / SPEED
 			if step_t <= 0.0:
@@ -269,17 +277,31 @@ func schrittklang(sp: float, delta: float) -> void:
 		else:
 			step_t = 0.1
 		return
-	if step_anim == cur_anim and step_phase >= 0.0:
-		var links: float = gang[cur_anim][1]
-		for auf in [links, fposmod(links + 0.5, 1.0)]:
-			# überschritten seit dem letzten Bild (auch über das Ende der Schleife hinweg)
-			var bis := fposmod(auf - step_phase, 1.0)
-			if bis > 0.0 and bis <= fposmod(ph - step_phase, 1.0):
-				tritt()
+	var jetzt := Time.get_ticks_msec() / 1000.0
+	var pause := jetzt - step_zeit
+	var neu_ansetzen := pause > 0.1   # eine Pause (Hieb, Satz, Stand): ohne Klang neu ansetzen
+	step_zeit = jetzt
+	var gt := skel.global_transform
+	var h := [0.0, 0.0]
+	for i in 4:
+		var y: float = (gt * skel.get_bone_global_pose(step_ids[i])).origin.y - global_position.y
+		step_boden[i] = minf(y, step_boden[i] + 0.03 * minf(pause, 2.0))
+		h[i / 2] = y - step_boden[i] if i % 2 == 0 else minf(h[i / 2], y - step_boden[i])
+	for f in 2:
+		step_sperre[f] -= delta
+		if neu_ansetzen:
+			step_unten[f] = h[f] < TRITT_NAH
+		elif step_unten[f]:
+			if h[f] > TRITT_HOCH:
+				step_unten[f] = false
+		elif h[f] < TRITT_NAH:
+			step_unten[f] = true
+			if step_sperre[f] <= 0.0 and sp > 0.6:
+				step_sperre[f] = 0.15
 				schritte += 1
-				break
-	step_anim = cur_anim
-	step_phase = ph
+				if OS.get_environment("HZ_DBG") != "": print("DBG-TRITT %.3f f%d h=%.3f anim=%s" % [jetzt, f, h[f], cur_anim])
+				# Gehen leiser als Laufen
+				tritt(lerpf(-4.0, 0.0, clampf((sp / SPEED - 0.3) / 0.5, 0.0, 1.0)))
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
 # unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.

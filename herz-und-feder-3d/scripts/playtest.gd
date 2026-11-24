@@ -121,6 +121,35 @@ func fussrutschen(a: Actor, dauer: float) -> Vector2:
 	var weg: Vector3 = proben[-1][1] - proben[0][1]
 	return Vector2(rutsch / maxf(am_boden, 0.01), Vector2(weg.x, weg.z).length() / t)
 
+# Fußaufsätze zählen, unabhängig vom Schrittklang: je Physikschritt Höhe von Knöchel und Ballen beider Füße, danach
+# gegen den tiefsten Stand der ganzen Messung gerechnet. Ein Aufsatz ist, wenn ein Fuß von über 12 cm unter 6 cm über
+# diesen Stand fällt. Das Ergebnis steht in auf_zahl (läuft neben fussrutschen, damit beide dieselben Bilder sehen).
+var auf_zahl := -1
+func fussaufsaetze(a: Actor, dauer: float) -> void:
+	var ids := ["foot.l", "toes.l", "foot.r", "toes.r"].map(func(n): return a.skel.find_bone(n))
+	var reihe := [[], [], [], []]
+	var t := 0.0
+	auf_zahl = -1
+	while t < dauer:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		var gt := a.skel.global_transform
+		for i in 4:
+			reihe[i].append((gt * a.skel.get_bone_global_pose(ids[i])).origin.y)
+	var n := 0
+	for f in 2:
+		var boden := [reihe[f * 2].min(), reihe[f * 2 + 1].min()]
+		var unten := true
+		for k in reihe[0].size():
+			var hh := minf(reihe[f * 2][k] - boden[0], reihe[f * 2 + 1][k] - boden[1])
+			if unten and hh > 0.12:
+				unten = false
+			elif not unten and hh < 0.06:
+				unten = true
+				n += 1
+				if OS.get_environment("HZ_DBG") != "": print("DBG-AUF f%d k=%d" % [f, k])
+	auf_zahl = n
+
 func run() -> void:
 	await wait(1.6)
 	var G := g()
@@ -161,18 +190,34 @@ func run() -> void:
 		Input.parse_input_event(e)
 	await wait(0.3)   # anlaufen
 	var s0: int = h.schritte
+	fussaufsaetze(h, 2.0)
 	var rh: Vector2 = await fussrutschen(h, 2.0)
 	var klang: int = h.schritte - s0
+	await get_tree().physics_frame
+	var auf: int = auf_zahl
+	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
+	# seit 4.1 läuft die Bewegung nicht langsamer als 0,9-fach (Zeitlupe), dafür darf der Fuß beim Aufsetzen etwas rutschen
+	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 2.5)
+	# so viele Klänge wie Fußaufsätze (Knochenhöhen), gleich in welchem Tempo die Bewegung läuft
+	check("Laufen: der Schrittklang kommt mit den Füßen (%d Klänge, %d Aufsätze in 2 s)" % [klang, auf], auf >= 3 and absi(klang - auf) <= 1)
+	# Gehen: langsamer, mit der Bewegung zum Gehen
+	var tempo0: float = Spiel.S.speed
+	Spiel.S.speed = tempo0 * 0.25
+	await wait(0.5)
+	s0 = h.schritte
+	var gehen := h.cur_anim
+	print("DBG-GANG ", h.gang, " v=", h.vel.length())
+	fussaufsaetze(h, 2.5)
+	await wait(2.5)
+	await get_tree().physics_frame
+	var klang_g: int = h.schritte - s0
+	Spiel.S.speed = tempo0
+	check("Gehen: der Schrittklang kommt mit den Füßen (%d Klänge, %d Aufsätze in 2,5 s, %s)" % [klang_g, auf_zahl, gehen], auf_zahl >= 2 and absi(klang_g - auf_zahl) <= 1)
 	for k in bahn:
 		var e := InputEventKey.new()
 		e.keycode = k
 		e.physical_keycode = k
 		Input.parse_input_event(e)
-	# vor dem Abgleich der Schrittlänge (4.0) rutschten die Füße beim Laufen mit 6,0 m/s, also fast so schnell wie die Figur lief
-	# seit 4.1 läuft die Bewegung nicht langsamer als 0,9-fach (Zeitlupe), dafür darf der Fuß beim Aufsetzen etwas rutschen
-	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 2.5)
-	# zwei Schritte je Durchlauf der Bewegung, bei 0,9-fachem Tempo gut zwei je Sekunde (der alte Takt gab über sechs)
-	check("Laufen: der Schrittklang kommt mit den Füßen (%d in 2 s)" % klang, klang >= 3 and klang <= 5)
 	await wait(0.3)
 	p0 = h.global_position
 	var vs := get_viewport().get_visible_rect().size
