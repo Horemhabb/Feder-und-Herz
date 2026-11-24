@@ -67,6 +67,12 @@ jobs:
           grep -q "^SPIELTEST: [0-9]* ok, 0 Fehler" spieltest.log || { echo "Der Spieltest ist nicht sauber durchgelaufen."; tail -40 spieltest.log; exit 1; }
           if grep -q "SCRIPT ERROR" spieltest.log; then echo "Skriptfehler im Spieltest:"; grep -A3 "SCRIPT ERROR" spieltest.log | head -40; exit 1; fi
 
+      - name: Fassung vermerken (steht im Spiel auf dem Titel und im Menü)
+        run: |
+          echo '# Von GitHub beim Bauen geschrieben.' > $PROJEKT/scripts/bau.gd
+          echo "const TEXT := \"Bau $GITHUB_RUN_NUMBER vom $(TZ=Europe/Berlin date '+%d.%m. %H:%M') (${GITHUB_SHA::7})\"" >> $PROJEKT/scripts/bau.gd
+          cat $PROJEKT/scripts/bau.gd
+
       - name: Web-Fassung exportieren
         run: |
           set -e

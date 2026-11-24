@@ -6,7 +6,15 @@ extends Node
 const DATEI := "user://spielstand.json"
 var schau_gesehen := false   # „-- --schau“ öffnet den Schaukasten nur beim Start, nicht bei der Rückkehr ins Spiel
 var neu3d := true    # seit 2.5 stammen alle Figuren aus der Figurenfabrik
-const VERSION := 1
+const VERSION := 1   # Aufbau des Spielstands (nicht die Fassung)
+# Fassung des Spiels, sichtbar auf dem Titel und im Menü. Bei jeder Änderung, die man im Spiel merkt, erhöhen.
+# Dahinter steht der Bau: GitHub schreibt beim Veröffentlichen Nummer, Zeit und Stand in scripts/bau.gd,
+# am eigenen Rechner steht dort „eigener Stand“. So lässt sich die Webfassung vom PC unterscheiden.
+const FASSUNG := "4.1"
+
+func fassung_txt() -> String:
+	var bau = load("res://scripts/bau.gd")
+	return "Fassung %s · %s" % [FASSUNG, bau.TEXT if bau else "?"]
 
 # Klassen, Fähigkeiten und Baum stehen in klassen.gd
 var CLS: Dictionary:

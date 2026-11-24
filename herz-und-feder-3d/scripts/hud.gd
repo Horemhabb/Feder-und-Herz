@@ -919,6 +919,14 @@ func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 		schleier.set_anchors_preset(Control.PRESET_FULL_RECT)
 		schleier.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		overlay.add_child(schleier)
+		# Fassung unten rechts, klein: welcher Stand läuft hier (Web oder eigener Rechner)?
+		var fassung := _label(Spiel.fassung_txt(), 12, DIM)
+		fassung.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		fassung.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		fassung.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		fassung.position -= Vector2(12, 8)
+		fassung.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(fassung)
 	var sc := ScrollContainer.new()
 	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
