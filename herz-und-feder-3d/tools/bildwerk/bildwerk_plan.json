@@ -1023,15 +1023,15 @@
    "rain": 1.0
   },
   "portraets": {
-   "P04": "bildwerk/portraets_figuren/P04_portraet_a",
-   "P05": "bildwerk/portraets_figuren/P05_portraet_b",
-   "P11": "bildwerk/portraets_figuren/P11_portraet_c",
-   "P12": "bildwerk/portraets_figuren/P12_portraet_b",
-   "P13": "bildwerk/portraets_figuren/P13_portraet_a",
-   "P14": "bildwerk/portraets_figuren/P14_portraet_a",
-   "P15": "bildwerk/portraets_figuren/P15_portraet_d",
-   "P16": "bildwerk/portraets_figuren/P16_portraet_b",
-   "P17": "bildwerk/portraets_figuren/P17_portraet_c"
+   "P04": "bildwerk/portraets_figuren_nah/P04_portraet_nah_figur_a",
+   "P05": "bildwerk/portraets_figuren_nah/P05_portraet_nah_figur_a",
+   "P11": "bildwerk/portraets_figuren_nah/P11_portraet_nah_figur_a",
+   "P12": "bildwerk/portraets_figuren_nah/P12_portraet_nah_figur_c",
+   "P13": "bildwerk/portraets_figuren_nah/P13_portraet_nah_figur_a",
+   "P14": "bildwerk/portraets_figuren_nah/P14_portraet_nah_figur_a",
+   "P15": "bildwerk/portraets_figuren_nah/P15_portraet_nah_figur_a",
+   "P16": "bildwerk/portraets_figuren_nah/P16_portraet_nah_figur_b",
+   "P17": "bildwerk/portraets_figuren_nah/P17_portraet_nah_figur_c"
   },
   "hinweis_portraets": "Porträts: Code (P04 usw.) -> Quelle. Die Figuren aus portraets_figuren sind ein Übergang (Mond und Laterne im Bild); portraets_figuren_nah soll sie ersetzen. portraet_zuschnitt: {code oder standard: {zoom, oben}}, zoom kleiner = enger.",
   "texturen": {},
