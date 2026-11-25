@@ -51,6 +51,11 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 | 7 | `portraets_leute_nah`: die zwölf Leute, zweiter Anlauf (nah, Leinen, ohne Mond und Laterne) | 48 | 2 h 25 | ja, im Gesprächsfenster | ersetzt Stufe 3, die Mond und Sturmlaterne in jedem Bild zeigte |
 | 9 | `texturen_neu`: alle 17 vorhandenen Texturen (Wände w01–w05, Böden t06 t07 t09–t12, Fels f01, Requisiten p01–p05) als Auswahl neben den alten | 51 (je 3 Varianten) | 2 h 35 | ja, ersetzt die gleichnamigen Dateien | `einbauen.bat texturen`: Helligkeit ausgleichen, Naht glätten, Normalenkarte |
 | 8 | `portraets_figuren_nah`: Erloschener, Richter, sieben Götter, zweiter Anlauf | 36 | 1 h 49 | ja, im Gesprächsfenster | ersetzt die Übergangsporträts aus Stufe 2 |
+| 10 | `hueter`: Hüter der Stunden 1 bis 8 als Büste (Stil `hueter`, Licht nur als Farbe) | 32 | etwa 1 h 10 | erst nach Code | Bild in der Ankündigung des Hüters (Claude) |
+| 11 | `akttafeln`: drei breite Szenen (Abstieg, Waage, Morgen), 1280 × 720, Stil `szene` (neu, zugleich die Probe) | 12 | etwa 25 min | erst nach Code | Hintergrund der Akttafeln und Schluss von Akt 1 (Claude) |
+| 12 | `sand_neu`: Sand ohne Käfer, Löcher und Verlauf | 8 | etwa 20 min | ja | `einbauen.bat texturen`, ersetzt `t09_sand` |
+
+Alle Stufen 1 bis 9 sind gerechnet und eingebaut (Fassung 4.1.4). Die Stufen 10 bis 12 dienen Etappe B des Fahrplans (Schluss von Akt 1, Ankündigung der Hüter) und dem Sand; danach ruht die Bildarbeit wieder.
 
 **Vorschlag für die Nächte**
 - **Nacht 2:** Stufen 1, 2, 3 (etwa 5 h 40). Danach ist jede Gesprächsfigur mit Gesicht möglich, das ist der größte sichtbare Gewinn.
