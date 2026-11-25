@@ -83,6 +83,7 @@ static func muster_von(f) -> Dictionary:
 
 static func fuer(foe) -> Hueter:
 	var look: String = foe.hour.get("boss", {}).get("look", "")
+	look = {"apophis": "mutter"}.get(look, look)   # eigene Gestalt, geliehenes Kampfmuster
 	if foe.ist_aktende() or not MUSTER.has(look):
 		return null
 	var k := Hueter.new()
@@ -112,6 +113,7 @@ var status := ""         # Zeile unter der Leiste
 var licht_gedimmt := false
 # Mahaf
 var schau_t := 2.5
+var trug_erzeugt := 0
 var schaden_seit_trug := 0.0
 var orbit := 0.0
 var ruder: Node3D
@@ -212,7 +214,7 @@ func gestalt() -> void:
 			# drei Hautplatten an Schultern und Rücken: mit jeder Häutung fällt eine
 			var hm := _mat(Color(0.72, 0.6, 0.42), 0.15)
 			var orte := [Vector3(0.42, 0.25, -0.05), Vector3(-0.42, 0.25, -0.05), Vector3(0, 0.15, -0.42)]
-			for i in 3:
+			for i in (3 if f.skel and f.skel.find_bone("chest") >= 0 else 0):
 				var pl := BoxMesh.new()
 				pl.size = Vector3(0.55, 0.12, 0.5) if i < 2 else Vector3(0.75, 0.6, 0.12)
 				var pi := _teil(pl, hm, orte[i])
@@ -347,11 +349,12 @@ func tick(delta: float, hero: Hero, d: float, dirn: Vector3, gelaehmt: bool) -> 
 				t = float(cur.erholung) * tempo
 				if float(cur.erholung) >= 1.2:
 					offen_t = t
+					f.act_t = maxf(f.act_t, t)
 					g.ring_fx(f.global_position, f.radius + 1.2, Color(1.0, 0.85, 0.4))
 		"erholung":
 			t -= delta
-			if offen_t > 0.0 and f.charge_t <= 0.0:
-				f.play(Foe.ANIM.idle, 0.45)
+			if offen_t > 0.0 and f.charge_t <= 0.0 and f.stun <= 0.0:
+				f.play(f.bew("boss/Lauern", Foe.ANIM.idle), 0.8)   # erschöpft: lauernd, offen für Treffer
 			if t <= 0.0:
 				zustand = "wahl"
 				t = randf_range(0.35, 0.8) * tempo
@@ -373,6 +376,7 @@ func _waehlen(d: float) -> void:
 	cd[cur.id] = float(cur.cd) * tempo * randf_range(0.9, 1.15)
 	zustand = "ansage"
 	t = float(cur.ansage)
+	f.act_t = t + 0.25   # hält die Ausholbewegung, statt sie mit Stehen zu überschreiben
 	if cur.get("stark", false):
 		g.hud.boss_ansage(cur.name)
 	f.look_to(h().global_position)
@@ -652,6 +656,7 @@ func _wisp_start() -> void:
 	_leuchten(f, f.K.bcol, 0.8)
 
 func _wisp_tick(delta: float, hero: Hero, d: float) -> void:
+	_status()
 	# das echte Licht schaut zurück
 	if _trugbilder().size() > 0:
 		schau_t -= delta
@@ -759,7 +764,9 @@ func _los_kreis(hero: Hero, d: float, dirn: Vector3) -> void:
 		var p: Vector3 = hero.global_position + Vector3(sin(a), 0, cos(a)) * 6.0
 		if not g.walkable(hero.global_position, p):
 			p = f.global_position
-		var o := _objekt("trugbild", p, 1.0, f.radius, _trug_bild(), f.K.name, false)
+		# hält ein paar Treffer aus: wer blind auf das Nächste schlägt, löst erst ihren Reigen aus
+		var o := _objekt("trugbild", p, maxf(20.0, Spiel.S.dmg * 1.6), f.radius, _trug_bild(), f.K.name, false)
+		trug_erzeugt += 1
 		o.set_meta("ort", i + 1)
 		g.spark(p + Vector3(0, 1.4, 0), f.K.bcol)
 	g.float_text(f.global_position + Vector3(0, 3.0, 0), "Welches Licht ist echt?", f.K.bcol, 1.2)
@@ -920,7 +927,7 @@ func _los_stampfer(hero: Hero, d: float, dirn: Vector3) -> void:
 	g.shake = maxf(g.shake, 0.6)
 
 func _ansage_faecher(hero: Hero, d: float) -> void:
-	f.play(Foe.ANIM.cast, 1.0, 0.1, true)
+	f.play(f.bew("boss/Wurf", Foe.ANIM.cast), 1.0, 0.1, true)
 	g.cone_fx(f.global_position, f.face, 9.0, 0.55, float(cur.ansage))
 
 func _los_faecher(hero: Hero, d: float, dirn: Vector3) -> void:
@@ -1120,7 +1127,7 @@ func _name_gerufen() -> void:
 	f.stun = 3.0   # er kniet drei Sekunden
 	offen_t = 3.0
 	fenster_t = 14.0 if phase < 2 else 12.0
-	f.play(Foe.ANIM.hit, 0.3, 0.1, true)
+	f.play(f.bew("boss/Schildbruch", Foe.ANIM.hit), 0.6, 0.1, true)
 	g.hud.boss_ansage("Er hört seinen Namen")
 	g.hud.banner("Sein Name brennt an den Wänden. Er sinkt auf die Knie, und jetzt trifft ihn, was ihn trifft.", "ER HÖRT SEINEN NAMEN", 4.0)
 	g.ring_fx(f.global_position, 5.0, Color(1.0, 0.8, 0.35))
@@ -1160,7 +1167,7 @@ func _koenig_phase(n: int) -> void:
 	_status()
 
 func _ansage_goldschwert(hero: Hero, d: float) -> void:
-	f.play(Foe.ANIM.atk_big, 0.8, 0.1, true)
+	f.play(f.bew("boss/Wuchthieb", Foe.ANIM.atk_big), 1.0, 0.1, true)
 	_kegel(5.2, 1.05, float(cur.ansage), 1.5)
 
 func _ansage_welle(hero: Hero, d: float) -> void:

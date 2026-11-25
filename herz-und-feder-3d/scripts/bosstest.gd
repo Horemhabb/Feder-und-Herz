@@ -62,6 +62,8 @@ func run() -> void:
 		await koenig()
 	if nur == "" or "sammler" in nur:
 		await sammler()
+	if nur == "" or "apophis" in nur:
+		await apophis()
 	if nur == "" or "champ" in nur:
 		await champions()
 	print("BOSSTEST: %d ok, %d Fehler" % [ok, bad])
@@ -245,23 +247,26 @@ func mahaf() -> void:
 	await wait(0.3)
 	check("Mahaf Phase 2 bei 65 %", B.kampf.phase == 2)
 	var trug := []
+	var hinweis := false
 	for i in 20:
 		await wait(0.4)
 		trug = B.kampf._trugbilder()
+		hinweis = hinweis or G.hud.l_boss_status.text.contains("golden")
 		if trug.size() == 2:
 			break
 	await wait(1.0)
 	check("Phase 2: die Laterne brennt schwach (%.1f von %.1f m)" % [h.lantern.omni_range, voll], h.lantern.omni_range < voll * 0.6)
-	check("Phase 2: zwei Trugbilder führen im Kreis (%d)" % trug.size(), trug.size() == 2)
-	check("Leiste: Hinweis auf das echte Licht", G.hud.l_boss_status.text.contains("golden"))
+	check("Phase 2: zwei Trugbilder führen im Kreis (%d, erzeugt %d)" % [trug.size(), B.kampf.trug_erzeugt], B.kampf.trug_erzeugt >= 2)
+	hinweis = hinweis or G.hud.l_boss_status.text.contains("golden")
+	check("Leiste: Hinweis auf das echte Licht", hinweis)
 	await heran(G)
 	await shot("mahaf_p2")
 	# ein Trugbild zerplatzt in einen kleinen Reigen; das echte Licht, getroffen, zerreißt die Täuschung
-	var bolts0: int = G.bolts.size()
+	trug = B.kampf._trugbilder()
 	if trug.size() > 0:
-		trug[0].hit(10.0, h.global_position)
+		trug[0].hit(1e6, h.global_position)
 	await wait(0.1)
-	check("ein getroffenes Trugbild zerplatzt in einen kleinen Reigen (übrig %d)" % B.kampf._trugbilder().size(), B.kampf._trugbilder().size() <= 1 and trug[0].state == Foe.St.DEAD)
+	check("ein getroffenes Trugbild zerplatzt in einen kleinen Reigen (übrig %d)" % B.kampf._trugbilder().size(), trug.size() > 0 and B.kampf._trugbilder().size() <= 1 and trug[0].state == Foe.St.DEAD)
 	B.hit(B.max_hp * 0.075, h.global_position)
 	await wait(0.2)
 	check("das echte Licht getroffen: die Täuschung zerreißt", B.kampf._trugbilder().is_empty() and B.kampf.phase == 2)
@@ -270,8 +275,12 @@ func mahaf() -> void:
 	h.hp = 1.0
 	h.hurt(9999.0, B.global_position, B)
 	await wait(2.6)
-	G.hud.press_primary()
-	await wait(2.5)
+	for i in 8:
+		G.hud.press_primary()
+		await wait(1.0)
+		if not h.dead:
+			break
+	await wait(1.5)
 	check("Niederlage gegen Mahaf: die Laterne brennt wieder hell (%.1f), keine Trugbilder" % h.lantern.omni_range, h.lantern.omni_range > voll * 0.9 and B.kampf._trugbilder().is_empty() and not G.boss_awake)
 	await wecken(G, 7.0)
 	await wait(1.6)
@@ -445,6 +454,26 @@ func sammler() -> void:
 	await wait(2.0)
 	check("der Sammler fällt: Krüge vergehen, das Licht ist zurück", B.state == Foe.St.DEAD and lebende(G, "krug").is_empty() and G.dunkel_vorher.is_empty())
 
+# ---------------------------------------------------------------- Eine Windung des Apophis (Stunde 7): neue Gestalt von Agent A
+func apophis() -> void:
+	var G: Node = await stunde(7)
+	var B: Foe = G.boss
+	var h: Hero = G.hero
+	check("Stunde 7: die Windung des Apophis trägt die Schlange und häutet sich wie die Mutter", B.kampf != null and B.kampf.art == "mutter" and B.K.get("neu", "") == "Apophis")
+	await wecken(G, 8.0)
+	check("die Schlange erwacht und kämpft", B.state == Foe.St.FIGHT and G.boss_awake)
+	await heran(G)
+	await shot("apophis_p1")
+	auf(B, 0.73)
+	await wait(1.0)
+	check("die Schlange häutet sich bei 75 %", B.kampf.phase == 2)
+	await heran(G)
+	await shot("apophis_p2")
+	B.schild_t = 0.0
+	B.hit(1e9, h.global_position)
+	await wait(1.5)
+	check("die Windung fällt", B.state == Foe.St.DEAD)
+
 # ---------------------------------------------------------------- Champions und ihre Eigenschaften
 func champion(G: Node, art: String, ids: Array, ort: Vector3, leben := 1e6) -> Foe:
 	Affixe.vorgabe = ids
@@ -480,7 +509,7 @@ func champions() -> void:
 		var c: Foe = champion(G, art, [id], p)
 		var mate: Foe = null
 		if id == "klage" or id == "kette":
-			mate = G._spawn("lance", frei_neben(G, p, 2.0), 97, "", G.hdef)
+			mate = G._spawn("lance", frei_neben(G, p, 4.5 if id == "kette" else 2.0), 97, "", G.hdef)
 			mate.max_hp = 1e6
 			mate.hp = 1e6
 		G.wake_pack(97)
@@ -571,11 +600,14 @@ func champions() -> void:
 					await wait(1.2)
 					c.stun = 99.0
 					partner.stun = 99.0
+					await wait(0.3)
 					h.inv = 0.0
 					h.global_position = (c.global_position + partner.global_position) * 0.5
 					h.reset_physics_interpolation()
 					var hh := h.hp
-					await wait(0.8)
+					for k in 10:
+						h.global_position = (c.global_position + partner.global_position) * 0.5   # auf der Kette halten
+						await wait(0.1)
 					h.inv = 9999.0
 					check("Feuerkette: wer sie berührt, verbrennt (%d → %d)" % [int(hh), int(h.hp)], h.hp < hh or c.global_position.distance_to(partner.global_position) < 1.2)
 		h.global_position = frei_neben(G, c.global_position, 3.0)

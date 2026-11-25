@@ -31,6 +31,8 @@ const BOSS_LOOK := {
 	"mutter": {"neu": "Koloss", "neu_tint": Color(1.1, 0.9, 0.62), "neu_scale": 0.72, "mat": "leder"},
 	"koenig": {"neu": "Krieger", "neu_tint": Color(1.35, 1.1, 0.6), "neu_scale": 0.78, "mat": "eisen", "undead": true},
 	"grey": {"neu": "Koloss", "neu_tint": Color(0.72, 0.8, 0.95), "neu_scale": 0.72, "mat": "stern"},
+	# Agent A (Gegnerfabrik, 4.1): die Schlange; kämpft nach dem Muster der Mutter der Häute (eine Schlange häutet sich)
+	"apophis": {"neu": "Apophis", "neu_tint": Color(1.0, 0.92, 0.75), "neu_scale": 1.0, "mat": "leder"},
 	"sammler": {"neu": "Erloschener", "neu_tint": Color(1.05, 0.7, 1.4), "neu_scale": 0.8, "mat": "stern"},
 }
 
@@ -167,6 +169,10 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		# Figur aus der Figurenfabrik: eigene Haut, eigene Waffe; Varianten (Hüter, Erloschene) über Größe und Tönung
 		setup("res://models/chars/%s.glb" % K.neu, sc * K.get("neu_scale", 1.0), r)
 		neu3d = true
+		if k == "boss" or elite != "":
+			# Hüter und Champions bekommen eigene Bewegungen (Agent D, bewegungen.gd): Wuchthieb, Schildbruch, Wurf …
+			Bewegungen.ergaenzen(ap, skel, "boss")
+			Bewegungen.ergaenzen(ap, skel, "gemeinsam")
 		if K.has("neu_tint"):
 			_tint(K.neu_tint)
 	else:
@@ -409,6 +415,10 @@ func _elite_mark(s: float) -> void:
 	elite_teile.append(l)
 	Affixe.anlegen(self, affixe)
 
+# eigene Bewegung, wenn die Figur sie hat (bewegungen.gd), sonst die gewöhnliche
+func bew(name: String, ersatz: String) -> String:
+	return name if ap and ap.has_animation(name) else ersatz
+
 # Ein gewöhnlicher Gegner wird Champion (Feuerkette: der Gefährte des ersten), für Prüfungen auch mit festen Eigenschaften
 func zum_champion(el: String, ids: Array) -> void:
 	for n in elite_teile:
@@ -425,6 +435,9 @@ func zum_champion(el: String, ids: Array) -> void:
 			model.scale *= 1.35
 	affixe = ids.duplicate()
 	disp_name = "%s, %s" % [K.name, Affixe.LISTE[affixe[0]].titel] if not affixe.is_empty() else K.name
+	if neu3d:
+		Bewegungen.ergaenzen(ap, skel, "boss")
+		Bewegungen.ergaenzen(ap, skel, "gemeinsam")
 	_elite_mark(sc * 1.35)
 
 # Glut in den Rissen der Figur (die Figuren der Figurenfabrik bringen eine Leuchtkarte mit): Champions und Hüter
@@ -468,7 +481,7 @@ func _huelle_auf() -> void:
 	glut(1.2, Color(1.0, 0.35, 0.2))
 	if ap:
 		ap.speed_scale = 1.0
-	play(ANIM.rise, 1.3, 0.1, true)
+	play(bew("gemeinsam/Aufstehen", ANIM.rise), 1.3, 0.1, true)
 	act_t = 0.8
 	game.ring_fx(global_position, 2.4, Color(0.9, 0.6, 0.35))
 	game.float_text(global_position + Vector3(0, 3.0, 0), "die Haut steht auf", Color(0.95, 0.7, 0.45))

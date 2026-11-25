@@ -549,7 +549,7 @@ static func _klagen(f) -> void:
 	f.wind = 0.9
 	f.act_t = 1.0
 	f.set_meta("what", "nichts")
-	f.play(Foe.ANIM.cast, 0.8, 0.1, true)
+	f.play(f.bew("boss/Kratzen", Foe.ANIM.cast), 0.9, 0.1, true)
 	g.sfx.play_at("boss_phase" if g.sfx._stream("boss_phase") else "boss_appear", f.global_position, 0.1, -10.0)
 	g.float_text(f.global_position + Vector3(0, 3.0, 0), "Totenklage", LISTE.klage.farbe)
 	g.ring_fx(f.global_position, 3.0, LISTE.klage.farbe)
@@ -572,7 +572,7 @@ static func _fesseln(f, h) -> void:
 	f.wind = 0.9
 	f.act_t = 1.0
 	f.set_meta("what", "nichts")
-	f.play(Foe.ANIM.cast, 1.1, 0.1, true)
+	f.play(f.bew("boss/Wurf", Foe.ANIM.cast), 1.2, 0.1, true)
 	g.stripe_fx(von, dir, lang, 1.4, 0.8)
 	g.sfx.play_at("skel_attack", von, 0.1, -2.0)
 	f.get_tree().create_timer(0.8, false).timeout.connect(func():

@@ -800,7 +800,7 @@ func boss_show(b: Foe) -> void:
 	var bei: String = b.hour.get("boss", {}).get("beiname", M.get("beiname", ""))
 	l_boss_bei.text = bei
 	l_boss_bei.visible = bei != ""
-	boss_art = "tuer" if b.kampf == null and b.kind == "boss" and b.ist_aktende() else String(b.hour.get("boss", {}).get("look", ""))
+	boss_art = b.kampf.art if b.kampf else "tuer"
 	boss_ph = M.get("phasen", [])
 	var col: Color = b.K.get("bcol", Color("c06be0"))
 	bar_boss.add_theme_stylebox_override("fill", _flat(Color.from_hsv(col.h, maxf(col.s, 0.6), 0.72), 4))

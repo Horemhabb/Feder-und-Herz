@@ -15,7 +15,7 @@ const ACT := [
 ]
 const OPEN := [
 	{"name": "Der Leib des Osiris", "base": 2, "boss": 2, "bossName": "Der falsche Osiris", "beiname": "der auf fremdem Lager liegt", "say": "Er liegt, wo ein anderer liegen sollte.", "lead": "Die tiefste Stunde. Hier ruht, was von Osiris blieb, und Re muss es berühren, um wieder jung zu werden.", "brief": "Die Barke fährt wieder, aber sie ist schwach. Um Mitternacht müssen Re und Osiris einander begegnen. Auf dem Lager des Osiris liegt jemand, der dort nicht hingehört.", "epi": "Der Platz ist wieder frei. Für einen Atemzug sind Re und Osiris eins, und der Funke in deiner Laterne wird heller."},
-	{"name": "Die Sandbank des Apophis", "base": 0, "boss": 1, "bossName": "Eine Windung des Apophis", "beiname": "nur eine Windung von vielen", "say": "Das ist nur eine Windung. Der Rest liegt unter der Sandbank.", "lead": "Eine Sandbank, so lang wie er selbst. Er hat das Wasser unter der Barke ausgetrunken.", "brief": "Seth steht am Bug mit dem Speer. Isis spricht die Worte, Selket hält die Fessel. Dir bleibt das Messer.", "epi": "Isis hat ihn besprochen, Selket hat ihn gebunden, du hast das Messer geführt. Er ist nicht tot, er ist nie tot. Aber das Wasser kommt zurück, und die Barke fährt."},
+	{"name": "Die Sandbank des Apophis", "base": 0, "boss": 1, "bossName": "Eine Windung des Apophis", "beiname": "nur eine Windung von vielen", "look": "apophis", "say": "Das ist nur eine Windung. Der Rest liegt unter der Sandbank.", "lead": "Eine Sandbank, so lang wie er selbst. Er hat das Wasser unter der Barke ausgetrunken.", "brief": "Seth steht am Bug mit dem Speer. Isis spricht die Worte, Selket hält die Fessel. Dir bleibt das Messer.", "epi": "Isis hat ihn besprochen, Selket hat ihn gebunden, du hast das Messer geführt. Er ist nicht tot, er ist nie tot. Aber das Wasser kommt zurück, und die Barke fährt."},
 	{"name": "Die Grüfte der Götter", "base": 3, "boss": 3, "bossName": "Der Hüter ohne Stimme", "beiname": "aus dessen Gruft kein Laut kommt", "say": "Aus seiner Gruft kommt kein Laut.", "lead": "Aus den Grüften antwortet es, wenn Re vorüberfährt. Heute antwortet etwas anderes.", "brief": "Wenn Re ruft, sollen die Stimmen aus den Grüften klingen wie ein Kater und wie ein Schwarm Bienen. Hör hin, ob sie es noch tun.", "epi": "Es summt wieder in den Grüften, und irgendwo schreit ein Kater. So soll es sein."},
 	{"name": "Die Ruderer", "base": 4, "boss": 0, "bossName": "Der zwölfte Ruderer", "beiname": "dessen Bank leer blieb", "say": "Sein Ba hat die Bank nicht mehr gefunden.", "lead": "Zwölf Ruderer hat die Barke. Elf sitzen auf ihren Bänken.", "brief": "Mit elf Rudern kommt die Barke nicht gegen die Strömung an. Der zwölfte irrt als Licht durch die Gänge.", "epi": "Zwölf Ruder tauchen ein. Zum ersten Mal in dieser Nacht hörst du Wasser."},
 	{"name": "Die Ertrunkenen im Nun", "base": 1, "boss": 2, "bossName": "Der Ertrunkene König", "beiname": "der sich am Grund festhält", "say": "Er hält sich am Grund fest.", "lead": "Wer im Fluss blieb, bekam kein Grab. Horus zieht sie hier ans Ufer, damit auch sie gewogen werden.", "brief": "Auch wer kein Grab bekam, hat ein Recht auf die Waage. Einer will nicht an Land.", "epi": "Horus ruft sie beim Namen, und sie kommen ans Ufer, einer nach dem anderen."},
@@ -66,6 +66,8 @@ static func def(n: int) -> Dictionary:
 	boss.name = o.bossName
 	boss.say = o.say
 	boss.beiname = o.get("beiname", "")
+	if o.has("look"):
+		boss.look = o.look   # eigene Gestalt statt der geliehenen (Kampfmuster bleibt das der geliehenen)
 	boss.hp = 1.3
 	b.boss = boss
 	return b
