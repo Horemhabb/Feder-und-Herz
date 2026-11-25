@@ -373,6 +373,14 @@ const BODEN_ART := {
 	"t07_gruft": [0, Vector2.ZERO, Vector2.ZERO],
 }
 
+# Helligkeit der Texturen ausgleichen (4.1.5): Die Texturen aus ComfyUI sind drei- bis neunmal so hell wie die alten,
+# auf die Licht und Stunden abgestimmt sind. Statt die Dateien umzurechnen, wird je Datei die Tönung gesenkt,
+# Ziel eine mittlere lineare Helligkeit um 0,24 (Sand als Wüste etwas heller). Gemessen an den Dateien von 4.1.4.
+const HELL := {
+	"w01_sandstein": 0.50, "w03_lehm": 0.66, "w04_grab": 0.55, "t06_pflaster": 0.68, "t09_sand": 0.55,
+	"t10_feld": 0.64, "t11_glas": 0.71, "f01_fels": 0.73,
+}
+
 var mats := {}
 var cut_mats := {}      # Mauermaterial mit Durchblick (mauer.gdshader) je Oberfläche
 var boden_mats := {}    # Bodenmaterial ohne sichtbare Kachel (boden.gdshader) je Oberfläche
@@ -399,6 +407,8 @@ func surf(name: String) -> StandardMaterial3D:
 		m0.set_meta("period", e.get_meta("period"))
 		mats[name] = m0
 		return m0
+	var hell: float = HELL.get(file, 1.0)
+	tint = Color(tint.r * hell, tint.g * hell, tint.b * hell, tint.a)
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load("res://textures/%s.jpg" % file)
 	m.albedo_color = tint
@@ -505,10 +515,11 @@ func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> Static
 
 # Licht der Stunde. Vorbild sind die alten Dungeon-Spiele: kühles Grundlicht, in dem man alles erkennt,
 # dazu warme Lichtinseln aus Laterne, Fackeln und Feuerschalen. Draußen scheint der Mond, drinnen färbt die Stunde das Dunkel.
-# 4.1.5: Draußen Mond und Grundlicht schwächer (0,5 → 0,28 und 0,36 → 0,16): Mit den hellen Sandtexturen sah die Nacht
-# aus wie ein Nachmittag, und das Grundlicht hellte jeden Schatten auf. Jetzt ist die Laterne die hellste Stelle im Bild.
+# 4.1.5: Draußen Mond und Grundlicht schwächer (0,5 → 0,40 und 0,36 → 0,22): Mit den hellen Sandtexturen sah die Nacht
+# aus wie ein Nachmittag, und das Grundlicht hellte jeden Schatten auf. Die Texturen selbst sind über HELL gedämpft;
+# jetzt ist die Laterne die hellste Stelle im Bild.
 const LICHT := {
-	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.16, "moon": 0.28, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
+	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.22, "moon": 0.40, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
 	"ruin": {"amb": Color(0.52, 0.56, 0.5), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.08, 0.10, 0.09), "fog_d": 0.008, "bg": Color(0.01, 0.015, 0.02)},
 	"tomb": {"amb": Color(0.62, 0.48, 0.36), "amb_e": 0.46, "moon": 0.22, "fog": Color(0.10, 0.07, 0.04), "fog_d": 0.009, "bg": Color(0.015, 0.01, 0.008)},
 	"glass": {"amb": Color(0.38, 0.56, 0.66), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.04, 0.10, 0.13), "fog_d": 0.008, "bg": Color(0.008, 0.015, 0.025)},
