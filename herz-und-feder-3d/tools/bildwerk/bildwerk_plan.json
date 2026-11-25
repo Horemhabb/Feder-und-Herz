@@ -51,6 +51,14 @@
   "portraet_nah_figur": {
    "beschreibung": "Wie portraet_nah, aber für Götter, Tote und Tiere: Schmuck aus Gold, Fayence und Karneol erlaubt, Kleidung nur wo sie hingehört.",
    "text": "Cinematic photorealistic close portrait, only head and shoulders, the face fills a large part of the picture, of {MOTIV} {HINWEIS} {ANSICHT} The scene is ancient Egypt, the land of the dead. Any clothing is plain undyed linen, ornaments are of hammered gold, blue faience and red carnelian. Soft cool blue light falls from above, a faint warm amber glow touches one side of the face, a faint turquoise shimmer hangs in the air. Fine realistic detail of skin, fur, feathers and worn linen, calm intense expression. Behind the figure {TEX}, completely out of focus, only soft shapes and color. Muted earthy colors against deep night blue. The picture shows only the figure and the blurred background, nothing written anywhere."
+  },
+  "hueter": {
+   "beschreibung": "Hüter der Stunden für die Ankündigung vor dem Kampf: wie lexikon, aber Licht nur als Farbe (kein Mond), ein Hüter füllt das Bild.",
+   "text": "Cinematic dark fantasy portrait, head and upper body, of {MOTIV} {HINWEIS} {ANSICHT} The Egyptian underworld at night. Deep night blue light falls from above, a red ember glow rises from below, fine realistic detail on wrappings, bronze, gold and stone. The figure fills most of the picture and looks powerful and calm. Behind it {TEX}, softly out of focus. Muted earthy colors against deep night blue. The picture shows only the figure and the blurred scene, nothing written anywhere."
+  },
+  "szene": {
+   "beschreibung": "Breite Bilder für die Akttafeln: gemalte Szene, viel Raum, ruhige Mitte für Schrift darüber. Licht nur als Farbe.",
+   "text": "Wide cinematic matte painting of {MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian underworld, painterly realistic style with deep atmosphere and depth, large calm areas of dark sky or shadow in the upper third, the main subject in the lower half. Muted earthy colors against deep night blue, {TEX}. No people in the foreground except where described, nothing written anywhere, no frame, no border."
   }
  },
  "ansichten": {
@@ -77,6 +85,12 @@
    "b": "The person is slightly turned to one side and looks past the viewer.",
    "c": "The person looks directly at the viewer.",
    "d": "Seen from a slightly lower angle, with a little more dramatic light."
+  },
+  "szene": {
+   "a": "",
+   "b": "Seen from a lower angle, more vast and monumental.",
+   "c": "Seen from further away, the subject small in a huge landscape.",
+   "d": "More dramatic contrast of light and shadow."
   }
  },
  "seeds": {
@@ -255,6 +269,63 @@
    "breite": 1024,
    "hoehe": 1024,
    "im_spiel": "ja, nach einbauen.bat texturen (ersetzt die gleichnamigen Dateien)"
+  },
+  "hueter": {
+   "titel": "Hüter der Stunden 1 bis 8 für die Ankündigung vor dem Kampf",
+   "gruppen": [
+    "hueter"
+   ],
+   "stile": [
+    "hueter"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "nach Code (Claude): Bild in der Ankündigung des Hüters"
+  },
+  "akttafeln": {
+   "titel": "Akttafeln: drei breite Bilder für Beginn und Ende der Akte",
+   "gruppen": [
+    "akttafel"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "nach Code (Claude): Bild hinter der Akttafel und im Schluss von Akt 1"
+  },
+  "sand_neu": {
+   "titel": "Sand neu ohne Käfer, Löcher und Helligkeitsverlauf",
+   "gruppen": [
+    "sand_neu"
+   ],
+   "stile": [
+    "textur"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, nach einbauen.bat texturen (ersetzt t09_sand)"
   }
  },
  "motive": [
@@ -976,6 +1047,97 @@
    "name": "Requisit: korb",
    "gruppe": "texturen_neu",
    "motiv": "a tight weave of golden brown reed straw as in a basket",
+   "tex": ""
+  },
+  {
+   "id": "h01",
+   "name": "Mahaf, das Leitlicht",
+   "gruppe": "hueter",
+   "motiv": "a ghostly ferryman of the dead made of pale turquoise light, an old man with a long pole over his shoulder, his body fading into glowing mist",
+   "tex": "dark water and a drifting empty boat"
+  },
+  {
+   "id": "h02",
+   "name": "Die Mutter der Häute",
+   "gruppe": "hueter",
+   "motiv": "a giant serpent mother with many shed skins hanging from her body like torn veils, golden scales, a cold reptile gaze",
+   "tex": "a field of broken barley stalks"
+  },
+  {
+   "id": "h03",
+   "name": "Der König ohne Namen",
+   "gruppe": "hueter",
+   "motiv": "a mummified pharaoh king in blackened gold, his face hidden by a cracked golden mask with the name chiselled away, holding a golden sword",
+   "tex": "a dark royal tomb with smashed hieroglyphs"
+  },
+  {
+   "id": "h04",
+   "name": "Der Stumme Türhüter",
+   "gruppe": "hueter",
+   "motiv": "a towering grey stone gate guardian with the head of a jackal, a sealed mouth, a golden collar and dim glowing eyes",
+   "tex": "a massive dark gate"
+  },
+  {
+   "id": "h05",
+   "name": "Der Sammler",
+   "gruppe": "hueter",
+   "motiv": "a gaunt old judge of the dead in a long purple robe, surrounded by many small clay jars that glow from inside, a cold proud face",
+   "tex": "a vast cave full of jars"
+  },
+  {
+   "id": "h06",
+   "name": "Der falsche Osiris",
+   "gruppe": "hueter",
+   "motiv": "a false Osiris lying in state rising from a bier, green skin, white crown and crook and flail, but his eyes are empty and black",
+   "tex": "a dark burial chamber"
+  },
+  {
+   "id": "h07",
+   "name": "Eine Windung des Apophis",
+   "gruppe": "hueter",
+   "motiv": "a giant serpent, one enormous coil of a black and red snake rising out of a sandbank, its head lowered and its mouth open",
+   "tex": "a dry riverbed at night"
+  },
+  {
+   "id": "h08",
+   "name": "Der Hüter ohne Stimme",
+   "gruppe": "hueter",
+   "motiv": "a bandaged guardian of the tombs of the gods, a tall figure wrapped in old linen with a golden ram mask, its mouth bound shut",
+   "tex": "rows of dark tomb doors"
+  },
+  {
+   "id": "a1",
+   "name": "Erster Akt: Der Abstieg",
+   "gruppe": "akttafel",
+   "motiv": "a lone figure with a small lantern descending a long stone stair into a dark desert valley, faint glowing souls drift like lights down into the valley",
+   "tex": "deep night blue and warm amber colors"
+  },
+  {
+   "id": "a2",
+   "name": "Zweiter Akt: Die Wahrheit",
+   "gruppe": "akttafel",
+   "motiv": "a giant golden balance scale in a vast dark hall of columns, a heart on one pan and an ostrich feather on the other, a jackal-headed god standing beside it",
+   "tex": "deep night blue and gold colors"
+  },
+  {
+   "id": "a3",
+   "name": "Dritter Akt: Der Morgen",
+   "gruppe": "akttafel",
+   "motiv": "the golden boat of the sun gliding through a great eastern gate towards the horizon, a giant scarab beetle lifting a red sun disc above it",
+   "tex": "pale rose, gold and deep blue colors of first dawn"
+  },
+  {
+   "id": "s1",
+   "name": "Sand: Rippel",
+   "gruppe": "sand_neu",
+   "motiv": "pale desert sand with fine wind ripples running in gently varied curves, evenly lit, no objects, no footprints, no insects",
+   "tex": ""
+  },
+  {
+   "id": "s2",
+   "name": "Sand: glatt",
+   "gruppe": "sand_neu",
+   "motiv": "smooth pale desert sand with very faint shallow ripples and a few scattered tiny pebbles, evenly lit, no objects, no footprints, no insects",
    "tex": ""
   }
  ],
