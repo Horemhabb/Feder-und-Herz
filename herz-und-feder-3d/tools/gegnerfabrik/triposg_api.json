@@ -1,0 +1,9 @@
+{
+ "_hinweis": "ComfyUI-Auftrag (API-Format) für netze.bat: Bild → TripoSG (Knoten aus ComfyUI-3D-rocm, Apache-2.0/MIT) → GLB. Platzhalter @BILD@, @PRAEFIX@, @SEED@ füllt netze.bat. Der Alphakanal des Bildes ist die Freistellung; LoadImage gibt ihn umgekehrt aus, darum InvertMask.",
+ "1": {"class_type": "LoadImage", "inputs": {"image": "@BILD@"}},
+ "2": {"class_type": "InvertMask", "inputs": {"mask": ["1", 1]}},
+ "3": {"class_type": "TripoSGLoaderROCm", "inputs": {"precision": "fp16"}},
+ "4": {"class_type": "TripoSGImageToMeshROCm", "inputs": {"model": ["3", 0], "image": ["1", 0], "mask": ["2", 0], "steps": 25, "guidance": 7.0,
+                                                          "seed": "@SEED@", "octree_depth": 8, "attention": "auto", "keep_loaded": false}},
+ "5": {"class_type": "SaveGLB", "inputs": {"mesh": ["4", 0], "filename_prefix": "@PRAEFIX@"}}
+}

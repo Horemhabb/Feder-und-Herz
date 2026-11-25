@@ -59,6 +59,14 @@
   "szene": {
    "beschreibung": "Breite Bilder für die Akttafeln: gemalte Szene, viel Raum, ruhige Mitte für Schrift darüber. Licht nur als Farbe.",
    "text": "Wide cinematic matte painting of {MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian underworld, painterly realistic style with deep atmosphere and depth, large calm areas of dark sky or shadow in the upper third, the main subject in the lower half. Muted earthy colors against deep night blue, {TEX}. No people in the foreground except where described, nothing written anywhere, no frame, no border."
+  },
+  "vorlage3d": {
+   "beschreibung": "Vorlagen für die Gegnerfabrik (GEGNERFABRIK.md): dieselbe Figur zweimal nebeneinander, links von vorn, rechts von hinten, ganzer Körper in A-Haltung, schlichter hellgrauer Grund, gleichmäßiges Licht. Links geht ins Bild-zu-3D, beide Hälften färben das Netz.",
+   "text": "Two views of the same figure side by side on a plain flat light grey background: on the left the figure seen exactly from the front, on the right the same figure seen exactly from behind. The figure is {MOTIV} {HINWEIS} {ANSICHT} Full body from the top of the head to the feet, standing upright in a relaxed A-pose, arms held a little away from the body, hands open and empty, legs slightly apart, feet in simple linen wrappings. Soft even neutral white light from all sides, flat and shadowless. A clear readable silhouette with empty grey space around each view. Muted earthy colors against the plain light grey. The picture shows only the two views of the figure, nothing written anywhere."
+  },
+  "vorlage3d_tier": {
+   "beschreibung": "Wie vorlage3d, für Wesen ohne Menschengestalt (Schlange, Skorpion): links schräg von vorn und etwas von oben, rechts genau von der Seite.",
+   "text": "Two views of the same creature side by side on a plain flat light grey background: on the left the creature seen from the front and slightly from above, on the right the same creature seen exactly from its side. The creature is {MOTIV} {HINWEIS} {ANSICHT} The whole body is visible in both views, with empty grey space around each view. Soft even neutral white light from all sides, flat and shadowless. Muted earthy colors against the plain light grey. The picture shows only the two views of the creature, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -91,6 +99,12 @@
    "b": "Seen from a lower angle, more vast and monumental.",
    "c": "Seen from further away, the subject small in a huge landscape.",
    "d": "More dramatic contrast of light and shadow."
+  },
+  "vorlage": {
+   "a": "",
+   "b": "",
+   "c": "",
+   "d": ""
   }
  },
  "seeds": {
@@ -326,6 +340,44 @@
    "breite": 1024,
    "hoehe": 1024,
    "im_spiel": "ja, nach einbauen.bat texturen (ersetzt t09_sand)"
+  },
+  "gegner_vorlagen": {
+   "titel": "Vorlagen für 3D-Gegner (Gegnerfabrik): Vorder- und Rückansicht nebeneinander",
+   "gruppen": [
+    "gegner_vorlagen"
+   ],
+   "stile": [
+    "vorlage3d"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "vorlage",
+   "breite": 1344,
+   "hoehe": 768,
+   "im_spiel": "nach Bild-zu-3D und aus_netz.py (GEGNERFABRIK.md): als 3D-Gegner"
+  },
+  "gegner_vorlagen_tiere": {
+   "titel": "Vorlagen für 3D-Gegner ohne Menschengestalt (Schlange, Skorpion)",
+   "gruppen": [
+    "gegner_vorlagen_tiere"
+   ],
+   "stile": [
+    "vorlage3d_tier"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "vorlage",
+   "breite": 1344,
+   "hoehe": 768,
+   "im_spiel": "nach Bild-zu-3D und aus_netz.py --art kette (GEGNERFABRIK.md)"
   }
  },
  "motive": [
@@ -1139,6 +1191,55 @@
    "gruppe": "sand_neu",
    "motiv": "smooth pale desert sand with very faint shallow ripples and a few scattered tiny pebbles, evenly lit, no objects, no footprints, no insects",
    "tex": ""
+  },
+  {
+   "id": "v_schakal",
+   "name": "Schakalwächter",
+   "gruppe": "gegner_vorlagen",
+   "motiv": "a jackal-headed temple guardian with a tall lean black body, long pointed jackal ears and a long narrow jackal snout, a broad golden collar with bands of lapis blue, bronze arm rings and a short plain white linen kilt",
+   "hinweis": "The head is clearly the head of a black jackal."
+  },
+  {
+   "id": "v_krokodil",
+   "name": "Krokodilkrieger",
+   "gruppe": "gegner_vorlagen",
+   "motiv": "a crocodile-headed warrior with a long crocodile snout full of teeth, rough green-brown scaly skin, a short plain linen kilt and bronze arm rings",
+   "hinweis": "The head is clearly the head of a crocodile."
+  },
+  {
+   "id": "v_mumienkoenig",
+   "name": "Mumienkönig",
+   "gruppe": "gegner_vorlagen",
+   "motiv": "a mummified king in blackened gold wrappings, his face hidden by a cracked golden mask, a tall white crown and a tattered royal cloak of dark linen hanging from the shoulders",
+   "hinweis": "The wrappings are dark and dusty, the gold is dull and worn."
+  },
+  {
+   "id": "v_faehrmann",
+   "name": "Geisterfährmann",
+   "gruppe": "gegner_vorlagen",
+   "motiv": "a ghostly ferryman of the dead, a gaunt old man in a long hooded robe of pale grey linen reaching to the ground, his skin pale turquoise",
+   "hinweis": "The robe hangs straight down and hides the legs."
+  },
+  {
+   "id": "v_waechterin",
+   "name": "Löwenköpfige Wächterin",
+   "gruppe": "gegner_vorlagen",
+   "motiv": "a lioness-headed female guardian with a golden lioness head and mane, a sun disc above her head, a long red linen dress and a broad golden collar",
+   "hinweis": "The head is clearly the head of a lioness, not a dog."
+  },
+  {
+   "id": "v_apophis",
+   "name": "Apophis",
+   "gruppe": "gegner_vorlagen_tiere",
+   "motiv": "a giant serpent lying on the ground in a wide S curve, its front part raised high with a wide open cobra hood, dark brown scales with dull golden bands and a pale belly",
+   "hinweis": "The serpent is the only creature, its tail is fully visible and does not overlap the body."
+  },
+  {
+   "id": "v_skorpion",
+   "name": "Skorpionmutter",
+   "gruppe": "gegner_vorlagen_tiere",
+   "motiv": "a huge desert scorpion with a heavy ochre and black armoured body, two large pincers held forward, eight legs spread wide and a tall curled tail with a glowing amber sting",
+   "hinweis": "The scorpion stands on all eight legs, the legs do not overlap each other."
   }
  ],
  "einbau": {
