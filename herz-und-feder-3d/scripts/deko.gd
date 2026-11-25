@@ -450,7 +450,7 @@ static func entzuenden(g: Node, s: Dictionary) -> void:
 	l.light_color = Color(1.0, 0.66, 0.32)
 	l.light_energy = 0.1
 	l.omni_range = 17.0
-	l.omni_attenuation = 1.1
+	l.omni_attenuation = 1.4   # 4.1.5: fiel zu flach ab und machte die ganze Kammer taghell
 	s.n.add_child(l)
 	l.position = Vector3(0, 2.6, 0)
 	g.torches.append({"l": l, "ph": randf() * 10.0, "e": 3.0})

@@ -365,11 +365,29 @@ const SURF := {
 	"hoehlenboden": ["t12_hoehlenboden", 5.0, Color(0.9, 0.88, 0.92), "gruft", Color(0.78, 0.70, 0.74)],
 }
 
+# Böden gegen sichtbare Wiederholung (boden.gdshader), je Datei: [Verteilung, Rasterschritt a, Rasterschritt b].
+# 0 nur große Flecken (Gruft: unregelmäßige Platten, jede Verschiebung zerschnitte sie), 1 frei verschoben (Voreinstellung),
+# 2 nur um ganze Steine: das Pflaster hat 12 Steine je Reihe und 16 Reihen, versetzt im Vierer-Rhythmus.
+const BODEN_ART := {
+	"t06_pflaster": [2, Vector2(1.0 / 12.0, 2.0 / 16.0), Vector2(0.0, 4.0 / 16.0)],
+	"t07_gruft": [0, Vector2.ZERO, Vector2.ZERO],
+}
+
+# Helligkeit der Texturen ausgleichen (4.1.5): Die Texturen aus ComfyUI sind drei- bis neunmal so hell wie die alten,
+# auf die Licht und Stunden abgestimmt sind. Statt die Dateien umzurechnen, wird je Datei die Tönung gesenkt,
+# Ziel eine mittlere lineare Helligkeit um 0,24 (Sand als Wüste etwas heller). Gemessen an den Dateien von 4.1.4.
+const HELL := {
+	"w01_sandstein": 0.50, "w03_lehm": 0.66, "w04_grab": 0.55, "t06_pflaster": 0.68, "t09_sand": 0.55,
+	"t10_feld": 0.64, "t11_glas": 0.71, "f01_fels": 0.73,
+}
+
 var mats := {}
 var cut_mats := {}      # Mauermaterial mit Durchblick (mauer.gdshader) je Oberfläche
+var boden_mats := {}    # Bodenmaterial ohne sichtbare Kachel (boden.gdshader) je Oberfläche
 var block_meshes := {}
 var spark_meshes := {}  # Funkenform je Farbe, damit nicht jeder Treffer ein neues Material anlegt
 const MAUER_SHADER := preload("res://scripts/mauer.gdshader")
+const BODEN_SHADER := preload("res://scripts/boden.gdshader")
 
 func surf(name: String) -> StandardMaterial3D:
 	# fehlt die Datei, nimmt das Spiel die Datei des Ersatzes mit dessen eigener Tönung
@@ -389,6 +407,8 @@ func surf(name: String) -> StandardMaterial3D:
 		m0.set_meta("period", e.get_meta("period"))
 		mats[name] = m0
 		return m0
+	var hell: float = HELL.get(file, 1.0)
+	tint = Color(tint.r * hell, tint.g * hell, tint.b * hell, tint.a)
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load("res://textures/%s.jpg" % file)
 	m.albedo_color = tint
@@ -415,6 +435,28 @@ func cut_mat(name: String) -> ShaderMaterial:
 	m.set_shader_parameter("tex_normal", src.normal_texture)
 	m.set_shader_parameter("use_normal", src.normal_texture != null and not low_gfx)
 	cut_mats[name] = m
+	return m
+
+func boden_mat(name: String, erdfarbe := false) -> ShaderMaterial:
+	# dieselbe Oberfläche als Boden, verwürfelt und gefleckt; erdfarbe: Tönung aus den Ecken des Netzes (Gelände)
+	var key := name + ("|erde" if erdfarbe else "")
+	if boden_mats.has(key):
+		return boden_mats[key]
+	var src := surf(name)
+	var m := ShaderMaterial.new()
+	m.shader = BODEN_SHADER
+	m.set_shader_parameter("tex_albedo", src.albedo_texture)
+	m.set_shader_parameter("tint", src.albedo_color)
+	m.set_shader_parameter("tex_normal", src.normal_texture)
+	m.set_shader_parameter("use_normal", src.normal_texture != null and not low_gfx)
+	m.set_shader_parameter("use_vertex_color", erdfarbe)
+	var art: Array = BODEN_ART.get(src.albedo_texture.resource_path.get_file().get_basename(), [1, Vector2.ZERO, Vector2.ZERO])
+	m.set_shader_parameter("verteilung", art[0])
+	m.set_shader_parameter("raster_a", art[1])
+	m.set_shader_parameter("raster_b", art[2])
+	m.set_meta("period", src.get_meta("period"))
+	m.set_meta("surf", name)
+	boden_mats[key] = m
 	return m
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, ua: Vector2, ub: Vector2, uc: Vector2, ud: Vector2) -> void:
@@ -473,8 +515,11 @@ func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> Static
 
 # Licht der Stunde. Vorbild sind die alten Dungeon-Spiele: kühles Grundlicht, in dem man alles erkennt,
 # dazu warme Lichtinseln aus Laterne, Fackeln und Feuerschalen. Draußen scheint der Mond, drinnen färbt die Stunde das Dunkel.
+# 4.1.5: Draußen Mond und Grundlicht schwächer (0,5 → 0,40 und 0,36 → 0,22): Mit den hellen Sandtexturen sah die Nacht
+# aus wie ein Nachmittag, und das Grundlicht hellte jeden Schatten auf. Die Texturen selbst sind über HELL gedämpft;
+# jetzt ist die Laterne die hellste Stelle im Bild.
 const LICHT := {
-	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.36, "moon": 0.5, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
+	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.22, "moon": 0.40, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
 	"ruin": {"amb": Color(0.52, 0.56, 0.5), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.08, 0.10, 0.09), "fog_d": 0.008, "bg": Color(0.01, 0.015, 0.02)},
 	"tomb": {"amb": Color(0.62, 0.48, 0.36), "amb_e": 0.46, "moon": 0.22, "fog": Color(0.10, 0.07, 0.04), "fog_d": 0.009, "bg": Color(0.015, 0.01, 0.008)},
 	"glass": {"amb": Color(0.38, 0.56, 0.66), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.04, 0.10, 0.13), "fog_d": 0.008, "bg": Color(0.008, 0.015, 0.025)},
@@ -485,12 +530,18 @@ func _build_env() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	# Weißpunkt 4 statt 1: Bei 1 schnitt der Filmic-Tonemapper alles über reinem Weiß hart ab, und helles Pflaster
+	# und Sandstein im Lampenlicht wurden zu weißen Flächen ohne Zeichnung. Mit 4 laufen Lichter weich aus;
+	# die etwas höhere Belichtung gleicht aus, dass die Mitten dabei dunkler werden.
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.0
+	env.tonemap_exposure = 1.2
+	env.tonemap_white = 4.0
 	env.fog_enabled = true
 	env.glow_enabled = true
-	env.glow_intensity = 0.7
-	env.glow_bloom = 0.15
+	env.glow_intensity = 0.6
+	# kein Bloom: er mischte einen Teil des ganzen Bildes verschwommen dazu und hellte so jeden Schatten milchig auf.
+	# Es glühen nur noch Dinge, die heller als Weiß sind (Flammen, Glut, Zauber).
+	env.glow_bloom = 0.0
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.15
 	env.adjustment_contrast = 1.06
@@ -498,7 +549,7 @@ func _build_env() -> void:
 	we.environment = env
 	add_child(we)
 	moon = DirectionalLight3D.new()
-	moon.light_color = Color(0.62, 0.74, 1.0)
+	moon.light_color = Color(0.56, 0.70, 1.0)
 	moon.rotation_degrees = Vector3(-52, -35, 0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 70.0
@@ -567,15 +618,16 @@ func _torch(pos: Vector3, rot: float) -> void:
 	var t := Deko.wandlampe(self, pos, rot)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.62, 0.28)
-	l.light_energy = 1.9
+	l.light_energy = 1.6
 	l.omni_range = 10.0
 	l.omni_attenuation = 1.4
-	l.position = Vector3(0, 0.7, 0.45)
+	# eine Handbreit vor der Wand: dicht an der Wand brannte der Stein um die Lampe weiß aus
+	l.position = Vector3(0, 0.7, 0.8)
 	t.add_child(l)
 	Stimmung.flamme(t, Vector3(0, 0.33, 0.42), 0.55, 0.42)
 	if torches.size() < 6:
 		sfx.loop_at("torch", t)
-	torches.append({"l": l, "ph": randf() * 10.0})
+	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
 
 func _chest(pos: Vector3, tier: int) -> void:
 	var tr := Deko.truhe(self, pos, tier)
@@ -657,7 +709,7 @@ func _campfire(c: Vector3) -> void:
 	l.omni_range = 7.0
 	add_child(l)
 	l.global_position = c + Vector3(0, 1.0, 0)
-	torches.append({"l": l, "ph": randf() * 10.0})
+	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
 	_box(c, Vector3(1.0, 0.5, 1.0))
 	astar.set_point_solid(_sub(c), true)
 
@@ -1860,20 +1912,58 @@ func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
 
 # ---------------------------------------------------------------- Effekte
+# Schwebende Zahlen und kurze Worte über den Köpfen (Schaden, Heilung, Beute, Hinweise).
+# Früher waren sie fast so groß wie die Figuren, fett und dick umrandet. Jetzt wie mit der Rohrfeder geschrieben:
+# Textschrift statt Standardschrift, eine Zeile etwa vierzig Zentimeter hoch, dünner Tintenrand.
+# „big“ vergrößert (Krit 1,35, Hinweise der Orte 1,4 bis 1,5). Zahlen, die kurz nacheinander an derselben Stelle
+# entstehen, rücken eine Zeile höher und abwechselnd zur Seite, damit kein Klumpen entsteht.
+const ZAHL_SCHRIFT := 40          # Glyphen in dieser Größe gezeichnet: auf dem Handy und in Full HD etwa eins zu eins
+const ZAHL_PIXEL := 0.0100        # Meter je Schriftpixel: 40 × 0,01 = 0,4 m Zeilenhöhe (Figur etwa 1,8 m)
+var _zahlen: Array = []           # [{"l": Label3D, "p": Vector3 Ursprung, "t": Startzeit in ms}]
+
 func float_text(pos: Vector3, text: String, col: Color, big := 1.0) -> void:
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
-	l.font_size = 64
-	l.outline_size = 14
+	l.render_priority = 2
+	if hud != null and hud.f_text != null:
+		l.font = hud.f_text
+	var s := big * (1.4 if touch else 1.0)   # auf dem Handy größer: dort ist das ganze Bild nur wenige Zentimeter hoch
+	l.font_size = ZAHL_SCHRIFT
+	l.pixel_size = ZAHL_PIXEL * s
+	l.outline_size = 7
+	l.outline_modulate = Color(0.08, 0.05, 0.03, 0.95)   # dunkle Tinte statt Schwarz
 	l.modulate = col
-	l.pixel_size = 0.012 * big
 	add_child(l)
-	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 2.2, randf_range(-0.2, 0.2))
+	# Nachbarn zählen: was in der letzten halben Sekunde an derselben Stelle aufstieg, schiebt die neue Zahl weiter
+	var jetzt := Time.get_ticks_msec()
+	var n := 0
+	var rest: Array = []
+	for z in _zahlen:
+		if not is_instance_valid(z.l) or jetzt - z.t > 500:
+			continue
+		rest.append(z)
+		if Vector2(z.p.x - pos.x, z.p.z - pos.z).length() < 2.0:
+			n += 1
+	rest.append({"l": l, "p": pos, "t": jetzt})
+	_zahlen = rest
+	var seite: Vector3 = cam.global_transform.basis.x if cam != null else Vector3(1, 0, -1).normalized()
+	seite.y = 0.0
+	seite = seite.normalized()
+	var richtung := (-1.0 if n % 2 == 1 else 1.0) * (1.0 if randf() < 0.5 else -1.0)
+	var start := pos + Vector3(0, 1.3 + 0.36 * mini(n, 4) * s, 0) + seite * (randf_range(-0.3, 0.3) + richtung * 0.3 * mini(n, 3))
+	l.global_position = start
+	# kurz aufsteigen und leicht zur Seite treiben, dann ausblenden; ein Krit springt erst etwas auf
+	var dauer := 0.9
 	var tw := create_tween()
-	tw.tween_property(l, "global_position:y", l.global_position.y + 1.6, 0.8)
-	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
+	tw.tween_property(l, "global_position", start + Vector3(0, 0.9, 0) + seite * richtung * 0.35, dauer) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.35).set_delay(dauer - 0.35)
+	tw.parallel().tween_property(l, "outline_modulate:a", 0.0, 0.3).set_delay(dauer - 0.35)
+	if big > 1.2:
+		l.scale = Vector3.ONE * 1.4
+		tw.parallel().tween_property(l, "scale", Vector3.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(l.queue_free)
 
 func ring_fx(c: Vector3, r: float, col: Color) -> void:
@@ -2258,6 +2348,8 @@ func set_low(low: bool, still := false) -> void:
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if low else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	for name in cut_mats:
 		cut_mats[name].set_shader_parameter("use_normal", not low and surf(name).normal_texture != null)
+	for key in boden_mats:
+		boden_mats[key].set_shader_parameter("use_normal", not low and surf(boden_mats[key].get_meta("surf")).normal_texture != null)
 	if not still:
 		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 

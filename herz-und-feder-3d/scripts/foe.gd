@@ -968,10 +968,10 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false
 		act_t = 0.0
 	var top := 2.4 * sc if proc == null else 1.8 + radius
 	if crit:
-		game.float_text(global_position + Vector3(0, top + 0.2, 0), str(int(round(amount))) + "!", Color(1.0, 0.85, 0.2), 1.5)
+		game.float_text(global_position + Vector3(0, top + 0.2, 0), str(int(round(amount))) + "!", Color(1.0, 0.66, 0.18), 1.35)   # Krit: Bernstein, etwas größer
 		game.shake = maxf(game.shake, 0.18)
 	else:
-		game.float_text(global_position + Vector3(0, top, 0), str(int(round(amount))), Color(1.0, 0.9, 0.6))
+		game.float_text(global_position + Vector3(0, top, 0), str(int(round(amount))), Color(1.0, 0.94, 0.78))
 	if hp <= 0.0:
 		die()
 	elif ap and kind != "boss" and wind <= 0.0 and act_t <= 0.0:

@@ -154,6 +154,26 @@ def portraet(pfad, zoom=0.66, oben=0.03):
 NAHT = 3   # Pixel beiderseits der Kachelnaht, die ueberblendet werden (bei 1024 Pixeln)
 
 
+def verlauf_weg(a, block=32):
+    """Helligkeitsverlauf quer ueber das Bild (Licht von einer Seite) ganz herausrechnen: eine glatte Flaeche zweiten Grades
+    je Farbkanal anpassen und dadurch teilen. ausgleich() allein kann das nicht, weil sein Weichzeichner ueber die Naht
+    hinweg rechnet und den Sprung oben/unten dabei mittelt. Der Rest des Verlaufs machte an jeder Kachelnaht eine Kante;
+    schraeg von oben sah man sie als Rautengitter ueber den ganzen Boden (Sand in Fassung 4.1.4). Mittel bleibt gleich."""
+    n = a.shape[0]
+    k = n // block
+    m = a.astype(np.float32).reshape(k, block, k, block, 3).mean((1, 3))
+    y, x = (np.mgrid[0:k, 0:k] + 0.5) / k - 0.5
+    A = np.stack([np.ones_like(x), x, y, x * x, x * y, y * y], -1).reshape(-1, 6)
+    Y, X = (np.mgrid[0:n, 0:n] + 0.5) / n - 0.5
+    B = np.stack([np.ones_like(X), X, Y, X * X, X * Y, Y * Y], -1)
+    r = a.astype(np.float32)
+    for c in range(3):
+        coef = np.linalg.lstsq(A, m[..., c].reshape(-1), rcond=None)[0]
+        r[..., c] *= coef[0] / np.maximum(B @ coef, 4.0)
+    r *= a.reshape(-1, 3).mean(0) / np.maximum(r.reshape(-1, 3).mean(0), 1.0)
+    return np.clip(r + 0.5, 0, 255).astype(np.uint8)
+
+
 def ausgleich(a, staerke=0.7):
     """KI-Bilder haben oft einen Helligkeitsverlauf (Mitte heller als der Rand): wiederholt sieht man Flecken. Ausgleich mit einem sehr weichen Mittelwert."""
     n = a.shape[0]
@@ -206,6 +226,7 @@ def textur(pfad):
     """Quelle (1024 Pixel) -> kachelbares Bild und Normalenkarte."""
     a = np.asarray(Image.open(pfad).convert("RGB").resize((1024, 1024), Image.LANCZOS))
     vorher = naht_mass(a)
+    a = verlauf_weg(a)
     a = ausgleich(a)
     if naht_mass(a) > 3.0:
         a = kreuzblende(a)
