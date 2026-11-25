@@ -365,11 +365,21 @@ const SURF := {
 	"hoehlenboden": ["t12_hoehlenboden", 5.0, Color(0.9, 0.88, 0.92), "gruft", Color(0.78, 0.70, 0.74)],
 }
 
+# Böden gegen sichtbare Wiederholung (boden.gdshader), je Datei: [Verteilung, Rasterschritt a, Rasterschritt b].
+# 0 nur große Flecken (Gruft: unregelmäßige Platten, jede Verschiebung zerschnitte sie), 1 frei verschoben (Voreinstellung),
+# 2 nur um ganze Steine: das Pflaster hat 12 Steine je Reihe und 16 Reihen, versetzt im Vierer-Rhythmus.
+const BODEN_ART := {
+	"t06_pflaster": [2, Vector2(1.0 / 12.0, 2.0 / 16.0), Vector2(0.0, 4.0 / 16.0)],
+	"t07_gruft": [0, Vector2.ZERO, Vector2.ZERO],
+}
+
 var mats := {}
 var cut_mats := {}      # Mauermaterial mit Durchblick (mauer.gdshader) je Oberfläche
+var boden_mats := {}    # Bodenmaterial ohne sichtbare Kachel (boden.gdshader) je Oberfläche
 var block_meshes := {}
 var spark_meshes := {}  # Funkenform je Farbe, damit nicht jeder Treffer ein neues Material anlegt
 const MAUER_SHADER := preload("res://scripts/mauer.gdshader")
+const BODEN_SHADER := preload("res://scripts/boden.gdshader")
 
 func surf(name: String) -> StandardMaterial3D:
 	# fehlt die Datei, nimmt das Spiel die Datei des Ersatzes mit dessen eigener Tönung
@@ -415,6 +425,28 @@ func cut_mat(name: String) -> ShaderMaterial:
 	m.set_shader_parameter("tex_normal", src.normal_texture)
 	m.set_shader_parameter("use_normal", src.normal_texture != null and not low_gfx)
 	cut_mats[name] = m
+	return m
+
+func boden_mat(name: String, erdfarbe := false) -> ShaderMaterial:
+	# dieselbe Oberfläche als Boden, verwürfelt und gefleckt; erdfarbe: Tönung aus den Ecken des Netzes (Gelände)
+	var key := name + ("|erde" if erdfarbe else "")
+	if boden_mats.has(key):
+		return boden_mats[key]
+	var src := surf(name)
+	var m := ShaderMaterial.new()
+	m.shader = BODEN_SHADER
+	m.set_shader_parameter("tex_albedo", src.albedo_texture)
+	m.set_shader_parameter("tint", src.albedo_color)
+	m.set_shader_parameter("tex_normal", src.normal_texture)
+	m.set_shader_parameter("use_normal", src.normal_texture != null and not low_gfx)
+	m.set_shader_parameter("use_vertex_color", erdfarbe)
+	var art: Array = BODEN_ART.get(src.albedo_texture.resource_path.get_file().get_basename(), [1, Vector2.ZERO, Vector2.ZERO])
+	m.set_shader_parameter("verteilung", art[0])
+	m.set_shader_parameter("raster_a", art[1])
+	m.set_shader_parameter("raster_b", art[2])
+	m.set_meta("period", src.get_meta("period"))
+	m.set_meta("surf", name)
+	boden_mats[key] = m
 	return m
 
 func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, ua: Vector2, ub: Vector2, uc: Vector2, ud: Vector2) -> void:
@@ -2296,6 +2328,8 @@ func set_low(low: bool, still := false) -> void:
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if low else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	for name in cut_mats:
 		cut_mats[name].set_shader_parameter("use_normal", not low and surf(name).normal_texture != null)
+	for key in boden_mats:
+		boden_mats[key].set_shader_parameter("use_normal", not low and surf(boden_mats[key].get_meta("surf")).normal_texture != null)
 	if not still:
 		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 

@@ -76,9 +76,9 @@ func bauen() -> void:
 func _ground() -> void:
 	# Gelände als Gitter mit Farbflecken (hellere Verwehungen, dunklere Senken): der Sand wirkt nicht wie eine Tapete.
 	# Im Dungeon liegt es im Dunkeln: nur eine Ahnung von Sand zwischen den Mauern.
-	var gm: StandardMaterial3D = g.surf(look.ground).duplicate()
-	gm.vertex_color_use_as_albedo = true
-	gm.albedo_color = Color(0.3, 0.27, 0.24) if k.indoor else Color(0.86, 0.74, 0.56)
+	# Boden-Shader (main.gd › boden_mat) mit Farbe aus den Ecken; die Tönung gilt für diese Stunde
+	var gm: ShaderMaterial = g.boden_mat(look.ground, true)
+	gm.set_shader_parameter("tint", Color(0.3, 0.27, 0.24) if k.indoor else Color(0.86, 0.74, 0.56))
 	var per: float = g.surf(look.ground).get_meta("period")
 	var noise := FastNoiseLite.new()
 	noise.seed = randi()
@@ -133,7 +133,7 @@ func _floors() -> void:
 			parts[key][1].append(Vector2i(x, y))
 	for key in parts:
 		var name: String = parts[key][0]
-		var mat: StandardMaterial3D = g.surf(name)
+		var mat: ShaderMaterial = g.boden_mat(name)
 		var per: float = mat.get_meta("period")
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
