@@ -81,6 +81,10 @@ Grundlage: Berichte von Spieldirektor und Technikdirektor (beide haben den Code 
 
 Eigener Kampf für den Sammler, Akt 3, Endspiel mit Regeln statt reiner Zahlen, mehrere Speicherplätze.
 
+## 4a. Einschub vom 25.11.: Grundlagen vor Einführung und Fremdtest
+
+Der Auftraggeber hat Einführung und Fremdtest zurückgestellt und will zuerst die Grundlagen heben (Maßstab Diablo 4, Baldur's Gate 3, Crimson Desert). Fassung 4.2 bringt: Champions mit neun Eigenschaften, Hüter mit eigenen Kampfmustern und neuer Leiste, eine Körperschicht mit Bewegungsprofil je Klasse, Ragdoll und Scherben, 42 neue Bewegungen und die Gegnerfabrik. Offen daraus: Schwierigkeit der neuen Kämpfe am Spiel abstimmen, Hiebfolgen je Klasse auf die neuen Bewegungen umstellen (Trefferzeitpunkte), Bild-zu-3D auf dem PC proben, eigene Modelle für die Hüter.
+
 ## 5. Proben mit Tor
 
 Jede Probe ist ein kleiner Versuch. Besteht sie ihr Tor nicht, wird der Weg verworfen und vermerkt.
@@ -105,8 +109,8 @@ Jede Probe ist ein kleiner Versuch. Besteht sie ihr Tor nicht, wird der Weg verw
 
 | Nicht | Grund |
 |---|---|
-| Figuren aus Bild-zu-3D (TRELLIS.2) | 4 bis 8 Stunden Handarbeit je Figur, läuft auf der AMD-Karte unsicher, automatisches Rigging unreif |
-| Bewegung aus Text oder Video | bei 60 bis 90 Pixel hohen Figuren kaum sichtbar, braucht meist Nvidia |
+| ~~Figuren aus Bild-zu-3D~~ | **Aufgehoben am 25.11. durch den Auftraggeber.** Die Nacharbeit ist automatisiert (`GEGNERFABRIK.md`); ob Bild-zu-3D auf der AMD-Karte läuft, ist die offene Probe. |
+| ~~Bewegung aus Text oder Video~~ | **Aufgehoben am 25.11.** Getragen hat die freie Bibliothek mit eigenem Umrechner (`BEWEGUNGSWERK.md`); Text und KI-Video bleiben zurückgestellt (Speicher, Lizenzen), Handyvideo taugt nur für große Gesten. |
 | Alle zwölf Stunden zugleich ausbauen | Akt für Akt, jeder abgeschlossen |
 | Weitere Klassen, Mehrspieler, offene Welt | sprengt den Rahmen |
 | Englisch, Steam, Rechtliches | kein Verkauf geplant |
