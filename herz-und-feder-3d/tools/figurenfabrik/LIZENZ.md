@@ -5,6 +5,10 @@ Blender (`bpy`) auf. Blender steht unter der GNU General Public License. Laut Bl
 Schnittstelle benutzen, unter einer GPL-verträglichen Lizenz stehen, sobald man sie veröffentlicht. Deshalb gilt für diese
 Skripte: **GPL-3.0-or-later**.
 
+Dasselbe gilt für die Gegnerfabrik in `tools/gegnerfabrik/` (`aus_netz.py`, `ersatznetz.py`, `bogen.py`, `netze.bat`;
+siehe `GEGNERFABRIK.md`). Fremde Netze, die sie verarbeitet, bringen ihre eigene Lizenz mit (TripoSG und TRELLIS.2:
+MIT; Hunyuan3D und Pixal3D gelten nicht in der EU und werden nicht benutzt).
+
 Das betrifft nur die Werkzeuge. Was sie erzeugen, gehört dir:
 
 - Die erzeugten Modelle (`models/chars/Eidtraeger.glb`, `models/chars/Hohler.glb`) und ihre Texturtafeln sind Ausgaben
