@@ -14,7 +14,10 @@ const HELDEN := [
 ]
 const FEIND_BEW := ["Idle_Combat", "Walking_D_Skeletons", "Running_A", "1H_Melee_Attack_Chop", "2H_Melee_Attack_Chop", "Hit_A", "Spellcast_Shoot", "Death_C_Skeletons", "Spellcast_Summon"]
 const FEINDE := [["Herzloser", "Hohler", 1.0], ["Ruheloser", "Ruheloser", 1.0], ["Sebau-Krieger", "Krieger", 1.0], ["Sebau-Priesterin", "Priesterin", 1.0],
-	["Sebau-Koloss", "Koloss", 1.3], ["Erloschener", "Erloschener", 1.0]]
+	["Sebau-Koloss", "Koloss", 1.3], ["Erloschener", "Erloschener", 1.0],
+	# aus der Gegnerfabrik (tools/gegnerfabrik, GEGNERFABRIK.md): fremdes Netz, Skelett und Bewegungen angepasst.
+	# Beide Netze sind noch Ersatznetze (ersatznetz.py), bis der PC echte Bild-zu-3D-Netze liefert.
+	["Schakalwächter (Gegnerfabrik)", "Schakalwaechter", 1.0], ["Apophis (Gegnerfabrik)", "Apophis", 0.75]]
 const SCHLEIFEN := ["2H_Melee_Idle", "Idle_Combat", "Idle", "Unarmed_Idle", "2H_Ranged_Aiming", "Walking_A", "Walking_D_Skeletons", "Running_A"]
 const SURF := {"sandstein": ["w01_sandstein", 6.0, Color(1.0, 0.93, 0.80)], "granit": ["w02_granit", 6.0, Color(0.85, 0.85, 0.92)],
 	"pflaster": ["t06_pflaster", 4.0, Color(0.95, 0.88, 0.78)], "sand": ["t09_sand", 6.0, Color(0.85, 0.78, 0.68)]}
@@ -287,8 +290,8 @@ func _anzeige() -> void:
 	titel.add_theme_color_override("font_color", Color("e8c070"))
 	oben.add_child(titel)
 	l_info = Label.new()
-	l_info.text = "Vier Helden und sechs Gegner aus der Figurenfabrik, je 2.100 bis 3.700 Dreiecke.
-Alle stehen auf demselben Skelett. Körper, Tracht und Texturen baut ein Skript aus einem Bauplan und dem gemalten Bogen."
+	l_info.text = "Vier Helden und sechs Gegner aus der Figurenfabrik, je 2.100 bis 3.700 Dreiecke, dazu zwei aus der Gegnerfabrik.
+Die Fabrik baut Körper aus einem Bauplan; die Gegnerfabrik nimmt ein fremdes Netz und gibt ihm Skelett und Bewegungen."
 	l_info.add_theme_font_override("font", f_text)
 	l_info.add_theme_font_size_override("font_size", 16)
 	l_info.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7, 0.85))
@@ -490,7 +493,9 @@ func _pruefbilder(ordner: String) -> void:
 	var folge := [["ueberblick", 0, 0, 0.0, 0, 0, ""], ["beigaben", 0, 0, 0.0, 0, 0, ""], ["tuch_leicht", 0, 1, -0.3, 0, 0, "leicht"], ["tuch_schwer", 0, 1, -0.3, 0, 0, "schwer"], ["tuch_schwebe", 0, 1, -0.3, 0, 0, "schwebe"],
 		["priester", 4, 0, 0.3, 1, 1, ""], ["jaegerin", 0, 0, -0.3, 2, 2, ""], ["sternleserin", 3, 0, 0.2, 3, 3, ""], ["koloss", 4, 0, 0.0, 0, 4, ""], ["erloschener", 6, 0, 0.4, 3, 5, ""],
 		["h_priester", 0, 1, -0.4, 1, 1, ""], ["h_jaegerin", 0, 1, -0.4, 2, 2, ""], ["h_sternleserin", 0, 1, -0.4, 3, 3, ""],
-		["g_ruheloser", 0, 2, 0.5, 0, 1, ""], ["g_krieger", 0, 2, 0.5, 0, 2, ""], ["g_priesterin", 0, 2, 0.5, 0, 3, ""], ["g_koloss", 0, 2, 0.5, 0, 4, ""], ["g_erloschener", 0, 2, 0.5, 0, 5, ""]]
+		["g_ruheloser", 0, 2, 0.5, 0, 1, ""], ["g_krieger", 0, 2, 0.5, 0, 2, ""], ["g_priesterin", 0, 2, 0.5, 0, 3, ""], ["g_koloss", 0, 2, 0.5, 0, 4, ""], ["g_erloschener", 0, 2, 0.5, 0, 5, ""],
+		["g_schakal", 0, 2, 0.5, 0, 6, ""], ["g_schakal_hieb", 3, 2, -0.2, 0, 6, ""], ["schakal", 4, 0, 0.0, 0, 6, ""],
+		["g_apophis", 0, 2, 0.6, 0, 7, ""], ["g_apophis_biss", 3, 2, 1.2, 0, 7, ""], ["apophis", 1, 0, 0.3, 0, 7, ""]]
 	for f in folge:
 		if f[4] != hi:
 			_held(f[4])

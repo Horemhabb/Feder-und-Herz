@@ -592,7 +592,8 @@ func run() -> void:
 		var champ: Foe = G3._spawn(art, G3.hero.global_position + Vector3(30, 0, 30), 97, "zaeh")
 		champ.die()
 		await wait(0.8)
-		check("Champion (%s) besiegt: Ring und Name sind weg" % art, champ.elite_teile.size() == 2 and champ.elite_teile.all(func(n): return not n.visible))
+		# 4.1: dazu Krone, Aura, Licht und was die Eigenschaften zeigen; alles muss mit ihm verschwinden
+		check("Champion (%s, %s) besiegt: Aura, Krone und Name sind weg" % [art, ", ".join(champ.affixe)], champ.elite_teile.size() >= 3 and not champ.affixe.is_empty() and champ.elite_teile.all(func(n): return not is_instance_valid(n) or not n.visible))
 	# Tuch der Gewogenen: erst nach dem Urteil der fünften Stunde (sechste Stunde erreicht)
 	var mf := Spiel.max_fall
 	Spiel.max_fall = 5
@@ -699,6 +700,10 @@ func run() -> void:
 	var id1: String = G3.hero.ORDER[0]
 	G3.hero.cd[id1] = 0.0
 	G3.hero.en = 100.0
+	for i in 20:
+		if G3.hero.dash_t <= 0.0:
+			break
+		await wait(0.05)   # das Ausweichen muss erst enden (unter Last dauert es ein paar Bilder länger)
 	await pad_knopf(JOY_BUTTON_X)
 	check("Gamepad: X wirkt die erste Fähigkeit (%s)" % id1, G3.hero.cd[id1] > 0.0)
 	await wait(0.6)

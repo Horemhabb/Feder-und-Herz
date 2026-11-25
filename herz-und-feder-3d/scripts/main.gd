@@ -1614,7 +1614,9 @@ func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
 	cine_t = 2.4
 	sfx.music("mus_kampf", 1.0)
-	hud.boss_show(b.K.name)
+	hud.boss_show(b)
+	if b.kampf:
+		b.kampf.start()
 	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
 	sfx.play("boss_appear")
 	sprich("vo_boss")
@@ -1626,6 +1628,15 @@ var dunkel_vorher := []   # Mondlicht und Umgebungslicht vor dem Zerbrechen des 
 func on_boss_phase(b: Foe, n: int) -> void:
 	shake = maxf(shake, 0.6)
 	sfx.play("boss_phase" if sfx._stream("boss_phase") else "boss_appear")
+	hud.boss_phase()
+	if b.kampf:
+		# eigenes Kampfmuster (hueter.gd): Name und Satz der neuen Phase, Ring in seiner Farbe
+		var txt: String = b.kampf.phasen_text()
+		if txt != "":
+			hud.banner(txt, b.kampf.phasen_name().to_upper(), 5.0)
+		ring_fx(b.global_position, 6.0, b.K.get("bcol", Color(1.0, 0.85, 0.5)))
+		ring_fx(b.global_position, 3.5, Color(1.0, 0.85, 0.5))
+		return
 	if n == 2:
 		hud.banner("Er hebt die Hand, und an den Wegen regen sich die Erloschenen.", "ER RUFT DIE ERLOSCHENEN", 5.0)
 	elif n == 3:
@@ -1635,6 +1646,17 @@ func on_boss_phase(b: Foe, n: int) -> void:
 		var tw := create_tween()
 		tw.tween_property(moon, "light_energy", dunkel_vorher[0] * 0.12, 2.5)
 		tw.parallel().tween_property(env, "ambient_light_energy", dunkel_vorher[1] * 0.3, 2.5)
+
+# Licht im Hüterkampf dämpfen (Mahaf nimmt das Licht, der Sammler öffnet sein Verzeichnis): 1.0 stellt es wieder her
+func boss_licht(faktor: float) -> void:
+	if faktor >= 0.99:
+		_licht_zurueck()
+		return
+	if dunkel_vorher.is_empty():
+		dunkel_vorher = [moon.light_energy, env.ambient_light_energy]
+	var tw := create_tween()
+	tw.tween_property(moon, "light_energy", dunkel_vorher[0] * faktor, 2.0)
+	tw.parallel().tween_property(env, "ambient_light_energy", dunkel_vorher[1] * maxf(0.3, faktor), 2.0)
 
 func _licht_zurueck() -> void:
 	if dunkel_vorher.is_empty():
@@ -1708,6 +1730,8 @@ func arena_ort() -> Vector3:
 	return start_pos
 
 func on_boss_dead() -> void:
+	if boss.kampf:
+		boss.kampf.ende()
 	_licht_zurueck()
 	if boss.ist_aktende():
 		get_tree().create_timer(4.5).timeout.connect(_aktende_lohn)
@@ -1742,6 +1766,9 @@ func on_hero_dead() -> void:
 		if boss.state != Foe.St.DEAD:
 			if boss.ist_aktende():
 				boss.tuerhueter_zuruecksetzen(orte.boss_weak)   # der Endgegner beginnt wieder von vorn, wie du
+				_licht_zurueck()
+			if boss.kampf:
+				boss.kampf.zuruecksetzen()   # Kartuschen, Krüge, Trugbilder und Hüllen vergehen mit dem Versuch
 				_licht_zurueck()
 			for f in foes:
 				if f.summoned and f.state != Foe.St.DEAD:
@@ -2442,7 +2469,7 @@ func _physics_process_innen(delta: float) -> void:
 					hero.attack()
 			hero.want_dir = dir
 	# höchstens zwei Nahkämpfer greifen zugleich an, die anderen lauern
-	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai != "ranged" and f.K.ai != "boss" and f.fear_t <= 0.0)
+	var melee := foes.filter(func(f): return f.state == Foe.St.FIGHT and f.K.ai != "ranged" and f.K.ai != "boss" and f.K.ai != "objekt" and f.fear_t <= 0.0)
 	melee.sort_custom(func(a, b): return a.global_position.distance_squared_to(hero.global_position) < b.global_position.distance_squared_to(hero.global_position))
 	for i in melee.size():
 		melee[i].slot = i < int(Spiel.D().slots)

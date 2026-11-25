@@ -36,6 +36,23 @@ var skill_ui := {}
 var boss_box: Control
 var bar_boss: ProgressBar
 var l_boss: Label
+# Hüter-Leiste (4.1): Gestalt-Zeichen, Name, Beiname, Phasenmarken, Phase, Hinweis und Ansage starker Angriffe
+var l_boss_bei: Label
+var l_boss_phase: Label
+var l_boss_status: Label
+var l_ansage: Label
+var ansage_tw: Tween
+var boss_zeichen: Control
+var boss_marken: Control
+var boss_art := ""
+var boss_ph: Array = []
+# Champion-Schild (4.1): Name, Eigenschaften mit Zeichen und Farbe, Leben
+var champ_box: PanelContainer
+var champ_name: Label
+var champ_reihe: HBoxContainer
+var champ_bar: ProgressBar
+var champ_f: Foe
+var champ_t := 0.0
 var l_banner: Label
 var l_banner_small: Label
 var banner_box: Control
@@ -159,19 +176,8 @@ func _ready() -> void:
 	l_fps.custom_minimum_size = Vector2(240, 0)
 	l_fps.visible = false
 	root.add_child(l_fps)
-	# Hüter-Leiste
-	boss_box = VBoxContainer.new()
-	boss_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	boss_box.position = Vector2(-260, 20)
-	boss_box.custom_minimum_size = Vector2(520, 0)
-	boss_box.visible = false
-	boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(boss_box)
-	l_boss = _label("", 18, PARCH)
-	l_boss.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_box.add_child(l_boss)
-	bar_boss = _bar(Color("c06be0"), 12)
-	boss_box.add_child(bar_boss)
+	_hueter_leiste()
+	_champion_schild()
 	# Banner in der Bildmitte oben
 	banner_box = VBoxContainer.new()
 	banner_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -698,19 +704,329 @@ func refresh() -> void:
 		if id == "potion":
 			u.sub.text = "×%d" % h.pots
 	if boss_box.visible:
-		bar_boss.value = game.boss.hp / game.boss.max_hp
+		_hueter_leiste_tick()
+	_champion_tick()
 	if l_fps.visible:
 		l_fps.text = "%d Bilder/s · Grafik %s" % [Engine.get_frames_per_second(), "niedrig" if game.low_gfx else "hoch"]
 
 func toggle_fps() -> void:
 	l_fps.visible = not l_fps.visible
 
-func boss_show(name: String) -> void:
-	l_boss.text = name
+# ---------------------------------------------------------------- Hüter-Leiste und Champion-Schild (4.1)
+# Nach dem Vorbild von Diablo 4 und Crimson Desert, im Stil des Spiels: dunkles Feld mit Goldrand, Name in der
+# Titelschrift, darunter der Beiname. Auf dem Balken stehen goldene Marken an den Schwellen der Phasen; darunter die
+# Phase und was gerade zu tun ist. Starke Angriffe werden groß angesagt.
+const ANSAGE := Color(1.0, 0.6, 0.38)
+
+func _dunkel_feld(rand := Color("7a5a26")) -> StyleBoxFlat:
+	var s := _flat(Color(0.05, 0.04, 0.045, 0.88), 6, rand, 2)
+	s.set_content_margin_all(10)
+	s.content_margin_top = 6
+	s.content_margin_bottom = 6
+	s.shadow_color = Color(0, 0, 0, 0.5)
+	s.shadow_size = 6
+	return s
+
+func _hueter_leiste() -> void:
+	var p := PanelContainer.new()
+	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	p.position = Vector2(-290, 14)
+	p.custom_minimum_size = Vector2(580, 0)
+	p.add_theme_stylebox_override("panel", _dunkel_feld())
+	p.visible = false
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(p)
+	boss_box = p
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	var kopf := HBoxContainer.new()
+	kopf.add_theme_constant_override("separation", 10)
+	kopf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(kopf)
+	boss_zeichen = Control.new()
+	boss_zeichen.custom_minimum_size = Vector2(46, 46)
+	boss_zeichen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_zeichen.draw.connect(func(): _gestalt_zeichnen(boss_zeichen, boss_art))
+	kopf.add_child(boss_zeichen)
+	var namen := VBoxContainer.new()
+	namen.add_theme_constant_override("separation", -2)
+	namen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	namen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kopf.add_child(namen)
+	l_boss = _label("", 24, PARCH)
+	l_boss.add_theme_constant_override("outline_size", 4)
+	l_boss.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	namen.add_child(l_boss)
+	l_boss_bei = _label("", 14, DIM)
+	namen.add_child(l_boss_bei)
+	var balken := Control.new()
+	balken.custom_minimum_size = Vector2(0, 16)
+	balken.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(balken)
+	bar_boss = _bar(Color("c06be0"), 16)
+	bar_boss.set_anchors_preset(Control.PRESET_FULL_RECT)
+	balken.add_child(bar_boss)
+	boss_marken = Control.new()
+	boss_marken.set_anchors_preset(Control.PRESET_FULL_RECT)
+	boss_marken.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_marken.draw.connect(_marken_zeichnen)
+	balken.add_child(boss_marken)
+	var fuss := HBoxContainer.new()
+	fuss.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(fuss)
+	l_boss_phase = _label("", 13, GOLD)
+	l_boss_phase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fuss.add_child(l_boss_phase)
+	l_boss_status = _label("", 14, TEAL)
+	l_boss_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	fuss.add_child(l_boss_status)
+	l_ansage = _label("", 26, ANSAGE)
+	l_ansage.add_theme_font_override("font", f_fett)
+	l_ansage.add_theme_font_size_override("font_size", 30)
+	l_ansage.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l_ansage.add_theme_constant_override("outline_size", 8)
+	l_ansage.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	l_ansage.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	l_ansage.position = Vector2(-360, 130)   # unter der Leiste, über dem Banner
+	l_ansage.custom_minimum_size = Vector2(720, 0)
+	l_ansage.modulate.a = 0.0
+	root.add_child(l_ansage)
+
+func boss_show(b: Foe) -> void:
+	l_boss.text = b.K.name
+	var M: Dictionary = Hueter.muster_von(b)
+	var bei: String = b.hour.get("boss", {}).get("beiname", M.get("beiname", ""))
+	l_boss_bei.text = bei
+	l_boss_bei.visible = bei != ""
+	boss_art = b.kampf.art if b.kampf else "tuer"
+	boss_ph = M.get("phasen", [])
+	var col: Color = b.K.get("bcol", Color("c06be0"))
+	bar_boss.add_theme_stylebox_override("fill", _flat(Color.from_hsv(col.h, maxf(col.s, 0.6), 0.72), 4))
+	boss_box.get_theme_stylebox("panel").border_color = col.lerp(Color("7a5a26"), 0.5)
 	boss_box.visible = true
+	champ_box.visible = false
+	_hueter_leiste_tick()
+	boss_zeichen.queue_redraw()
+	boss_marken.queue_redraw()
 
 func boss_hide() -> void:
 	boss_box.visible = false
+	l_ansage.modulate.a = 0.0
+
+func boss_phase() -> void:
+	boss_marken.queue_redraw()
+	boss_zeichen.queue_redraw()
+	if boss_box.visible:
+		var tw := boss_box.create_tween()
+		boss_box.modulate = Color(1.6, 1.4, 1.0)
+		tw.tween_property(boss_box, "modulate", Color.WHITE, 0.8)
+
+# großer Satz unter der Leiste: „ÜBERFAHRT“, „ER HÖRT SEINEN NAMEN“
+func boss_ansage(text: String) -> void:
+	l_ansage.text = text.to_upper()
+	if ansage_tw:
+		ansage_tw.kill()
+	l_ansage.scale = Vector2(1.25, 1.25)
+	l_ansage.pivot_offset = Vector2(360, 20)
+	ansage_tw = create_tween()
+	ansage_tw.tween_property(l_ansage, "modulate:a", 1.0, 0.12)
+	ansage_tw.parallel().tween_property(l_ansage, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	ansage_tw.tween_interval(1.3)
+	ansage_tw.tween_property(l_ansage, "modulate:a", 0.0, 0.5)
+
+const ROEMISCH := ["I", "II", "III", "IV", "V"]
+
+func _hueter_leiste_tick() -> void:
+	var b: Foe = game.boss
+	if b == null:
+		return
+	bar_boss.value = b.hp / b.max_hp
+	var ph := 1
+	var pname := ""
+	var status := ""
+	if b.kampf:
+		ph = b.kampf.phase
+		pname = b.kampf.phasen_name()
+		status = b.kampf.status
+		if b.kampf.offen_t > 0.0 and status == "":
+			status = "Offen: jetzt zuschlagen"
+	elif b.ist_aktende():
+		ph = b.phase
+		pname = Hueter.TUERHUETER.pnamen[clampi(ph - 1, 0, 2)]
+		if b.schild_t > 0.0:
+			status = "Unverwundbar, solange er ruft"
+	if boss_ph.size() > 0:
+		l_boss_phase.text = "PHASE %s · %s" % [ROEMISCH[clampi(ph - 1, 0, 4)], pname.to_upper()]
+	else:
+		l_boss_phase.text = ""
+	l_boss_status.text = status
+	if boss_marken.get_meta("ph", 0) != ph:
+		boss_marken.set_meta("ph", ph)
+		boss_marken.queue_redraw()
+
+func _marken_zeichnen() -> void:
+	var sz := boss_marken.size
+	var ph: int = boss_marken.get_meta("ph", 1)
+	for i in boss_ph.size():
+		var x: float = sz.x * float(boss_ph[i])
+		var erreicht := ph > i + 1
+		var col := Color(0.55, 0.48, 0.38, 0.9) if erreicht else Color(1.0, 0.85, 0.45)
+		boss_marken.draw_line(Vector2(x, -2), Vector2(x, sz.y + 2), Color(0, 0, 0, 0.8), 4.0)
+		boss_marken.draw_line(Vector2(x, -2), Vector2(x, sz.y + 2), col, 2.0)
+		var r := 5.0
+		boss_marken.draw_colored_polygon(PackedVector2Array([Vector2(x, -r - 3), Vector2(x + r, -3), Vector2(x, r - 3), Vector2(x - r, -3)]), col)
+
+# Gestalt-Zeichen links neben dem Namen, mit wenigen Strichen wie ein Hieroglyphenzeichen
+func _gestalt_zeichnen(c: Control, art: String) -> void:
+	var s := c.size
+	var m := s / 2.0
+	var gold := Color(0.95, 0.8, 0.4)
+	c.draw_circle(m, s.x * 0.5, Color(0.12, 0.09, 0.07))
+	c.draw_arc(m, s.x * 0.5 - 1.0, 0, TAU, 32, Color(0.48, 0.35, 0.15), 2.0)
+	var r := s.x * 0.32
+	match art:
+		"wisp":
+			c.draw_circle(m, r * 0.45, Color(0.56, 0.89, 0.88))
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_line(m + Vector2(cos(a), sin(a)) * r * 0.6, m + Vector2(cos(a), sin(a)) * r, Color(0.56, 0.89, 0.88), 2.0)
+		"mutter":
+			for i in 3:
+				c.draw_arc(m + Vector2(0, r * 0.3), r * (0.45 + i * 0.25), PI * 1.1, PI * 1.9, 12, Color(0.85, 0.65, 0.35).darkened(i * 0.15), 2.5)
+		"koenig":
+			c.draw_set_transform(m, 0, Vector2(0.6, 1.0))
+			c.draw_arc(Vector2.ZERO, r, 0, TAU, 24, gold, 3.0)
+			c.draw_set_transform(Vector2.ZERO)
+			c.draw_line(m + Vector2(-r * 0.3, -r * 0.2), m + Vector2(r * 0.25, r * 0.15), Color(0.2, 0.12, 0.05), 3.0)
+			c.draw_line(m + Vector2(-r * 0.6, r * 1.0), m + Vector2(r * 0.6, r * 1.0), gold, 2.0)
+		"sammler":
+			c.draw_circle(m + Vector2(0, r * 0.25), r * 0.62, Color(0.62, 0.42, 0.3))
+			c.draw_rect(Rect2(m + Vector2(-r * 0.25, -r * 0.85), Vector2(r * 0.5, r * 0.5)), Color(0.62, 0.42, 0.3))
+			c.draw_circle(m + Vector2(0, r * 0.25), r * 0.22, Color(1.0, 0.3, 0.3))
+		_:
+			# Tor: zwei Pfeiler und ein Sturz
+			c.draw_rect(Rect2(m + Vector2(-r, -r * 0.7), Vector2(r * 0.4, r * 1.7)), Color(0.66, 0.7, 0.72))
+			c.draw_rect(Rect2(m + Vector2(r * 0.6, -r * 0.7), Vector2(r * 0.4, r * 1.7)), Color(0.66, 0.7, 0.72))
+			c.draw_rect(Rect2(m + Vector2(-r * 1.15, -r), Vector2(r * 2.3, r * 0.35)), Color(0.66, 0.7, 0.72))
+
+func _champion_schild() -> void:
+	champ_box = PanelContainer.new()
+	champ_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	champ_box.position = Vector2(-230, 14)
+	champ_box.custom_minimum_size = Vector2(460, 0)
+	champ_box.add_theme_stylebox_override("panel", _dunkel_feld())
+	champ_box.visible = false
+	champ_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(champ_box)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	champ_box.add_child(v)
+	champ_name = _label("", 18, GOLD)
+	champ_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	champ_name.add_theme_font_override("font", f_fett)
+	champ_name.add_theme_font_size_override("font_size", 21)
+	v.add_child(champ_name)
+	champ_bar = _bar(Color(0.85, 0.62, 0.22), 10)
+	v.add_child(champ_bar)
+	champ_reihe = HBoxContainer.new()
+	champ_reihe.alignment = BoxContainer.ALIGNMENT_CENTER
+	champ_reihe.add_theme_constant_override("separation", 12)
+	champ_reihe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(champ_reihe)
+
+# nächster wacher Champion in der Nähe (alle 0,25 s gesucht); die Hüter-Leiste hat Vorrang
+func _champion_tick() -> void:
+	var jetzt := Time.get_ticks_msec() * 0.001
+	if jetzt - champ_t > 0.25:
+		champ_t = jetzt
+		var best: Foe = null
+		var bd := 20.0
+		if not boss_box.visible and game.hero:
+			for f in game.foes:
+				if f.elite != "" and f.state == Foe.St.FIGHT:
+					var d: float = f.global_position.distance_to(game.hero.global_position)
+					if d < bd:
+						bd = d
+						best = f
+		if best != champ_f:
+			champ_f = best
+			if best:
+				_champion_fuellen(best)
+		champ_box.visible = champ_f != null
+	if champ_f and is_instance_valid(champ_f):
+		champ_bar.value = champ_f.hp / champ_f.max_hp
+
+func _champion_fuellen(f: Foe) -> void:
+	champ_name.text = f.disp_name
+	champ_name.add_theme_color_override("font_color", Affixe.farbe(f).lerp(GOLD, 0.4))
+	for c in champ_reihe.get_children():
+		c.queue_free()
+	for id in f.affixe:
+		var A: Dictionary = Affixe.LISTE[id]
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 4)
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var z := Control.new()
+		z.custom_minimum_size = Vector2(24, 24)
+		z.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var aid: String = id
+		z.draw.connect(func(): _affix_zeichnen(z, aid))
+		h.add_child(z)
+		h.add_child(_label(A.name, 13, A.farbe))
+		champ_reihe.add_child(h)
+	var grund := ""
+	for e in Daten.ELITE:
+		if e.id == f.elite:
+			grund = e.name
+	if grund != "":
+		champ_reihe.add_child(_label(grund, 13, DIM))
+	var col := Affixe.farbe(f)
+	champ_box.get_theme_stylebox("panel").border_color = col.lerp(Color("7a5a26"), 0.45)
+	champ_bar.add_theme_stylebox_override("fill", _flat(col.lerp(Color(0.85, 0.62, 0.22), 0.5), 4))
+
+# Zeichen der Eigenschaften: wenige Striche in ihrer Farbe auf dunklem Grund
+func _affix_zeichnen(c: Control, id: String) -> void:
+	var s := c.size
+	var m := s / 2.0
+	var col: Color = Affixe.LISTE[id].farbe
+	var r := s.x * 0.36
+	c.draw_circle(m, s.x * 0.5, Color(0.1, 0.08, 0.07))
+	c.draw_arc(m, s.x * 0.5 - 0.5, 0, TAU, 20, col.darkened(0.3), 1.5)
+	match id:
+		"glut":
+			c.draw_colored_polygon(PackedVector2Array([m + Vector2(0, -r), m + Vector2(r * 0.7, r * 0.5), m + Vector2(0, r * 0.9), m + Vector2(-r * 0.7, r * 0.5)]), col)
+			c.draw_circle(m + Vector2(0, r * 0.35), r * 0.3, Color(1.0, 0.9, 0.5))
+		"sturm":
+			for i in 3:
+				c.draw_arc(m, r * (0.35 + i * 0.3), i * 1.2, i * 1.2 + PI * 1.2, 10, col, 1.6)
+		"feder":
+			c.draw_line(m + Vector2(-r * 0.3, r), m + Vector2(r * 0.3, -r), col, 1.6)
+			c.draw_set_transform(m, -1.1, Vector2(0.35, 1.0))
+			c.draw_circle(Vector2.ZERO, r * 0.85, Color(col, 0.75))
+			c.draw_set_transform(Vector2.ZERO)
+		"ruf":
+			c.draw_line(m + Vector2(-r * 0.5, r), m + Vector2(-r * 0.5, -r), col, 2.0)
+			c.draw_rect(Rect2(m + Vector2(-r * 0.5, -r), Vector2(r * 1.2, r * 0.8)), col)
+		"sprung":
+			for i in 2:
+				var o := Vector2(-r * 0.5 + i * r * 0.6, 0)
+				c.draw_polyline(PackedVector2Array([m + o + Vector2(-r * 0.3, -r * 0.6), m + o + Vector2(r * 0.3, 0), m + o + Vector2(-r * 0.3, r * 0.6)]), col, 2.0)
+		"klage":
+			c.draw_circle(m + Vector2(0, r * 0.3), r * 0.45, col)
+			c.draw_colored_polygon(PackedVector2Array([m + Vector2(0, -r), m + Vector2(r * 0.42, r * 0.15), m + Vector2(-r * 0.42, r * 0.15)]), col)
+		"fessel":
+			c.draw_arc(m + Vector2(-r * 0.35, 0), r * 0.45, 0, TAU, 14, col, 2.0)
+			c.draw_arc(m + Vector2(r * 0.35, 0), r * 0.45, 0, TAU, 14, col, 2.0)
+		"spalt":
+			c.draw_arc(m, r * 0.8, 0, TAU, 18, col, 1.6)
+			c.draw_line(m + Vector2(r * 0.1, -r), m + Vector2(-r * 0.1, r), Color(1, 1, 1, 0.9), 1.6)
+		"kette":
+			c.draw_circle(m + Vector2(-r * 0.7, r * 0.4), r * 0.28, col)
+			c.draw_circle(m + Vector2(r * 0.7, -r * 0.4), r * 0.28, col)
+			c.draw_polyline(PackedVector2Array([m + Vector2(-r * 0.7, r * 0.4), m + Vector2(-r * 0.2, -r * 0.2), m + Vector2(r * 0.2, r * 0.2), m + Vector2(r * 0.7, -r * 0.4)]), Color(1.0, 0.7, 0.3), 1.8)
 
 func banner(text: String, small := "", secs := 3.5) -> void:
 	l_banner.text = text

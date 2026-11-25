@@ -27,10 +27,12 @@ const KINDS := {
 }
 # Gestalten der Hüter (ACT[…].boss.look)
 const BOSS_LOOK := {
-	"wisp": {"look": "wisp", "neu": "Ba", "neu_scale": 0.62, "neu_tint": Color(1.15, 1.1, 0.9), "mat": ""},
+	"wisp": {"look": "wisp", "neu": "Ba", "neu_scale": 1.05, "neu_tint": Color(1.15, 1.1, 0.9), "mat": ""},
 	"mutter": {"neu": "Koloss", "neu_tint": Color(1.1, 0.9, 0.62), "neu_scale": 0.72, "mat": "leder"},
 	"koenig": {"neu": "Krieger", "neu_tint": Color(1.35, 1.1, 0.6), "neu_scale": 0.78, "mat": "eisen", "undead": true},
 	"grey": {"neu": "Koloss", "neu_tint": Color(0.72, 0.8, 0.95), "neu_scale": 0.72, "mat": "stern"},
+	# Agent A (Gegnerfabrik, 4.1): die Schlange; kämpft nach dem Muster der Mutter der Häute (eine Schlange häutet sich)
+	"apophis": {"neu": "Apophis", "neu_tint": Color(1.0, 0.92, 0.75), "neu_scale": 1.0, "mat": "leder"},
 	"sammler": {"neu": "Erloschener", "neu_tint": Color(1.05, 0.7, 1.4), "neu_scale": 0.8, "mat": "stern"},
 }
 
@@ -105,6 +107,15 @@ var stern_t := 3.0
 var welle_t := 0.0
 var schild_vis: MeshInstance3D
 var hour: Dictionary
+# 4.1: Champions mit Eigenschaften (affixe.gd), Hüter mit eigenem Kampfmuster (hueter.gd), Dinge im Kampf (Kartuschen, Krüge)
+var affixe: Array = []   # Eigenschaften eines Champions, z. B. ["glut", "feder"]
+var aff := {}            # Zustand je Eigenschaft
+var peitsche_t := 0.0    # von einer Totenklage aufgepeitscht: schneller und angriffslustiger
+var huelle_t := 0.0      # abgestreifte Haut der Mutter: liegt still, bis sie aufsteht
+var kampf: Hueter        # Kampfmuster des Hüters (null beim Türhüter und bei gewöhnlichen Gegnern)
+var rolle := ""          # Ding im Hüterkampf: "kartusche", "krug", "trugbild"
+var besitzer: Hueter     # wem das Ding gehört
+var tritt_t := 0.0
 
 func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 	kind = k
@@ -150,15 +161,18 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 		spd *= 1.5 if elite == "flink" else 1.0
 		xp *= 4.0
 		w *= 3.0
-		sc *= 1.25
+		sc *= 1.35   # 4.1: deutlich größer als das Rudel (vorher 1,25)
 		r *= 1.25
-		for e in Daten.ELITE:
-			if e.id == elite:
-				disp_name = "%s, %s" % [K.name, e.name]
+		affixe = Affixe.wuerfeln(Spiel.fall, Spiel.diff, k)
+		disp_name = "%s, %s" % [K.name, Affixe.LISTE[affixe[0]].titel] if not affixe.is_empty() else K.name
 	if K.has("neu"):
 		# Figur aus der Figurenfabrik: eigene Haut, eigene Waffe; Varianten (Hüter, Erloschene) über Größe und Tönung
 		setup("res://models/chars/%s.glb" % K.neu, sc * K.get("neu_scale", 1.0), r)
 		neu3d = true
+		if k == "boss" or elite != "":
+			# Hüter und Champions bekommen eigene Bewegungen (Agent D, bewegungen.gd): Wuchthieb, Schildbruch, Wurf …
+			Bewegungen.ergaenzen(ap, skel, "boss")
+			Bewegungen.ergaenzen(ap, skel, "gemeinsam")
 		if K.has("neu_tint"):
 			_tint(K.neu_tint)
 	else:
@@ -192,6 +206,10 @@ func init(k: String, pos: Vector3, p: int, el := "", hdef := {}) -> void:
 	if typ == "wisp":
 		_spur(sc)
 	_rest_pose(true)
+	if k == "boss":
+		kampf = Hueter.fuer(self)
+		if kampf:
+			kampf.gestalt()
 
 # Irrlichter ziehen eine feine Spur aus Licht hinter sich her (wenige Teilchen, im Browser billig)
 func _spur(s: float) -> void:
@@ -382,33 +400,166 @@ func _build_proc(look: String, r: float, col: Color) -> void:
 		flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 
-# Elite: goldener Ring am Boden und der Name über dem Kopf
+# Champion (4.1): Name über dem Kopf in der Farbe seiner ersten Eigenschaft; Aura, Krone, Glut und alles Weitere
+# legt affixe.gd an (dort steht auch, was jede Eigenschaft tut)
 func _elite_mark(s: float) -> void:
-	var ring := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = radius * 1.35
-	tm.outer_radius = radius * 1.6
-	tm.rings = 24
-	tm.ring_segments = 6
-	ring.mesh = tm
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(0.95, 0.82, 0.29, 0.85)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ring.material_override = m
-	ring.position.y = 0.06
-	add_child(ring)
-	elite_teile.append(ring)
 	var l := Label3D.new()
 	l.text = disp_name
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.font_size = 44
 	l.outline_size = 10
-	l.modulate = Color(0.95, 0.82, 0.29)
-	l.position.y = 2.9 * s if proc == null else 2.4
+	l.modulate = Affixe.farbe(self).lerp(Color(0.95, 0.82, 0.29), 0.35) if not affixe.is_empty() else Color(0.95, 0.82, 0.29)
+	l.position.y = 3.1 * s if proc == null else 2.6
 	l.pixel_size = 0.006
 	add_child(l)
 	elite_teile.append(l)
+	Affixe.anlegen(self, affixe)
+
+# eigene Bewegung, wenn die Figur sie hat (bewegungen.gd), sonst die gewöhnliche
+func bew(name: String, ersatz: String) -> String:
+	return name if ap and ap.has_animation(name) else ersatz
+
+# Ein gewöhnlicher Gegner wird Champion (Feuerkette: der Gefährte des ersten), für Prüfungen auch mit festen Eigenschaften
+func zum_champion(el: String, ids: Array) -> void:
+	for n in elite_teile:
+		if is_instance_valid(n):
+			n.queue_free()
+	elite_teile.clear()
+	if elite == "":
+		elite = el if el != "" else "zaeh"
+		max_hp *= 3.4
+		hp = max_hp
+		dmg *= 1.35
+		xp *= 4.0
+		if model:
+			model.scale *= 1.35
+	affixe = ids.duplicate()
+	disp_name = "%s, %s" % [K.name, Affixe.LISTE[affixe[0]].titel] if not affixe.is_empty() else K.name
+	if neu3d:
+		Bewegungen.ergaenzen(ap, skel, "boss")
+		Bewegungen.ergaenzen(ap, skel, "gemeinsam")
+	_elite_mark(sc * 1.35)
+
+# Glut in den Rissen der Figur (die Figuren der Figurenfabrik bringen eine Leuchtkarte mit): Champions und Hüter
+# glühen in ihrer Farbe, die Mutter der Häute mit jeder Haut stärker
+func glut(energie: float, farbe: Color) -> void:
+	for mi in meshes:
+		var m: MeshInstance3D = mi
+		if m.mesh == null:
+			continue
+		for i in m.mesh.get_surface_count():
+			var mat = m.get_surface_override_material(i)
+			if mat == null:
+				var src = m.get_active_material(i)
+				if not (src is StandardMaterial3D):
+					continue
+				mat = src.duplicate()
+				m.set_surface_override_material(i, mat)
+			if mat is StandardMaterial3D:
+				var d: StandardMaterial3D = mat
+				d.emission_enabled = true
+				d.emission = farbe
+				d.emission_energy_multiplier = energie
+
+# Abgestreifte Haut der Mutter: blass, still, nimmt dreifachen Schaden; steht nach ein paar Sekunden auf
+func zur_huelle(sek: float) -> void:
+	huelle_t = sek
+	_tint(Color(1.7, 1.55, 1.2))
+	glut(0.0, Color.BLACK)
+	play(ANIM.stand if ap and ap.has_animation(ANIM.stand) else ANIM.idle, 1.0, 0.0, true)
+	if ap:
+		ap.speed_scale = 0.0
+	stun = 0.0
+	_show_mark("Hülle", Color(0.95, 0.85, 0.6), sek)
+
+func _huelle_auf() -> void:
+	for mi in meshes:
+		var m: MeshInstance3D = mi
+		if m.mesh:
+			for i in m.mesh.get_surface_count():
+				m.set_surface_override_material(i, null)
+	glut(1.2, Color(1.0, 0.35, 0.2))
+	if ap:
+		ap.speed_scale = 1.0
+	play(bew("gemeinsam/Aufstehen", ANIM.rise), 1.3, 0.1, true)
+	act_t = 0.8
+	game.ring_fx(global_position, 2.4, Color(0.9, 0.6, 0.35))
+	game.float_text(global_position + Vector3(0, 3.0, 0), "die Haut steht auf", Color(0.95, 0.7, 0.45))
+	game.sfx.play_at("skel_wake", global_position, 0.1)
+
+# Ding im Hüterkampf (Kartusche, Krug, Trugbild): kein Gegner mit eigenem Willen, aber man kann es treffen.
+# Es gehört einem Kampfmuster (besitzer), das Bild und Verhalten bestimmt.
+func init_objekt(r: String, pos: Vector3, leben: float, rad: float, bild: Node3D, name_: String, wem: Hueter, fest := true) -> void:
+	kind = "objekt"
+	typ = "wisp"
+	rolle = r
+	besitzer = wem
+	K = {"ai": "objekt", "typ": "wisp", "name": name_, "mat": "", "col": Color.WHITE}
+	dmg = 0.0
+	xp = 0.0
+	w = 0.0
+	spd = 0.0
+	summoned = true
+	pack = 98
+	if bild == null:
+		_build_proc("wisp", rad, wem.f.K.get("bcol", Color(0.56, 0.89, 0.88)))
+	else:
+		_objekt_bild(bild, rad)
+	collision_mask = 0
+	collision_layer = 4 if fest else 0
+	set_meta("fest", fest)
+	mark3d = Label3D.new()
+	mark3d.visible = false
+	add_child(mark3d)
+	position = pos
+	objekt_neu(pos, leben, null)
+
+func _objekt_bild(bild: Node3D, rad: float) -> void:
+	radius = rad
+	proc = bild
+	add_child(proc)
+	model = proc
+	meshes.clear()
+	_collect(proc)
+	meshes = meshes.filter(func(m): return not m.top_level)
+	if not has_meta("form"):
+		var col_shape := CollisionShape3D.new()
+		var sh := CylinderShape3D.new()
+		sh.radius = rad
+		sh.height = 2.0
+		col_shape.shape = sh
+		col_shape.position.y = 1.0
+		add_child(col_shape)
+		set_meta("form", true)
+	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
+	if flash_mat == null:
+		flash_mat = StandardMaterial3D.new()
+		flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		flash_mat.albedo_color = Color(1.0, 0.82, 0.55, 0.42)
+		flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		flash_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+
+# wiederverwenden: an neuem Ort, mit neuem Leben (und neuem Bild, wenn eines kommt)
+func objekt_neu(pos: Vector3, leben: float, bild: Node3D) -> void:
+	if bild != null:
+		if proc:
+			proc.queue_free()
+		_objekt_bild(bild, radius)
+	max_hp = leben
+	hp = leben
+	state = St.FIGHT
+	dead = false
+	visible = true
+	process_mode = Node.PROCESS_MODE_INHERIT
+	collision_layer = 4 if get_meta("fest", true) else 0
+	if is_inside_tree():
+		global_position = pos
+	else:
+		position = pos
+	home = pos
+	if proc:
+		proc.scale = Vector3.ONE
+		proc.visible = true
 
 func _show_mark(t: String, col: Color, secs: float) -> void:
 	mark3d.text = t
@@ -433,6 +584,9 @@ func sleep_again() -> void:
 	path = PackedVector3Array()
 	visible = true
 	boss_t = [2.0, 6.0, 4.0]
+	peitsche_t = 0.0
+	if not affixe.is_empty():
+		Affixe.ruhe(self)
 	_rest_pose()
 
 func wake(delay := 0.0) -> void:
@@ -446,6 +600,12 @@ func wake(delay := 0.0) -> void:
 		stun = maxf(stun, 0.45)
 		game.spark(global_position + Vector3(0, 0.4, 0), Color(0.7, 0.62, 0.5))
 	_show_mark("!", Color(1.0, 0.45, 0.35), 0.8)
+	if not affixe.is_empty():
+		Affixe.auftritt(self)
+
+# hat die Figur eine Bewegung zum Aufstehen? (Skelette ja, Lichter, Skorpione und der Ba nicht)
+func _steht_auf() -> bool:
+	return proc == null and ap != null and ap.has_animation(ANIM.rise)
 
 func _physics_process(delta: float) -> void:
 	var _u := Time.get_ticks_usec()
@@ -454,6 +614,10 @@ func _physics_process(delta: float) -> void:
 
 func _physics_process_innen(delta: float) -> void:
 	tick_common(delta)
+	if kind == "objekt":
+		if state != St.DEAD and besitzer:
+			besitzer.objekt_tick(self, delta)
+		return
 	if schild_t > 0.0:
 		# der Schild des Türhüters läuft ab, gleich was er gerade tut (auch betäubt oder im Ansturm)
 		schild_t -= delta
@@ -489,26 +653,43 @@ func _physics_process_innen(delta: float) -> void:
 				if wake_t < anim_len(ANIM.wake) / 1.5 * 0.92:
 					return
 				lying = false
-			elif kind == "boss" and proc == null and cur_anim != ANIM.rise:
+			elif kind == "boss" and _steht_auf() and cur_anim != ANIM.rise:
 				play(ANIM.rise, 1.0, 0.1, true)
 				game.on_boss_wake(self)
 				return
-			elif kind == "boss" and proc != null and wake_t < 0.2:
+			elif kind == "boss" and not _steht_auf() and wake_t < 0.2:
+				# 4.1: auch Figuren ohne Aufsteh-Bewegung (Mahaf als Ba) erwachen; vorher blieben sie im Erwachen hängen
+				# und riefen jedes Bild die Ankündigung neu aus
 				game.on_boss_wake(self)
 				wake_t = 0.2
-			if kind == "boss" and proc == null and wake_t < anim_len(ANIM.rise) * 0.9:
+			if kind == "boss" and _steht_auf() and wake_t < anim_len(ANIM.rise) * 0.9:
 				return
 			state = St.FIGHT
 			atk_t = randf_range(0.2, 0.9)
 			return
 	# ---- Kampf ----
-	atk_t -= delta
+	if huelle_t > 0.0:
+		# abgestreifte Haut: liegt still, bis sie aufsteht
+		huelle_t -= delta
+		velocity = kb
+		move_and_slide()
+		global_position.y = 0.0
+		if huelle_t <= 0.0:
+			_huelle_auf()
+		return
+	peitsche_t -= delta
+	atk_t -= delta * (1.6 if peitsche_t > 0.0 else 1.0)
 	act_t -= delta
 	var to := flat(h.global_position - global_position)
 	var d := to.length()
 	var dirn := to / maxf(d, 0.001)
 	var move := Vector3.ZERO
-	var speed: float = spd * (0.4 if slow_t > 0.0 else 1.0)
+	var speed: float = spd * (0.4 if slow_t > 0.0 else 1.0) * (1.35 if peitsche_t > 0.0 else 1.0)
+	if not affixe.is_empty():
+		Affixe.tick(self, delta, h)
+	if kampf:
+		# das Kampfmuster läuft weiter, auch wenn der Hüter kurz taumelt oder anstürmt (Ansagen bleiben verlässlich)
+		kampf.tick(delta, h, d, dirn, stun > 0.0 or charge_t > 0.0)
 	# mit wenig Leben einmal zurückweichen, kurz Luft holen, dann wieder heran (nicht Schwärme und Hüter)
 	if not rueckzug_war and kind != "boss" and K.ai != "swarm" and hp < max_hp * 0.25 and hp > 0.0 and not summoned:
 		rueckzug_war = true
@@ -586,11 +767,16 @@ func _physics_process_innen(delta: float) -> void:
 					move = Vector3(-dirn.z, 0, dirn.x) * strafe
 					speed *= 0.45
 			"boss":
-				_boss(delta, h, d, dirn)
-				if schild_t > 0.0:
-					move = Vector3.ZERO   # während er ruft oder das Tor zerbricht, steht er still
-				elif d > 6.0 and wind <= 0.0 and charge_t <= 0.0:
-					move = _toward(h.global_position, dirn, delta)
+				if kampf:
+					if not kampf.steht() and wind <= 0.0 and charge_t <= 0.0:
+						move = kampf.bewegung(h, d, dirn, delta)
+						speed *= 1.0 / maxf(0.6, kampf.tempo)
+				else:
+					_boss(delta, h, d, dirn)
+					if schild_t > 0.0:
+						move = Vector3.ZERO   # während er ruft oder das Tor zerbricht, steht er still
+					elif d > 6.0 and wind <= 0.0 and charge_t <= 0.0:
+						move = _toward(h.global_position, dirn, delta)
 	if wind > 0.0 or act_t > 0.0 or h.dead:
 		move = Vector3.ZERO
 	if move.length() > 0.05:
@@ -735,6 +921,8 @@ func _windup(anim: String, sp: float, t: float, what: String) -> void:
 
 func _strike(h: Hero, d: float) -> void:
 	match get_meta("what", "melee"):
+		"nichts":
+			pass   # Eigenschaft eines Champions (Rufen, Klage, Sprung): die Wirkung kommt von dort
 		"shot":
 			game.sfx.play_at("bolt", global_position)
 			game.spawn_bolt(global_position + Vector3(0, 1.5, 0) + forward() * 0.6, flat(h.global_position - global_position).normalized(), dmg, 215.0 / Daten.PX, K.get("shot", Color(0.95, 0.55, 0.9)), 2.6)
@@ -946,15 +1134,37 @@ func _toward(target: Vector3, dirn: Vector3, delta: float) -> Vector3:
 func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false) -> void:
 	if state == St.DEAD:
 		return
+	if kind == "objekt":
+		# Kartusche, Krug, Trugbild: kein Rückstoß, keine Betäubung
+		if besitzer and not besitzer.objekt_treffbar(self):
+			return
+		hp -= amount
+		flash()
+		zucken(from, 0.6)
+		game.float_text(global_position + Vector3(0, 2.4, 0), str(int(round(amount))), Color(1.0, 0.94, 0.78))
+		if hp <= 0.0:
+			die()
+		return
 	if state == St.SLEEP:
 		game.wake_pack(pack)
 	if schild_t > 0.0:
 		game.float_text(global_position + Vector3(0, 2.6, 0), "unverwundbar", Color(0.75, 0.82, 0.9))
 		return
+	if huelle_t > 0.0:
+		amount *= 3.0   # die leere Haut reißt leicht
+	if not affixe.is_empty():
+		amount = Affixe.treffer(self, amount, from)
+	if kampf and amount < 1e8:
+		amount = kampf.schaden(amount)
+		if amount <= 0.0:
+			game.float_text(global_position + Vector3(0, 2.8, 0), kampf.schild_text(), Color(1.0, 0.8, 0.4))
+			return
 	hp -= amount
 	ruhe_seit = 0.0
 	if aktende == 1 and hp > 0.0:
 		_phase_pruefen()
+	if kampf and hp > 0.0:
+		kampf.nach_treffer()
 	flash()
 	zucken(from, (1.6 if crit else 1.0) / (2.0 if kind == "boss" else 1.0))
 	# schwerer Treffer (Krit oder mehr als ein Drittel des Lebens auf einmal): kurzer Trefferstopp
@@ -979,11 +1189,23 @@ func hit(amount: float, from: Vector3, push := 6.0, stun_t := 0.0, crit := false
 		act_t = 0.22
 
 func die() -> void:
+	if kind == "objekt":
+		state = St.DEAD
+		collision_layer = 0
+		if besitzer:
+			besitzer.objekt_tot(self)
+		return
 	state = St.DEAD
 	collision_layer = 0
 	collision_mask = 0
 	charge_t = 0.0
+	huelle_t = 0.0
+	if ap and ap.speed_scale == 0.0:
+		ap.speed_scale = 1.0
 	mark3d.visible = false
+	if not affixe.is_empty():
+		Affixe.tod(self)
+		Affixe.zerfall(self)
 	# Champions: Ring und Name blenden mit aus (blieben vorher stehen, als lebte der Gegner noch)
 	for n in elite_teile:
 		if n is Label3D:
