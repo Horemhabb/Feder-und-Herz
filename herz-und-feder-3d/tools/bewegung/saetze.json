@@ -1,0 +1,73 @@
+{
+	"_hinweis": "Rezept für tools/bewegung/umrechnen.gd. Je Satz eine Datei models/anim/<satz>.res. Felder je Bewegung: name (im Spiel: <satz>/<name>), quelle, bew (Name in der Quelle), schleife, auf_der_stelle (Weg über Grund herausrechnen, steht dann als meta 'weg' in der Bewegung), von/bis (Sekunden), tempo, spiegeln, haltung ({Zielknochen: [x, y, z] Grad im Raum}), toleranz_grad.",
+	"ziel": "res://models/chars/Eidtraeger.glb",
+	"quellen": {
+		"ual1": "UAL1_Standard.glb",
+		"ual2": "UAL2_Standard.glb"
+	},
+	"karten": {"ual1": "ual", "ual2": "ual"},
+	"lizenz": {
+		"eidtraeger": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0",
+		"priester": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0",
+		"jaegerin": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0",
+		"sternleserin": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0",
+		"gemeinsam": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0",
+		"boss": "Quaternius, Universal Animation Library 1 und 2, CC0 1.0"
+	},
+	"saetze": {
+		"eidtraeger": [
+			{"name": "Kampfhaltung", "quelle": "ual1", "bew": "Sword_Idle", "schleife": true},
+			{"name": "Hiebfolge", "quelle": "ual2", "bew": "Sword_Regular_Combo"},
+			{"name": "Hieb_A", "quelle": "ual2", "bew": "Sword_Regular_A"},
+			{"name": "Hieb_B", "quelle": "ual2", "bew": "Sword_Regular_B"},
+			{"name": "Hieb_C", "quelle": "ual2", "bew": "Sword_Regular_C"},
+			{"name": "Schwerer_Hieb", "quelle": "ual2", "bew": "Sword_Heavy_Combo"},
+			{"name": "Vorstoss", "quelle": "ual2", "bew": "Sword_Dash"},
+			{"name": "Abwehr", "quelle": "ual2", "bew": "Sword_Block"},
+			{"name": "Ausweichrolle", "quelle": "ual1", "bew": "Roll"}
+		],
+		"priester": [
+			{"name": "Kampfhaltung", "quelle": "ual1", "bew": "Spell_Simple_Idle_Loop", "schleife": true},
+			{"name": "Gerade", "quelle": "ual1", "bew": "Punch_Jab"},
+			{"name": "Kreuzschlag", "quelle": "ual1", "bew": "Punch_Cross"},
+			{"name": "Haken", "quelle": "ual2", "bew": "Melee_Hook"},
+			{"name": "Atemstoss", "quelle": "ual1", "bew": "Spell_Simple_Shoot"},
+			{"name": "Vorstoss", "quelle": "ual2", "bew": "Sword_Dash"},
+			{"name": "Ausweichrolle", "quelle": "ual1", "bew": "Roll", "spiegeln": true}
+		],
+		"jaegerin": [
+			{"name": "Kampfhaltung", "quelle": "ual1", "bew": "Pistol_Idle_Loop", "schleife": true},
+			{"name": "Zielen", "quelle": "ual1", "bew": "Pistol_Aim_Neutral", "schleife": true},
+			{"name": "Schuss", "quelle": "ual1", "bew": "Pistol_Shoot"},
+			{"name": "Nachladen", "quelle": "ual1", "bew": "Pistol_Reload"},
+			{"name": "Wurf", "quelle": "ual2", "bew": "OverhandThrow"},
+			{"name": "Rutschen", "quelle": "ual2", "bew": "Slide_Start"},
+			{"name": "Ausweichrolle", "quelle": "ual1", "bew": "Roll"}
+		],
+		"sternleserin": [
+			{"name": "Kampfhaltung", "quelle": "ual1", "bew": "Spell_Simple_Idle_Loop", "schleife": true},
+			{"name": "Zauber_Beginn", "quelle": "ual1", "bew": "Spell_Simple_Enter"},
+			{"name": "Zauber", "quelle": "ual1", "bew": "Spell_Simple_Shoot"},
+			{"name": "Zauber_Ende", "quelle": "ual1", "bew": "Spell_Simple_Exit"},
+			{"name": "Ausweichschritt", "quelle": "ual2", "bew": "Shield_Dash"},
+			{"name": "Ausweichrolle", "quelle": "ual1", "bew": "Roll"}
+		],
+		"gemeinsam": [
+			{"name": "Treffer_Brust", "quelle": "ual1", "bew": "Hit_Chest"},
+			{"name": "Treffer_Kopf", "quelle": "ual1", "bew": "Hit_Head"},
+			{"name": "Rueckstoss", "quelle": "ual2", "bew": "Hit_Knockback"},
+			{"name": "Sterben", "quelle": "ual1", "bew": "Death01"},
+			{"name": "Aufstehen", "quelle": "ual2", "bew": "LayToIdle"},
+			{"name": "Jubel", "quelle": "ual2", "bew": "Yes"},
+			{"name": "Tanz", "quelle": "ual1", "bew": "Dance_Loop", "schleife": true}
+		],
+		"boss": [
+			{"name": "Lauern", "quelle": "ual2", "bew": "Zombie_Idle_Loop", "schleife": true},
+			{"name": "Schlurfen", "quelle": "ual2", "bew": "Zombie_Walk_Fwd_Loop", "schleife": true},
+			{"name": "Kratzen", "quelle": "ual2", "bew": "Zombie_Scratch"},
+			{"name": "Wuchthieb", "quelle": "ual2", "bew": "Sword_Heavy_Combo", "tempo": 0.7},
+			{"name": "Schildbruch", "quelle": "ual2", "bew": "Idle_Shield_Break"},
+			{"name": "Wurf", "quelle": "ual2", "bew": "OverhandThrow", "tempo": 0.8}
+		]
+	}
+}
