@@ -984,20 +984,20 @@
   "symbole": {
    "whirl": "symbole/nacht/whirl_aegypt_c",
    "dash": "symbole/nacht/dash_aegypt_d",
-   "oath": "symbole/nacht/oath_aegypt_b",
+   "oath": "bildwerk/symbole_neu/oath_aegypt_b",
    "udjat": "symbole/nacht/udjat_aegypt_a",
    "beam": "symbole/nacht/beam_aegypt_c",
    "flurry": "symbole/nacht/flurry_aegypt_c",
-   "step": "symbole/nacht/step_aegypt_a",
+   "step": "bildwerk/symbole_neu/step_aegypt_a",
    "mantra": "symbole/nacht/mantra_aegypt_a",
    "palm": "symbole/nacht/palm_aegypt_c",
-   "wave": "symbole/nacht/wave_aegypt_b",
+   "wave": "bildwerk/symbole_neu/wave_aegypt_a",
    "salve": "symbole/nacht/salve_aegypt_a",
    "roll": "symbole/nacht/roll_aegypt_b",
    "hetz": "symbole/nacht/hetz_aegypt_b",
-   "rain": "symbole/nacht/rain_aegypt_d",
+   "rain": "bildwerk/symbole_neu/rain_aegypt_d",
    "pierce": "symbole/nacht/pierce_aegypt_b",
-   "chain": "symbole/nacht/chain_aegypt_c",
+   "chain": "bildwerk/symbole_neu/chain_aegypt_b",
    "blink": "symbole/nacht/blink_aegypt_a",
    "glass": "symbole/nacht/glass_aegypt_a",
    "nova": "symbole/nacht/nova_aegypt_c",
@@ -1005,8 +1005,8 @@
    "potion": "symbole/nacht/potion_aegypt_c",
    "p_zaeh": "symbole/nacht/p_zaeh_aegypt_b",
    "p_scharf": "symbole/nacht/p_scharf_aegypt_b",
-   "p_flink": "symbole/nacht/p_flink_aegypt_a",
-   "p_kraft": "symbole/nacht/p_kraft_aegypt_a",
+   "p_flink": "bildwerk/symbole_neu/p_flink_aegypt_a",
+   "p_kraft": "bildwerk/symbole_neu/p_kraft_aegypt_a",
    "p_hieb": "symbole/nacht/p_hieb_aegypt_b",
    "p_jaeger": "symbole/nacht/p_jaeger_aegypt_c",
    "k_ermittler": "symbole/nacht/k_ermittler_aegypt_b",
@@ -1019,7 +1019,8 @@
    "a_eile": "symbole/nacht/a_eile_aegypt_c"
   },
   "symbole_zoom": {
-   "standard": 0.9
+   "standard": 0.9,
+   "rain": 1.0
   },
   "portraets": {
    "P04": "bildwerk/portraets_figuren/P04_portraet_a",
