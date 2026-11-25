@@ -1046,7 +1046,25 @@
    "P24": "bildwerk/portraets_leute_nah/P24_portraet_nah_a"
   },
   "hinweis_portraets": "Porträts: Code (P04 usw.) -> Quelle. Die Figuren aus portraets_figuren sind ein Übergang (Mond und Laterne im Bild); portraets_figuren_nah soll sie ersetzen. portraet_zuschnitt: {code oder standard: {zoom, oben}}, zoom kleiner = enger.",
-  "texturen": {},
+  "texturen": {
+   "w01_sandstein": "bildwerk/texturen_neu/w01_sandstein_textur_a",
+   "w02_granit": "bildwerk/texturen_neu/w02_granit_textur_a",
+   "w03_lehm": "bildwerk/texturen_neu/w03_lehm_textur_c",
+   "w04_grab": "bildwerk/texturen_neu/w04_grab_textur_a",
+   "w05_hoehle": "bildwerk/texturen_neu/w05_hoehle_textur_a",
+   "t06_pflaster": "bildwerk/texturen_neu/t06_pflaster_textur_c",
+   "t07_gruft": "bildwerk/texturen_neu/t07_gruft_textur_a",
+   "t09_sand": "bildwerk/texturen_neu/t09_sand_textur_a",
+   "t10_feld": "bildwerk/texturen_neu/t10_feld_textur_b",
+   "t11_glas": "bildwerk/texturen_neu/t11_glas_textur_a",
+   "t12_hoehlenboden": "bildwerk/texturen_neu/t12_hoehlenboden_textur_a",
+   "f01_fels": "bildwerk/texturen_neu/f01_fels_textur_a",
+   "p01_ton": "bildwerk/texturen_neu/p01_ton_textur_b",
+   "p02_holz": "bildwerk/texturen_neu/p02_holz_textur_a",
+   "p03_palmrinde": "bildwerk/texturen_neu/p03_palmrinde_textur_b",
+   "p04_palmblatt": "bildwerk/texturen_neu/p04_palmblatt_textur_a",
+   "p05_korb": "bildwerk/texturen_neu/p05_korb_textur_a"
+  },
   "texturen_ohne_relief": [
    "p04_palmblatt"
   ],
