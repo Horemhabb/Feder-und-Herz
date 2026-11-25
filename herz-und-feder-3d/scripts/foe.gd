@@ -999,6 +999,7 @@ func die() -> void:
 		game.spark(global_position + Vector3(0, 1.0, 0), K.get("bcol", K.get("col", Color.WHITE)))
 	else:
 		play(ANIM.death, 1.3, 0.05, true)
+		fallen()   # Fall als Gliederpuppe, sofern die Physik Platz hat (actor.gd, physik.gd)
 		# der Besiegte bleibt einen Moment liegen und versinkt dann im Boden
 		var tw2 := create_tween()
 		tw2.tween_interval(5.0)

@@ -198,6 +198,7 @@ func run() -> void:
 	# seit dem Trab (Sprint mit dem Gehen gemischt, 2,5 m je Schritt) passt das Abspieltempo bei vollem Tempo zur Schrittlänge:
 	# gemessen 0,5 m/s; mit dem Sprint auf mindestens 0,9-fach gehalten waren es 1,7 (Grenze damals 2,5)
 	check("Laufen: die Füße rutschen kaum (%.2f m/s bei %.2f m/s)" % [rh.x, rh.y], rh.y > 4.0 and rh.x < 1.0)
+	check("Körperschicht: läuft mit dem Profil der Klasse (%s)" % h.cls, h.koerper != null and h.koerper.active and is_equal_approx(float(h.koerper.P.feder), float(Klassen.GANG[h.cls].feder)))
 	# so viele Klänge wie Fußaufsätze (Knochenhöhen), gleich in welchem Tempo die Bewegung läuft
 	check("Laufen: der Schrittklang kommt mit den Füßen (%d Klänge, %d Aufsätze in 2 s)" % [klang, auf], auf >= 3 and absi(klang - auf) <= 1)
 	# Gehen: langsamer, mit der Bewegung zum Gehen
@@ -728,11 +729,35 @@ func run() -> void:
 	# Treffer-Zucken: kurz gekippt, danach wieder gerade
 	krieger.hit(1.0, hh.global_position)
 	await wait(0.06)
-	var gekippt := absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z)
-	await wait(0.4)
-	check("Treffer: der Gegner zuckt kurz (%.2f) und steht danach wieder gerade" % gekippt, gekippt > 0.05 and absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z) < 0.001)
+	# seit 4.2 federt vor allem der Oberkörper (Körperschicht), die ganze Figur kippt nur noch wenig
+	var gekippt := absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z) + (krieger.koerper.stoss.length() if krieger.koerper else 0.0)
+	await wait(0.6)
+	check("Treffer: der Gegner zuckt kurz (%.2f) und steht danach wieder gerade" % gekippt, gekippt > 0.05 and absf(krieger.model.rotation.x) + absf(krieger.model.rotation.z) < 0.001 and (krieger.koerper == null or krieger.koerper.stoss.length() < 0.03))
+	# 3D-Physik (4.2): der Besiegte fällt als Gliederpuppe in Schlagrichtung, liegt danach still, die Körper sind fort
+	var tief_vor: bool = G3.low_gfx
+	G3.low_gfx = false
+	var faelle0: int = Physik.gezaehlt.faelle
+	var stand0 := krieger.global_position
+	krieger.hit(krieger.hp + 1.0, krieger.global_position - anlauf.normalized(), 9.0)
+	await wait(0.5)
+	var sim := krieger.skel.get_node_or_null("Fall")
+	var huefte := krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
+	check("Physik: der Besiegte fällt als Gliederpuppe (%d Körper, Becken %.2f m hoch)" % [sim.get_child_count() if sim else 0, huefte.origin.y - stand0.y], sim != null and sim.get_child_count() == Physik.GLIEDER.size() and Physik.gezaehlt.faelle == faelle0 + 1)
+	await wait(Physik.FALL_DAUER + 0.3)
+	huefte = krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
+	check("Physik: danach liegt er still und die Körper sind fort (Becken %.2f m hoch, %.1f m weit)" % [huefte.origin.y - stand0.y, Vector2(huefte.origin.x - stand0.x, huefte.origin.z - stand0.z).length()], krieger.skel.get_node_or_null("Fall") == null and Physik.faelle == 0 and not krieger.ap.active and huefte.origin.y - stand0.y < 0.6)
 	G3.foes.erase(krieger)
 	krieger.queue_free()
+	# Krüge und Kisten zerspringen in Scherben, die nach gut zwei Sekunden fort sind
+	if not G3.breakables.is_empty():
+		var br: Dictionary = G3.breakables[0]
+		var sch0: int = Physik.gezaehlt.scherben
+		G3.smash_around(br.pos, 0.2)
+		await wait(0.3)
+		check("Physik: der Krug zerspringt in Scherben (%d)" % Physik.scherben_n, Physik.scherben_n >= 6 and Physik.gezaehlt.scherben > sch0)
+		await wait(2.6)
+		check("Physik: die Scherben räumen sich auf", Physik.scherben_n == 0)
+	G3.low_gfx = tief_vor
 	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
 	var LB: Leben = G3.leben
 	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)

@@ -1485,6 +1485,7 @@ func smash_around(c: Vector3, r: float) -> void:
 		if d.length() > r + 1.0:
 			continue
 		breakables.remove_at(i)
+		Physik.scherben(self, br.n, c)   # zerspringt in Scherben (physik.gd)
 		br.n.queue_free()
 		br.body.queue_free()
 		astar.set_point_solid(br.sub, false)
