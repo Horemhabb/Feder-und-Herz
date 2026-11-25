@@ -699,6 +699,10 @@ func run() -> void:
 	var id1: String = G3.hero.ORDER[0]
 	G3.hero.cd[id1] = 0.0
 	G3.hero.en = 100.0
+	for i in 20:
+		if G3.hero.dash_t <= 0.0:
+			break
+		await wait(0.05)   # das Ausweichen muss erst enden (unter Last dauert es ein paar Bilder länger)
 	await pad_knopf(JOY_BUTTON_X)
 	check("Gamepad: X wirkt die erste Fähigkeit (%s)" % id1, G3.hero.cd[id1] > 0.0)
 	await wait(0.6)
