@@ -521,7 +521,7 @@ func _stueck_finden() -> void:
 	var tw: Tween = stueck.n.create_tween()
 	tw.tween_property(stueck.n, "scale", Vector3.ONE * 0.05, 0.5)
 	tw.tween_callback(func(): stueck.n.visible = false)
-	game.float_text(stueck.pos + Vector3(0, 1.4, 0), "Ein Stück Gold", Color(1.0, 0.82, 0.45), 1.1)
+	game.float_text(stueck.pos + Vector3(0, 1.4, 0), "Ein Stück Gold", Color(1.0, 0.82, 0.45), 1.4)
 	game.hud.toast("Zwei Glieder einer Kartusche. Die Zeichen darauf sind warm. Lesen kannst du sie nicht.", 5.0)
 	_namenlos_quest("Du trägst etwas, das zu ihm gehört.")
 	ba("kartusche", "Die Lichter werden dir jetzt ausweichen. Sie wissen, was du trägst.")
@@ -631,7 +631,7 @@ func _found(s: Dictionary) -> void:
 	s.vis.light.light_energy = 0.0
 	# Tiere melden sich, Dinge werden aufgehoben
 	game.sfx.play(L.ding if L.ding in ["schaf", "ziege", "esel", "katze"] else "aufheben", 0.1)
-	game.float_text(s.pos + Vector3(0, 1.4, 0), L.eins, Color(0.85, 0.95, 0.7), 1.1)
+	game.float_text(s.pos + Vector3(0, 1.4, 0), L.eins, Color(0.85, 0.95, 0.7), 1.4)
 	game.hud.toast(L.fund, 4.5)
 	# Tiere laufen heim, Dinge werden aufgehoben: beides verschwindet
 	var n: Node3D = s.vis.n
@@ -747,7 +747,7 @@ func _light(s: Dictionary) -> void:
 	game.sfx.loop_at("feuer_brennt", s.vis.n)
 	var h: Hero = game.hero
 	h.hp = minf(h.max_hp, h.hp + h.max_hp * 0.12)
-	game.float_text(s.pos + Vector3(0, 1.0, 0), "Feuer des Re", Color(1.0, 0.8, 0.4), 1.2)
+	game.float_text(s.pos + Vector3(0, 1.0, 0), "Feuer des Re", Color(1.0, 0.8, 0.4), 1.5)
 	if game.karte_ui:
 		game.karte_ui.reveal_around(s.pos, 9)
 	_weigh(1.5)
@@ -802,7 +802,7 @@ func _jar(s: Dictionary, free: bool) -> void:
 	if free:
 		_weigh(4.0)
 		game.sfx.play_at("herz_frei", s.pos, 0.1)
-		game.float_text(s.pos + Vector3(0, 1.2, 0), Worte.zieh("herz_frei"), Color(0.56, 0.89, 0.88), 1.2)
+		game.float_text(s.pos + Vector3(0, 1.2, 0), Worte.zieh("herz_frei"), Color(0.56, 0.89, 0.88), 1.5)
 		_soul(s.pos)
 		if Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.12):
 			game._level_up()

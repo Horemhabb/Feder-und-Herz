@@ -1860,20 +1860,58 @@ func _clock() -> String:
 	return "%d:%02d" % [int(clock) / 60, int(clock) % 60]
 
 # ---------------------------------------------------------------- Effekte
+# Schwebende Zahlen und kurze Worte über den Köpfen (Schaden, Heilung, Beute, Hinweise).
+# Früher waren sie fast so groß wie die Figuren, fett und dick umrandet. Jetzt wie mit der Rohrfeder geschrieben:
+# Textschrift statt Standardschrift, eine Zeile etwa vierzig Zentimeter hoch, dünner Tintenrand.
+# „big“ vergrößert (Krit 1,35, Hinweise der Orte 1,4 bis 1,5). Zahlen, die kurz nacheinander an derselben Stelle
+# entstehen, rücken eine Zeile höher und abwechselnd zur Seite, damit kein Klumpen entsteht.
+const ZAHL_SCHRIFT := 40          # Glyphen in dieser Größe gezeichnet: auf dem Handy und in Full HD etwa eins zu eins
+const ZAHL_PIXEL := 0.0100        # Meter je Schriftpixel: 40 × 0,01 = 0,4 m Zeilenhöhe (Figur etwa 1,8 m)
+var _zahlen: Array = []           # [{"l": Label3D, "p": Vector3 Ursprung, "t": Startzeit in ms}]
+
 func float_text(pos: Vector3, text: String, col: Color, big := 1.0) -> void:
 	var l := Label3D.new()
 	l.text = text
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
-	l.font_size = 64
-	l.outline_size = 14
+	l.render_priority = 2
+	if hud != null and hud.f_text != null:
+		l.font = hud.f_text
+	var s := big * (1.4 if touch else 1.0)   # auf dem Handy größer: dort ist das ganze Bild nur wenige Zentimeter hoch
+	l.font_size = ZAHL_SCHRIFT
+	l.pixel_size = ZAHL_PIXEL * s
+	l.outline_size = 7
+	l.outline_modulate = Color(0.08, 0.05, 0.03, 0.95)   # dunkle Tinte statt Schwarz
 	l.modulate = col
-	l.pixel_size = 0.012 * big
 	add_child(l)
-	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 2.2, randf_range(-0.2, 0.2))
+	# Nachbarn zählen: was in der letzten halben Sekunde an derselben Stelle aufstieg, schiebt die neue Zahl weiter
+	var jetzt := Time.get_ticks_msec()
+	var n := 0
+	var rest: Array = []
+	for z in _zahlen:
+		if not is_instance_valid(z.l) or jetzt - z.t > 500:
+			continue
+		rest.append(z)
+		if Vector2(z.p.x - pos.x, z.p.z - pos.z).length() < 2.0:
+			n += 1
+	rest.append({"l": l, "p": pos, "t": jetzt})
+	_zahlen = rest
+	var seite: Vector3 = cam.global_transform.basis.x if cam != null else Vector3(1, 0, -1).normalized()
+	seite.y = 0.0
+	seite = seite.normalized()
+	var richtung := (-1.0 if n % 2 == 1 else 1.0) * (1.0 if randf() < 0.5 else -1.0)
+	var start := pos + Vector3(0, 1.3 + 0.36 * mini(n, 4) * s, 0) + seite * (randf_range(-0.3, 0.3) + richtung * 0.3 * mini(n, 3))
+	l.global_position = start
+	# kurz aufsteigen und leicht zur Seite treiben, dann ausblenden; ein Krit springt erst etwas auf
+	var dauer := 0.9
 	var tw := create_tween()
-	tw.tween_property(l, "global_position:y", l.global_position.y + 1.6, 0.8)
-	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
+	tw.tween_property(l, "global_position", start + Vector3(0, 0.9, 0) + seite * richtung * 0.35, dauer) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.35).set_delay(dauer - 0.35)
+	tw.parallel().tween_property(l, "outline_modulate:a", 0.0, 0.3).set_delay(dauer - 0.35)
+	if big > 1.2:
+		l.scale = Vector3.ONE * 1.4
+		tw.parallel().tween_property(l, "scale", Vector3.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(l.queue_free)
 
 func ring_fx(c: Vector3, r: float, col: Color) -> void:
