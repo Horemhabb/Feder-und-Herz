@@ -789,7 +789,7 @@ func _hueter_leiste() -> void:
 	l_ansage.add_theme_constant_override("outline_size", 8)
 	l_ansage.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	l_ansage.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	l_ansage.position = Vector2(-360, 104)
+	l_ansage.position = Vector2(-360, 130)   # unter der Leiste, über dem Banner
 	l_ansage.custom_minimum_size = Vector2(720, 0)
 	l_ansage.modulate.a = 0.0
 	root.add_child(l_ansage)
