@@ -105,7 +105,7 @@ func bewegung(G: Node, h: Hero) -> void:
 	check("Gang: Laufen ohne Fußrutschen (%.2f m/s bei %.2f m/s, %s)" % [rh.x, rh.y, h.cur_anim], rh.y > 4.0 and rh.x < 1.0)
 	check("Gang: der Körper neigt sich in den Lauf (%.2f)" % neig_max, neig_max > 0.04)
 	var p0 := h.global_position
-	var art_ok := h.dodge() and h.ausweich_art == GA.ausweich
+	var art_ok: bool = h.dodge() and h.ausweich_art == GA.ausweich
 	await wait(0.12)
 	var mitten_unsichtbar := not h.model.visible
 	await wait(0.3)
