@@ -67,7 +67,7 @@ func _process_modification_with_delta(delta: float) -> void:
 	# Tempo und Beschleunigung im Körpermaß (Modelle schauen entlang +z)
 	var v: Vector3 = akteur.velocity
 	v.y = 0.0
-	var a_roh := (v - v_alt) / delta
+	var a_roh := (v - v_alt) / maxf(delta, 1.0 / 120.0)
 	v_alt = v
 	acc = acc.lerp(a_roh.limit_length(60.0), minf(1.0, delta * 14.0))
 	var a_lok := acc.rotated(Vector3.UP, -dreh)
@@ -82,10 +82,17 @@ func _process_modification_with_delta(delta: float) -> void:
 	soll.y = clampf(soll.y, -0.3, 0.3)
 	var k: float = P.feder
 	var c: float = P.daempf
-	neig_v += ((soll - neig) * k - neig_v * c) * delta
-	neig += neig_v * delta
-	stoss_v += (-stoss * 160.0 - stoss_v * 13.0) * delta
-	stoss += stoss_v * delta
+	# Federn in kleinen Schritten rechnen: bei stockendem Bild (langes delta) schaukelten sie sich sonst auf
+	var rest := minf(delta, 0.1)
+	while rest > 0.0:
+		var h := minf(rest, 1.0 / 120.0)
+		rest -= h
+		neig_v += ((soll - neig) * k - neig_v * c) * h
+		neig += neig_v * h
+		stoss_v += (-stoss * 160.0 - stoss_v * 13.0) * h
+		stoss += stoss_v * h
+	neig = neig.clamp(Vector2(-0.5, -0.4), Vector2(0.6, 0.4))
+	stoss = stoss.limit_length(0.6)
 	# Blick zum Ziel: Winkel gegen die Blickrichtung des Körpers, begrenzt
 	var blick_soll := 0.0
 	if ziel != null:
@@ -96,7 +103,8 @@ func _process_modification_with_delta(delta: float) -> void:
 	atem_t += delta * (1.6 + 1.4 * bewegt)
 	var atem := sin(atem_t) * float(P.atem) * (1.0 - bewegt)
 	# Schweben (Sternleserin im Stand), Satz (Jägerin), Gleiten (Priester)
-	schwebe = move_toward(schwebe, float(P.schweben) * (1.0 - bewegt), delta * 0.6)
+	var schwebe_soll := float(P.schweben) * (1.0 - bewegt)
+	schwebe = move_toward(schwebe, schwebe_soll, delta * (0.6 if schwebe_soll > schwebe else 4.0))   # setzt beim Loslaufen rasch auf
 	var hoch := schwebe * (0.07 + 0.03 * sin(atem_t * 0.7))
 	var kipp_satz := 0.0
 	if satz_t >= 0.0:

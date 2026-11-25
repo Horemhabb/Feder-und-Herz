@@ -1,7 +1,7 @@
 class_name Physik
 # 3D-Physik in der Welt (4.2): Besiegte fallen als Gliederpuppe (Ragdoll) in Richtung des letzten Schlags,
 # zerschlagene Krüge und Kisten zerspringen in Scherben. Beides ist kurz, gezählt und räumt sich selbst auf:
-# - Fall: zwölf Körper (Becken, Rücken, Brust, Kopf, Ober- und Unterarme, Ober- und Unterschenkel) mit Kegelgelenken.
+# - Fall: zwölf Körper (Becken, Rücken, Brust, Kopf, Ober- und Unterarme, Ober- und Unterschenkel) mit begrenzten Gelenken.
 #   Höchstens FALL_MAX zugleich, nach FALL_DAUER Sekunden wird die Haltung eingefroren und die Körper verschwinden;
 #   danach liegt die Figur wie bisher, bis sie im Boden versinkt (foe.gd). Sonst und bei „Grafik niedrig“: die
 #   Todesbewegung wie bisher.
@@ -83,14 +83,19 @@ static func fallen(a: Node3D, stoss: Vector3) -> bool:
 		pb.body_offset = bt
 		pb.joint_offset = Transform3D(Basis.IDENTITY, Vector3(0, 0, halb))
 		if g[2] > 0.0:
-			pb.joint_type = PhysicalBone3D.JOINT_TYPE_CONE
-			pb.set("joint_constraints/swing_span", g[2])
-			pb.set("joint_constraints/twist_span", 15.0)
+			# Kegelgelenke (CONE) schaukeln sich in Godots Physik an Mauern auf und schleuderten Körper hoch in die Luft;
+			# sechs Achsen mit Grenzen bleiben ruhig (Probe mit Mauer neben der Figur)
+			pb.joint_type = PhysicalBone3D.JOINT_TYPE_6DOF
+			for ax in ["x", "y", "z"]:
+				var span: float = g[2] if ax != "z" else 15.0
+				pb.set("joint_constraints/%s/angular_limit_enabled" % ax, true)
+				pb.set("joint_constraints/%s/angular_limit_upper" % ax, span)
+				pb.set("joint_constraints/%s/angular_limit_lower" % ax, -span)
 		else:
 			pb.joint_type = PhysicalBone3D.JOINT_TYPE_NONE
 		pb.mass = 3.0 if i == sk.find_bone("hips") or i == sk.find_bone("chest") else 1.0
 		pb.friction = 0.9
-		pb.linear_damp = 0.4
+		pb.linear_damp = 1.2
 		pb.angular_damp = 3.0
 		pb.collision_layer = PUPPE
 		pb.collision_mask = BODEN | 1
@@ -106,7 +111,7 @@ static func fallen(a: Node3D, stoss: Vector3) -> bool:
 		a.ap.speed_scale = 0.0   # Hände und Füße bleiben, wie sie sind; den Rest trägt die Physik
 	sim.physical_bones_start_simulation()
 	# Wucht: waagrecht nach dem Schlag, dazu etwas Auftrieb und eine kleine Drehung, damit nicht jeder gleich fällt
-	var w := (Vector3(stoss.x, 0, stoss.z) * 0.6).limit_length(6.5)
+	var w := (Vector3(stoss.x, 0, stoss.z) * 0.45).limit_length(5.0)
 	if w.length() < 1.5:
 		w = (w.normalized() if w.length() > 0.01 else -Vector3(sin(a.face), 0, cos(a.face))) * 1.5
 	var hoch := 1.2 + w.length() * 0.25
@@ -129,6 +134,15 @@ static func _einfrieren(a: Node3D, sim: PhysicalBoneSimulator3D, koerper: Dictio
 	for g in GLIEDER:
 		var pb: PhysicalBone3D = koerper[g[0]]
 		glob[g[0]] = inv * pb.global_transform * pb.body_offset.affine_inverse()
+	# Sicherung: ist die Puppe dennoch weit weg geflogen, bleibt die Todesbewegung (wie ohne Physik)
+	var huefte: Transform3D = glob["hips"]
+	if huefte.origin.y > 2.5 or Vector2(huefte.origin.x, huefte.origin.z).length() > 14.0 or not huefte.origin.is_finite():
+		sim.physical_bones_stop_simulation()
+		sim.queue_free()
+		if a.ap:
+			a.ap.speed_scale = 1.0
+			a.ap.seek(a.ap.current_animation_length, true)
+		return
 	if a.ap:
 		a.ap.active = false
 	for g in GLIEDER:

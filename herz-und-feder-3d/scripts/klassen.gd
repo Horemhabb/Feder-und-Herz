@@ -41,24 +41,26 @@ const CLS := {
 # (weich und wenig gedämpft = schwer, schwingt nach); brust/kopf/arme Haltung in Bogenmaß; atem; blick: wie weit Kopf
 # und Brust dem Ziel folgen; schweben: hebt im Stand ab; treffer: wie stark ein Schlag den Oberkörper wegdrückt.
 # ruhe: Bewegung im Stand ohne Gegner in der Nähe (im Kampf gilt anim.idle); ausweich: Art des Ausweichschritts.
-# anim: Ersatz für Bewegungsnamen aus „anim“, sofern das Modell sie hat (für später nachgelieferte Bewegungen).
+# anim: Ersatz für Bewegungsnamen aus „anim“, sofern das Modell sie hat (nachgelieferte Bewegungen, bewegungen.gd);
+# im Bild verglichen: Kampfhaltung von Eidträger, Priester und Sternleserin und die Rolle des Eidträgers sind besser als
+# die alten, die Pistolenhaltung der Jägerin nicht (die Armbrust hinge in einer Hand). rolle: Bewegung der Ausweichrolle.
 const GANG := {
 	"ermittler": {"beschl": 34.0, "brems": 42.0, "wende": 11.0, "trab": 0.42, "trab_dauer": 0.76, "takt": 0.85,
 		"vor": 0.22, "traeg": 0.016, "kurve": 0.014, "feder": 55.0, "daempf": 8.0,
 		"brust": 0.10, "kopf": 0.02, "arme": 0.10, "atem": 0.018, "blick": 0.7, "treffer": 0.7,
-		"ruhe": "Idle", "ausweich": "rolle", "anim": {}},
-	"moench": {"beschl": 90.0, "brems": 110.0, "wende": 20.0, "trab": 0.62, "trab_dauer": 0.62, "takt": 0.95,
+		"ruhe": "Idle", "ausweich": "rolle", "anim": {"idle": "eidtraeger/Kampfhaltung", "rolle": "eidtraeger/Ausweichrolle"}},
+	"moench": {"beschl": 90.0, "brems": 110.0, "wende": 20.0, "trab": 0.55, "trab_dauer": 0.64, "takt": 0.9,
 		"vor": 0.16, "traeg": 0.006, "kurve": 0.010, "feder": 220.0, "daempf": 28.0,
 		"brust": -0.03, "kopf": -0.03, "arme": 0.02, "atem": 0.022, "blick": 1.0, "treffer": 1.1,
-		"ruhe": "Idle", "ausweich": "wind", "anim": {}},
+		"ruhe": "Idle", "ausweich": "wind", "anim": {"idle": "priester/Kampfhaltung"}},
 	"jaegerin": {"beschl": 70.0, "brems": 75.0, "wende": 16.0, "trab": 0.56, "trab_dauer": 0.66, "takt": 0.9,
 		"vor": 0.26, "traeg": 0.010, "kurve": 0.016, "feder": 130.0, "daempf": 14.0,
 		"brust": 0.14, "kopf": -0.08, "arme": -0.02, "atem": 0.015, "blick": 1.1, "treffer": 1.0,
 		"ruhe": "Idle", "ausweich": "satz", "anim": {}},
-	"forensiker": {"beschl": 40.0, "brems": 34.0, "wende": 11.0, "trab": 0.32, "trab_dauer": 0.8, "takt": 0.8,
+	"forensiker": {"beschl": 40.0, "brems": 34.0, "wende": 11.0, "trab": 0.4, "trab_dauer": 0.74, "takt": 0.8,
 		"vor": 0.08, "traeg": 0.012, "kurve": 0.02, "feder": 40.0, "daempf": 11.0,
 		"brust": -0.02, "kopf": 0.05, "arme": -0.04, "atem": 0.014, "blick": 0.9, "schweben": 1.0, "treffer": 1.2,
-		"ruhe": "Idle", "ausweich": "schritt", "anim": {}},
+		"ruhe": "Idle", "ausweich": "schritt", "anim": {"idle": "sternleserin/Kampfhaltung"}},
 }
 
 # alles, was ein Modell sonst noch in den Händen hält: wird versteckt, sofern es nicht in „keep“ steht

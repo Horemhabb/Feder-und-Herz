@@ -57,6 +57,10 @@ var lantern: OmniLight3D
 const LATERNE := 4.0
 const LATERNE_WEITE := 11.0
 var aura: OmniLight3D
+var laterne_faktor := 1.0       # Hüter und Sandsturm dimmen die Laterne (laterne_dimmen); apply_stats achtet darauf
+var laterne_tw: Tween
+var lahm_t := 0.0               # verlangsamt (verlangsamen): so lange noch
+var lahm_f := 1.0               # verlangsamt: Faktor auf das Lauftempo
 var want_dir := Vector3.ZERO   # Eingabe: Laufrichtung
 var aim := Vector3.ZERO        # Eingabe: Punkt unter dem Mauszeiger
 var neu3d := false             # Figur stammt aus der Figurenfabrik
@@ -81,7 +85,8 @@ func _ready() -> void:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
-	# nachgelieferte Bewegungen (GANG.anim) ersetzen die alten, sofern das Modell sie hat
+	# nachgelieferte Bewegungen (bewegungen.gd, Agent D) einhängen; GANG.anim ersetzt damit die alten, sofern es sie gibt
+	Bewegungen.fuer_klasse(ap, skel, cls)
 	for k in G.anim:
 		if ap.has_animation(G.anim[k]):
 			ANIM[k] = G.anim[k]
@@ -160,7 +165,33 @@ func apply_stats(full := false) -> void:
 	max_hp = float(Spiel.S.max_hp)
 	hp = max_hp if full else clampf(max_hp * ratio, 1.0, max_hp)
 	if lantern:
-		lantern.omni_range = LATERNE_WEITE * Spiel.S.cone
+		lantern.omni_range = LATERNE_WEITE * Spiel.S.cone * laterne_faktor
+
+# ---------------------------------------------------------------- Schnittstellen für Hüter und Champions (4.2)
+# Laterne dimmen (faktor 1 = voll) über dauer Sekunden; ein Stufenaufstieg mitten im Kampf hebt das nicht auf.
+func laterne_dimmen(faktor: float, dauer := 0.6) -> void:
+	if laterne_tw and laterne_tw.is_valid():
+		laterne_tw.kill()
+	laterne_tw = create_tween()
+	laterne_tw.tween_method(func(f: float):
+		laterne_faktor = f
+		if lantern:
+			lantern.omni_range = LATERNE_WEITE * Spiel.S.cone * f, laterne_faktor, faktor, maxf(dauer, 0.01))
+
+# Die Figur wird gezogen oder gestoßen: Tempo in m/s in richtung, klingt wie jeder Rückstoß ab (actor.gd › tick_common).
+# Der Oberkörper federt mit, die laufende Bewegung bricht nicht ab.
+func ziehen(richtung: Vector3, staerke: float) -> void:
+	var d := flat(richtung)
+	if d.length() < 0.001 or dead:
+		return
+	kb = d.normalized() * staerke
+	zucken(global_position - d, clampf(staerke / 10.0, 0.6, 1.8))
+
+# Lauftempo für t Sekunden mit faktor malnehmen (Sandsturm, Schlamm); der stärkere Effekt gilt.
+func verlangsamen(t: float, faktor: float) -> void:
+	if lahm_t <= 0.0 or faktor <= lahm_f:
+		lahm_f = clampf(faktor, 0.1, 1.0)
+	lahm_t = maxf(lahm_t, t)
 
 func reach() -> float:
 	return C.range
@@ -245,6 +276,7 @@ func _physics_process_innen(delta: float) -> void:
 			pending.remove_at(i)
 			f.call()
 	busy -= delta
+	lahm_t -= delta
 	dodge_cd -= delta
 	lunge = lunge.move_toward(Vector3.ZERO, delta * 26.0)
 	if dash_t > 0.0:
@@ -264,7 +296,7 @@ func _physics_process_innen(delta: float) -> void:
 		return
 	var target := Vector3.ZERO
 	if busy <= 0.0 and stun <= 0.0:
-		target = want_dir * SPEED * Spiel.S.speed
+		target = want_dir * SPEED * Spiel.S.speed * (lahm_f if lahm_t > 0.0 else 1.0)
 		if want_dir.length() > 0.1:
 			face = atan2(want_dir.x, want_dir.z)
 	# Anlaufen und Abbremsen je Klasse: der Eidträger braucht einen Moment, der Priester steht sofort (klassen.gd › GANG)
@@ -385,7 +417,8 @@ func dodge() -> bool:
 		_:
 			dash_speed = 13.6
 			dash_t = 0.22
-			play("Dodge_Forward", 1.6, 0.05, true)
+			var rolle: String = ANIM.get("rolle", "Dodge_Forward")
+			play(rolle, anim_len(rolle) / 0.3, 0.05, true)
 	game.sfx.play("ausweichen", 0.1)
 	return true
 
@@ -723,6 +756,7 @@ func revive(pos: Vector3) -> void:
 	mantra_t = 0.0
 	kb = Vector3.ZERO
 	vel = Vector3.ZERO
+	lahm_t = 0.0
 	model.visible = true
 	ausweich_art = ""
 	global_position = pos

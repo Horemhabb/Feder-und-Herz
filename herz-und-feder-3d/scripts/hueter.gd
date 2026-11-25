@@ -595,9 +595,7 @@ func _laterne(dunkel: bool) -> void:
 	var hero := h()
 	if hero == null or hero.lantern == null:
 		return
-	var voll: float = Hero.LATERNE_WEITE * Spiel.S.cone
-	var tw := hero.create_tween()
-	tw.tween_property(hero.lantern, "omni_range", voll * (0.42 if dunkel else 1.0), 1.5 if dunkel else 0.8)
+	hero.laterne_dimmen(0.42 if dunkel else 1.0, 1.5 if dunkel else 0.8)
 	g.boss_licht(0.35 if dunkel else 1.0)
 
 # ---------------------------------------------------------------- Objekte (Kartuschen, Krüge, Trugbilder)

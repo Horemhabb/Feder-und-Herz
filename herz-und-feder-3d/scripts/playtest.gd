@@ -763,6 +763,14 @@ func run() -> void:
 		await wait(2.6)
 		check("Physik: die Scherben räumen sich auf", Physik.scherben_n == 0)
 	G3.low_gfx = tief_vor
+	# Schnittstellen für Hüter (4.2): gedimmte Laterne bleibt gedimmt, auch wenn die Werte neu berechnet werden
+	var hl: Hero = G3.hero
+	hl.laterne_dimmen(0.5, 0.05)
+	await wait(0.2)
+	hl.apply_stats()
+	check("Laterne: gedimmt bleibt gedimmt (%.1f m)" % hl.lantern.omni_range, is_equal_approx(hl.lantern.omni_range, Hero.LATERNE_WEITE * Spiel.S.cone * 0.5))
+	hl.laterne_dimmen(1.0, 0.01)
+	await wait(0.1)
 	# Lebendige Welt (3.2): Leute und Tiere sind da, ein Fundstück lässt sich aufheben, ein verlorenes Stück findet heim
 	var LB: Leben = G3.leben
 	check("Leben: Leute (%d) und Tiere (%d) sind unterwegs" % [LB.leute.size(), LB.tiere.size()], LB.leute.size() >= 2 and LB.tiere.size() >= 5)

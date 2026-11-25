@@ -106,9 +106,11 @@ func bewegung(G: Node, h: Hero) -> void:
 	check("Gang: der Körper neigt sich in den Lauf (%.2f)" % neig_max, neig_max > 0.04)
 	var p0 := h.global_position
 	var art_ok: bool = h.dodge() and h.ausweich_art == GA.ausweich
-	await wait(0.12)
-	var mitten_unsichtbar := not h.model.visible
-	await wait(0.3)
+	var mitten_unsichtbar := false
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 420:
+		await get_tree().process_frame
+		mitten_unsichtbar = mitten_unsichtbar or not h.model.visible
 	for k in bahn:
 		taste(k, false)
 	var weg := p0.distance_to(h.global_position)
@@ -225,16 +227,19 @@ func run() -> void:
 	# 3D-Physik (4.2): ein Besiegter fällt als Gliederpuppe und liegt danach still
 	var opfer: Foe = null
 	for f in G.foes:
-		if f.kind != "boss" and f.state != Foe.St.DEAD and f.skel != null:
+		if f.kind != "boss" and f.kind != "objekt" and f.elite == "" and f.state != Foe.St.DEAD and f.skel != null and f.proc == null and f.skel.find_bone("upperleg.l") >= 0:
 			opfer = f
 			break
 	if opfer:
 		var tief: bool = G.low_gfx
 		G.low_gfx = false
+		var voll := Physik.faelle >= Physik.FALL_MAX   # Fähigkeiten haben gerade viele umgeworfen: dann gilt die Todesbewegung
 		opfer.hit(opfer.hp + 1.0, h.global_position, 8.0)
 		await wait(0.3)
-		check("Physik: der Besiegte fällt als Gliederpuppe", opfer.skel.get_node_or_null("Fall") != null)
-		opfer.ap.active = opfer.skel.get_node_or_null("Fall") != null   # falls nicht gefallen, scheitert auch die nächste Prüfung
+		print("  (Opfer: %s, Zustand %d, Puppen %d)" % [opfer.kind, opfer.state, Physik.faelle])
+		check("Physik: der Besiegte fällt als Gliederpuppe%s" % (" (alle Plätze belegt: Todesbewegung)" if voll else ""), opfer.skel.get_node_or_null("Fall") != null or voll)
+		if voll:
+			opfer.ap.active = false   # falls nicht gefallen, scheitert auch die nächste Prüfung
 		await wait(Physik.FALL_DAUER + 0.3)
 		check("Physik: danach liegt er still, die Körper sind fort (%d laufen noch)" % Physik.faelle, opfer.skel.get_node_or_null("Fall") == null and Physik.faelle <= Physik.FALL_MAX and not opfer.ap.active)
 		G.low_gfx = tief

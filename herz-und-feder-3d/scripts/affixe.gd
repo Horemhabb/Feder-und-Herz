@@ -433,9 +433,7 @@ static func _laterne(g, dunkel: bool) -> void:
 	var h = g.hero
 	if h == null or h.lantern == null:
 		return
-	var voll: float = Hero.LATERNE_WEITE * Spiel.S.cone
-	var tw: Tween = h.create_tween()
-	tw.tween_property(h.lantern, "omni_range", voll * (0.45 if dunkel else 1.0), 0.6)
+	h.laterne_dimmen(0.45 if dunkel else 1.0, 0.6)
 
 static func _glut_tick(f, s: Dictionary, delta: float, h) -> void:
 	var g = f.game
@@ -584,7 +582,7 @@ static func _fesseln(f, h) -> void:
 		_kettenblitz(g, von + Vector3(0, 1.2, 0), von + dir * lang + Vector3(0, 1.2, 0), LISTE.fessel.farbe)
 		if laengs > 0.0 and laengs < lang and quer < 0.7 + h.radius and h.inv <= 0.0:
 			# herangezogen: Rückstoß in seine Richtung, dann holt er aus
-			h.kb = -dir * minf(22.0, sqrt(2.0 * 40.0 * maxf(0.5, laengs - f.radius - 1.4)))
+			h.ziehen(-dir, minf(22.0, sqrt(2.0 * 40.0 * maxf(0.5, laengs - f.radius - 1.4))))
 			h.hurt(f.dmg * 0.4, von + dir * laengs * 2.0, f)
 			g.float_text(h.global_position + Vector3(0, 2.4, 0), "gefesselt", LISTE.fessel.farbe)
 			f.atk_t = 0.0
