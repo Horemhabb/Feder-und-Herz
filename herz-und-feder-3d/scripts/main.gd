@@ -473,8 +473,10 @@ func _box(pos: Vector3, size: Vector3, rot := 0.0, vis: Node3D = null) -> Static
 
 # Licht der Stunde. Vorbild sind die alten Dungeon-Spiele: kühles Grundlicht, in dem man alles erkennt,
 # dazu warme Lichtinseln aus Laterne, Fackeln und Feuerschalen. Draußen scheint der Mond, drinnen färbt die Stunde das Dunkel.
+# 4.1.5: Draußen Mond und Grundlicht schwächer (0,5 → 0,28 und 0,36 → 0,16): Mit den hellen Sandtexturen sah die Nacht
+# aus wie ein Nachmittag, und das Grundlicht hellte jeden Schatten auf. Jetzt ist die Laterne die hellste Stelle im Bild.
 const LICHT := {
-	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.36, "moon": 0.5, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
+	"": {"amb": Color(0.40, 0.50, 0.86), "amb_e": 0.16, "moon": 0.28, "fog": Color(0.05, 0.08, 0.17), "fog_d": 0.005, "bg": Color(0.02, 0.03, 0.07)},
 	"ruin": {"amb": Color(0.52, 0.56, 0.5), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.08, 0.10, 0.09), "fog_d": 0.008, "bg": Color(0.01, 0.015, 0.02)},
 	"tomb": {"amb": Color(0.62, 0.48, 0.36), "amb_e": 0.46, "moon": 0.22, "fog": Color(0.10, 0.07, 0.04), "fog_d": 0.009, "bg": Color(0.015, 0.01, 0.008)},
 	"glass": {"amb": Color(0.38, 0.56, 0.66), "amb_e": 0.5, "moon": 0.3, "fog": Color(0.04, 0.10, 0.13), "fog_d": 0.008, "bg": Color(0.008, 0.015, 0.025)},
@@ -485,12 +487,18 @@ func _build_env() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	# Weißpunkt 4 statt 1: Bei 1 schnitt der Filmic-Tonemapper alles über reinem Weiß hart ab, und helles Pflaster
+	# und Sandstein im Lampenlicht wurden zu weißen Flächen ohne Zeichnung. Mit 4 laufen Lichter weich aus;
+	# die etwas höhere Belichtung gleicht aus, dass die Mitten dabei dunkler werden.
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.0
+	env.tonemap_exposure = 1.2
+	env.tonemap_white = 4.0
 	env.fog_enabled = true
 	env.glow_enabled = true
-	env.glow_intensity = 0.7
-	env.glow_bloom = 0.15
+	env.glow_intensity = 0.6
+	# kein Bloom: er mischte einen Teil des ganzen Bildes verschwommen dazu und hellte so jeden Schatten milchig auf.
+	# Es glühen nur noch Dinge, die heller als Weiß sind (Flammen, Glut, Zauber).
+	env.glow_bloom = 0.0
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.15
 	env.adjustment_contrast = 1.06
@@ -498,7 +506,7 @@ func _build_env() -> void:
 	we.environment = env
 	add_child(we)
 	moon = DirectionalLight3D.new()
-	moon.light_color = Color(0.62, 0.74, 1.0)
+	moon.light_color = Color(0.56, 0.70, 1.0)
 	moon.rotation_degrees = Vector3(-52, -35, 0)
 	moon.shadow_enabled = true
 	moon.directional_shadow_max_distance = 70.0
@@ -567,15 +575,16 @@ func _torch(pos: Vector3, rot: float) -> void:
 	var t := Deko.wandlampe(self, pos, rot)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.62, 0.28)
-	l.light_energy = 1.9
+	l.light_energy = 1.6
 	l.omni_range = 10.0
 	l.omni_attenuation = 1.4
-	l.position = Vector3(0, 0.7, 0.45)
+	# eine Handbreit vor der Wand: dicht an der Wand brannte der Stein um die Lampe weiß aus
+	l.position = Vector3(0, 0.7, 0.8)
 	t.add_child(l)
 	Stimmung.flamme(t, Vector3(0, 0.33, 0.42), 0.55, 0.42)
 	if torches.size() < 6:
 		sfx.loop_at("torch", t)
-	torches.append({"l": l, "ph": randf() * 10.0})
+	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
 
 func _chest(pos: Vector3, tier: int) -> void:
 	var tr := Deko.truhe(self, pos, tier)
@@ -657,7 +666,7 @@ func _campfire(c: Vector3) -> void:
 	l.omni_range = 7.0
 	add_child(l)
 	l.global_position = c + Vector3(0, 1.0, 0)
-	torches.append({"l": l, "ph": randf() * 10.0})
+	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
 	_box(c, Vector3(1.0, 0.5, 1.0))
 	astar.set_point_solid(_sub(c), true)
 

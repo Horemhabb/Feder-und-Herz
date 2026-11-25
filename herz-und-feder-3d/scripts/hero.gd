@@ -47,6 +47,11 @@ const TRAB_DAUER := 0.7
 const LAUF_TAKT := 0.9   # kleinstes Abspieltempo beim Laufen (actor.gd › fortbewegen)
 var vel := Vector3.ZERO
 var lantern: OmniLight3D
+# Laterne: hell genug für den Kampf ringsum, aber eine Insel im Dunkel, keine Tageslampe.
+# 4.1.5: vorher 3,2 bei Weite 16 und Abfall 1,3; sie leuchtete fast den ganzen Bildschirm gleichmäßig aus.
+# Jetzt heller unter der Figur, dafür schneller abfallend (Abfall 2,0 wie echtes Licht), so entsteht ein Lichtkreis.
+const LATERNE := 4.0
+const LATERNE_WEITE := 11.0
 var aura: OmniLight3D
 var want_dir := Vector3.ZERO   # Eingabe: Laufrichtung
 var aim := Vector3.ZERO        # Eingabe: Punkt unter dem Mauszeiger
@@ -84,9 +89,9 @@ func _ready() -> void:
 				c.visible = false
 	lantern = OmniLight3D.new()
 	lantern.light_color = Color(1.0, 0.78, 0.48)
-	lantern.light_energy = 3.2
-	lantern.omni_range = 16.0 * Spiel.S.cone
-	lantern.omni_attenuation = 1.3
+	lantern.light_energy = LATERNE
+	lantern.omni_range = LATERNE_WEITE * Spiel.S.cone
+	lantern.omni_attenuation = 2.0
 	lantern.shadow_enabled = true
 	# die neue Figur ist so groß wie ein Mensch: Die Laterne hängt höher, sonst blendet sie den Scheitel weiß
 	lantern.position = Vector3(0, 3.5 if neu3d else 2.6, 0)
@@ -143,7 +148,7 @@ func apply_stats(full := false) -> void:
 	max_hp = float(Spiel.S.max_hp)
 	hp = max_hp if full else clampf(max_hp * ratio, 1.0, max_hp)
 	if lantern:
-		lantern.omni_range = 16.0 * Spiel.S.cone
+		lantern.omni_range = LATERNE_WEITE * Spiel.S.cone
 
 func reach() -> float:
 	return C.range
@@ -219,7 +224,7 @@ func _physics_process_innen(delta: float) -> void:
 		mantra_t -= delta
 		hp = minf(max_hp, hp + max_hp * 0.04 * delta)
 	aura.light_energy = move_toward(aura.light_energy, 2.2 if oath_t > 0.0 or mantra_t > 0.0 else 0.0, delta * 6.0)
-	lantern.light_energy = 3.2 + sin(Time.get_ticks_msec() * 0.011) * 0.12 + sin(Time.get_ticks_msec() * 0.023) * 0.06
+	lantern.light_energy = LATERNE + sin(Time.get_ticks_msec() * 0.011) * 0.12 + sin(Time.get_ticks_msec() * 0.023) * 0.06
 	# geplante Treffer
 	for i in range(pending.size() - 1, -1, -1):
 		pending[i][0] -= delta
