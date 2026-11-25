@@ -591,7 +591,8 @@ func run() -> void:
 		var champ: Foe = G3._spawn(art, G3.hero.global_position + Vector3(30, 0, 30), 97, "zaeh")
 		champ.die()
 		await wait(0.8)
-		check("Champion (%s) besiegt: Ring und Name sind weg" % art, champ.elite_teile.size() == 2 and champ.elite_teile.all(func(n): return not n.visible))
+		# 4.1: dazu Krone, Aura, Licht und was die Eigenschaften zeigen; alles muss mit ihm verschwinden
+		check("Champion (%s, %s) besiegt: Aura, Krone und Name sind weg" % [art, ", ".join(champ.affixe)], champ.elite_teile.size() >= 3 and not champ.affixe.is_empty() and champ.elite_teile.all(func(n): return not is_instance_valid(n) or not n.visible))
 	# Tuch der Gewogenen: erst nach dem Urteil der fünften Stunde (sechste Stunde erreicht)
 	var mf := Spiel.max_fall
 	Spiel.max_fall = 5
