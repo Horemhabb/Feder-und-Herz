@@ -605,11 +605,13 @@ func champions() -> void:
 					h.global_position = (c.global_position + partner.global_position) * 0.5
 					h.reset_physics_interpolation()
 					var hh := h.hp
-					for k in 10:
+					var tief := h.hp   # tiefster Stand im Fenster: Ausrüstung des Testhelden kann den kleinen Brand gleich wieder heilen
+					for k in 20:
 						h.global_position = (c.global_position + partner.global_position) * 0.5   # auf der Kette halten
-						await wait(0.1)
+						await wait(0.05)
+						tief = minf(tief, h.hp)
 					h.inv = 9999.0
-					check("Feuerkette: wer sie berührt, verbrennt (%d → %d)" % [int(hh), int(h.hp)], h.hp < hh or c.global_position.distance_to(partner.global_position) < 1.2)
+					check("Feuerkette: wer sie berührt, verbrennt (%d → %d)" % [int(hh), int(tief)], tief < hh - 0.5 or c.global_position.distance_to(partner.global_position) < 1.2)
 		h.global_position = frei_neben(G, c.global_position, 3.0)
 		h.reset_physics_interpolation()
 		G.cam_pos = h.global_position
