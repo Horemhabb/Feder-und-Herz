@@ -530,7 +530,7 @@ func run() -> void:
 		h.inv = 0.0
 		h.hp = minf(h.hp, 3.0)   # ein Stufenaufstieg durch den Auto-Angriff heilt sonst
 		await wait(0.2)
-	check("die Figur kann fallen", h.dead)
+	check("die Figur kann fallen (nach %d s: Gegner %s, Zustand %s, Abstand %.1f m, Leben %.1f, Figur geschützt %.2f, gesperrt %.2f)" % [(Time.get_ticks_msec() - t0) / 1000, killer.K.get("name", "?"), str(killer.state), killer.global_position.distance_to(h.global_position), h.hp, h.inv, h.busy], h.dead)
 	await wait(2.6)
 	check("Fenster nach der Niederlage erscheint", G.hud.overlay != null and get_tree().paused)
 	shot("niederlage")
