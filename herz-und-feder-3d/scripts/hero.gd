@@ -8,6 +8,10 @@ const SPEED := 7.2   # 4.0: 6,4; mit dem lebendigeren Lauftakt etwas schneller (
 var cls := "ermittler"
 var C: Dictionary          # Klassendaten
 var ANIM: Dictionary       # Animationsnamen des Modells
+var G: Dictionary          # Gang und Körpersprache der Klasse (klassen.gd › GANG)
+var kampf_nah := true      # Gegner in der Nähe: Kampfhaltung statt Ruhe
+var nah_t := 0.0           # bis zum nächsten Blick nach Gegnern
+var ausweich_art := ""     # laufender Ausweichschritt (rolle, wind, satz, schritt)
 var SK := {}               # Fähigkeiten dieser Klasse
 var ORDER: Array = []      # Tasten 1–4, rechte Maustaste, Rotbier
 
@@ -53,6 +57,10 @@ var lantern: OmniLight3D
 const LATERNE := 4.0
 const LATERNE_WEITE := 11.0
 var aura: OmniLight3D
+var laterne_faktor := 1.0       # Hüter und Sandsturm dimmen die Laterne (laterne_dimmen); apply_stats achtet darauf
+var laterne_tw: Tween
+var lahm_t := 0.0               # verlangsamt (verlangsamen): so lange noch
+var lahm_f := 1.0               # verlangsamt: Faktor auf das Lauftempo
 var want_dir := Vector3.ZERO   # Eingabe: Laufrichtung
 var aim := Vector3.ZERO        # Eingabe: Punkt unter dem Mauszeiger
 var neu3d := false             # Figur stammt aus der Figurenfabrik
@@ -61,7 +69,8 @@ var auto_aim := false          # die Fähigkeit kam von einem Knopf: Sprünge oh
 func _ready() -> void:
 	cls = Spiel.cls if Klassen.CLS.has(Spiel.cls) else "ermittler"
 	C = Klassen.CLS[cls]
-	ANIM = C.anim
+	G = Klassen.GANG[cls]
+	ANIM = C.anim.duplicate()
 	a_idle = ANIM.idle
 	a_walk = ANIM.walk
 	a_run = ANIM.run
@@ -76,7 +85,15 @@ func _ready() -> void:
 		# Nach der fünften Stunde hat Thot das Herz gewogen und dem Laternenträger das Tuch der Gewogenen umgelegt
 		modell = C.neu_tuch if C.has("neu_tuch") and Geschichte.hat_tuch() else C.neu
 	setup("res://models/chars/%s.glb" % modell, 1.12 if neu3d else 1.0, 0.55)
-	a_run = trab_bauen("Trab", TRAB_ANTEIL, TRAB_DAUER)
+	# nachgelieferte Bewegungen (bewegungen.gd, Agent D) einhängen; GANG.anim ersetzt damit die alten, sofern es sie gibt
+	Bewegungen.fuer_klasse(ap, skel, cls)
+	for k in G.anim:
+		if ap.has_animation(G.anim[k]):
+			ANIM[k] = G.anim[k]
+	a_idle = ANIM.idle
+	a_run = trab_bauen("Trab", G.get("trab", TRAB_ANTEIL), G.get("trab_dauer", TRAB_DAUER))
+	if koerper:
+		koerper.profil(G)
 	if modell == C.get("neu_tuch", ""):
 		tuch_faerben(Geschichte.urteil_art())
 	collision_layer = 2
@@ -148,7 +165,33 @@ func apply_stats(full := false) -> void:
 	max_hp = float(Spiel.S.max_hp)
 	hp = max_hp if full else clampf(max_hp * ratio, 1.0, max_hp)
 	if lantern:
-		lantern.omni_range = LATERNE_WEITE * Spiel.S.cone
+		lantern.omni_range = LATERNE_WEITE * Spiel.S.cone * laterne_faktor
+
+# ---------------------------------------------------------------- Schnittstellen für Hüter und Champions (4.2)
+# Laterne dimmen (faktor 1 = voll) über dauer Sekunden; ein Stufenaufstieg mitten im Kampf hebt das nicht auf.
+func laterne_dimmen(faktor: float, dauer := 0.6) -> void:
+	if laterne_tw and laterne_tw.is_valid():
+		laterne_tw.kill()
+	laterne_tw = create_tween()
+	laterne_tw.tween_method(func(f: float):
+		laterne_faktor = f
+		if lantern:
+			lantern.omni_range = LATERNE_WEITE * Spiel.S.cone * f, laterne_faktor, faktor, maxf(dauer, 0.01))
+
+# Die Figur wird gezogen oder gestoßen: Tempo in m/s in richtung, klingt wie jeder Rückstoß ab (actor.gd › tick_common).
+# Der Oberkörper federt mit, die laufende Bewegung bricht nicht ab.
+func ziehen(richtung: Vector3, staerke: float) -> void:
+	var d := flat(richtung)
+	if d.length() < 0.001 or dead:
+		return
+	kb = d.normalized() * staerke
+	zucken(global_position - d, clampf(staerke / 10.0, 0.6, 1.8))
+
+# Lauftempo für t Sekunden mit faktor malnehmen (Sandsturm, Schlamm); der stärkere Effekt gilt.
+func verlangsamen(t: float, faktor: float) -> void:
+	if lahm_t <= 0.0 or faktor <= lahm_f:
+		lahm_f = clampf(faktor, 0.1, 1.0)
+	lahm_t = maxf(lahm_t, t)
 
 func reach() -> float:
 	return C.range
@@ -233,33 +276,50 @@ func _physics_process_innen(delta: float) -> void:
 			pending.remove_at(i)
 			f.call()
 	busy -= delta
+	lahm_t -= delta
 	dodge_cd -= delta
 	lunge = lunge.move_toward(Vector3.ZERO, delta * 26.0)
 	if dash_t > 0.0:
 		dash_t -= delta
 		velocity = dash_dir * dash_speed
 		move_and_slide()
+		if ausweich_art == "wind" and koerper:
+			koerper.gleiten = 1.0
 		if dash_t <= 0.0:
 			dash_speed = 30.0
 			collision_mask = 1 | 4 | 32
 			if dash_slam.y > 0.0:
 				game.hero_slam(global_position, dash_slam.x, dash_slam.y, 9.0)
-		turn(delta)
+			if ausweich_art != "":
+				_ausweich_ende()
+		turn(delta, 18.0)
 		return
 	var target := Vector3.ZERO
 	if busy <= 0.0 and stun <= 0.0:
-		target = want_dir * SPEED * Spiel.S.speed
+		target = want_dir * SPEED * Spiel.S.speed * (lahm_f if lahm_t > 0.0 else 1.0)
 		if want_dir.length() > 0.1:
 			face = atan2(want_dir.x, want_dir.z)
-	vel = vel.move_toward(target, delta * (60.0 if target.length() > 0.1 else 80.0))
+	# Anlaufen und Abbremsen je Klasse: der Eidträger braucht einen Moment, der Priester steht sofort (klassen.gd › GANG)
+	var rate: float = G.get("beschl", 60.0) if target.length() > 0.1 else G.get("brems", 80.0)
+	if target.length() > 0.1 and vel.length() > 0.5 and target.normalized().dot(vel.normalized()) < -0.3:
+		rate = maxf(rate, G.get("brems", 80.0))   # Kehre: erst abbremsen, so schnell wie beim Anhalten
+	vel = vel.move_toward(target, delta * rate)
 	velocity = vel + kb + lunge
 	move_and_slide()
 	global_position.y = 0.0
-	turn(delta)
+	turn(delta, G.get("wende", 14.0))
+	if koerper:
+		koerper.ziel = aim if aim != Vector3.ZERO else null
 	if busy <= 0.0:
 		var sp := vel.length()
+		# im Stand: Kampfhaltung, wenn Gegner nahe sind, sonst die ruhige Haltung der Klasse
+		nah_t -= delta
+		if nah_t <= 0.0:
+			nah_t = 0.4
+			kampf_nah = game.foe_near(global_position, 11.0) != null
+		a_idle = ANIM.idle if kampf_nah or not ap.has_animation(G.get("ruhe", "")) else G.ruhe
 		# Stehen, Gehen, Laufen: Abspieltempo nach der Schrittlänge, damit die Füße nicht rutschen (actor.gd)
-		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25, "", LAUF_TAKT)
+		fortbewegen(sp, clampf(sp / SPEED, 0.5, 1.2) * 1.25, "", G.get("takt", LAUF_TAKT))
 		schrittklang(sp, delta)
 
 # Ein Schritt ist zu hören: Klang nach dem Untergrund unter der Figur (main.gd › untergrund). laut_db: leiser beim Gehen.
@@ -315,14 +375,19 @@ func schrittklang(sp: float, delta: float) -> void:
 
 # Ausweichschritt (Leertaste, am Handy der Knopf unten rechts): ein kurzer Satz in Laufrichtung, für einen Moment
 # unverwundbar und durch Gegner hindurch. Bricht den eigenen Hieb ab.
+# Jede Klasse weicht auf ihre Art aus (klassen.gd › GANG.ausweich), alle gleich weit (rund 3 m) und gleich lang geschützt:
+# rolle   Eidträger: schwere Rolle mit dumpfem Aufsetzen, der Oberkörper nickt nach
+# wind    Priester: gleitet tief vorgebeugt auf dem Atem des Schu, ohne Schritt
+# satz    Jägerin: Sprung im Bogen; ohne Laufrichtung nach hinten, den Blick (und die Armbrust) weiter nach vorn
+# schritt Sternleserin: verschwindet und tritt drei Meter weiter wieder aus der Duat
 func dodge() -> bool:
 	if dead or dodge_cd > 0.0 or dash_t > 0.0 or stun > 0.0:
 		return false
-	var d := want_dir if want_dir.length() > 0.1 else forward()
+	ausweich_art = G.get("ausweich", "rolle")
+	var d := want_dir if want_dir.length() > 0.1 else (-forward() if ausweich_art == "satz" else forward())
 	dash_dir = d.normalized()
-	face = atan2(dash_dir.x, dash_dir.z)
-	dash_speed = 15.0
-	dash_t = 0.2
+	if not (ausweich_art == "satz" and dash_dir.dot(forward()) < -0.2):
+		face = atan2(dash_dir.x, dash_dir.z)
 	dash_slam = Vector2.ZERO
 	dodge_cd = 0.9
 	busy = 0.0
@@ -330,8 +395,49 @@ func dodge() -> bool:
 	lunge = Vector3.ZERO
 	inv = maxf(inv, 0.38)
 	collision_mask = 1 | 32
-	play("Dodge_Forward", 1.9, 0.05, true)
+	match ausweich_art:
+		"wind":
+			dash_speed = 17.0
+			dash_t = 0.18
+			play(ANIM.idle, 0.4, 0.06, true)
+			game.ring_fx(global_position, 1.3, Color(0.94, 0.92, 0.85, 0.6))
+		"satz":
+			dash_speed = 13.6
+			dash_t = 0.22
+			play(ANIM.idle, 0.2, 0.06)
+			if koerper:
+				koerper.satz(dash_t, 0.45)
+		"schritt":
+			dash_speed = 18.0
+			dash_t = 0.17
+			game.ring_fx(global_position + Vector3(0, 0.6, 0), 1.2, Color(0.75, 0.42, 0.88))
+			var tw := create_tween()
+			tw.tween_interval(0.03)
+			tw.tween_callback(func(): model.visible = false)
+		_:
+			dash_speed = 13.6
+			dash_t = 0.22
+			var rolle: String = ANIM.get("rolle", "Dodge_Forward")
+			play(rolle, anim_len(rolle) / 0.3, 0.05, true)
 	game.sfx.play("ausweichen", 0.1)
+	return true
+
+func _ausweich_ende() -> void:
+	match ausweich_art:
+		"rolle":
+			game.shake = maxf(game.shake, 0.12)
+			if koerper:
+				koerper.treffer(Vector2(0, 1), 0.8)   # das Gewicht kommt nach: der Oberkörper nickt nach vorn
+		"satz":
+			if koerper:
+				koerper.treffer(Vector2(0, 1), 0.5)
+		"schritt":
+			model.visible = true
+			game.ring_fx(global_position + Vector3(0, 0.6, 0), 1.2, Color(0.75, 0.42, 0.88))
+	ausweich_art = ""
+
+# Die Körperschicht des Helden läuft immer (auch während er beim Ausweichen unsichtbar ist)
+func koerper_an() -> bool:
 	return true
 
 func can(id: String) -> bool:
@@ -650,6 +756,9 @@ func revive(pos: Vector3) -> void:
 	mantra_t = 0.0
 	kb = Vector3.ZERO
 	vel = Vector3.ZERO
+	lahm_t = 0.0
+	model.visible = true
+	ausweich_art = ""
 	global_position = pos
 	play(ANIM.idle, 1.0, 0.0, true)
 	reset_physics_interpolation()   # nicht vom Ort der Niederlage herübergleiten

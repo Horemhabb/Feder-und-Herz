@@ -32,6 +32,10 @@ var zuck_t := 0.0
 var zuck := Vector2.ZERO   # Neigung beim Treffer in Blickrichtung der Figur: x nach vorn, y zur Seite (Bogenmaß)
 static var gang_cache := {}   # je Modell und Bewegung einmal berechnet
 const ZUCK_DAUER := 0.22
+# Körperschicht (koerper.gd): Neigung, Haltung, Blick, Atem, Treffer-Federn über der laufenden Bewegung
+var koerper: Koerper
+var koerper_t := 0.0     # bis zur nächsten Prüfung, ob die Schicht (bei Gegnern) laufen soll
+var letzter_stoss := Vector3.ZERO   # Richtung und Wucht des letzten Treffers (für den Fall, physik.gd)
 
 func setup(path: String, scl: float, r: float) -> void:
 	model = load(path).instantiate()
@@ -52,6 +56,12 @@ func setup(path: String, scl: float, r: float) -> void:
 			if g.x > 0.01:
 				gang[n] = [g.x * scl, g.y]
 	_collect(model)
+	if skel:
+		var k := Koerper.new()
+		if k.bereit(skel):
+			k.akteur = self
+			skel.add_child(k)
+			koerper = k
 	var col := CollisionShape3D.new()
 	var sh := CapsuleShape3D.new()
 	sh.radius = r
@@ -278,9 +288,14 @@ func zucken(von: Vector3, staerke := 1.0) -> void:
 	var d := flat(global_position - von)
 	if d.length() < 0.01:
 		d = -forward()
+	letzter_stoss = d.normalized() * staerke
 	d = d.normalized().rotated(Vector3.UP, -model.rotation.y)
 	zuck = Vector2(d.z, d.x) * 0.28 * clampf(staerke, 0.5, 1.8)
 	zuck_t = ZUCK_DAUER
+	if koerper and koerper.active:
+		# der Oberkörper federt vom Schlag weg; die ganze Figur kippt nur noch wenig mit
+		koerper.treffer(Vector2(d.x, d.z), staerke)
+		zuck *= 0.4
 
 # Wo steht die laufende Geh- oder Laufbewegung (0 bis 1)? -1, wenn gerade keine mit gemessenen Schritten läuft.
 func gang_phase() -> float:
@@ -321,8 +336,32 @@ func tick_common(delta: float) -> void:
 		model.rotation.x = zuck.x * k
 		model.rotation.z = -zuck.y * k
 	kb = kb.move_toward(Vector3.ZERO, delta * 40.0)
+	if koerper:
+		koerper_t -= delta
+		if koerper_t <= 0.0:
+			koerper_t = 0.5
+			koerper.active = koerper_an()
 	if stun > 0.0:
 		stun -= delta
+
+# Fall als Gliederpuppe (physik.gd): in Richtung des letzten Schlags, mit dessen Wucht. Gibt false zurück, wenn die
+# Physik keinen Platz hat oder ausgeschaltet ist; dann läuft die Todesbewegung wie bisher.
+func fallen() -> bool:
+	if get("kind") == "boss":
+		return false   # Hüter sterben mit ihrer eigenen Bewegung
+	return Physik.fallen(self, kb + flat(letzter_stoss).normalized() * 2.0)
+
+# Soll die Körperschicht laufen? Gegner: nur nahe beim Helden und nicht bei „Grafik niedrig“ (Held: hero.gd).
+func koerper_an() -> bool:
+	if game == null or model == null or not model.visible:
+		return false
+	if game.get("low_gfx"):
+		return false
+	var h = game.get("hero")
+	if h != null and h != self:
+		koerper.ziel = h.global_position if global_position.distance_squared_to(h.global_position) < 196.0 else null
+		return global_position.distance_squared_to(h.global_position) < 900.0 and collision_layer != 0
+	return true
 
 func flat(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0, v.z)

@@ -34,6 +34,92 @@ func near_group(G: Node) -> Vector3:
 			return f.global_position
 	return G.boss.global_position
 
+func taste(code: int, gedrueckt: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = gedrueckt
+	Input.parse_input_event(e)
+
+# Fußrutschen wie im Spieltest (playtest.gd › fussrutschen): Weg des aufgesetzten Fußes je Sekunde am Boden.
+# Nebenbei: größte Vorneigung der Körperschicht.
+var neig_max := 0.0
+func fussrutschen(a: Actor, dauer: float) -> Vector2:
+	var ids := ["foot.l", "toes.l", "foot.r", "toes.r"].map(func(n): return a.skel.find_bone(n))
+	var takt := a.ap.callback_mode_process
+	a.ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+	var proben := []
+	var t := 0.0
+	neig_max = 0.0
+	while t < dauer:
+		await get_tree().physics_frame
+		t += get_physics_process_delta_time()
+		neig_max = maxf(neig_max, a.koerper.neig.x if a.koerper else 0.0)
+		var gt := a.skel.global_transform
+		var tief := Vector3(0, INF, 0)
+		var welcher := -1
+		for i in ids:
+			var p: Vector3 = gt * a.skel.get_bone_global_pose(i).origin
+			if p.y < tief.y:
+				tief = p
+				welcher = i
+		proben.append([tief, a.global_position, welcher])
+	a.ap.callback_mode_process = takt
+	var boden := INF
+	for p in proben:
+		boden = minf(boden, p[0].y)
+	var rutsch := 0.0
+	var am_boden := 0.0
+	for i in range(1, proben.size()):
+		var p: Vector3 = proben[i][0]
+		var q: Vector3 = proben[i - 1][0]
+		if proben[i][2] == proben[i - 1][2] and p.y < boden + 0.04 and q.y < boden + 0.04:
+			rutsch += Vector2(p.x - q.x, p.z - q.z).length()
+			am_boden += t / proben.size()
+	var weg: Vector3 = proben[-1][1] - proben[0][1]
+	return Vector2(rutsch / maxf(am_boden, 0.01), Vector2(weg.x, weg.z).length() / t)
+
+# Gang und Körpersprache der Klasse (4.2): eigenes Profil, Laufen ohne Rutschen, Neigung, eigener Ausweichschritt
+func bewegung(G: Node, h: Hero) -> void:
+	var cls := h.cls
+	var GA: Dictionary = Klassen.GANG[cls]
+	var eigen := true
+	for c in Klassen.GANG:
+		if c != cls and Klassen.GANG[c].ausweich == GA.ausweich:
+			eigen = false
+	check("Gang: eigenes Profil der Klasse (Ausweichen „%s“, Feder %.0f, Trab %.2f)" % [GA.ausweich, GA.feder, GA.trab], h.koerper != null and h.koerper.active and h.G == GA and eigen)
+	var bahn := []
+	for tasten in [[KEY_D], [KEY_S], [KEY_A], [KEY_W], [KEY_S, KEY_D], [KEY_W, KEY_A], [KEY_W, KEY_D], [KEY_S, KEY_A]]:
+		var v := Vector2((1 if tasten.has(KEY_D) else 0) - (1 if tasten.has(KEY_A) else 0), (1 if tasten.has(KEY_S) else 0) - (1 if tasten.has(KEY_W) else 0))
+		var r := (Vector3(1, 0, -1) * v.x + Vector3(1, 0, 1) * v.y).normalized()
+		if G.walkable(h.global_position, h.global_position + r * 16.0) and G.foe_near(h.global_position + r * 8.0, 9.0) == null:
+			bahn = tasten
+			break
+	if bahn.is_empty():
+		print("  (keine freie Bahn für die Laufprobe)")
+		return
+	for k in bahn:
+		taste(k, true)
+	await wait(0.35)
+	var rh: Vector2 = await fussrutschen(h, 1.5)
+	check("Gang: Laufen ohne Fußrutschen (%.2f m/s bei %.2f m/s, %s)" % [rh.x, rh.y, h.cur_anim], rh.y > 4.0 and rh.x < 1.0)
+	check("Gang: der Körper neigt sich in den Lauf (%.2f)" % neig_max, neig_max > 0.04)
+	var p0 := h.global_position
+	var art_ok: bool = h.dodge() and h.ausweich_art == GA.ausweich
+	var mitten_unsichtbar := false
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 420:
+		await get_tree().process_frame
+		mitten_unsichtbar = mitten_unsichtbar or not h.model.visible
+	for k in bahn:
+		taste(k, false)
+	var weg := p0.distance_to(h.global_position)
+	check("Ausweichen „%s“: eigene Art, rund 3 m (mit Lauf %.1f m), danach sichtbar%s" % [GA.ausweich, weg, ", dazwischen verschwunden" if mitten_unsichtbar else ""], art_ok and weg > 2.5 and h.model.visible and h.ausweich_art == "" and (mitten_unsichtbar == (GA.ausweich == "schritt")))
+	if GA.get("schweben", 0.0) > 0.0:
+		await wait(2.5)
+		check("Gang: im Stand schwebt die Figur (%.2f)" % h.koerper.schwebe, h.koerper.schwebe > 0.5)
+	await wait(0.3)
+
 func run() -> void:
 	await wait(1.5)
 	var G := g()
@@ -56,6 +142,8 @@ func run() -> void:
 	check("gelernt: alle fünf Fähigkeiten stehen bereit", h.ORDER.all(func(i): return Spiel.gelernt(i)))
 	Spiel.calc()
 	h.apply_stats(true)
+	G.auto_low_done = true
+	await bewegung(G, h)
 	# Standardangriff
 	var target := near_group(G)
 	# auf einen Fleck mit freier Schusslinie (die Karte ist jedes Mal anders)
@@ -136,6 +224,25 @@ func run() -> void:
 					h.cast(id)
 					await wait(1.6)
 				check("%s trifft (%.0f Schaden)" % [name, harm(G) - before], harm(G) > before)
+	# 3D-Physik (4.2): ein Besiegter fällt als Gliederpuppe und liegt danach still
+	var opfer: Foe = null
+	for f in G.foes:
+		if f.kind != "boss" and f.kind != "objekt" and f.elite == "" and f.state != Foe.St.DEAD and f.skel != null and f.proc == null and f.skel.find_bone("upperleg.l") >= 0:
+			opfer = f
+			break
+	if opfer:
+		var tief: bool = G.low_gfx
+		G.low_gfx = false
+		var voll := Physik.faelle >= Physik.FALL_MAX   # Fähigkeiten haben gerade viele umgeworfen: dann gilt die Todesbewegung
+		opfer.hit(opfer.hp + 1.0, h.global_position, 8.0)
+		await wait(0.3)
+		print("  (Opfer: %s, Zustand %d, Puppen %d)" % [opfer.kind, opfer.state, Physik.faelle])
+		check("Physik: der Besiegte fällt als Gliederpuppe%s" % (" (alle Plätze belegt: Todesbewegung)" if voll else ""), opfer.skel.get_node_or_null("Fall") != null or voll)
+		if voll:
+			opfer.ap.active = false   # falls nicht gefallen, scheitert auch die nächste Prüfung
+		await wait(Physik.FALL_DAUER + 0.3)
+		check("Physik: danach liegt er still, die Körper sind fort (%d laufen noch)" % Physik.faelle, opfer.skel.get_node_or_null("Fall") == null and Physik.faelle <= Physik.FALL_MAX and not opfer.ap.active)
+		G.low_gfx = tief
 	# Fähigkeitenbaum (seit 3.3 ein Baum: lernbar nur neben Gelerntem)
 	Spiel.tree = {"r": {}, "a": {}, "p": {}, "key": false}
 	var s1: String = h.ORDER[0]
