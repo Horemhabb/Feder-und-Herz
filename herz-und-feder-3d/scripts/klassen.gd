@@ -40,6 +40,9 @@ const CLS := {
 # Körperschicht (koerper.gd): vor/traeg/kurve Neigung in Lauf, Bremsen und Kurve; feder/daempf die Masse dahinter
 # (weich und wenig gedämpft = schwer, schwingt nach); brust/kopf/arme Haltung in Bogenmaß; atem; blick: wie weit Kopf
 # und Brust dem Ziel folgen; schweben: hebt im Stand ab; treffer: wie stark ein Schlag den Oberkörper wegdrückt.
+# schlag: Takt des Standardangriffs je Bewegung (atk_a, atk_b, atk_c): [Abspieltempo, Zeitpunkt des Treffers als Anteil der Bewegung
+# (gemessen am schnellsten Moment der Hand), Anteil der Bewegung, in dem die Figur gesperrt ist (0 = wie bisher),
+# Schadensfaktor]. Fehlt der Eintrag, gelten die alten Werte in hero.gd › attack.
 # ruhe: Bewegung im Stand ohne Gegner in der Nähe (im Kampf gilt anim.idle); ausweich: Art des Ausweichschritts.
 # anim: Ersatz für Bewegungsnamen aus „anim“, sofern das Modell sie hat (nachgelieferte Bewegungen, bewegungen.gd);
 # im Bild verglichen: Kampfhaltung von Eidträger, Priester und Sternleserin und die Rolle des Eidträgers sind besser als
@@ -48,19 +51,25 @@ const GANG := {
 	"ermittler": {"beschl": 34.0, "brems": 42.0, "wende": 11.0, "trab": 0.42, "trab_dauer": 0.76, "takt": 0.85,
 		"vor": 0.22, "traeg": 0.016, "kurve": 0.014, "feder": 55.0, "daempf": 8.0,
 		"brust": 0.10, "kopf": 0.02, "arme": 0.10, "atem": 0.018, "blick": 0.7, "treffer": 0.7,
-		"ruhe": "Idle", "ausweich": "rolle", "anim": {"idle": "eidtraeger/Kampfhaltung", "rolle": "eidtraeger/Ausweichrolle"}},
+		"ruhe": "Idle", "ausweich": "rolle", "anim": {"idle": "eidtraeger/Kampfhaltung", "rolle": "eidtraeger/Ausweichrolle",
+			"atk_a": "eidtraeger/Hieb_A", "atk_b": "eidtraeger/Hieb_B", "atk_c": "eidtraeger/Hieb_C"},
+		"schlag": {"atk_a": [1.0, 0.55, 0.6, 1.0], "atk_b": [1.0, 0.52, 0.6, 1.1], "atk_c": [2.2, 0.34, 0.6, 1.4]}},
 	"moench": {"beschl": 90.0, "brems": 110.0, "wende": 20.0, "trab": 0.55, "trab_dauer": 0.64, "takt": 0.9,
 		"vor": 0.16, "traeg": 0.006, "kurve": 0.010, "feder": 220.0, "daempf": 28.0,
 		"brust": -0.03, "kopf": -0.03, "arme": 0.02, "atem": 0.022, "blick": 1.0, "treffer": 1.1,
-		"ruhe": "Idle", "ausweich": "wind", "anim": {"idle": "priester/Kampfhaltung"}},
+		"ruhe": "Idle", "ausweich": "wind", "anim": {"idle": "priester/Kampfhaltung",
+			"atk_a": "priester/Gerade", "atk_b": "priester/Kreuzschlag", "atk_c": "priester/Vorstoss"},
+		"schlag": {"atk_a": [1.6, 0.2, 0.6, 1.0], "atk_b": [1.6, 0.22, 0.6, 1.0], "atk_c": [2.4, 0.25, 0.7, 1.9]}},
 	"jaegerin": {"beschl": 70.0, "brems": 75.0, "wende": 16.0, "trab": 0.56, "trab_dauer": 0.66, "takt": 0.9,
 		"vor": 0.26, "traeg": 0.010, "kurve": 0.016, "feder": 130.0, "daempf": 14.0,
 		"brust": 0.14, "kopf": -0.08, "arme": -0.02, "atem": 0.015, "blick": 1.1, "treffer": 1.0,
-		"ruhe": "Idle", "ausweich": "satz", "anim": {}},
+		"ruhe": "Idle", "ausweich": "satz", "anim": {"atk_a": "jaegerin/Schuss", "atk_b": "jaegerin/Schuss"},
+		"schlag": {"atk_a": [1.38, 0.4, 0.0, 1.0]}},
 	"forensiker": {"beschl": 40.0, "brems": 34.0, "wende": 11.0, "trab": 0.4, "trab_dauer": 0.74, "takt": 0.8,
 		"vor": 0.08, "traeg": 0.012, "kurve": 0.02, "feder": 40.0, "daempf": 11.0,
 		"brust": -0.02, "kopf": 0.05, "arme": -0.04, "atem": 0.014, "blick": 0.9, "schweben": 1.0, "treffer": 1.2,
-		"ruhe": "Idle", "ausweich": "schritt", "anim": {"idle": "sternleserin/Kampfhaltung"}},
+		"ruhe": "Idle", "ausweich": "schritt", "anim": {"idle": "sternleserin/Kampfhaltung", "atk_a": "sternleserin/Zauber", "atk_b": "sternleserin/Zauber"},
+		"schlag": {"atk_a": [1.1, 0.4, 0.0, 1.0]}},
 }
 
 # alles, was ein Modell sonst noch in den Händen hält: wird versteckt, sofern es nicht in „keep“ steht
