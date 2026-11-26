@@ -2,6 +2,7 @@
 # Einbauen (Fassung 5.2.0): bringt die ausgewaehlten Bilder aus ComfyUI ins Spiel.
 # Symbole: zuschneiden, Rahmen wie tools/symbole/wand/magie.py (abgerundete Tafel, duenne Goldlinie, Schein in der Klassenfarbe),
 # 256 x 256 als WebP nach herz-und-feder-3d/ui/symbole/. Portraets: auf 717 x 960 zuschneiden, WebP nach ui/portraits/.
+# Hueter: auf 560 x 720 zuschneiden, WebP nach ui/hueter/. Akttafeln: 1280 x 720, WebP nach ui/akte/.
 # Die Auswahl steht in bildwerk_plan.json unter "einbau". Ablage: C:\CF neben bildwerk.bat und bildwerk_plan.json.
 #
 # Aufruf:  einbauen.bat            Symbole und Portraets aus der Auswahl einbauen
@@ -9,6 +10,9 @@
 #          einbauen.bat portraets  nur die Portraets
 #          einbauen.bat texturen t09_sand   nur diese Textur (Namen hinter "texturen")
 #          einbauen.bat texturen   nur die Texturen (Helligkeit ausgleichen, Naht glaetten, Normalenkarte, nach textures/)
+#          einbauen.bat hueter     nur die Hueterbilder (Auftritt im Kampf und Bildmarke in der Hueter-Leiste)
+#          einbauen.bat akttafeln  nur die Bilder hinter den Akttafeln
+# Hueter und Akttafeln gehoeren nicht zum Aufruf ohne Namen, der bleibt wie bisher.
 #
 # Das Skript sucht dein Repo (Ordner mit herz-und-feder-3d\project.godot) und merkt sich den Ort in bildwerk_ort.txt.
 # Findet es keins, landen die Dateien nur in ComfyUI\output\bildwerk\fuers_spiel\ (zum Hochladen von Hand).
@@ -150,6 +154,37 @@ def portraet(pfad, zoom=0.66, oben=0.03):
     y0 = min(int(h * oben), h - ch)
     return im.crop((x0, y0, x0 + cw, y0 + ch)).resize((717, 960), Image.LANCZOS)
 
+
+def hueterbild(pfad, zoom=0.94, oben=0.02):
+    """Auf 560 x 720 zuschneiden (dasselbe Seitenverhaeltnis wie die Quelle 896 x 1152). Der Hueter erscheint im Spiel gross als
+    Hochformat und klein (56 x 72) in der Leiste. Darum nur wenig enger als das ganze Bild, waagrecht mittig, oben ein schmaler Rand weg:
+    zoom = Anteil der Bildbreite, der bleibt, oben = Abstand vom oberen Rand als Anteil der Bildhoehe."""
+    im = Image.open(pfad).convert("RGB")
+    w, h = im.size
+    ziel = 560 / 720
+    cw = int(w * zoom)
+    ch = int(cw / ziel)
+    if ch > h:
+        ch = h
+        cw = int(ch * ziel)
+    x0 = (w - cw) // 2
+    y0 = max(0, min(int(h * oben), h - ch))
+    return im.crop((x0, y0, x0 + cw, y0 + ch)).resize((560, 720), Image.LANCZOS)
+
+
+def akttafel(pfad):
+    """Auf 1280 x 720 bringen: zuerst mittig aufs Seitenverhaeltnis 16 zu 9 zuschneiden, dann skalieren (die Quelle hat meist schon diese Groesse)."""
+    im = Image.open(pfad).convert("RGB")
+    w, h = im.size
+    ziel = 1280 / 720
+    if w / h > ziel:
+        cw, ch = int(h * ziel), h
+    else:
+        cw, ch = w, int(w / ziel)
+    x0, y0 = (w - cw) // 2, (h - ch) // 2
+    im = im.crop((x0, y0, x0 + cw, y0 + ch))
+    return im if im.size == (1280, 720) else im.resize((1280, 720), Image.LANCZOS)
+
 # ---------------------------------------------------------------- Texturen (wie tools/texturen.py)
 
 NAHT = 3   # Pixel beiderseits der Kachelnaht, die ueberblendet werden (bei 1024 Pixeln)
@@ -286,8 +321,9 @@ def main():
         return
     was = sys.argv[1:] or ["symbole", "portraets", "texturen"]
     # Namen hinter "texturen" (z. B. "texturen t09_sand") bauen nur diese Texturen und lassen die anderen unberührt
-    nur_texturen = [w for w in was if w not in ("symbole", "portraets", "texturen")]
-    was = [w for w in was if w in ("symbole", "portraets", "texturen")]
+    arten = ("symbole", "portraets", "texturen", "hueter", "akttafeln")
+    nur_texturen = [w for w in was if w not in arten]
+    was = [w for w in was if w in arten]
     einbau = plan.get("einbau", {})
     repo = finde_repo()
     print("Repo:", repo or "keins (nur Ordner fuers_spiel)")
@@ -343,6 +379,32 @@ def main():
             n += 1
         if n:
             print("%d Texturen eingebaut." % n)
+        gesamt += n
+
+    if "hueter" in was:
+        n = 0
+        hz = einbau.get("hueter_zuschnitt", {})
+        for id_, rel in einbau.get("hueter", {}).items():
+            pfad = quelle(rel)
+            if not pfad:
+                fehlt.append(rel)
+                continue
+            z = hz.get(id_, hz.get("standard", {}))
+            schreibe(hueterbild(pfad, z.get("zoom", 0.94), z.get("oben", 0.02)), "ui/hueter/%s.webp" % id_, repo, sicherung, 85)
+            n += 1
+        print("%d Hueterbilder eingebaut." % n)
+        gesamt += n
+
+    if "akttafeln" in was:
+        n = 0
+        for id_, rel in einbau.get("akttafeln", {}).items():
+            pfad = quelle(rel)
+            if not pfad:
+                fehlt.append(rel)
+                continue
+            schreibe(akttafel(pfad), "ui/akte/%s.webp" % id_, repo, sicherung, 82)
+            n += 1
+        print("%d Akttafeln eingebaut." % n)
         gesamt += n
 
     if fehlt:
