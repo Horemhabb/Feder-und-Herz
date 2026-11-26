@@ -385,7 +385,8 @@ func koenig() -> void:
 	check("Phase 2 bei 60 %%: Grabwache und eine vierte Kartusche (%d)" % B.kampf.objekte.size(), B.kampf.phase == 2 and B.kampf.objekte.filter(func(o): return o.rolle == "kartusche").size() == 4)
 	B.kampf.fenster_t = 0.05
 	await wait(1.8)
-	check("das Fenster schließt sich: er schlägt den Namen wieder aus (Schild, %d Kartuschen dunkel)" % lebende(G, "kartusche").size(), B.kampf.schild and lebende(G, "kartusche").size() == 4)
+	# mindestens drei: Der Testheld schlägt weiter um sich und kann eine gelöschte Kartusche gleich wieder entzünden
+	check("das Fenster schließt sich: er schlägt den Namen wieder aus (Schild, %d Kartuschen dunkel)" % lebende(G, "kartusche").size(), B.kampf.schild and lebende(G, "kartusche").size() >= 3)
 	await heran(G)
 	await shot("koenig_p2")
 	for k in lebende(G, "kartusche"):
@@ -435,7 +436,7 @@ func sammler() -> void:
 	await wait(1.5)
 	check("Phase 2 bei 60 %: das Verzeichnis", B.kampf.phase == 2)
 	var am_meisten := 0
-	for i in 40:
+	for i in 120:   # der Sammler wählt seine Angriffe zufällig: bis die Krüge wieder an der Reihe sind, kann es dauern
 		if lebende(G, "krug").is_empty():
 			B.kampf.cd["kruege"] = 0.0
 		await wait(0.3)

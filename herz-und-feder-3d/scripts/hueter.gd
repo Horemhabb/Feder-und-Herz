@@ -53,7 +53,7 @@ const MUSTER := {
 		"ptexte": ["", "Er schlägt sein Verzeichnis auf. Mehr Krüge steigen aus dem Boden, und sie leeren sich schneller in ihn.",
 			"Er hält einen Krug an die Brust. Es ist sein eigener, und er ist schwer."],
 		"angriffe": [
-			{"id": "kruege", "name": "Die Krüge", "ansage": 1.2, "erholung": 0.8, "cd": 15.0, "ph": [1, 2, 3], "stark": true},
+			{"id": "kruege", "name": "Die Krüge", "ansage": 1.2, "erholung": 0.8, "cd": 15.0, "ph": [1, 2, 3], "stark": true, "vorrang": true},
 			{"id": "waage", "name": "Waagbalken", "ansage": 1.0, "erholung": 1.3, "cd": 7.0, "ph": [1, 2, 3], "stark": true},
 			{"id": "urteil", "name": "Urteil", "ansage": 1.2, "erholung": 0.6, "cd": 6.0, "ph": [1, 2, 3]},
 			{"id": "herzschlag", "name": "Herzschlag", "ansage": 0.7, "erholung": 0.6, "cd": 7.5, "ph": [1, 2, 3]},
@@ -372,7 +372,9 @@ func _waehlen(d: float) -> void:
 	if kand.is_empty():
 		t = 0.3
 		return
-	cur = kand.pick_random()
+	# Vorrang: Das Kennzeichen eines Kampfes (die Krüge des Sammlers) kommt, sobald es bereit ist, nicht erst nach Würfelglück
+	var vor := kand.filter(func(a): return a.get("vorrang", false))
+	cur = vor[0] if not vor.is_empty() else kand.pick_random()
 	cd[cur.id] = float(cur.cd) * tempo * randf_range(0.9, 1.15)
 	zustand = "ansage"
 	t = float(cur.ansage)
@@ -1195,11 +1197,13 @@ func _ansage_kruege(hero: Hero, d: float) -> void:
 	for i in n:
 		var a := basis + TAU * i / float(n)
 		var p := Vector3.INF
-		for weite in [6.5, 5.0, 8.0, 3.5]:
-			for dreh in [0.0, 0.3, -0.3, 0.6, -0.6]:
-				var q: Vector3 = f.global_position + Vector3(sin(a + dreh), 0, cos(a + dreh)) * weite
-				if p == Vector3.INF and g.walkable(f.global_position, q) and not g.astar.is_point_solid(g._sub(q)) and krug_orte.all(func(o): return o.distance_to(q) > 1.8):
-					p = q
+		# um den Sammler herum; steht er in einer Ecke, um die Mitte der Arena oder um den Helden (sonst blieben Krüge aus)
+		for mitte in [f.global_position, g.arena_ort(), hero.global_position]:
+			for weite in [6.5, 5.0, 8.0, 3.5]:
+				for dreh in [0.0, 0.3, -0.3, 0.6, -0.6]:
+					var q: Vector3 = mitte + Vector3(sin(a + dreh), 0, cos(a + dreh)) * weite
+					if p == Vector3.INF and g.walkable(mitte, q) and not g.astar.is_point_solid(g._sub(q)) and krug_orte.all(func(o): return o.distance_to(q) > 1.8):
+						p = q
 		if p == Vector3.INF:
 			continue
 		krug_orte.append(p)
