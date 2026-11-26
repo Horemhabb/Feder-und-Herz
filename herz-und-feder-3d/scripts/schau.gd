@@ -315,7 +315,7 @@ Die Fabrik baut Körper aus einem Bauplan; die Gegnerfabrik nimmt ein fremdes Ne
 	unten.add_child(reihe)
 	reihe.add_child(_knopf("  ‹ Bewegung  ", func(): _zeige(bew - 1)))
 	reihe.add_child(_knopf("  Bewegung ›  ", func(): _zeige(bew + 1)))
-	knoepfe.ziel = _knopf("  Blick: Überblick  ", func(): _ziel((ziel + 1) % 3))
+	knoepfe.ziel = _knopf("  Blick: Überblick  ", func(): _ziel((ziel + 1) % 4))
 	reihe.add_child(knoepfe.ziel)
 	knoepfe.vgl = _knopf("  Held: Eidträger  ", func(): _held((hi + 1) % HELDEN.size()))
 	knoepfe.fnd = _knopf("  Gegner: Herzloser  ", func(): _feind((fi + 1) % FEINDE.size()))
@@ -331,7 +331,7 @@ Die Fabrik baut Körper aus einem Bauplan; die Gegnerfabrik nimmt ein fremdes Ne
 
 func _ziel(z: int) -> void:
 	ziel = z
-	knoepfe.ziel.text = "  Blick: %s  " % ["Überblick", HELDEN[hi][0], FEINDE[fi][0]][z]
+	knoepfe.ziel.text = "  Blick: %s  " % ["Überblick", HELDEN[hi][0], FEINDE[fi][0], "Tiere"][z]
 
 # Eidträger mit oder ohne Nemes-Kopftuch: Modell tauschen, Ort, Blick, Laterne und Bewegung bleiben
 func _tuch(art: String) -> void:
@@ -460,6 +460,9 @@ func _kamera(delta: float, sofort := false) -> void:
 	elif ziel == 2:
 		mitte = feind.position + Vector3(0, 1.3, 0)
 		weit = 5.0
+	elif ziel == 3:
+		mitte = Vector3(0, 0.5, 3.6)
+		weit = 5.5
 	var k := 1.0 if sofort else minf(1.0, delta * 3.0)
 	cam_mitte = cam_mitte.lerp(mitte, k)
 	cam_weit = lerpf(cam_weit, weit, k)
@@ -483,7 +486,40 @@ func _process(delta: float) -> void:
 			pause_t += delta
 			if pause_t > (1.6 if b[0] == "Tod" else 0.7):
 				_zeige(bew)
+	_tiere_tick(delta)
 	_kamera(delta)
+
+# Tiere des Spiels (4.3, tiere.gd): eine Reihe vor den Figuren; jedes zeigt im Wechsel Stehen, Gehen und seine Pose
+const TIERE := [["esel", 0.0], ["schaf", 0.0], ["ziege", 0.0], ["katze", 0.0], ["eidechse", 0.0], ["kaefer", 0.0], ["kugel", 0.045],
+	["schwarzkaefer", 0.0], ["maus", 0.0], ["ibis_steh", 0.0], ["falke_sitz", 0.0], ["falke_flug", 1.4], ["ibis_flug", 1.9], ["fledermaus", 1.5], ["fisch", 0.25]]
+var tiere: Array = []
+
+func _tiere() -> void:
+	var x := -5.6
+	for t in TIERE:
+		var mi := MeshInstance3D.new()
+		mi.mesh = Tiere.netz(t[0])
+		mi.material_override = Tiere.stoff(t[0])
+		mi.extra_cull_margin = 1.0
+		var breit: float = Tiere.netz(t[0]).get_aabb().size.x
+		x += breit * 0.6 + 0.12
+		mi.position = Vector3(x, 0.18 + t[1], 3.6)
+		mi.rotation.y = 0.5
+		var gr := 1.0 if t[0] in ["esel", "schaf", "ziege", "ibis_steh", "ibis_flug", "falke_flug"] else 1.6
+		mi.scale = Vector3.ONE * gr
+		x += breit * 0.6 * gr
+		add_child(mi)
+		tiere.append(mi)
+
+func _tiere_tick(delta: float) -> void:
+	if tiere.is_empty():
+		_tiere()
+	var geht := fmod(t, 8.0) < 4.0
+	for mi: MeshInstance3D in tiere:
+		var fl := mi.position.y > 0.6   # Flieger schlagen mit den Flügeln
+		mi.set_instance_shader_parameter("gang", t * (9.0 if fl else 6.0))
+		mi.set_instance_shader_parameter("tempo", 1.0 if geht else 0.0)
+		mi.set_instance_shader_parameter("pose", Vector4(0, 0, 0.8, 0.1) if fl else (Vector4.ZERO if geht else Vector4(0.6 * sin(t * 0.7), 0.5 * sin(t * 0.9), maxf(0.0, sin(t * 1.3)), 0.5)))
 
 # Prüfbilder für den Bericht: feste Blickwinkel, dann Ende
 func _pruefbilder(ordner: String) -> void:
@@ -495,7 +531,8 @@ func _pruefbilder(ordner: String) -> void:
 		["h_priester", 0, 1, -0.4, 1, 1, ""], ["h_jaegerin", 0, 1, -0.4, 2, 2, ""], ["h_sternleserin", 0, 1, -0.4, 3, 3, ""],
 		["g_ruheloser", 0, 2, 0.5, 0, 1, ""], ["g_krieger", 0, 2, 0.5, 0, 2, ""], ["g_priesterin", 0, 2, 0.5, 0, 3, ""], ["g_koloss", 0, 2, 0.5, 0, 4, ""], ["g_erloschener", 0, 2, 0.5, 0, 5, ""],
 		["g_schakal", 0, 2, 0.5, 0, 6, ""], ["g_schakal_hieb", 3, 2, -0.2, 0, 6, ""], ["schakal", 4, 0, 0.0, 0, 6, ""],
-		["g_apophis", 0, 2, 0.6, 0, 7, ""], ["g_apophis_biss", 3, 2, 1.2, 0, 7, ""], ["apophis", 1, 0, 0.3, 0, 7, ""]]
+		["g_apophis", 0, 2, 0.6, 0, 7, ""], ["g_apophis_biss", 3, 2, 1.2, 0, 7, ""], ["apophis", 1, 0, 0.3, 0, 7, ""],
+		["tiere", 0, 3, 0.0, 0, 0, ""], ["tiere_seite", 0, 3, 0.9, 0, 0, ""]]
 	for f in folge:
 		if f[4] != hi:
 			_held(f[4])

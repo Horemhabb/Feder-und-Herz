@@ -3,8 +3,8 @@ class_name Leben extends Node
 #   Leute    gehen Wege ab, bleiben stehen, setzen sich, sagen beim Vorbeigehen einen Satz. Sie sind unverwundbar und
 #            fliehen, sobald in ihrer Nähe gekämpft wird; danach gehen sie ihrer Wege. Wer sie sind, bleibt offen,
 #            bis die fünfte Stunde es auflöst. Etwa jede fünfte Person hat einen kleinen Auftrag.
-#   Tiere    Skarabäen, Eidechsen, Wüstenmäuse, Falken am Himmel, Fische in den Becken, Esel und Fledermäuse in den
-#            Gräbern. Sie sind aus Grundformen gebaut (je unter 400 Dreiecken), bewegen sich nach Formeln und weichen aus.
+#   Tiere    Skarabäen (manche mit Kugel), Schwarzkäfer, Dornschwanzagamen, Rennmäuse, Falken am Himmel, Ibisse und
+#            Fischschwärme an den Becken, Esel, Fledermäuse in den Gräbern (4.3: tiere.gd, tier.gd, tiere.gdshader).
 #   Pflanzen Papyrus und Lotos an den Becken, Grasbüschel im Freiland, Unkraut in Ruinen; als MultiMesh gezeichnet.
 #   Funde    ab und zu ein typisches Stück aus dem alten Ägypten an einem stillen Ort; aufheben gibt Splitter und Erfahrung.
 # Was weiter als 46 m vom Helden entfernt ist, steht still und wird nicht gezeichnet.
@@ -83,10 +83,14 @@ func bauen() -> void:
 	for i in n_leute:
 		var mit_auftrag := i % 5 == 2 and not auftraege.is_empty()
 		_mensch(_zelle_fern(k.start, 4.0), auftraege.pop_back() if mit_auftrag else {})
-	# Tiere je Landschaft (Skarabäen und Mäuse überall, Eidechsen wo es warm ist, Esel und Falken nur unter freiem Himmel,
-	# Fledermäuse nur, wo ein Dach ist, Fische in jedem Becken)
+	# Tiere je Landschaft (4.3): Skarabäen und Mäuse überall, wo Sand ist; in Gräbern Schwarzkäfer und Fledermäuse;
+	# Eidechsen, wo es warm ist; Falken und Esel nur unter freiem Himmel; Fische und (draußen) ein Ibis an jedem Becken.
 	var art: String = k.kind if drinnen else ""
-	var plan := {"skarabaeus": 6, "maus": 4}
+	var plan := {"maus": 4}
+	if drinnen and art != "ruin":
+		plan["schwarzkaefer"] = 5
+	else:
+		plan["skarabaeus"] = 6
 	if art == "" or art == "ruin" or art == "glass":
 		plan["eidechse"] = 4
 	if not drinnen:
@@ -100,9 +104,15 @@ func bauen() -> void:
 			n = maxi(1, n / 2)
 		for i in n:
 			_tier(a, frei.pick_random())
+	var ibisse := 0
 	for p in k.pools:
-		for i in (2 if wenig else 4):
-			_fisch(Welt.cell_pos(p.p), float(p.r) * Karte.CELL)
+		_becken(Welt.cell_pos(p.p), float(p.r) * Karte.CELL, 3 if wenig else 5, not drinnen and ibisse < 2)
+		ibisse += 1
+	# die Tiere der Aufträge (orte.gd › Deko.such) gehören auch hierher: dann leben sie
+	for s in game.orte.sites:
+		if s.kind == "such" and s.vis.has("tierobj"):
+			tiere.append(s.vis.tierobj)
+	_schatten_bauen()
 	_pflanzen(k, drinnen, wenig)
 	# Fundstücke an stillen Orten: weit vom Eingang, nicht neben einem Rudel
 	var arten := FUNDE.duplicate()
@@ -145,17 +155,29 @@ static func _mitte(c: Vector2i) -> Vector3:
 	return Vector3(c.x * 2 + 1, 0, c.y * 2 + 1)
 
 # ---------------------------------------------------------------- Leute
+# wer mit welcher Bitte kommt, hat eine passende Gestalt (4.3)
+const BITTE_MODELL := {"kamm": "Frau", "kelle": "Mann", "udjat": "Alter", "pinsel": "Mann", "sistrum": "Frau", "samen": "Mann"}
+
 func _mensch(c: Vector2i, auftrag: Dictionary) -> void:
 	var modell: String = ["Mann", "Frau", "Alter", "Mann", "Frau"].pick_random()
+	if not auftrag.is_empty():
+		modell = BITTE_MODELL.get(auftrag.art, modell)
+	var kind := auftrag.is_empty() and randf() < 0.18
+	if kind:
+		modell = ["Mann", "Frau"].pick_random()
 	var n: Node3D = load("res://models/chars/%s.glb" % modell).instantiate()
 	game.add_child(n)
 	n.global_position = _mitte(c) + Vector3(randf_range(-0.5, 0.5), 0, randf_range(-0.5, 0.5))
 	n.rotation.y = randf() * TAU
-	n.scale = Vector3.ONE * randf_range(0.92, 1.04)
+	n.scale = Vector3.ONE * (randf_range(0.92, 1.04) if not kind else randf_range(0.6, 0.68))
 	for w in Klassen.WEAPONS:
 		var wc := n.find_child(w, true, false)
 		if wc:
 			wc.visible = false
+	# Zubehör: was sie tragen, verrät, wer sie sind; Kinder tragen die Jugendlocke
+	var dinge: Array = Leute.NACH_BITTE.get(auftrag.get("art", ""), Leute.ALLTAG.pick_random()) if not kind else ["locke"]
+	Leute.ausstatten(n, dinge)
+	var koerper := Leute.beleben(n, game, {"atem": 0.028 if modell == "Alter" else 0.02, "brust": 0.07 if modell == "Alter" else 0.02})
 	# Tracht leicht abgetönt: nicht jeder trägt dasselbe Leinen
 	for mi in n.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF   # 4.0.1: Schatten der Leute kosteten zu viel
@@ -177,7 +199,9 @@ func _mensch(c: Vector2i, auftrag: Dictionary) -> void:
 	blase.visible = false
 	blase.position = Vector3(0, 2.55, 0)
 	n.add_child(blase)
-	var p := {"n": n, "ap": ap, "zustand": "steht", "warte": randf_range(0.5, 6.0), "weg": PackedVector3Array(), "i": 0,
+	if ap:
+		Bewegungen.ergaenzen(ap, n.find_child("Skeleton3D", true, false), "gemeinsam")
+	var p := {"n": n, "ap": ap, "koerper": koerper, "zustand": "steht", "warte": randf_range(0.5, 6.0), "weg": PackedVector3Array(), "i": 0,
 		"blase": blase, "blase_t": 0.0, "ruhe": randf_range(0.0, 4.0), "auftrag": auftrag, "tempo": GEHEN, "sitzt_gern": randf() < 0.35}
 	if not auftrag.is_empty():
 		# wer etwas verloren hat, wartet an einer Stelle und trägt ein grünes Anch über dem Kopf
@@ -252,6 +276,8 @@ func _leute_tick(d: float, hp: Vector3) -> void:
 		var ap: AnimationPlayer = p.ap
 		if ap:
 			ap.active = nah
+		if p.koerper:
+			p.koerper.active = dist < 18.0
 		if not nah:
 			continue
 		p.ruhe -= d
@@ -316,6 +342,10 @@ func _leute_tick(d: float, hp: Vector3) -> void:
 				b.text = "„%s“" % Worte.zieh("leute_satz")
 			b.visible = true
 			p.blase_t = 4.5
+			# beim Sprechen eine Geste: nicken, die Hände heben
+			if p.zustand in ["steht", "wartet"] and ap and ap.has_animation("gemeinsam/Jubel"):
+				ap.play("gemeinsam/Jubel", 0.25)
+				ap.queue("Idle")
 			p.ruhe = randf_range(16.0, 28.0)
 			ruhig = 2.5
 
@@ -355,9 +385,14 @@ func _angekommen(p: Dictionary) -> void:
 		p.warte = randf_range(10.0, 20.0)
 		_spiele(p, "Sit_Floor_Idle")
 	else:
+		# stehen, oder etwas tun: auflesen, hantieren; selten ein Tanzschritt (es ist die Nacht der Götter)
 		p.zustand = "steht"
 		p.warte = randf_range(3.0, 9.0)
-		_spiele(p, "Idle" if randf() < 0.7 else "Interact")
+		var r := randf()
+		var tat := "Idle" if r < 0.5 else ("Interact" if r < 0.72 else ("PickUp" if r < 0.92 else "gemeinsam/Tanz"))
+		_spiele(p, tat)
+		if tat != "Idle" and p.ap and p.ap.has_animation(tat):
+			p.ap.queue("Idle")
 
 # ---------------------------------------------------------------- Aufträge
 func naechster_auftrag() -> Dictionary:
@@ -570,219 +605,101 @@ static func _ei(st: SurfaceTool, c: Vector3, r: Vector3, seg := 8, ringe := 5) -
 				st.add_vertex(q[0])
 
 # ---------------------------------------------------------------- Tiere
-func _tier_mesh(art: String) -> Array:
-	# gibt [Körper, Flügel (oder null)] zurück, beide einmal gebaut und geteilt
-	var key := "tier_" + art
-	if Deko.cache.has(key):
-		return Deko.cache[key]
-	var st := Deko._begin()
-	var fl: SurfaceTool = null
-	var col := Color.WHITE
-	var rough := 0.8
-	var metal := 0.0
-	match art:
-		"skarabaeus":
-			_ei(st, Vector3(0, 0.05, -0.01), Vector3(0.075, 0.05, 0.1))
-			_ei(st, Vector3(0, 0.045, 0.09), Vector3(0.045, 0.03, 0.035), 6, 4)
-			col = Color(0.08, 0.2, 0.22)
-			rough = 0.3
-			metal = 0.7
-		"maus":
-			_ei(st, Vector3(0, 0.06, 0), Vector3(0.06, 0.055, 0.1))
-			_ei(st, Vector3(0, 0.07, 0.1), Vector3(0.035, 0.035, 0.05), 6, 4)
-			for sx in [-1.0, 1.0]:
-				_ei(st, Vector3(sx * 0.03, 0.11, 0.08), Vector3(0.022, 0.025, 0.008), 6, 3)
-			_ei(st, Vector3(0, 0.03, -0.17), Vector3(0.008, 0.008, 0.09), 4, 3)
-			col = Color(0.72, 0.58, 0.42)
-		"eidechse":
-			_ei(st, Vector3(0, 0.04, 0), Vector3(0.05, 0.03, 0.14))
-			_ei(st, Vector3(0, 0.045, 0.16), Vector3(0.035, 0.025, 0.06), 6, 4)
-			_ei(st, Vector3(0, 0.03, -0.24), Vector3(0.02, 0.015, 0.16), 6, 3)
-			for sx in [-1.0, 1.0]:
-				for sz in [-0.07, 0.08]:
-					_ei(st, Vector3(sx * 0.07, 0.02, sz), Vector3(0.035, 0.012, 0.015), 4, 3)
-			col = Color(0.55, 0.5, 0.3)
-		"falke":
-			_ei(st, Vector3(0, 0, 0), Vector3(0.12, 0.1, 0.3))
-			_ei(st, Vector3(0, 0.04, 0.3), Vector3(0.07, 0.07, 0.08), 6, 4)
-			Deko.box(st, Vector3(0.18, 0.02, 0.2), Vector3(0, -0.01, -0.38))
-			fl = Deko._begin()
-			Deko._quad(fl, Vector3(0, 0, 0.12), Vector3(0.7, 0, 0.0), Vector3(0.75, 0, -0.16), Vector3(0, 0, -0.16))
-			Deko._quad(fl, Vector3(0, 0, -0.16), Vector3(0.75, 0, -0.16), Vector3(0.7, 0, 0.0), Vector3(0, 0, 0.12))
-			col = Color(0.35, 0.26, 0.18)
-		"fledermaus":
-			_ei(st, Vector3(0, 0, 0), Vector3(0.05, 0.05, 0.08), 6, 4)
-			for sx in [-1.0, 1.0]:
-				_ei(st, Vector3(sx * 0.025, 0.05, 0.05), Vector3(0.012, 0.03, 0.01), 4, 3)
-			fl = Deko._begin()
-			Deko._quad(fl, Vector3(0, 0, 0.05), Vector3(0.28, 0, 0.02), Vector3(0.22, 0, -0.07), Vector3(0, 0, -0.04))
-			Deko._quad(fl, Vector3(0, 0, -0.04), Vector3(0.22, 0, -0.07), Vector3(0.28, 0, 0.02), Vector3(0, 0, 0.05))
-			col = Color(0.1, 0.08, 0.09)
-		"fisch":
-			_ei(st, Vector3(0, 0, 0), Vector3(0.05, 0.03, 0.15), 6, 4)
-			Deko._quad(st, Vector3(0, 0, -0.13), Vector3(0, 0.05, -0.22), Vector3(0, -0.05, -0.22), Vector3(0, 0, -0.13))
-			col = Color(0.85, 0.42, 0.15)
-			rough = 0.4
-		"esel":
-			_ei(st, Vector3(0, 0.78, 0), Vector3(0.24, 0.24, 0.48), 10, 6)
-			_ei(st, Vector3(0, 1.0, 0.45), Vector3(0.1, 0.22, 0.12), 8, 5)        # Hals
-			_ei(st, Vector3(0, 1.12, 0.66), Vector3(0.1, 0.1, 0.2), 8, 5)          # Kopf
-			for sx in [-1.0, 1.0]:
-				_ei(st, Vector3(sx * 0.07, 1.33, 0.56), Vector3(0.03, 0.14, 0.04), 6, 4)   # Ohren
-			_ei(st, Vector3(0, 0.82, -0.5), Vector3(0.025, 0.2, 0.025), 4, 3)      # Schwanz
-			for sx in [-1.0, 1.0]:
-				for sz in [-0.3, 0.3]:
-					_ei(st, Vector3(sx * 0.13, 0.3, sz), Vector3(0.05, 0.32, 0.05), 6, 4)
-			col = Color(0.42, 0.37, 0.33)
-	var m := Deko.mat("tierstoff_" + art, col, rough, Color.BLACK, 0.0, metal)
-	var koerper := Deko._commit([[st, m]])
-	var fluegel: ArrayMesh = null
-	if fl:
-		fluegel = Deko._commit([[fl, m]])
-	Deko.cache[key] = [koerper, fluegel]
-	return Deko.cache[key]
-
-func _tier(art: String, c: Vector2i) -> void:
-	var n := Node3D.new()
-	game.add_child(n)
-	var ms := _tier_mesh(art)
-	var body := MeshInstance3D.new()
-	body.mesh = ms[0]
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if art != "esel" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	n.add_child(body)
-	var fluegel := []
-	if ms[1]:
-		for sx in [-1.0, 1.0]:
-			var w := MeshInstance3D.new()
-			w.mesh = ms[1]
-			w.scale = Vector3(sx, 1, 1)
-			w.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			n.add_child(w)
-			fluegel.append(w)
-	var heim := _mitte(c) + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8))
-	n.global_position = heim
-	n.rotation.y = randf() * TAU
-	var e := {"n": n, "art": art, "heim": heim, "ziel": heim, "warte": randf_range(0.5, 4.0), "flieht": 0.0, "v": randf() * TAU,
-		"fluegel": fluegel, "r": randf_range(8.0, 16.0), "h": randf_range(3.0, 4.2)}
-	match art:
-		"falke":
-			e.h = randf_range(14.0, 20.0)
-			e.r = randf_range(10.0, 20.0)
-			n.scale = Vector3.ONE * 1.3
-		"fledermaus":
-			e.r = randf_range(2.0, 4.0)
-		"maus", "eidechse", "skarabaeus":
-			n.scale = Vector3.ONE * 1.45   # sonst sind sie aus der Höhe der Kamera kaum zu sehen
-		"esel":
-			n.scale = Vector3.ONE * 1.1
+# Gestalt in tiere.gd, Verhalten in tier.gd, Bewegung der Glieder in tiere.gdshader (4.3).
+func _tier(art: String, c: Vector2i) -> Tier:
+	var e := Tier.neu(game, art, _mitte(c) + Vector3(randf_range(-0.8, 0.8), 0, randf_range(-0.8, 0.8)))
 	tiere.append(e)
+	return e
 
-func _fisch(c: Vector3, r: float) -> void:
-	var n := Node3D.new()
-	game.add_child(n)
-	var body := MeshInstance3D.new()
-	body.mesh = _tier_mesh("fisch")[0]
-	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	n.add_child(body)
-	n.global_position = c + Vector3(0, 0.1, 0)
-	tiere.append({"n": n, "art": "fisch", "heim": c, "r": randf_range(0.4, maxf(0.5, r - 0.4)), "v": randf() * TAU,
-		"tempo": randf_range(0.4, 0.8) * (1.0 if randf() < 0.5 else -1.0), "sprung": randf_range(6.0, 20.0), "fluegel": []})
+# ein Schwarm Fische in einem Becken; dazu (im Freien) ein Ibis am Ufer
+func _becken(c: Vector3, r: float, n: int, ibis: bool) -> void:
+	var s := {"mitte": c, "r": maxf(0.6, r - 0.3), "ziel": c, "zeit": 0.0, "tempo": 0.45, "scheu": false, "fuehrer": null}
+	for i in n:
+		var e := Tier.neu(game, "fisch", c + Vector3(randf_range(-0.3, 0.3), 0.1, randf_range(-0.3, 0.3)))
+		e.schwarm = s
+		e.versatz = Vector3(randf_range(-0.35, 0.35), randf_range(-0.04, 0.04), randf_range(-0.35, 0.35))
+		if s.fuehrer == null:
+			s.fuehrer = e
+		tiere.append(e)
+	if ibis:
+		for versuch in 12:
+			var w := randf() * TAU
+			var q := c + Vector3(cos(w), 0, sin(w)) * (r + randf_range(0.4, 1.2))
+			q.y = 0.0
+			if not game.astar.is_point_solid(game._sub(q)):
+				var e := Tier.neu(game, "ibis", q)
+				e.schwarm = {"mitte": Vector3(c.x, 0, c.z), "r": r}
+				tiere.append(e)
+				break
 
 func _tiere_tick(d: float, hp: Vector3) -> void:
-	for e in tiere:
-		var n: Node3D = e.n
-		var art: String = e.art
-		var heim: Vector3 = e.heim
-		if art != "falke":
-			var nah := heim.distance_to(hp) < WEIT
-			n.visible = nah
-			if not nah:
-				continue
-		e.v += d
-		match art:
-			"falke":
-				# kreist hoch über der Stunde, mit langen Gleitphasen
-				var a: float = e.v * (6.0 / e.r) * 0.35
-				var mitte := Vector3(hp.x, 0, hp.z).lerp(heim, 0.6)
-				n.global_position = mitte + Vector3(cos(a) * e.r, e.h + sin(e.v * 0.4) * 1.5, sin(a) * e.r)
-				n.rotation = Vector3(0, -a, 0.35)
-				_flattern(e, 0.15 if fmod(e.v, 7.0) < 5.0 else 9.0, 0.35)
-			"fledermaus":
-				# zickzack in Schleifen unter der Decke
-				var a: float = e.v * 2.4
-				var p: Vector3 = heim + Vector3(cos(a) * e.r + sin(e.v * 5.3) * 0.5, e.h + sin(e.v * 3.1) * 0.4, sin(a * 1.3) * e.r)
-				var zu := p - n.global_position
-				n.global_position = p
-				if zu.length() > 0.001:
-					n.rotation.y = atan2(zu.x, zu.z)
-				_flattern(e, 20.0, 0.9)
-			"fisch":
-				var a: float = e.v * e.tempo
-				var p: Vector3 = heim + Vector3(cos(a) * e.r, 0.1, sin(a) * e.r)
-				e.sprung -= d
-				if e.sprung < 0.0:
-					# ab und zu springt einer
-					p.y += sin(clampf(-e.sprung / 0.6, 0.0, 1.0) * PI) * 0.35
-					if e.sprung < -0.6:
-						e.sprung = randf_range(8.0, 24.0)
-				var zu := Vector3(-sin(a), 0, cos(a)) * signf(e.tempo)
-				n.global_position = p
-				n.rotation.y = atan2(zu.x, zu.z)
-			_:
-				_laufen(e, d, hp)
+	var si := 0
+	for e: Tier in tiere:
+		var p := e.n.global_position
+		# nur in der Nähe des Helden: weiter weg steht alles still und wird nicht gezeichnet (Falken immer)
+		var nah := Vector2(p.x - hp.x, p.z - hp.z).length() < 24.0 or e.art == "falke"
+		if not nah:
+			e.n.visible = false
+			if e.kugel:
+				e.kugel.visible = false
+			continue
+		e.tick(d, hp)
+		e.n.visible = e.sichtbar
+		if e.sichtbar and e.schatten > 0.0 and si < _schatten_n:
+			var gr := e.schatten * e.gross
+			var dreh := Basis(Vector3.UP, e.n.rotation.y)
+			var b := dreh.scaled(Vector3(gr * e.schatten_form.x, 1.0, gr * e.schatten_form.y))
+			var q := p + dreh * Vector3(0, 0, e.schatten_versatz * e.gross)
+			q.y = 0.025
+			_schatten.multimesh.set_instance_transform(si, Transform3D(b, q))
+			si += 1
+	if _schatten:
+		_schatten.multimesh.visible_instance_count = si
 
-func _flattern(e: Dictionary, f: float, w: float) -> void:
-	var fl: Array = e.fluegel
-	if fl.size() < 2:
-		return
-	var a := sin(e.v * f) * w
-	fl[0].rotation.z = a
-	fl[1].rotation.z = -a
+# Schattenflecken unter den Tieren (4.3): ein MultiMesh für alle, ein Zeichenaufruf. Ohne sie schweben kleine Tiere
+# aus der Höhe der Kamera über dem Sand.
+var _schatten: MultiMeshInstance3D
+var _schatten_n := 0
 
-# Bodentiere: kurze Wege um ihren Platz, Pausen dazwischen; kommt der Held zu nah, rennen sie davon
-func _laufen(e: Dictionary, d: float, hp: Vector3) -> void:
-	var n: Node3D = e.n
-	var art: String = e.art
-	var pos := n.global_position
-	var scheu := {"skarabaeus": 1.6, "maus": 3.2, "eidechse": 2.8, "esel": 1.8}.get(art, 2.0) as float
-	var tempo := {"skarabaeus": 0.25, "maus": 1.4, "eidechse": 1.8, "esel": 0.7}.get(art, 1.0) as float
-	var nah := pos.distance_to(hp)
-	if nah < scheu and e.flieht <= 0.0:
-		var weg := pos - hp
-		weg.y = 0
-		e.ziel = pos + weg.normalized() * (scheu + 2.5)
-		e.flieht = 1.2
-		e.warte = 0.0
-	e.flieht -= d
-	var schnell: float = tempo * (2.6 if e.flieht > 0.0 else 1.0)
-	if art == "esel":
-		schnell = tempo
-	var zu: Vector3 = e.ziel - pos
-	zu.y = 0
-	if zu.length() < 0.08:
-		e.warte -= d
-		if art == "esel":
-			# grasen: der Kopf geht langsam auf und ab
-			n.rotation.x = sin(e.v * 0.8) * 0.04
-		if e.warte <= 0.0:
-			var w := randf() * TAU
-			var r := randf_range(0.6, 3.0 if art != "skarabaeus" else 1.2)
-			var q: Vector3 = e.heim + Vector3(cos(w), 0, sin(w)) * r
-			if game.astar.is_point_solid(game._sub(q)):
-				q = e.heim
-			e.ziel = q
-			e.warte = randf_range(1.5, 6.0) if art != "esel" else randf_range(6.0, 14.0)
+func _schatten_bauen() -> void:
+	_schatten_n = 0
+	for e: Tier in tiere:
+		if e.schatten > 0.0 or e.art in ["falke", "ibis"]:
+			_schatten_n += 1
+	if _schatten_n == 0:
 		return
-	var neu := pos + zu.normalized() * minf(zu.length(), schnell * d)
-	if game.astar.is_point_solid(game._sub(neu)):
-		e.ziel = e.heim
-		return
-	# Eidechsen huschen in Stößen, Mäuse hüpfen ein wenig, Skarabäen schaukeln
-	if art == "eidechse" and fmod(e.v, 0.9) > 0.55 and e.flieht <= 0.0:
-		return
-	n.global_position = neu
-	n.rotation.y = lerp_angle(n.rotation.y, atan2(zu.x, zu.z), 1.0 - exp(-d * 10.0))
-	n.position.y = absf(sin(e.v * 14.0)) * 0.025 if art == "maus" else 0.0
+	var q := QuadMesh.new()
+	q.size = Vector2(2, 2)
+	q.orientation = PlaneMesh.FACE_Y
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.04, 0.03, 0.02, 0.72)
+	m.albedo_texture = _fleck_tex()
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	q.material = m
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = q
+	mm.instance_count = _schatten_n
+	mm.visible_instance_count = 0
+	_schatten = MultiMeshInstance3D.new()
+	_schatten.multimesh = mm
+	_schatten.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_schatten.custom_aabb = AABB(Vector3(-500, -1, -500), Vector3(1000, 4, 1000))
+	game.add_child(_schatten)
+
+static var _fleck: ImageTexture
+static func _fleck_tex() -> ImageTexture:
+	if _fleck:
+		return _fleck
+	var im := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	for y in 32:
+		for x in 32:
+			var r := Vector2(x - 15.5, y - 15.5).length() / 15.5
+			im.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - r, 0.0, 1.0) ** 1.6))
+	_fleck = ImageTexture.create_from_image(im)
+	return _fleck
 
 # ---------------------------------------------------------------- Pflanzen
 func _pflanzen(k: Karte, drinnen: bool, wenig: bool) -> void:
