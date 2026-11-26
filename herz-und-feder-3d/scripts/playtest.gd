@@ -526,7 +526,7 @@ func run() -> void:
 	G.cam_pos = h.global_position
 	G.wake_pack(killer.pack)
 	var t0 := Time.get_ticks_msec()
-	while not h.dead and Time.get_ticks_msec() - t0 < 25000:
+	while not h.dead and Time.get_ticks_msec() - t0 < 70000:   # auf dem Bau-Server läuft das Spiel langsamer als die Uhr: großzügig
 		h.inv = 0.0
 		h.hp = minf(h.hp, 3.0)   # ein Stufenaufstieg durch den Auto-Angriff heilt sonst
 		await wait(0.2)
