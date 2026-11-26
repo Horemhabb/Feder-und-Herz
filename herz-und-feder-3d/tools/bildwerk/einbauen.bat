@@ -7,6 +7,7 @@
 # Aufruf:  einbauen.bat            Symbole und Portraets aus der Auswahl einbauen
 #          einbauen.bat symbole    nur die Symbole
 #          einbauen.bat portraets  nur die Portraets
+#          einbauen.bat texturen t09_sand   nur diese Textur (Namen hinter "texturen")
 #          einbauen.bat texturen   nur die Texturen (Helligkeit ausgleichen, Naht glaetten, Normalenkarte, nach textures/)
 #
 # Das Skript sucht dein Repo (Ordner mit herz-und-feder-3d\project.godot) und merkt sich den Ort in bildwerk_ort.txt.
@@ -284,6 +285,9 @@ def main():
         print("ACHTUNG: Skript und Plan passen nicht zusammen. Beide Dateien neu von GitHub laden.")
         return
     was = sys.argv[1:] or ["symbole", "portraets", "texturen"]
+    # Namen hinter "texturen" (z. B. "texturen t09_sand") bauen nur diese Texturen und lassen die anderen unberührt
+    nur_texturen = [w for w in was if w not in ("symbole", "portraets", "texturen")]
+    was = [w for w in was if w in ("symbole", "portraets", "texturen")]
     einbau = plan.get("einbau", {})
     repo = finde_repo()
     print("Repo:", repo or "keins (nur Ordner fuers_spiel)")
@@ -325,6 +329,8 @@ def main():
         n = 0
         ohne = set(einbau.get("texturen_ohne_relief", []))
         for name, rel in einbau.get("texturen", {}).items():
+            if nur_texturen and name not in nur_texturen:
+                continue
             pfad = quelle(rel)
             if not pfad:
                 fehlt.append(rel)
