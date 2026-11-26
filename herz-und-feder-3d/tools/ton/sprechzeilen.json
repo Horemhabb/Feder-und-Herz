@@ -1,0 +1,967 @@
+{
+ "hinweis": "Sprechzeilen der Neufassung (4.3) für ElevenLabs. Klangname = Dateiname unter audio/ (.ogg). Ohne Datei läuft der Text als Untertitel. Erzähler wie bisher (Samuel Storm). Zeilen in Anführungszeichen sind Figurenrede: die Anführungszeichen nicht sprechen. Neue Epiloge heißen vo_hNN_epi2; die alten vo_hNN_epi spielen für diese Stunden nicht mehr.",
+ "zeichen_prio1": 3244,
+ "zeichen_prio2": 6300,
+ "zeilen": [
+  {
+   "id": "vo_sz_auftakt_01",
+   "sprecher": "erzaehler",
+   "text": "Sandtor, am Rand des Westens. Seit drei Nächten geht die Sonne später auf.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_02",
+   "sprecher": "erzaehler",
+   "text": "Und seit drei Nächten steigen aus den Dächern Lichter, die nicht wiederkommen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_03",
+   "sprecher": "erzaehler",
+   "text": "Im Fieberhaus liegt Nebet. Sie webt Leinen. Ihre Finger sind blau vom Färben, und sie glüht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_04",
+   "sprecher": "erzaehler",
+   "text": "Drei Nächte hast du an ihrem Bett gesessen und das Licht gehalten.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_05",
+   "sprecher": "figur:Der alte Priester",
+   "text": "„Das Fieber bricht im Morgengrauen. Wenn eines kommt.“",
+   "stimmung": "alt, eindringlich, gedämpft",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_06",
+   "sprecher": "figur:Der alte Priester",
+   "text": "„Unten steht die Waage still. Ohne Gewogene zieht niemand die Barke der Sonne.“",
+   "stimmung": "alt, eindringlich, gedämpft",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_07",
+   "sprecher": "figur:Der alte Priester",
+   "text": "„Nimm die Laterne. Geh hinab, solange sie brennt. Und frag nicht, warum gerade du.“",
+   "stimmung": "alt, eindringlich, gedämpft",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_08",
+   "sprecher": "erzaehler",
+   "text": "Zwölf Stunden hat die Nacht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_09",
+   "sprecher": "erzaehler",
+   "text": "Dann kommt der Morgen. Oder er kommt nie wieder.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_10",
+   "sprecher": "erzaehler",
+   "text": "Etwas mit kleinen Flügeln setzt sich auf deine Schulter, als hätte es immer dort gesessen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_auftakt_11",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Ich bin dein Ba. Ich flattere, du gehst. Frag nicht, wer führt.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 1,
+   "wo": "Zwischensequenz auftakt"
+  },
+  {
+   "id": "vo_sz_h01_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Ein Licht, größer als die anderen, dreht sich nach dir um. Es hält ein Ruder, das es nicht hat.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h01_vor"
+  },
+  {
+   "id": "vo_sz_h01_vor_02",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Er führt sie im Kreis. Dich auch, wenn du ihn lässt.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h01_vor"
+  },
+  {
+   "id": "vo_sz_h01_nach_01",
+   "sprecher": "erzaehler",
+   "text": "Mahaf zerfällt zu Licht. Bevor er verlischt, sieht er dich an, lange, wie man einen Fahrgast ansieht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h01_nach"
+  },
+  {
+   "id": "vo_sz_h01_nach_02",
+   "sprecher": "hueter:Mahaf",
+   "text": "„Dich habe ich heute schon übergesetzt.“",
+   "stimmung": "fern, verwundert",
+   "prio": 1,
+   "wo": "Zwischensequenz h01_nach"
+  },
+  {
+   "id": "vo_sz_h01_nach_03",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Er ist verwirrt. Komm weiter.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h01_nach"
+  },
+  {
+   "id": "vo_sz_h02_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Zwischen den Garben richtet sich etwas auf, Haut über Haut, und streift die zwölfte ab.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_vor"
+  },
+  {
+   "id": "vo_sz_h02_vor_02",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Das ist ekelhaft. Ich sag's nur.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_vor"
+  },
+  {
+   "id": "vo_sz_h02_nach_01",
+   "sprecher": "erzaehler",
+   "text": "Unter der letzten Haut liegt nur Sand. Darin ein Abdruck: ein Königsring, der Name herausgekratzt.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_nach"
+  },
+  {
+   "id": "vo_sz_h02_nach_02",
+   "sprecher": "erzaehler",
+   "text": "Am Feldtor kniet ein Mann in der Rüstung eines Generals und prüft das Wachs am Riegel.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_nach"
+  },
+  {
+   "id": "vo_sz_h02_nach_03",
+   "sprecher": "figur:Haremhab",
+   "text": "„Schlampig. Wer tilgt, muss gründlich tilgen, sonst spricht der Rest.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_nach"
+  },
+  {
+   "id": "vo_sz_h02_nach_04",
+   "sprecher": "figur:Haremhab",
+   "text": "„Du jagst ihn auch. Gut. Geh vor. Ich bin hinter dir.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h02_nach"
+  },
+  {
+   "id": "vo_sz_h03_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Auf dem Sarkophag sitzt ein König, ein Schwert aus dem Gold der Tagesbarke über den Knien. Er sieht durch dich hindurch.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h03_vor"
+  },
+  {
+   "id": "vo_sz_h03_vor_02",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Du kennst seinen Namen. Er nicht. Entzünde ihn an den Wänden, dann hört er ihn.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h03_vor"
+  },
+  {
+   "id": "vo_sz_h03_vor_03",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Frag ihn nicht, wie er heißt. Entzünde die Zeichen an den Wänden. Dann hört er es.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h03_vor"
+  },
+  {
+   "id": "vo_sz_h03_nach_01",
+   "sprecher": "erzaehler",
+   "text": "Der König sinkt zurück in seinen Sarkophag. Neben ihm, wo die Beigaben liegen sollten, steht ein Krug.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz h03_nach"
+  },
+  {
+   "id": "vo_sz_h03_nach_02",
+   "sprecher": "erzaehler",
+   "text": "Leer. Versiegelt. Noch warm. Um den Hals ein Faden, blau gefärbt.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz h03_nach"
+  },
+  {
+   "id": "vo_sz_h03_nach_03",
+   "sprecher": "erzaehler",
+   "text": "Auf dem Siegel steht ein Name, den du kennst.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz h03_nach"
+  },
+  {
+   "id": "vo_sz_h03_nach_04",
+   "sprecher": "erzaehler",
+   "text": "Nebet.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz h03_nach"
+  },
+  {
+   "id": "vo_sz_h03_nach_05",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Das ist nur ein Krug. Das heißt gar nichts. Komm.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 1,
+   "wo": "Zwischensequenz h03_nach"
+  },
+  {
+   "id": "vo_sz_h04_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Der Türhüter hebt den Kopf. Er hat keinen Mund. Trotzdem hörst du die Frage.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h04_vor"
+  },
+  {
+   "id": "vo_sz_h04_vor_02",
+   "sprecher": "hueter:Der Stumme Türhüter",
+   "text": "Wie heißt du?",
+   "stimmung": "tonlos, hallend, ohne Mund",
+   "prio": 1,
+   "wo": "Zwischensequenz h04_vor"
+  },
+  {
+   "id": "vo_sz_h04_vor_03",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Sag es nicht. Kämpf einfach. Bitte.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h04_vor"
+  },
+  {
+   "id": "vo_sz_akt1_01",
+   "sprecher": "erzaehler",
+   "text": "Der Türhüter liegt in den Scherben seines Tores. Er fragt noch immer.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_02",
+   "sprecher": "hueter:Der Stumme Türhüter",
+   "text": "Wie heißt du?",
+   "stimmung": "tonlos, hallend, ohne Mund",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_03",
+   "sprecher": "erzaehler",
+   "text": "Du sagst deinen Namen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_04",
+   "sprecher": "erzaehler",
+   "text": "Er fährt mit dem Finger die Liste des Westens hinab, bis ganz nach unten, wo die Tinte noch feucht ist. Rot.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_05",
+   "sprecher": "erzaehler",
+   "text": "Er nickt. Hinter ihm öffnet sich das Tor. Es öffnet sich nur für Tote.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_06",
+   "sprecher": "erzaehler",
+   "text": "Du erinnerst dich.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_07",
+   "sprecher": "erzaehler",
+   "text": "Das Fieberhaus. Ihr Bett. Deine Hände um die Lampe, und wie sie kalt werden, ganz ruhig, noch vor Mitternacht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_08",
+   "sprecher": "erzaehler",
+   "text": "Nebet hat geschrien. Du hast es nicht mehr gehört.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_09",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Ich wollte es dir sagen.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_10",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Ich wollte nur nicht, dass du stehen bleibst.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_11",
+   "sprecher": "hueter:Der Sammler (aus der Tiefe)",
+   "text": "„Komm herunter. Ich habe einen Krug für dich gemacht.“",
+   "stimmung": "flüsternd, freundlich, unheimlich",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_akt1_12",
+   "sprecher": "hueter:Der Sammler (aus der Tiefe)",
+   "text": "„Und einen für sie.“",
+   "stimmung": "flüsternd, freundlich, unheimlich",
+   "prio": 1,
+   "wo": "Zwischensequenz akt1"
+  },
+  {
+   "id": "vo_sz_h05_vor_01",
+   "sprecher": "hueter:Der Sammler",
+   "text": "„Ein Stern sieht wieder nach Norden. Das warst du. Und doch bist du hier.“",
+   "stimmung": "sanft, müde, überzeugt",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_vor"
+  },
+  {
+   "id": "vo_sz_h05_vor_02",
+   "sprecher": "hueter:Der Sammler",
+   "text": "„Zwei Herzen in deiner Laterne, und eines gestohlen. Siehst du? Wir sind uns ähnlich.“",
+   "stimmung": "sanft, müde, überzeugt",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_vor"
+  },
+  {
+   "id": "vo_sz_h05_vor_03",
+   "sprecher": "hueter:Der Sammler",
+   "text": "„Leg die Laterne in den Krug. Dann ist Sandtor vollständig, und keiner von euch wird je gefressen. Auch sie nicht.“",
+   "stimmung": "sanft, müde, überzeugt",
+   "prio": 1,
+   "wo": "Zwischensequenz h05_vor"
+  },
+  {
+   "id": "vo_sz_h05_vor_04",
+   "sprecher": "figur:Nebet (als Ba)",
+   "text": "„Hör nicht auf ihn.“",
+   "stimmung": "frech, leicht, später ängstlich",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_vor"
+  },
+  {
+   "id": "vo_sz_h05_vor_05",
+   "sprecher": "erzaehler",
+   "text": "Um ihn herum steigen Krüge aus dem Boden, und in jedem schlägt es.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_vor"
+  },
+  {
+   "id": "vo_sz_h05_nach_01",
+   "sprecher": "erzaehler",
+   "text": "Die Krüge zerspringen, einer nach dem anderen. Tausend Herzen fliegen heim, und irgendwo oben bewegt sich eine Waage.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_nach"
+  },
+  {
+   "id": "vo_sz_h05_nach_02",
+   "sprecher": "erzaehler",
+   "text": "An der Wand, wo der Schatten des Richters sein müsste, ist nichts.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_nach"
+  },
+  {
+   "id": "vo_sz_h05_nach_03",
+   "sprecher": "figur:Haremhab",
+   "text": "„Er ist nicht tot. Ein Mann ohne Schatten. Den finde ich.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h05_nach"
+  },
+  {
+   "id": "vo_sz_mitte_01",
+   "sprecher": "erzaehler",
+   "text": "Isis sieht nicht dich an. Sie sieht auf deine Schulter.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_02",
+   "sprecher": "figur:Isis",
+   "text": "„Komm her, Kleine. Ich kenne deinen Namen. Ich kenne jeden Namen.“",
+   "stimmung": "warm, wissend, langsam",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_03",
+   "sprecher": "figur:Isis",
+   "text": "„Nebet.“",
+   "stimmung": "warm, wissend, langsam",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_04",
+   "sprecher": "erzaehler",
+   "text": "Der Vogel auf deiner Schulter hat ein Gesicht. Du hast es die ganze Nacht nicht angesehen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_05",
+   "sprecher": "figur:Nebet",
+   "text": "„Ich bin dir nachgeflogen. Aus dem Fieber, als du nicht mehr geatmet hast.“",
+   "stimmung": "leise, ertappt, kindlich",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_06",
+   "sprecher": "figur:Nebet",
+   "text": "„Ich hab gelogen, die ganze Nacht. Hättest du gewusst, dass du tot bist, wärst du stehen geblieben. Und ich wollte leben.“",
+   "stimmung": "leise, ertappt, kindlich",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_07",
+   "sprecher": "figur:Isis",
+   "text": "„Ihr Leib liegt in Sandtor und wird kälter, je länger sie hier ist. Ein Ba, der zu lange fort ist, findet nicht zurück.“",
+   "stimmung": "warm, wissend, langsam",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_mitte_08",
+   "sprecher": "figur:Isis",
+   "text": "„Es ist Mitternacht. Entscheide, bevor die Nacht es für dich tut.“",
+   "stimmung": "warm, wissend, langsam",
+   "prio": 1,
+   "wo": "Zwischensequenz mitte"
+  },
+  {
+   "id": "vo_sz_h06_nach_01",
+   "sprecher": "erzaehler",
+   "text": "Für einen Atemzug sind Re und Osiris eins, und in diesem Licht siehst du bis ans Ende der Nacht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h06_nach"
+  },
+  {
+   "id": "vo_sz_h06_nach_02",
+   "sprecher": "erzaehler",
+   "text": "Das Tor des Ostens. Und davor ein Schatten, mit einem Krug im Arm.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h06_nach"
+  },
+  {
+   "id": "vo_sz_h07_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Eine Windung, dick wie ein Tempel, schiebt sich aus dem Sand. Der Rest liegt darunter und trinkt.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h07_vor"
+  },
+  {
+   "id": "vo_sz_h07_vor_02",
+   "sprecher": "figur:Haremhab",
+   "text": "„Endlich etwas, das man ohne Zweifel töten darf.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h07_vor"
+  },
+  {
+   "id": "vo_sz_h07_nach_01",
+   "sprecher": "figur:Haremhab",
+   "text": "„Ich habe Namen aus Wänden schlagen lassen, als ich König war. Ich weiß, wie man einen Mann auslöscht.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h07_nach"
+  },
+  {
+   "id": "vo_sz_h07_nach_02",
+   "sprecher": "figur:Haremhab",
+   "text": "„Ich hole mir sein Buch. Und dann brennt es.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 2,
+   "wo": "Zwischensequenz h07_nach"
+  },
+  {
+   "id": "vo_sz_h08_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Aus der stummen Gruft steigt etwas, das ruft, ohne einen Laut.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h08_vor"
+  },
+  {
+   "id": "vo_sz_akt2_01",
+   "sprecher": "erzaehler",
+   "text": "In der stummen Gruft sitzt ein Ba ohne Gesicht. Als du die Laterne hebst, dreht er sich zum ersten Mal nach dir um.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_02",
+   "sprecher": "erzaehler",
+   "text": "Er hat dein Gesicht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_03",
+   "sprecher": "erzaehler",
+   "text": "Er öffnet den Mund, und was herauskommt, ist deine Stimme.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_04",
+   "sprecher": "erzaehler",
+   "text": "Er öffnet den Mund. Es kommt nichts.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_05",
+   "sprecher": "erzaehler",
+   "text": "Haremhab ist fort. Im Sand vor der Gruft steht, mit der Schwertspitze geschrieben:",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_06",
+   "sprecher": "figur:Haremhab",
+   "text": "„Vier Stunden. Ich bin vor dir da.“",
+   "stimmung": "hart, knapp, soldatisch",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_07",
+   "sprecher": "erzaehler",
+   "text": "Zwei gehen der Barke voraus. Einer will alle Namen behalten. Einer will sie alle verbrennen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_akt2_08",
+   "sprecher": "erzaehler",
+   "text": "Und in beider Händen ist Nebet.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz akt2"
+  },
+  {
+   "id": "vo_sz_h09_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Ein Licht mit einem Ruderer darin schlägt nach allem, was es ruft. Es war nur eine Nacht fort.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h09_vor"
+  },
+  {
+   "id": "vo_sz_h10_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Am Grund hält sich einer fest, mit beiden Händen, als wäre der Schlamm ein Thron.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h10_vor"
+  },
+  {
+   "id": "vo_sz_h10_vor_02",
+   "sprecher": "erzaehler",
+   "text": "Du kennst ihn. Er hat seinen Namen verkauft, und du hast ihn weiterverkauft.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h10_vor"
+  },
+  {
+   "id": "vo_sz_h10_vor_03",
+   "sprecher": "erzaehler",
+   "text": "Auf seiner Brust klebt ein Siegel, und darauf ist kein Name.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h10_vor"
+  },
+  {
+   "id": "vo_sz_h11_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Aus der Grube kriecht eine, die verurteilt war. Sie hat das Feuer mitgebracht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h11_vor"
+  },
+  {
+   "id": "vo_sz_h12_vor_01",
+   "sprecher": "erzaehler",
+   "text": "Vor dem Tor des Ostens steht der Schatten. Er hat kein Gesicht mehr, nur Hände, und in den Händen einen Krug.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz h12_vor"
+  },
+  {
+   "id": "vo_sz_h12_vor_02",
+   "sprecher": "hueter:Der Schatten des Sammlers",
+   "text": "„Bleib hier und trag die Krüge mit mir. Dann wird sie nie gewogen. Nie.“",
+   "stimmung": "flüsternd, hohl",
+   "prio": 2,
+   "wo": "Zwischensequenz h12_vor"
+  },
+  {
+   "id": "vo_sz_finale_01",
+   "sprecher": "erzaehler",
+   "text": "Die Halle ist still. Zweiundvierzig Plätze, und einer ist leer.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_02",
+   "sprecher": "figur:Thot",
+   "text": "„Leg dein Herz auf die Schale.“",
+   "stimmung": "trocken, gütig, gemessen",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_03",
+   "sprecher": "erzaehler",
+   "text": "Es ist in der Laterne. Es war die ganze Nacht dort.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_06",
+   "sprecher": "erzaehler",
+   "text": "Thot ruft deinen Namen, und du antwortest. Mit deiner eigenen Stimme.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_07",
+   "sprecher": "erzaehler",
+   "text": "Thot ruft deinen Namen. Du öffnest den Mund, und nichts. Da sagt etwas Kleines auf deiner Schulter: „Hier.“",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_08",
+   "sprecher": "erzaehler",
+   "text": "Thot ruft deinen Namen. Du öffnest den Mund, und nichts. Da sagt hinten in der Halle eine Frau aus Sandtor deinen Namen noch einmal, als hätte sie Angst, er sei falsch geschrieben.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_04",
+   "sprecher": "erzaehler",
+   "text": "Du öffnest das Glas und nimmst es heraus. Das Licht geht aus.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_05",
+   "sprecher": "erzaehler",
+   "text": "Es ist dunkel, und du bist noch da.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_09",
+   "sprecher": "erzaehler",
+   "text": "Die Schalen schwanken. Dann stehen sie still, beide gleich hoch.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_10",
+   "sprecher": "figur:Thot",
+   "text": "„Wahr an Stimme.“ Und leiser: „Wie lange du das getragen hast.“",
+   "stimmung": "trocken, gütig, gemessen",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_11",
+   "sprecher": "erzaehler",
+   "text": "Die Schale sinkt. Am Fuß der Waage hebt die Fresserin den Kopf.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_12",
+   "sprecher": "figur:Thot",
+   "text": "Thot legt die Hand auf die Schale. „Noch nicht.“",
+   "stimmung": "trocken, gütig, gemessen",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_13",
+   "sprecher": "erzaehler",
+   "text": "Die Waage findet keine Seite. Thot legt die Binse weg und sieht dich lange an.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_14",
+   "sprecher": "figur:Thot",
+   "text": "„Es fehlt ein Fährmann.“",
+   "stimmung": "trocken, gütig, gemessen",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_17",
+   "sprecher": "erzaehler",
+   "text": "Thot schlägt das Verzeichnis auf und liest, Name um Name, ganz Sandtor. Der Schatten stellt den Krug ab und nimmt eine Laterne.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_18",
+   "sprecher": "erzaehler",
+   "text": "Das Verzeichnis ist Asche. Da tritt Chaemwese aus dem Dunkel und liest von seiner roten Liste, Name um Name, ganz Sandtor. Ein Schreiber vergisst nichts.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_15",
+   "sprecher": "erzaehler",
+   "text": "Thot wendet sich an den Schatten vor dem Tor.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_16",
+   "sprecher": "figur:Thot",
+   "text": "„Du hast nicht bis zum Ende hingesehen. Deine Tochter wurde nicht gefressen. Ich habe ‚Noch nicht‘ geschrieben, und sie ging mit einer Laterne in die nächste Nacht.“",
+   "stimmung": "trocken, gütig, gemessen",
+   "prio": 1,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_19",
+   "sprecher": "erzaehler",
+   "text": "In Sandtor geht die Sonne auf. Im Fieberhaus setzt sich ein Mädchen mit blauen Fingern auf und fragt nach dir.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_20",
+   "sprecher": "figur:Nebet",
+   "text": "„Jetzt muss ich. Ich bin schneller als die Sonne. Wetten?“",
+   "stimmung": "leise, ertappt, kindlich",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_21",
+   "sprecher": "erzaehler",
+   "text": "Sie fliegt mit dem ersten Licht nach Westen, sechs Stunden in einem Atemzug.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_22",
+   "sprecher": "erzaehler",
+   "text": "Im Norden, wo ein Platz am Himmel leer war, geht ein Stern auf, der nie mehr untergeht.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_23",
+   "sprecher": "erzaehler",
+   "text": "In den Feldern von Wernes legt dir Merit eine Sichel in die Hand.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_24",
+   "sprecher": "erzaehler",
+   "text": "Du gehst in die nächste Nacht, mit einer Laterne, die ohne Öl brennt.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_25",
+   "sprecher": "erzaehler",
+   "text": "Am Ufer liegt ein Ruder aus Zedernholz. Du kennst es.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_sz_finale_26",
+   "sprecher": "erzaehler",
+   "text": "Am Ufer liegt ein Ruder aus Treibholz. Das aus Zeder hast du verbrannt. Es wird reichen.",
+   "stimmung": "ruhig, erzählend",
+   "prio": 2,
+   "wo": "Zwischensequenz finale"
+  },
+  {
+   "id": "vo_h01_epi2",
+   "sprecher": "erzaehler",
+   "text": "Mahafs Licht liegt jetzt in deiner Laterne, und es weist nach unten. Was er zuletzt gesagt hat, will dir nicht aus dem Kopf.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 1. Stunde (Pforte), ersetzt vo_h01_epi"
+  },
+  {
+   "id": "vo_h02_epi2",
+   "sprecher": "erzaehler",
+   "text": "Im Sand liegt der Abdruck eines Königsrings, der Name herausgekratzt. Der Ring führt eine Stunde tiefer, zu einem König, der nicht mehr weiß, wie er heißt. Ein General ist schon unterwegs dorthin.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 2. Stunde (Pforte), ersetzt vo_h02_epi"
+  },
+  {
+   "id": "vo_h03_epi2",
+   "sprecher": "erzaehler",
+   "text": "Er hat Namen und Ring verkauft, an einen Richter, der dabei weinte. Im Sarkophag stand, was der Käufer zurückließ: ein Krug, leer und warm. Er liegt jetzt in deiner Tasche. Auf dem Siegel steht Nebet.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 3. Stunde (Pforte), ersetzt vo_h03_epi"
+  },
+  {
+   "id": "vo_h04_epi2",
+   "sprecher": "erzaehler",
+   "text": "Das Tor des Türhüters öffnet sich nur für Tote, und es steht offen. Dahinter führt das Zugseil der Barke in eine Höhle, straff gespannt. Aus der Tiefe schlägt es tausendfach.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 4. Stunde (Pforte), ersetzt vo_h04_epi"
+  },
+  {
+   "id": "vo_h05_epi2",
+   "sprecher": "erzaehler",
+   "text": "Die Krüge zerspringen, einer nach dem anderen, und die Herzen fliegen heim. Die Waage bewegt sich, die Barke hebt sich vom Sand. Aber an der Wand, wo der Richter fiel, ist kein Schatten. Und Nebets Krug ist nicht unter den Scherben.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 5. Stunde (Pforte), ersetzt vo_h05_epi"
+  },
+  {
+   "id": "vo_h06_epi2",
+   "sprecher": "erzaehler",
+   "text": "Der Platz ist wieder frei. Für einen Atemzug sind Re und Osiris eins, und in diesem Licht siehst du bis ans Ende der Nacht: das Tor des Ostens, und davor einen Schatten mit einem Krug im Arm.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 6. Stunde (Pforte), ersetzt vo_h06_epi"
+  },
+  {
+   "id": "vo_h07_epi2",
+   "sprecher": "erzaehler",
+   "text": "Er ist gebunden, nicht tot; er ist nie tot. Das Wasser kommt zurück, und die Barke fährt. Haremhab wischt seine Klinge ab und sieht nach Osten. „Ein Schatten braucht kein Wasser. Er geht zu Fuß, und er ist schneller als wir.“",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 7. Stunde (Pforte), ersetzt vo_h07_epi"
+  },
+  {
+   "id": "vo_h08_epi2",
+   "sprecher": "erzaehler",
+   "text": "Es summt wieder in den Grüften. Im Sand vor der stummen Gruft steht, mit der Schwertspitze geschrieben: „Vier Stunden. Ich bin vor dir da.“ Haremhab ist fort, dem Schatten nach.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 8. Stunde (Pforte), ersetzt vo_h08_epi"
+  },
+  {
+   "id": "vo_h09_epi2",
+   "sprecher": "erzaehler",
+   "text": "Zwölf Ruder tauchen ein, im gleichen Takt. Die Barke macht Fahrt. Am Ufer, weit voraus, geht einer zu Fuß und sieht sich nicht um.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 9. Stunde (Pforte), ersetzt vo_h09_epi"
+  },
+  {
+   "id": "vo_h10_epi2",
+   "sprecher": "erzaehler",
+   "text": "Horus ruft sie beim Namen, und sie kommen ans Ufer, einer nach dem anderen. Nur die Namen aus dem Buch kann er nicht rufen. Und das Buch ist auf dem Weg ins Feuer.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 10. Stunde (Pforte), ersetzt vo_h10_epi"
+  },
+  {
+   "id": "vo_h11_epi2",
+   "sprecher": "erzaehler",
+   "text": "Die Grube schließt sich. Am Rand des Himmels wird es grau. Der Schatten hat das Buch verloren, aber nicht den Krug. Er wartet am Tor des Ostens.",
+   "stimmung": "ruhig, erzählend, mit Haken am Ende",
+   "prio": 2,
+   "wo": "Epilog der 11. Stunde (Pforte), ersetzt vo_h11_epi"
+  }
+ ]
+}

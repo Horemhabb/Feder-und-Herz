@@ -42,11 +42,12 @@ var kartusche_bei_dir := false
 var nl_schleier: MeshInstance3D
 
 # Was die heimgeführten Ba sagen, einer nach dem anderen. Es ergibt ein Bild, aber nie das ganze.
-const BA_WORTE := ["Wir sind nicht verloren. Man hat uns verlegt.",
-	"Wer uns die Namen nahm, hat sie nicht verbrannt. Er hat sie aufgeschrieben.",
-	"Es gibt ein Buch, das keine Waage kennt.",
-	"Frag den Schreiber, warum seine Binse trocken ist.",
-	"Auf der letzten Seite ist noch Platz."]
+# Seit 4.3 Fährten der Neufassung (GESCHICHTE.md): das Verzeichnis, der Vogel auf der Schulter, der eigene Ba, Nebet
+const BA_WORTE := ["Wir sind nicht verloren. Man hat uns aufgeschrieben.",
+	"Er hat unsere Namen nicht verbrannt. Er hat sie in ein Buch geschrieben, das keine Waage kennt.",
+	"Der Vogel auf deiner Schulter hat seinen Namen noch. Frag ihn danach.",
+	"Einer von uns sucht dich. Er hat dein Gesicht.",
+	"Im Buch steht ein Name, der noch atmet."]
 const BA_SILBEN := ["Mer…", "Nebet…", "…hotep", "Sat…", "…mose", "Ta…", "…nefer"]
 
 func _ready() -> void:
@@ -618,8 +619,13 @@ func ba(key: String, text: String) -> void:
 	if ba_done.has(key):
 		return
 	ba_done[key] = true
-	# beim allerersten Mal steht dabei, was ein Ba ist; danach kennt man ihn
-	if Spiel.gesehen("ba_stimme"):
+	# wer flüstert, folgt der Geschichte (4.3): erst „dein Ba“, nach der Mitte Nebet oder Stille, später der eigene Ba
+	var wer := Geschichte.ba_wer()
+	if wer == "" or text == "":
+		return
+	if wer != "Dein Ba":
+		game.hud.whisper("%s flüstert: „%s“" % [wer, text])
+	elif Spiel.gesehen("ba_stimme"):
 		game.hud.whisper("Dein Ba flüstert: „%s“" % text)
 	else:
 		Spiel.merke("ba_stimme")
@@ -904,6 +910,11 @@ func _relic(s: Dictionary, w: Array) -> void:
 func talk() -> void:
 	if npc.is_empty() or game.hero.dead or game.hud.overlay != null:
 		return
+	# Zwischensequenz vor dem ersten Gespräch (4.3: in der sechsten Stunde nennt Isis den Namen des Ba)
+	var vorher := Szenen.vor_gespraech(Spiel.fall)
+	if not talked and Szene.offen(vorher):
+		Szene.spielen(game, vorher, talk)
+		return
 	get_tree().paused = true
 	game.sfx.play("papyrus", 0.08)
 	npc.vis.mark.visible = false
@@ -915,7 +926,7 @@ func talk() -> void:
 	elif talked:
 		_page(["„%s“" % G.auftrag], [])
 	else:
-		var paras := []
+		var paras := Geschichte.echo(Spiel.fall)   # Rückbezug (4.3): was die Figur von deinen früheren Entscheidungen weiß
 		for g in G.gruss:
 			paras.append("„%s“" % g)
 		_page(paras, [])

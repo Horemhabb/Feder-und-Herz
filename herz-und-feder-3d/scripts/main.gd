@@ -180,9 +180,15 @@ func _ready() -> void:
 	else:
 		# zu Beginn eines Aktes (Stunde 1, 5, 9) steht die Tafel der Stunde vor dem Bild des Aktes, wenn es eingebaut ist
 		var akt_start := Stunden.hour_of(Spiel.fall) in [1, 5, 9]
-		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin(),
-			Stunden.akt_bild(Stunden.akt(Spiel.fall)) if akt_start else "")
-		sprich("vo_chapter")
+		var tafel := func():
+			hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin(),
+				Stunden.akt_bild(Stunden.akt(Spiel.fall)) if akt_start else "")
+			sprich("vo_chapter")
+		# vor der ersten Stunde der ersten Nacht: der Auftakt (4.3, Zwischensequenz; einmal je Spielstand)
+		if Spiel.fall == 1:
+			Szene.spielen(self, "auftakt", tafel)
+		else:
+			tafel.call()
 	if autotest == null:
 		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
 			var kt: Node = load("res://scripts/klassentest.gd").new()
@@ -204,6 +210,10 @@ func _ready() -> void:
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
 			get_tree().root.add_child.call_deferred(pt)
+		if "--szenenfotos" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Szenenfotos"):
+			var sf: Node = load("res://scripts/szenenfotos.gd").new()   # Bilder jeder Zwischensequenz (4.3)
+			sf.name = "Szenenfotos"
+			get_tree().root.add_child.call_deferred(sf)
 
 # Erzählerstimme (3.0): Es gibt vier Aufnahmen, und sie klangen in jeder Stunde gleich. Jede spielt jetzt nur noch
 # ein einziges Mal je Figur; danach erzählt allein der Text, der in jeder Stunde ein anderer ist.
@@ -211,7 +221,7 @@ func sprich(name: String) -> void:
 	# seit 3.1 hat jede Stunde ihre eigenen Ansagen (Leitsatz, Satz des Hüters, Epilog); sie spielen einmal je Figur und Stunde
 	var art: String = {"vo_chapter": "lead", "vo_boss": "say", "vo_epi": "epi"}.get(name, "")
 	if art != "":
-		var eigen := "vo_h%02d_%s" % [Stunden.hour_of(Spiel.fall), art]
+		var eigen := Stunden.vo_name(Spiel.fall, art)   # 4.3: neu geschriebene Texte haben neue Aufnahmen (…_epi2)
 		if ResourceLoader.exists("res://audio/%s.ogg" % eigen):
 			var k := "%s_n%d" % [eigen, Stunden.night_of(Spiel.fall)]
 			if not Spiel.gesehen(k):
@@ -1624,6 +1634,7 @@ func on_boss_wake(b: Foe) -> void:
 	sfx.play("boss_appear")
 	sprich("vo_boss")
 	shake = maxf(shake, 0.6)
+	Szene.spielen(self, Szenen.vor(Spiel.fall))   # 4.3: kurzer Moment vor dem Kampf, wo die Geschichte ihn trägt
 
 # Der Stumme Türhüter wechselt die Phase (4.0)
 var dunkel_vorher := []   # Mondlicht und Umgebungslicht vor dem Zerbrechen des Tores
@@ -1747,6 +1758,13 @@ func on_boss_dead() -> void:
 			f.hit(9999.0, boss.global_position)
 	# die Pforte wächst in der Mitte der Bodenplatte, auf der der Hüter fiel (nie in einer Mauer)
 	_build_gate(Welt.cell_pos(karte.lair))
+	# 4.3: nach dem Hüter ein Moment der Geschichte (am Ende eines Aktes die große Sequenz), wenn die Pforte steht
+	var nach := Szenen.nach(Spiel.fall)
+	if Szene.offen(nach):
+		get_tree().create_timer(3.4).timeout.connect(func():
+			if hero.dead:
+				return
+			Szene.spielen(self, nach))
 
 func on_hero_dead() -> void:
 	deaths += 1
@@ -1855,7 +1873,7 @@ func _aktende_lohn() -> void:
 			if wo == "voll":
 				drop_item(hero.global_position, it)
 			hero.apply_stats()])
-	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
+	var rueck := Geschichte.akt1_rueckblick() + [   # 4.3: Rückblick auf die Entscheidungen des Aktes
 		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
 		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
 	# dahinter schon das Bild des zweiten Aktes (die Waage): der Übergang, solange es keinen eigenen Abspann gibt
@@ -1912,6 +1930,10 @@ func _build_gate(pos: Vector3) -> void:
 	gate_ask = not (boss.ist_aktende() and not akt_lohn_genommen and not Spiel.gesehen(_akt_lohn_key()))
 
 func _ask_gate() -> void:
+	# 4.3: am Tor des Ostens zuerst das Ende der Geschichte (Waage, Urteil, Nebet), dann die Pforte
+	if Stunden.hour_of(Spiel.fall) == 12 and Szene.offen("finale"):
+		Szene.spielen(self, "finale", _ask_gate)
+		return
 	get_tree().paused = true
 	sfx.play("ui")
 	sprich("vo_epi")
