@@ -84,7 +84,7 @@ def main():
             if muster in src:
                 F("%s enthaelt einen Linux-Pfad (%s)" % (name, muster))
         for m in re.finditer(r"(?<![\w.])open\(([^\n]*)", src):   # Textdateien unter Windows immer mit encoding="utf-8"
-            if "encoding" not in m.group(1):
+            if "encoding" not in m.group(1) and '"rb"' not in m.group(1) and '"wb"' not in m.group(1):
                 F("%s: open() ohne encoding: %s" % (name, m.group(0)[:70]))
 
     # ---- Stile
@@ -100,6 +100,13 @@ def main():
                 F("Stil %s (neu): der Satz 'nothing written anywhere' fehlt" % sname)
         elif ZIFFERN.search(t):
             H("Stil %s (alt, bewaehrt): Ziffern im Text (Markennamen); neue Stufen sollen ihn nicht verwenden" % sname)
+
+    # ---- Bausteine: jede Ausnahme braucht einen Grund
+    for bn, bs in plan.get("bausteine", {}).items():
+        if bs.get("ausnahme") and not bs.get("grund"):
+            F("Baustein %s: Ausnahme ohne Grund" % bn)
+        if ZIFFERN.search(bs["text"]):
+            F("Baustein %s: Ziffern" % bn)
 
     # ---- Motive
     nach_id = {}
@@ -159,8 +166,15 @@ def main():
         for a in jobs:
             benutzt.add(a["id"])
             m = nach_id[a["id"]]
-            aus = m.get("ausnahme", [])
-            teil = " ".join([m["motiv"], m.get("hinweis", ""), m.get("tex", "")])
+            roh = " ".join([m["motiv"], m.get("hinweis", ""), m.get("tex", "")])
+            # Bausteine ({NEBET}, {LATERNE} ...) einsetzen; ihre bewusst erlaubten Woerter (Feld "ausnahme", mit "grund") gelten mit
+            aus = list(m.get("ausnahme", []))
+            for bn, bs in plan.get("bausteine", {}).items():
+                if "{%s}" % bn in roh:
+                    aus += bs.get("ausnahme", [])
+            teil = bw["bausteine"](plan, roh)
+            if "{" in a["prompt"] or "}" in a["prompt"]:
+                F("Stufe %s, %s: Platzhalter nicht ersetzt (Baustein fehlt?)" % (name, a["id"]))
             if ZIFFERN.search(a["prompt"]) and not (alt or a["stil"] in ALTE_STILE and not ZIFFERN.search(teil)):
                 melde("Stufe %s, %s: Ziffern im Prompt" % (name, a["id"]))
             if ZIFFERN.search(teil):

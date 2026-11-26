@@ -1,5 +1,5 @@
 @python_embeded\python.exe -x "%~f0" %* & pause & exit /b
-# Bildwerk (Fassung 5.3.0): das Masterskript fuer alle Bilder des Spiels mit dem laufenden ComfyUI (Z-Image Turbo).
+# Bildwerk (Fassung 5.4.0): das Masterskript fuer alle Bilder des Spiels mit dem laufenden ComfyUI (Z-Image Turbo).
 # Nachfolger von symbole.bat. Diese Datei ist zugleich Batch- und Python-Skript (die erste Zeile startet Python mit -x).
 # Ablage: im ComfyUI-Ordner (C:\CF), daneben bildwerk_plan.json. Alle Texte (Stile, Motive, Stufen, Seeds) stehen im Plan.
 #
@@ -17,14 +17,14 @@
 # Fuer lange Laeufe: haelt den Rechner wach, ueberspringt fertige Bilder, versucht jedes Bild zweimal, rechnet reihum
 # (erst alle Motive in Variante a, dann b ...), startet ComfyUI (start.bat) nach einem Absturz neu (hoechstens dreimal)
 # und stellt alle Rueckfragen vor dem Start, damit die Nacht nicht an einer Frage haengen bleibt.
-import ctypes, datetime, glob, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.error, urllib.request, uuid, zipfile
+import ctypes, datetime, glob, hashlib, json, os, re, subprocess, sys, time, urllib.error, urllib.request, uuid
 try:
     import numpy as np
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 except Exception:   # ohne numpy oder PIL gibt es nur keine Tafeln; gerechnet wird trotzdem
     np = None
 
-VERSION = "5.3.0"   # muss zur "version" in bildwerk_plan.json passen
+VERSION = "5.4.0"   # muss zur "version" in bildwerk_plan.json passen
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 SERVER = os.environ.get("COMFY_SERVER", "http://127.0.0.1:8188")
 PLAN = os.path.join(ROOT, "bildwerk_plan.json")
@@ -45,7 +45,16 @@ TAKT = float(os.environ.get("SYMBOLE_TAKT", "3"))   # Sekunden zwischen zwei Nac
 KACHEL_KNOTEN = "SeamlessLatentTiling"
 KACHEL_RAND = 128   # Pixel Rand je Seite beim Rechnen (die Erweiterung empfiehlt 128 als Anfang)
 KACHEL_ORDNER = os.path.join(ROOT, "ComfyUI", "custom_nodes", "ComfyUI-seamless_latent_tiling")
-KACHEL_ZIP = "https://github.com/mikemojen/ComfyUI-seamless_latent_tiling/archive/refs/heads/%s.zip"
+# Fest genagelt: genau dieser Stand (Commit vom 10.03.2026, von Claude am 26.11.2026 gelesen: nur torch und math, kein Netz,
+# keine Dateien). Geladen werden die drei Dateien einzeln von diesem Commit und mit ihrer SHA-256 verglichen; weicht eine
+# ab, wird nichts eingerichtet. (Ein ZIP-Archiv von GitHub ist nicht bytegleich garantiert, die Dateien eines Commits sind es.)
+KACHEL_COMMIT = "b4cba00b22817ab0ac48ba0d4af7eb1a325c4602"
+KACHEL_ROH = "https://raw.githubusercontent.com/mikemojen/ComfyUI-seamless_latent_tiling/%s/%s"
+KACHEL_DATEIEN = {
+    "__init__.py": "b25c575e83b1acc204613686fa090a1c24c906d29f037fdd6420af46018c4b4f",
+    "nodes.py": "9990356a5665f1c950711913057f155a35432b04d5e165f54219285f964a9dd8",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+}
 
 logdatei = None
 neustarts = 0
@@ -185,41 +194,39 @@ def rechne(a, vae):
     raise BildFehler("Zeitueberschreitung nach %d s" % TIMEOUT_BILD)
 
 
+def _sha(daten):
+    return hashlib.sha256(daten).hexdigest()
+
+
 def kachel_einrichten():
-    """Die Erweiterung fuer nahtlose Texturen von GitHub laden und nach ComfyUI\\custom_nodes entpacken. Danach ComfyUI neu starten."""
-    if os.path.exists(os.path.join(KACHEL_ORDNER, "__init__.py")):
-        print("Die Erweiterung liegt schon in", KACHEL_ORDNER)
+    """Die Erweiterung fuer nahtlose Texturen in genau dem gelesenen Stand nach ComfyUI\\custom_nodes legen.
+    Freiwillig: alle Naechte laufen auch mit --ohne-kachel. Danach ComfyUI neu starten."""
+    print("Erweiterung 'Seamless Latent Tiling' (fremder Code, Stand %s), Ziel: %s" % (KACHEL_COMMIT[:12], KACHEL_ORDNER))
+    vorhanden_ok = all(os.path.exists(os.path.join(KACHEL_ORDNER, n)) and
+                       _sha(open(os.path.join(KACHEL_ORDNER, n), "rb").read()) == h for n, h in KACHEL_DATEIEN.items())
+    if vorhanden_ok:
+        print("Liegt schon da, Pruefsummen stimmen.")
     else:
-        print("Lade die Erweiterung 'Seamless Latent Tiling' (wenige Kilobyte) von GitHub ...")
-        tmp = tempfile.mkdtemp()
-        datei = os.path.join(tmp, "kachel.zip")
-        for zweig in ("main", "master"):
+        geladen = {}
+        for name, soll in KACHEL_DATEIEN.items():
             try:
-                urllib.request.urlretrieve(KACHEL_ZIP % zweig, datei)
-                break
+                with urllib.request.urlopen(KACHEL_ROH % (KACHEL_COMMIT, name), timeout=60) as r:
+                    daten = r.read()
             except Exception as e:
-                print("  Zweig %s: %s" % (zweig, e))
-        if not os.path.exists(datei):
-            print("Laden ging nicht. Von Hand: die Seite github.com/mikemojen/ComfyUI-seamless_latent_tiling oeffnen, 'Code' > 'Download ZIP',")
-            print("entpacken und den Ordner nach", KACHEL_ORDNER, "legen (darin muss __init__.py liegen).")
-            return
-        with zipfile.ZipFile(datei) as z:
-            z.extractall(tmp)
-        oben = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
-        quelle = None
-        for d in oben:
-            for wurzel, _, dateien in os.walk(d):
-                if "__init__.py" in dateien:
-                    quelle = wurzel
-                    break
-            if quelle:
-                break
-        if not quelle:
-            print("Im Archiv fehlt __init__.py, nichts eingerichtet.")
-            return
-        os.makedirs(os.path.dirname(KACHEL_ORDNER), exist_ok=True)
-        shutil.copytree(quelle, KACHEL_ORDNER)
-        print("Eingerichtet in", KACHEL_ORDNER)
+                print("Laden ging nicht (%s): %s. Nichts eingerichtet; die Naechte laufen auch mit --ohne-kachel." % (name, e))
+                return
+            if _sha(daten) != soll:
+                print("ABBRUCH: %s hat nicht die erwartete Pruefsumme (erwartet %s, bekommen %s). Nichts eingerichtet." % (name, soll[:16], _sha(daten)[:16]))
+                return
+            geladen[name] = daten
+        os.makedirs(KACHEL_ORDNER, exist_ok=True)
+        for alt in glob.glob(os.path.join(KACHEL_ORDNER, "*.py")):   # fremde Reste eines frueheren Standes
+            if os.path.basename(alt) not in KACHEL_DATEIEN:
+                os.rename(alt, alt + ".alt")
+        for name, daten in geladen.items():
+            with open(os.path.join(KACHEL_ORDNER, name), "wb") as f:
+                f.write(daten)
+        print("Eingerichtet, alle drei Pruefsummen stimmen.")
     print("\nJetzt ComfyUI neu starten: das schwarze Fenster von start.bat schliessen, start.bat wieder starten,")
     print("warten bis dort 'To see the GUI' steht. Dann prueft bildwerk.bat beim naechsten Start selbst, ob der Knoten da ist.")
     if server_da():
@@ -249,10 +256,17 @@ def satz(s):
     return s if not s or s[-1] in ".!?" else s + "."
 
 
+def bausteine(plan, text):
+    """{NEBET}, {LATERNE} ... durch die festen Saetze aus plan["bausteine"] ersetzen (gleiche Figur in jedem Bild)."""
+    for name, b in plan.get("bausteine", {}).items():
+        text = text.replace("{%s}" % name, b["text"])
+    return text
+
+
 def baue_prompt(plan, motiv, stil, ansichtsatz, v):
     text = plan["stile"][stil]["text"]
-    for platz, wert in (("{MOTIV}", satz(motiv["motiv"])), ("{HINWEIS}", satz(motiv.get("hinweis", ""))),
-                        ("{ANSICHT}", satz(plan["ansichten"].get(ansichtsatz, {}).get(v, ""))), ("{TEX}", motiv.get("tex", ""))):
+    for platz, wert in (("{MOTIV}", satz(bausteine(plan, motiv["motiv"]))), ("{HINWEIS}", satz(bausteine(plan, motiv.get("hinweis", "")))),
+                        ("{ANSICHT}", satz(plan["ansichten"].get(ansichtsatz, {}).get(v, ""))), ("{TEX}", bausteine(plan, motiv.get("tex", "")))):
         text = text.replace(platz, wert)
     return " ".join(text.split())
 
@@ -723,8 +737,8 @@ def kachel_klaeren(plan, vorbereitet, flags):
     else:
         print("\nDie Stufen %s wollen nahtlos rechnen, aber in ComfyUI fehlt der Knoten %s." % (", ".join(mit), KACHEL_KNOTEN))
         print("  [E] Erweiterung jetzt einrichten und abbrechen (dann ComfyUI neu starten und dieses Skript nochmal starten)")
-        print("  [O] diese Stufen gewoehnlich rechnen (Naht glaettet spaeter einbauen.bat; Perspektive bleibt ein Risiko)")
-        print("  [U] diese Stufen auslassen (Standard)")
+        print("  [O] diese Stufen gewoehnlich rechnen (Standard; Naht glaettet spaeter einbauen.bat, Perspektive bleibt ein Risiko)")
+        print("  [U] diese Stufen auslassen")
         w = input("Wahl: ").strip().lower()
     if w.startswith("e"):
         kachel_einrichten()
@@ -733,7 +747,7 @@ def kachel_klaeren(plan, vorbereitet, flags):
     for n, o, jobs in vorbereitet:
         if n not in mit:
             neu.append((n, o, jobs))
-        elif w.startswith("o"):
+        elif not w.startswith("u"):
             neu.append((n, o, auftraege(plan, n, o, ohne_kachel=True)))
             sag("Stufe '%s' ohne Kacheln (Dateien ohne _k)." % n)
         else:

@@ -1,5 +1,5 @@
 @python_embeded\python.exe -x "%~f0" %* & pause & exit /b
-# Einbauen (Fassung 5.3.0): bringt die ausgewaehlten Bilder aus ComfyUI ins Spiel.
+# Einbauen (Fassung 5.4.0): bringt die ausgewaehlten Bilder aus ComfyUI ins Spiel.
 # Symbole: zuschneiden, Rahmen wie tools/symbole/wand/magie.py (abgerundete Tafel, duenne Goldlinie, Schein in der Klassenfarbe),
 # 256 x 256 als WebP nach herz-und-feder-3d/ui/symbole/. Portraets: auf 717 x 960 zuschneiden, WebP nach ui/portraits/.
 # Hueter: auf 560 x 720 zuschneiden, WebP nach ui/hueter/. Akttafeln: 1280 x 720, WebP nach ui/akte/.
@@ -23,7 +23,7 @@ import glob, json, os, shutil, subprocess, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-VERSION = "5.3.0"
+VERSION = "5.4.0"
 ROOT = os.path.dirname(os.path.abspath(sys.argv[0]))
 PLAN = os.path.join(ROOT, "bildwerk_plan.json")
 OUTPUT = os.path.join(ROOT, "ComfyUI", "output")
@@ -681,9 +681,11 @@ NEUE_ARTEN = {
     "wandbilder": ("wandbilder", "textures/wand/<id>.jpg und _n.jpg", "Wandbilder und Reliefs: 1024 x 768, gedaempft, mit Relief"),
     "tore": ("tore", "textures/tor/<id>.jpg und _n.jpg", "Tore und Tueren: 768 x 1024, gedaempft, mit Relief"),
     "ladebilder": ("ladebilder", "ui/laden/<id>.webp", "Ladebilder je Stunde: 1280 x 720"),
-    "enden": ("enden", "ui/enden/<id>.webp", "Bilder der drei Enden: 1280 x 720"),
     "buchbilder": ("buchbilder", "ui/lexikon/<id>.webp", "Bilder fuers Lexikon im Buch des Thot: 800 x 600"),
     "titel": ("titel", "ui/titel.webp", "Titelbild: 1600 x 905 (ersetzt das jetzige, sofort im Spiel)"),
+    "szenen": ("szenen", "ui/szenen/<name>.webp", "Szenenbilder der Zwischensequenzen: 1280 x 720; Namen unter szenen_add als Lichter-Ebene (RGB auf Schwarz)"),
+    "zier": ("zier", "ui/zier/gemalt/<name>.webp", "Gemalte Flaechen und Ornamente der Oberflaeche (Groessen in zier_groessen)"),
+    "lebewesen": ("lebewesen", "bilder/lebewesen/<name>.webp", "Musterkacheln der Kleintiere: nahtlos, 1024 px; danach Tafel neu rechnen (Claude)"),
 }
 
 
@@ -716,14 +718,59 @@ def baue_neu(art, id_, pfad, einbau):
         n = int(einbau.get("abzieh_groesse", 512))
         _, grund = grundfarbe(np.asarray(Image.open(pfad).convert("RGB")))
         return [(abzieh_bild(pfad, n), "textures/abzieh/%s.webp" % id_, 90)], "Unruhe des Grundes %.2f%s" % (grund, " (hoch: Saeume pruefen)" if grund > 0.05 else "")
-    if art in ("ladebilder", "enden"):
-        ordner = "laden" if art == "ladebilder" else "enden"
-        return [(zuschneiden(Image.open(pfad).convert("RGB"), 1280, 720), "ui/%s/%s.webp" % (ordner, id_), 82)], ""
+    if art == "ladebilder":
+        return [(zuschneiden(Image.open(pfad).convert("RGB"), 1280, 720), "ui/laden/%s.webp" % id_, 82)], ""
+    if art == "szenen":
+        bild = zuschneiden(Image.open(pfad).convert("RGB"), 1280, 720)
+        if id_ in einbau.get("szenen_add", []):
+            a = np.asarray(bild)
+            return [(Image.fromarray(schwarz_putzen(a, 0.05, 0.04)), "ui/szenen/%s.webp" % id_, 88)], "Lichter-Ebene, Rand vorher %.3f" % rand_hell(a)
+        return [(bild, "ui/szenen/%s.webp" % id_, 82)], ""
+    if art == "zier":
+        return zier_bild(id_, pfad, einbau)
+    if art == "lebewesen":
+        roh = np.asarray(Image.open(pfad).convert("RGB").resize((1024, 1024), Image.LANCZOS))
+        bild, _, v, nach = textur(pfad)
+        return [(bild, "bilder/lebewesen/%s.webp" % id_, 90)], "Naht %.2f -> %.2f, Perspektive %.2f" % (v, nach, perspektive(roh))
     if art == "buchbilder":
         return [(zuschneiden(Image.open(pfad).convert("RGB"), 800, 600), "ui/lexikon/%s.webp" % id_, 85)], ""
     if art == "titel":
         return [(zuschneiden(Image.open(pfad).convert("RGB"), 1600, 905), "ui/titel.webp", 85)], ""
     raise ValueError(art)
+
+
+ORNAMENTE = ("fluegelsonne", "udjat", "lotos", "skarabaeus")
+REPO = [None]   # gefundenes Repo, damit zier_bild die Groesse der erzeugten Ornamente lesen kann
+
+
+def zier_bild(name, pfad, einbau):
+    """Gemalte Flaeche oder Ornament fuer ui/zier/gemalt/ (Zier.tex nimmt sie statt der erzeugten, ohne Code).
+    Ornamente: freigestellt aus Grau und in die Groesse der erzeugten Datei gesetzt (Seitenverhaeltnis bleibt).
+    sterne: nahtlos wie eine Textur. Dunkle Gruende: auf hell_ziel gedaempft, damit heller Text lesbar bleibt."""
+    gr = einbau.get("zier_groessen", {})
+    w, h = gr.get(name, [1024, 1024])
+    ziel = "ui/zier/gemalt/%s.webp" % name
+    if name in ORNAMENTE:
+        # Zier zeichnet Ornamente in der Pixelgroesse der Datei: also genau so gross wie die erzeugte Fassung
+        alt = os.path.join(REPO[0], "herz-und-feder-3d", "ui", "zier", name + ".webp") if REPO[0] else ""
+        if alt and os.path.exists(alt):
+            w, h = Image.open(alt).size
+        rgba = alpha_aus_grund(np.asarray(Image.open(pfad).convert("RGB")))
+        ys, xs = np.where(rgba[..., 3] > 10)
+        if len(xs):
+            rgba = rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+        f = min(w * 0.96 / rgba.shape[1], h * 0.96 / rgba.shape[0])
+        klein = rgba_skalieren(np.ascontiguousarray(rgba), (max(1, int(rgba.shape[1] * f)), max(1, int(rgba.shape[0] * f))))
+        bild = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        bild.alpha_composite(Image.fromarray(klein, "RGBA"), ((w - klein.shape[1]) // 2, (h - klein.shape[0]) // 2))
+        return [(bild, ziel, 92)], "Ornament %d x %d" % (w, h)
+    if name == "sterne":
+        bild, _, v, nach = textur(pfad)
+        return [(bild.resize((w, h), Image.LANCZOS), ziel, 90)], "nahtlos, Naht %.2f -> %.2f" % (v, nach)
+    a = np.asarray(zuschneiden(Image.open(pfad).convert("RGB"), w, h))
+    hz = einbau.get("hell_ziel", {}).get(name)
+    a, h0, h1 = daempfen(a, hz)
+    return [(Image.fromarray(a), ziel, 90)], "%d x %d, Helligkeit %.3f -> %.3f" % (w, h, h0, h1)
 
 
 def hilfe():
@@ -767,6 +814,7 @@ def main():
         was = list(alle_arten) if (namen or nur_pruefen) else ["symbole", "portraets", "texturen"]
     einbau = plan.get("einbau", {})
     repo = None if nur_pruefen else finde_repo()
+    REPO[0] = repo
     sag("Repo:", repo or ("(nur pruefen, nichts wird geschrieben)" if nur_pruefen else "keins (nur Ordner fuers_spiel)"))
     sicherung = os.path.join(FUERS_SPIEL, "sicherung_vorher")
     fehlt, gesamt = [], 0
@@ -919,8 +967,11 @@ def main():
             n += 1
         if eintraege:
             pfad = os.path.join(FUERS_SPIEL, "vorschau_%s.jpg" % art)
-            vorschau_frei(eintraege, pfad, 200 if art in ("ladebilder", "enden", "titel", "buchbilder", "fries") else 160)
+            vorschau_frei(eintraege, pfad, 200 if art in ("ladebilder", "szenen", "titel", "buchbilder", "fries") else 160)
             sag("%d %s eingebaut. Vorschau: %s" % (n, art, pfad))
+            if art == "lebewesen" and not nur_pruefen:
+                sag("Danach: Claude rechnet die Tafel der Kleintiere neu (python3 tools/figurenfabrik/kleintiere_tafel.py, dann Godot-Import).")
+                sag("Die Kacheln liegen in bilder/ und gehen nicht in die Webfassung; erst die neue Tafel models/tiere/tiere_tafel.webp aendert das Spiel.")
         gesamt += n
 
     if fehlt:

@@ -1,5 +1,5 @@
 {
- "version": "5.3.0",
+ "version": "5.4.0",
  "hinweis": "Plan für bildwerk.bat und einbauen.bat. Alle Texte stehen hier, die Skripte enthalten keine. Keine Zahlen und Prozentzeichen in Prompts.",
  "regeln": [
   "Keine Ziffern und kein Prozentzeichen im Prompt: Z-Image malt sie als Schrift ins Bild (aus '80%' wurden %, 0% und 9%).",
@@ -17,7 +17,8 @@
   "Texturen 'von oben' kamen mit Perspektive (neuer Sand: Rippel oben fein, unten grob) und mit Lichtverlauf: nie 'photographed', kein Boden als Szene, sondern eine Materialprobe 'seen perfectly perpendicular', 'the same scale of detail in every corner'. Am sichersten nahtlos rechnen (Knoten SeamlessLatentTiling, Stufenfeld 'kachel'); einbauen.bat misst die Perspektive (P) und baut ab 1,5 nicht ein.",
   "Die Bilder sind drei- bis neunmal heller, als das Licht im Spiel erwartet (main.gd › HELL): Stile für Flächen sagen 'muted medium-dark', einbauen.bat dämpft neue Flächen auf eine lineare Helligkeit von höchstens 0,24 (nie heller).",
   "Freistellen: Gegenstände und Abziehbilder auf 'a plain flat medium grey background' (nicht Weiß wegen Leinen, nicht Schwarz wegen Eisen), einbauen.bat schneidet über den Farbabstand frei. Leuchtendes auf 'pure flat black', daraus wird additiv oder Alpha aus der Helligkeit.",
-  "Was additiv auf dem Boden liegt, muss am Rand reines Schwarz sein, sonst sieht man ein Viereck. einbauen.bat zieht das Rest-Grau ab und blendet den Rand weich auf Schwarz."
+  "Was additiv auf dem Boden liegt, muss am Rand reines Schwarz sein, sonst sieht man ein Viereck. einbauen.bat zieht das Rest-Grau ab und blendet den Rand weich auf Schwarz.",
+  "Wiederkehrende Figuren (Spielfigur, Laterne, Nebet, Haremhab, Sammler, Ba, Thot) stehen als feste Bausteine unter 'bausteine' und werden in Motiven als {NAME} eingesetzt: überall derselbe Satz, damit sie über alle Bilder wiedererkennbar bleiben. Die Laterne der Spielfigur darf gemalt werden, aber nur über den Baustein LATERNE (alte Form aus Bronze, sonst kommt die moderne Sturmlaterne)."
  ],
  "stile": {
   "alt": {
@@ -114,6 +115,19 @@
   "buchbild": {
    "beschreibung": "Bilder fürs Lexikon im Buch des Thot: Malerei auf Papyrus wie in den Totenbüchern, Figuren im Profil, flache Mineralfarben, passt zum Papyrus der Oberfläche. NEU, Probe in Nacht 0 (Rückfall: Stil 'szene').",
    "text": "An ancient Egyptian painting on an old sheet of papyrus: {MOTIV} {HINWEIS} {ANSICHT} Figures in strict profile with fine black outlines and flat mineral colors, red ochre, yellow ochre, Egyptian blue, malachite green, white and black, a little gold leaf. The painting fills most of the sheet, the papyrus fibers and small cracks are visible, the edges of the warm golden sheet are darker and worn. Only the painted picture, nothing written anywhere."
+  },
+  "szene_stadt": {
+   "beschreibung": "Wie szene, aber für Sandtor (die Stadt der Lebenden): sonst wird die Stadt zur Unterwelt (Hinweis von Agent D). Bewährt wie szene.",
+   "text": "Wide cinematic matte painting of {MOTIV} {HINWEIS} {ANSICHT} An ancient Egyptian desert town of the living, painterly realistic style with deep atmosphere and depth, large calm areas of dark sky or shadow in the upper third, the main subject in the lower half. Muted earthy colors against deep night blue, {TEX}. No people in the foreground except where described, nothing written anywhere, no frame, no border."
+  },
+  "lichter": {
+   "beschreibung": "Ebene für Zwischensequenzen: nur Lichter auf reinem Schwarz, im Spiel addiert. Verwandt mit funke (Stufe 16). NEU, Probe in Nacht 0.",
+   "vorschau": "schwarz",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} A wide picture on a pure flat black background: the small soft glowing lights float freely and fade into black toward all edges, nothing else in the picture, no landscape, no ground, nothing written anywhere."
+  },
+  "zierflaeche": {
+   "beschreibung": "Gemalte Flächen für die Oberfläche (ui/zier/gemalt/): randlos, senkrecht von oben, ruhig, ohne Gegenstände. Verwandt mit flaeche. NEU, Probe in Nacht 0.",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} A flat surface seen perfectly perpendicular from directly above, filling the whole picture to every edge, soft even light without a direction, calm and quiet in the middle, no objects on it, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -519,11 +533,10 @@
    "probe": true
   },
   "probe_kachel": {
-   "titel": "Probe: dieselben drei Flächen nahtlos gerechnet (Knoten SeamlessLatentTiling)",
+   "titel": "Probe: Sand und Steinplatten nahtlos gerechnet (Knoten SeamlessLatentTiling), Vergleich mit probe_flaeche",
    "motive": [
     "t09_sand_f",
-    "t08_goetter_f",
-    "w07_apophis_f"
+    "t08_goetter_f"
    ],
    "stile": [
     "flaeche"
@@ -617,12 +630,11 @@
    "probe": true
   },
   "probe_frei": {
-   "titel": "Probe: Stil frei (Symbole ohne fremde Spielnamen und ohne Ziffern) gegen den bewährten Stil aegypt, gleicher Seed",
+   "titel": "Probe: Stil frei (Symbole ohne fremde Spielnamen und ohne Ziffern); Vergleich sind die Symbole im Spiel",
    "motive": [
     "c_glut"
    ],
    "stile": [
-    "aegypt",
     "frei"
    ],
    "varianten": [
@@ -1016,25 +1028,6 @@
    "im_spiel": "fast sofort: einbauen.bat hueter, dazu je Stunde 'bild' in stunden.gd › OPEN (eine Zeile)",
    "einbau": "hueter"
   },
-  "enden": {
-   "titel": "Die drei Enden: leicht, schwer, in der Schwebe",
-   "gruppen": [
-    "enden"
-   ],
-   "stile": [
-    "szene"
-   ],
-   "varianten": [
-    "a",
-    "b",
-    "c"
-   ],
-   "ansichten": "szene",
-   "breite": 1280,
-   "hoehe": 720,
-   "im_spiel": "nach Code: Schlussbild in geschichte.gd/hud.gd je urteil_art",
-   "einbau": "enden"
-  },
   "titel": {
    "titel": "Titelbild neu (Querformat, wird auf 1600 x 905 gebracht)",
    "gruppen": [
@@ -1108,6 +1101,258 @@
    "hoehe": 768,
    "im_spiel": "nach Bild-zu-3D (GEGNERFABRIK.md), erst wenn Stufe 13 getragen hat",
    "einbau": "keins (Gegnerfabrik)"
+  },
+  "probe_szene": {
+   "titel": "Probe: Hauptfigur mit Laterne und Nebet (Bausteine), Stil szene",
+   "motive": [
+    "sz_auftakt_4",
+    "sz_akt1_fieberhaus"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "Probe für die Szenen-Nacht: bleiben Figur und Laterne wiedererkennbar?",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_lichter": {
+   "titel": "Probe: Lichter-Ebene auf Schwarz",
+   "motive": [
+    "sz_auftakt_4_lichter"
+   ],
+   "stile": [
+    "lichter"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "Probe für die Szenen-Nacht",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_zier": {
+   "titel": "Probe: gemalter dunkler Grund für die Oberfläche",
+   "motive": [
+    "u_grund_lapis"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Probe für die Szenen-Nacht",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "szenen": {
+   "titel": "Szenenbilder der Zwischensequenzen (Unterwelt), vier Varianten",
+   "gruppen": [
+    "szenen"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen (szene.gd lädt ui/szenen/<name>.webp, bis dahin Ersatz)",
+   "einbau": "szenen"
+  },
+  "szenen_sandtor": {
+   "titel": "Szenenbilder in Sandtor (Stadt der Lebenden)",
+   "gruppen": [
+    "szenen_sandtor"
+   ],
+   "stile": [
+    "szene_stadt"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen",
+   "einbau": "szenen"
+  },
+  "szenen_lichter": {
+   "titel": "Lichter-Ebene über Auftakt 4 (additiv)",
+   "gruppen": [
+    "szenen_lichter"
+   ],
+   "stile": [
+    "lichter"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen (wird additiv gemischt)",
+   "einbau": "szenen"
+  },
+  "portraet_nebet": {
+   "titel": "Porträt Nebet (P25)",
+   "gruppen": [
+    "portraet_nebet"
+   ],
+   "stile": [
+    "portraet_nah"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "nach einer Zeile Code: Kürzel P25 in Gesprächen/Ersatz von szenen.gd",
+   "einbau": "portraets"
+  },
+  "portraets_geschichte": {
+   "titel": "Porträts Haremhab (P26) und Ba mit Nebets Gesicht (P27)",
+   "gruppen": [
+    "portraets_geschichte"
+   ],
+   "stile": [
+    "portraet_nah_figur"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "nach einer Zeile Code: Kürzel P26, P27",
+   "einbau": "portraets"
+  },
+  "zier_flaechen": {
+   "titel": "Oberfläche: dunkler Grund (Leder, Lapislazuli, Ebenholz) und Papyrus",
+   "gruppen": [
+    "zier_flaechen"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, sofort nach einbauen.bat zier (Zier.tex nimmt ui/zier/gemalt/<name>.webp)",
+   "einbau": "zier"
+  },
+  "zier_karte": {
+   "titel": "Oberfläche: Grund der großen Karte",
+   "gruppen": [
+    "zier_karte"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 640,
+   "im_spiel": "ja, sofort nach einbauen.bat zier",
+   "einbau": "zier"
+  },
+  "zier_sterne": {
+   "titel": "Oberfläche: Himmel der Nut hinter dem Fähigkeitenbaum (kachelbar)",
+   "gruppen": [
+    "zier_sterne"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, sofort nach einbauen.bat zier",
+   "einbau": "zier",
+   "kachel": "xy"
+  },
+  "zier_ornamente": {
+   "titel": "Reserve: gemalte Ornamente (Flügelsonne, Udjat, Lotos, Skarabäus), freigestellt",
+   "gruppen": [
+    "zier_ornamente"
+   ],
+   "stile": [
+    "ding"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "ding",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "ja, sofort nach einbauen.bat zier (freigestellt, Größe wie die erzeugten)",
+   "einbau": "zier"
+  },
+  "lebewesen": {
+   "titel": "Musterkacheln für Kleintiere und Vögel (Schuppen, Panzer, Gefieder, Fell)",
+   "gruppen": [
+    "lebewesen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach einbauen.bat lebewesen rechnet Claude tools/figurenfabrik/kleintiere_tafel.py neu (models/tiere/tiere_tafel.webp)",
+   "einbau": "lebewesen",
+   "kachel": "xy"
   }
  },
  "motive": [
@@ -3192,29 +3437,8 @@
    "id": "h12",
    "name": "Der Schatten des Sammlers",
    "gruppe": "hueter_spaet",
-   "motiv": "the tall shadow of an old judge made of black smoke, only his cold proud face and a long purple robe faintly visible, small clay jars floating around him",
+   "motiv": "{SCHATTEN}, only a cold proud face faintly visible in the smoke, small clay jars floating around it",
    "tex": "a great eastern gate in the rose colors of dawn"
-  },
-  {
-   "id": "ende_leicht",
-   "name": "Ende: leicht",
-   "gruppe": "enden",
-   "motiv": "a soul in plain white linen walking out of a great eastern gate into golden fields of reeds, a small ba bird with a human head flying beside",
-   "tex": "pale gold, rose and soft blue colors of morning"
-  },
-  {
-   "id": "ende_schwer",
-   "name": "Ende: schwer",
-   "gruppe": "enden",
-   "motiv": "a lone figure before a giant balance scale whose pan has sunk deep, a dark beast with the head of a crocodile waiting in the shadow beside it",
-   "tex": "deep red, black and dull gold colors"
-  },
-  {
-   "id": "ende_schwebe",
-   "name": "Ende: in der Schwebe",
-   "gruppe": "enden",
-   "motiv": "a lone figure in a vast dark hall before a giant golden balance scale that hangs perfectly level, an ibis-headed god watching quietly",
-   "tex": "deep night blue and silver colors"
   },
   {
    "id": "titel",
@@ -3260,6 +3484,386 @@
    "gruppe": "vorlagen_mehr",
    "motiv": "a tall thin figure in grey linen wraps with an empty hole in the middle of the chest glowing cold blue inside",
    "tex": ""
+  },
+  {
+   "id": "sz_auftakt_1",
+   "name": "Auftakt 1: Sandtor bei Nacht, Lichter steigen auf",
+   "gruppe": "szenen_sandtor",
+   "motiv": "a small mud-brick desert town at the edge of the western desert at night, flat roofs, palm trees, a single window glowing warm amber, many small turquoise soul lights rising slowly from the roofs into the sky towards the west",
+   "tex": "deep night blue and faint turquoise colors"
+  },
+  {
+   "id": "sz_auftakt_2",
+   "name": "Auftakt 2: Nebet im Fieberhaus, du wachst neben ihr",
+   "gruppe": "szenen_sandtor",
+   "motiv": "{NEBET} lying asleep and feverish on a reed mat in a bare mud-brick room, one blue-stained hand hanging down; beside her sits {FIGUR}, holding {LATERNE}, glowing warm amber",
+   "tex": "warm amber glow against deep shadow"
+  },
+  {
+   "id": "sz_auftakt_3",
+   "name": "Auftakt 3: der Priester gibt dir die Laterne",
+   "gruppe": "szenen_sandtor",
+   "motiv": "an old Egyptian priest with a shaved head and a lined face, seen in profile, handing {LATERNE} to {FIGUR}, both their hands hidden in long linen sleeves, inside it a flame burns with a deep red heart-shaped glow, a dark temple wall behind",
+   "tex": "warm red and amber against deep night blue"
+  },
+  {
+   "id": "sz_mitte_sandtor",
+   "name": "Mitte: in Sandtor wird Nebets Leib kälter",
+   "gruppe": "szenen_sandtor",
+   "motiv": "{NEBET} lying very still on a reed mat in a dark mud-brick room, her skin frost-pale, beside her a small clay dish with a tiny flame that has almost burned out",
+   "tex": "cold blue colors with a dying ember of amber"
+  },
+  {
+   "id": "sz_finale_morgen",
+   "name": "Finale: Morgen über Sandtor",
+   "gruppe": "szenen_sandtor",
+   "motiv": "sunrise over a small mud-brick desert town, the sun rising red from the eastern horizon; through an open window {NEBET} sitting up on her reed mat while {BA} flies in through the window",
+   "tex": "warm rose and gold colors of sunrise"
+  },
+  {
+   "id": "sz_auftakt_4",
+   "name": "Auftakt 4: am Tor des Westens (Grund für die Lichter-Ebene)",
+   "gruppe": "szenen",
+   "motiv": "{FIGUR}, holding up {LATERNE}, glowing warm amber, standing before a colossal ancient stone gate in the desert cliffs, the gate opens onto a stair leading down into darkness",
+   "tex": "deep night blue and warm amber colors"
+  },
+  {
+   "id": "sz_h02_feldtor",
+   "name": "Zweite Stunde: Haremhab prüft das Siegel am Feldtor",
+   "gruppe": "szenen",
+   "motiv": "{HAREMHAB}, seen from behind, kneeling at a tall wooden field gate in a ruined golden barley field, studying a broken red clay seal on the bolt",
+   "tex": "dusty gold and deep night blue colors"
+  },
+  {
+   "id": "sz_h03_krug",
+   "name": "Dritte Stunde: Nebets Krug im Sarkophag",
+   "gruppe": "szenen",
+   "motiv": "a single small white alabaster jar with a lid standing in an open stone sarcophagus, a thin indigo blue thread tied around its neck, gold grave goods scattered in shadow, the jar faintly glowing as if warm",
+   "tex": "warm amber glow inside deep tomb darkness"
+  },
+  {
+   "id": "sz_akt1_liste",
+   "name": "Ende Akt 1: der Türhüter fährt die Liste der Toten hinab",
+   "gruppe": "szenen",
+   "motiv": "a tall grey stone gatekeeper without a mouth, faceless and calm, holding a very long unrolled band of pale papyrus that hangs down to the floor, one stone finger resting near its lower end on a single fresh drop of red ink",
+   "tex": "cold grey and deep night blue with a touch of red",
+   "hinweis": "The papyrus band is blank, only its fibres can be seen."
+  },
+  {
+   "id": "sz_akt1_fieberhaus",
+   "name": "Ende Akt 1, Erinnerung: du stirbst an Nebets Bett",
+   "gruppe": "szenen",
+   "motiv": "seen from high above, a bare fever room: {FIGUR} slumped motionless against the wall with {LATERNE} still glowing warm amber in the lap, on the reed mat beside it {NEBET} sitting up and reaching out, her mouth open in a cry",
+   "tex": "cold pale blue with one warm amber glow"
+  },
+  {
+   "id": "sz_akt1_hoehle",
+   "name": "Ende Akt 1, Haken: das Zugseil führt in die Höhle",
+   "gruppe": "szenen",
+   "motiv": "a thick rope stretched taut across desert sand, leading down into the mouth of a vast cave, deep inside countless tiny jars glowing faintly violet like a field of embers",
+   "tex": "violet glow and deep night blue"
+  },
+  {
+   "id": "sz_h05_angebot",
+   "name": "Fünfte Stunde: das Angebot des Sammlers",
+   "gruppe": "szenen",
+   "motiv": "{SAMMLER}, his hands hidden in the long sleeves of the mantle, holding out an open white alabaster jar as an offering, behind him rows of small clay jars glowing violet",
+   "tex": "violet glow and deep night blue"
+  },
+  {
+   "id": "sz_mitte_isis",
+   "name": "Mitte: Isis sieht auf deine Schulter",
+   "gruppe": "szenen",
+   "motiv": "the goddess Isis as a grieving woman with a small throne-shaped crown, large folded wings of a kite behind her shoulders, gazing tenderly down at {BA} perched on the shoulder of {FIGUR}",
+   "tex": "soft green-gold glow and deep night blue"
+  },
+  {
+   "id": "sz_mitte_ba",
+   "name": "Mitte, die Enthüllung: der Vogel hat Nebets Gesicht",
+   "gruppe": "szenen",
+   "motiv": "a close view of {BA} perched on a dark cloaked shoulder, the girl's face tear-stained and ashamed, looking up",
+   "tex": "pale turquoise glow and deep shadow",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon."
+  },
+  {
+   "id": "sz_h06_mitternacht",
+   "name": "Sechste Stunde: im Licht der Mitternacht das Ende der Nacht",
+   "gruppe": "szenen",
+   "motiv": "a blinding white-gold burst where the sun god and the mummified Osiris meet, far beyond it on the horizon a great eastern gate, and before the gate a tiny dark figure of smoke carrying a jar",
+   "tex": "white gold burst fading into deep night blue"
+  },
+  {
+   "id": "sz_h07_bug",
+   "name": "Siebte Stunde: Haremhab am Bug der Sonnenbarke",
+   "gruppe": "szenen",
+   "motiv": "{HAREMHAB}, seen from behind, standing at the prow of the golden sun boat, wiping his sword, looking east over dark water where the coils of a giant serpent sink away",
+   "tex": "dark water, gold and deep night blue"
+  },
+  {
+   "id": "sz_akt2_gruft",
+   "name": "Ende Akt 2: in der stummen Gruft sitzt dein eigener Ba",
+   "gruppe": "szenen",
+   "motiv": "a small ba bird with a human head sitting alone in a dark stone crypt, a broken golden oval ring hanging around its neck, its face shimmering and impossible to make out, turned towards the viewer",
+   "tex": "cold silver and deep night blue"
+  },
+  {
+   "id": "sz_akt2_osten",
+   "name": "Ende Akt 2: zwei gehen der Barke voraus",
+   "gruppe": "szenen",
+   "motiv": "a vast dark landscape seen from above, a faint glowing path leading to a distant eastern gate on the horizon, far ahead on the path a tiny dark figure of smoke carrying a jar, behind it {HAREMHAB} running",
+   "tex": "deep night blue with first pale rose at the horizon"
+  },
+  {
+   "id": "sz_h12_schatten",
+   "name": "Zwölfte Stunde: der Schatten mit Nebets Krug",
+   "gruppe": "szenen",
+   "motiv": "{SCHATTEN} cradling a small white alabaster jar tied with a thin indigo blue thread, standing before a colossal eastern gate",
+   "tex": "deep night blue with pale rose colors behind the gate"
+  },
+  {
+   "id": "sz_finale_waage",
+   "name": "Finale: die Halle der Waage",
+   "gruppe": "szenen",
+   "motiv": "a vast hall of tall columns with a giant golden balance scale at its centre, {THOT} standing beside it, rows of seated judges in shadow, one seat empty",
+   "tex": "deep night blue and gold colors"
+  },
+  {
+   "id": "sz_finale_dunkel",
+   "name": "Finale: du nimmst dein Herz aus der Laterne",
+   "gruppe": "szenen",
+   "motiv": "{LATERNE} standing open on a dark stone floor, a glowing red heart floating up out of it, the last warm glow fading into complete darkness all around",
+   "tex": "deep red glow fading into black"
+  },
+  {
+   "id": "sz_finale_leicht",
+   "name": "Finale, Ende Wahr an Stimme",
+   "gruppe": "szenen",
+   "motiv": "a golden balance scale perfectly level, a heart on one pan and a white ostrich feather on the other, behind it through a tall doorway a single bright new star rising in the northern sky over the desert at first dawn",
+   "tex": "pale rose, gold and deep blue colors of first dawn"
+  },
+  {
+   "id": "sz_finale_schwebe",
+   "name": "Finale, Ende In der Schwebe: es fehlt ein Fährmann",
+   "gruppe": "szenen",
+   "motiv": "a small wooden ferry boat moored at the bank of a dark river at first dawn, a cedar oar lying across it, faint turquoise soul lights waiting on the far bank",
+   "tex": "pale grey dawn and turquoise colors"
+  },
+  {
+   "id": "sz_finale_schwer",
+   "name": "Finale, Ende Zu schwer: die Fresserin hebt den Kopf",
+   "gruppe": "szenen",
+   "motiv": "a crocodile-headed beast with the mane of a lion and the hind body of a hippopotamus lifting its head beside a tilted golden balance scale, {THOT} resting one hand on the sinking pan",
+   "tex": "dark red and gold against deep shadow"
+  },
+  {
+   "id": "sz_finale_schatten",
+   "name": "Finale: Thot sagt dem Schatten die Wahrheit",
+   "gruppe": "szenen",
+   "motiv": "{THOT} speaking to {SCHATTEN}; the shadow sets down a small alabaster jar tied with an indigo thread and takes {LATERNE} instead, the first pale rose colors of dawn falling between them",
+   "tex": "pale rose and deep night blue"
+  },
+  {
+   "id": "sz_auftakt_4_lichter",
+   "name": "Ebene über Auftakt 4: Seelenlichter auf Schwarz (addiert)",
+   "gruppe": "szenen_lichter",
+   "motiv": "dozens of small soft glowing turquoise soul lights drifting downwards in a loose stream",
+   "tex": ""
+  },
+  {
+   "id": "P25",
+   "name": "Nebet",
+   "gruppe": "portraet_nebet",
+   "motiv": "a slender girl in her early teens with dark braided hair and fingertips stained deep indigo blue from dye, pale and feverish",
+   "tex": "a dark mud-brick room"
+  },
+  {
+   "id": "P26",
+   "name": "Haremhab",
+   "gruppe": "portraets_geschichte",
+   "motiv": "a broad-shouldered Egyptian general with a blue war crown and bronze scale armour, a hard weathered face with sharp watchful eyes",
+   "tex": "a ruined barley field in deep dusk"
+  },
+  {
+   "id": "P27",
+   "name": "Der Ba mit Nebets Gesicht",
+   "gruppe": "portraets_geschichte",
+   "motiv": "a ba bird with golden-brown folded wings and the small human head of a young girl with dark braided hair, her face tear-stained and ashamed",
+   "tex": "a dark cloaked shoulder and deep shadow",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon."
+  },
+  {
+   "id": "u_grund_leder",
+   "name": "Grund dunkel: Leder",
+   "gruppe": "zier_flaechen",
+   "motiv": "dark brown tooled leather with fine grain and soft creases and a faint pressed lotus pattern, very dark umber with a subtle warm amber sheen in the middle fading to near black toward the edges",
+   "tex": ""
+  },
+  {
+   "id": "u_grund_lapis",
+   "name": "Grund dunkel: Lapislazuli",
+   "gruppe": "zier_flaechen",
+   "motiv": "a polished slab of dark lapis lazuli, deep midnight blue with fine golden flecks and thin pale veins, a faint cool blue sheen in the middle",
+   "tex": ""
+  },
+  {
+   "id": "u_grund_holz",
+   "name": "Grund dunkel: Ebenholz",
+   "gruppe": "zier_flaechen",
+   "motiv": "a dark ebony wood panel with tight straight grain, oiled, very dark brown almost black, a faint warm amber sheen",
+   "tex": ""
+  },
+  {
+   "id": "u_papyrus",
+   "name": "Papyrus für Schriftstücke",
+   "gruppe": "zier_flaechen",
+   "motiv": "a single sheet of pale papyrus with crossed horizontal and vertical reed fibres, warm light beige and honey colour, darker frayed irregular edges, a few soft brown stains, empty and clean",
+   "tex": ""
+  },
+  {
+   "id": "u_karte_grund",
+   "name": "Grund der großen Karte",
+   "gruppe": "zier_karte",
+   "motiv": "an aged dark papyrus sheet with crossed reed fibres, a few faint ink stains and soft smudges, warm umber and dark ochre, darker toward the edges, very dark overall",
+   "tex": ""
+  },
+  {
+   "id": "u_sterne",
+   "name": "Himmel der Nut (kachelbar)",
+   "gruppe": "zier_sterne",
+   "motiv": "a deep night sky full of dense small pale stars with a faint violet and indigo haze like a milky band, very dark blue black",
+   "tex": ""
+  },
+  {
+   "id": "u_fluegelsonne",
+   "name": "Ornament: Flügelsonne",
+   "gruppe": "zier_ornamente",
+   "motiv": "winged sun disc of polished gold with two rearing cobras beside the disc and long outstretched feathered wings, raised relief with fine engraved feathers, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_udjat",
+   "name": "Ornament: Udjat",
+   "gruppe": "zier_ornamente",
+   "motiv": "eye of Horus amulet of polished gold with lapis lazuli inlay, raised relief, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_lotos",
+   "name": "Ornament: Lotos",
+   "gruppe": "zier_ornamente",
+   "motiv": "blue lotus flower in profile cast in polished gold, a fan of pointed petals, raised relief, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_skarabaeus",
+   "name": "Ornament: Skarabäus",
+   "gruppe": "zier_ornamente",
+   "motiv": "scarab beetle amulet of gold seen from above, lapis lazuli wing cases, fine engraving",
+   "tex": ""
+  },
+  {
+   "id": "lw_eidechse_schuppen",
+   "name": "Eidechse: Schuppen",
+   "gruppe": "lebewesen",
+   "motiv": "lizard skin of a desert spiny-tailed lizard, small round granular scales, olive brown and ochre",
+   "tex": "",
+   "datei": "eidechse_schuppen"
+  },
+  {
+   "id": "lw_eidechse_dornen",
+   "name": "Eidechse: Dornenringe",
+   "gruppe": "lebewesen",
+   "motiv": "lizard tail skin with rows of spiny keeled scales in rings, grey brown and dark umber",
+   "tex": "",
+   "datei": "eidechse_dornen"
+  },
+  {
+   "id": "lw_kaefer_panzer",
+   "name": "Skarabäus: Flügeldecken",
+   "gruppe": "lebewesen",
+   "motiv": "beetle wing case of a black scarab with fine parallel grooves, glossy black with a faint blue-green sheen",
+   "tex": "",
+   "datei": "kaefer_panzer"
+  },
+  {
+   "id": "lw_schwarzkaefer_panzer",
+   "name": "Schwarzkäfer",
+   "gruppe": "lebewesen",
+   "motiv": "beetle shell of a desert darkling beetle, matte black and covered in small round bumps",
+   "tex": "",
+   "datei": "schwarzkaefer_panzer"
+  },
+  {
+   "id": "lw_maus_fell",
+   "name": "Rennmaus: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "gerbil fur of short soft sandy orange hairs",
+   "tex": "",
+   "datei": "maus_fell"
+  },
+  {
+   "id": "lw_falke_gefieder",
+   "name": "Falke: Rücken",
+   "gruppe": "lebewesen",
+   "motiv": "falcon back feathers in overlapping rows, slate grey and brown with darker bars and pale edges",
+   "tex": "",
+   "datei": "falke_gefieder"
+  },
+  {
+   "id": "lw_falke_brust",
+   "name": "Falke: Brust",
+   "gruppe": "lebewesen",
+   "motiv": "falcon breast feathers, pale cream with small dark brown drop-shaped spots",
+   "tex": "",
+   "datei": "falke_brust"
+  },
+  {
+   "id": "lw_ibis_gefieder",
+   "name": "Ibis: Gefieder",
+   "gruppe": "lebewesen",
+   "motiv": "ibis feathers in soft white overlapping layers with faint warm grey shading",
+   "tex": "",
+   "datei": "ibis_gefieder"
+  },
+  {
+   "id": "lw_fisch_schuppen",
+   "name": "Nilbuntbarsch: Schuppen",
+   "gruppe": "lebewesen",
+   "motiv": "fish scales of a Nile tilapia, olive grey with faint vertical bars",
+   "tex": "",
+   "datei": "fisch_schuppen"
+  },
+  {
+   "id": "lw_esel_fell",
+   "name": "Esel: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "donkey hair, short and grey with a slight brownish tint",
+   "tex": "",
+   "datei": "esel_fell"
+  },
+  {
+   "id": "lw_schaf_vlies",
+   "name": "Schaf: Vlies",
+   "gruppe": "lebewesen",
+   "motiv": "sheep wool of small tight cream-colored curly locks",
+   "tex": "",
+   "datei": "schaf_vlies"
+  },
+  {
+   "id": "lw_ziege_fell",
+   "name": "Ziege: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "goat hair of long straight dark brown strands",
+   "tex": "",
+   "datei": "ziege_fell"
+  },
+  {
+   "id": "lw_katze_fell",
+   "name": "Katze: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "cat fur, sandy tabby with faint darker stripes",
+   "tex": "",
+   "datei": "katze_fell"
   }
  ],
  "einbau": {
@@ -3368,7 +3972,7 @@
    "a3": "bildwerk/akttafeln/a3_szene_d"
   },
   "hinweis_sand": "Sand neu (Stufe sand_neu) bewusst nicht benutzt: Alle acht Bilder sind leicht von schräg gemalt (Rippel oben feiner als unten), das kachelt nicht. Die Quelle t09_sand_textur_a bleibt; die Datei im Spiel ist die von Hand korrigierte aus 4.1.5.",
-  "hinweis_neu": "Neue Arten (5.3), je 'einbauen.bat <art> [namen]': zeichen, fx, fries, saeulen, gegenstaende, champions, abzieh (Schlüssel abziehbilder), wandbilder, tore, ladebilder, enden, buchbilder, titel. Auswahl jeweils Name -> Quelle (bildwerk/<stufe>/<datei>_<stil>_<variante>, nahtlos gerechnete mit _k am Ende). gegenstaende: Feldnummer 0 bis 35 -> Quelle. Hüter 9 bis 12 kommen unter 'hueter', neue Flächen unter 'texturen' (mit 'texturen_hell': Name -> höchste lineare Helligkeit, z. B. 0.24).",
+  "hinweis_neu": "Neue Arten (5.3), je 'einbauen.bat <art> [namen]': zeichen, fx, fries, saeulen, gegenstaende, champions, abzieh (Schlüssel abziehbilder), wandbilder, tore, ladebilder, buchbilder, titel, szenen, zier, lebewesen. Auswahl jeweils Name -> Quelle (bildwerk/<stufe>/<datei>_<stil>_<variante>, nahtlos gerechnete mit _k am Ende). gegenstaende: Feldnummer 0 bis 35 -> Quelle. Hüter 9 bis 12 kommen unter 'hueter', neue Flächen unter 'texturen' (mit 'texturen_hell': Name -> höchste lineare Helligkeit, z. B. 0.24).",
   "zeichen": {},
   "fx": {},
   "fries": {},
@@ -3379,7 +3983,6 @@
   "wandbilder": {},
   "tore": {},
   "ladebilder": {},
-  "enden": {},
   "buchbilder": {},
   "titel": {},
   "texturen_hell": {},
@@ -3397,7 +4000,9 @@
    "fries": 0.24,
    "saeulen": 0.24,
    "wandbilder": 0.22,
-   "tore": 0.2
+   "tore": 0.2,
+   "grund_dunkel": 0.035,
+   "karte_grund": 0.05
   },
   "champions_farben": {
    "glut": [
@@ -3449,15 +4054,59 @@
   "texturen_von_hand": [
    "t09_sand"
   ],
-  "hinweis_von_hand": "texturen_von_hand: diese Dateien im Spiel sind von Hand nachgearbeitet; einbauen.bat ohne Namen lässt sie aus (sonst würde es sie überschreiben). Bauen nur ausdrücklich: einbauen.bat texturen t09_sand."
+  "hinweis_von_hand": "texturen_von_hand: diese Dateien im Spiel sind von Hand nachgearbeitet; einbauen.bat ohne Namen lässt sie aus (sonst würde es sie überschreiben). Bauen nur ausdrücklich: einbauen.bat texturen t09_sand.",
+  "szenen": {},
+  "zier": {},
+  "lebewesen": {},
+  "szenen_add": [
+   "sz_auftakt_4_lichter"
+  ],
+  "zier_groessen": {
+   "grund_dunkel": [
+    1024,
+    1024
+   ],
+   "karte_grund": [
+    1024,
+    640
+   ],
+   "sterne": [
+    512,
+    512
+   ],
+   "papyrus": [
+    768,
+    768
+   ],
+   "fluegelsonne": [
+    200,
+    48
+   ],
+   "udjat": [
+    96,
+    64
+   ],
+   "lotos": [
+    64,
+    64
+   ],
+   "skarabaeus": [
+    64,
+    64
+   ]
+  },
+  "hinweis_szenen": "szenen: Name wie in scripts/szenen.gd (sz_...) -> Quelle; 1280 x 720 nach ui/szenen/. Namen unter szenen_add werden als Lichter-Ebene gebaut (RGB auf reinem Schwarz, additiv). zier: Zielname (grund_dunkel, karte_grund, sterne, papyrus, fluegelsonne, udjat, lotos, skarabaeus) -> Quelle, nach ui/zier/gemalt/. lebewesen: Dateiname wie in kleintiere_tafel.py -> Quelle, nahtlos nach bilder/lebewesen/; danach die Tafel neu rechnen (Claude). Porträts P25 bis P27 gehen über 'portraets'."
  },
  "naechte": {
   "proben": {
    "titel": "Nacht 0: Proben der neuen Stile (unter einer Stunde)",
-   "zweck": "Klärt vor den großen Nächten: tragen die neuen Stile (Fläche, Ding, Symbol ohne Spielnamen, Abziehbild, Relief, Tor, Papyrus) und rechnet der Knoten für nahtlose Texturen auf der AMD-Karte?",
+   "zweck": "Klärt vor den großen Nächten: bleiben Hauptfigur, Laterne und Nebet wiedererkennbar, tragen die neuen Stile (Fläche, Oberfläche, Lichter, Ding, Symbol ohne Spielnamen, Abziehbild, Relief, Tor, Papyrus) und rechnet der Knoten für nahtlose Texturen auf der AMD-Karte?",
    "stufen": [
     "probe_kachel",
     "probe_flaeche",
+    "probe_szene",
+    "probe_lichter",
+    "probe_zier",
     "probe_ding",
     "probe_frei",
     "probe_abzieh",
@@ -3469,8 +4118,28 @@
    "stunden": 1.0,
    "danach": "Tafeln an Claude schicken. Claude entscheidet je Stil: tragen, umschreiben oder Rückfall."
   },
+  "szenen": {
+   "titel": "Nacht 1: Szenen (alle 26 Bilder der Zwischensequenzen, Porträts Nebet, Haremhab und Ba, gemalte Flächen der Oberfläche)",
+   "zweck": "Die neue Geschichte läuft in 22 Sequenzen mit Ersatzbildern. Danach hat jede Einstellung ihr Bild, Nebet und Haremhab ein Gesicht, und Menü, Karte und Papyrus sind gemalt. Szenen und Oberfläche sind sofort im Spiel, ohne Code.",
+   "stufen": [
+    "szenen_sandtor",
+    "szenen",
+    "szenen_lichter",
+    "portraet_nebet",
+    "portraets_geschichte",
+    "zier_flaechen",
+    "zier_karte",
+    "zier_sterne"
+   ],
+   "fuellen": [
+    "zier_ornamente",
+    "lebewesen"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; Claude wählt vor; einbauen.bat szenen und einbauen.bat zier; sync.bat."
+  },
   "dinge": {
-   "titel": "Nacht 1: Dinge (Gegenstände der Tasche, Champion-Zeichen, Flächen für Requisiten)",
+   "titel": "Nacht 2: Dinge (Gegenstände der Tasche, Champion-Zeichen, Flächen für Requisiten)",
    "zweck": "Der größte Gewinn ohne Code: alle Gegenstände der Tasche ägyptisch statt mittelalterlich, sofort im Spiel.",
    "stufen": [
     "gegenstaende",
@@ -3479,13 +4148,14 @@
    ],
    "fuellen": [
     "gegenstaende_d",
+    "lebewesen",
     "vorlagen_mehr"
    ],
    "stunden": 7.5,
    "danach": "Tafeln schicken; Claude trägt die Auswahl ein; einbauen.bat gegenstaende; sync.bat."
   },
   "welt": {
-   "titel": "Nacht 2: Welt (Wände und Böden der Stunden 6 bis 12, zweite Wandart, Sand, Wasser, Himmel)",
+   "titel": "Nacht 3: Welt (Wände und Böden der Stunden 6 bis 12, zweite Wandart, Sand, Wasser, Himmel)",
    "zweck": "Die Stunden 6 bis 12 sehen heute aus wie 1 bis 5. Eigene Oberflächen je Stunde, nahtlos gerechnet.",
    "stufen": [
     "stunden_flaechen",
@@ -3494,13 +4164,14 @@
     "wasser_himmel"
    ],
    "fuellen": [
-    "stunden_flaechen_d"
+    "stunden_flaechen_d",
+    "lebewesen"
    ],
    "stunden": 7.5,
    "danach": "Tafeln schicken; Sand sofort einbauen; die Stunden brauchen Code (SURF, LOOK)."
   },
   "boden_wand": {
-   "titel": "Nacht 3: Boden und Wand (Abziehbilder, Wandbilder, Tore, Teppiche, Säulen)",
+   "titel": "Nacht 4: Boden und Wand (Abziehbilder, Wandbilder, Tore, Teppiche, Säulen)",
    "zweck": "Gegen die leeren Flächen: Risse, Sand, Scherben und Blut auf dem Boden, Reliefs und Tore an den Wänden.",
    "stufen": [
     "abziehbilder",
@@ -3518,13 +4189,12 @@
    "danach": "Tafeln schicken; alles braucht Code (Claude baut die Stellen ein)."
   },
   "erzaehlung": {
-   "titel": "Nacht 4: Erzählung (Ladebilder je Stunde, Lexikon, Hüter 9 bis 12, Enden, Titel)",
-   "zweck": "Gemalte Bilder für die Geschichte: jede Stunde beginnt mit einem Bild, das Buch des Thot bekommt Bilder, die Enden einen Abschluss.",
+   "titel": "Nacht 5: Erzählung (Titel, Hüter 9 bis 12, Ladebild je Stunde, Lexikon)",
+   "zweck": "Gemalte Bilder rund um die Geschichte: jede Stunde beginnt mit einem Bild, das Buch des Thot bekommt Bilder, die späten Hüter ein Gesicht.",
    "stufen": [
     "titel",
     "hueter_spaet",
     "ladebilder",
-    "enden",
     "buchbilder"
    ],
    "fuellen": [
@@ -3536,5 +4206,36 @@
    "danach": "Tafeln schicken; Titel und Hüter fast sofort, der Rest mit Code."
   }
  },
- "hinweis_naechte": "Nächte: bildwerk.bat nacht <Nummer oder Name>. stufen in der Reihenfolge ihres Nutzens; fuellen: Reserve-Stufen, die nur laufen, solange der Zeitrahmen 'stunden' (ab Beginn) noch reicht. Platz für die Wunschlisten von Oberfläche, Lebewesen und Szenen: weitere Nächte folgen."
+ "hinweis_naechte": "Nächte: bildwerk.bat nacht <Nummer oder Name>, Nummern in dieser Reihenfolge ab 0. stufen in der Reihenfolge ihres Nutzens; fuellen: Reserve-Stufen, die nur laufen, solange der Zeitrahmen 'stunden' (ab Beginn) noch reicht. Die Lebewesen laufen als Reserve in den Nächten 1 bis 3.",
+ "bausteine": {
+  "FIGUR": {
+   "text": "a lone traveller in a long dark hooded cloak of undyed linen, seen from behind, the face hidden"
+  },
+  "LATERNE": {
+   "text": "a small round lantern of dark bronze with pierced holes, carried on a short chain",
+   "ausnahme": [
+    "lantern"
+   ],
+   "grund": "Die Laterne ist der Gegenstand der Hauptfigur und muss sichtbar sein. 'oil-lamp' ergab früher eine moderne Sturmlaterne; darum immer diese alte Form aus Bronze, und Licht nur als Farbe dazu ('glowing warm amber')."
+  },
+  "NEBET": {
+   "text": "a slender girl in her early teens with dark braided hair, a plain undyed linen dress and fingertips stained deep indigo blue from dye"
+  },
+  "HAREMHAB": {
+   "text": "a broad-shouldered Egyptian general in bronze scale armour with a blue war crown and a short curved sword at his hip"
+  },
+  "SAMMLER": {
+   "text": "a very old tired judge of the dead with a shaved head, a deeply lined face and sorrowful eyes, a single tall white feather tied into a plain white headband, a heavy grey linen mantle"
+  },
+  "SCHATTEN": {
+   "text": "a tall faceless shadow made of black smoke in the shape of an old judge with a single tall white feather on his head"
+  },
+  "BA": {
+   "text": "a small ba bird with golden-brown wings and the small human head of a young girl with dark braided hair"
+  },
+  "THOT": {
+   "text": "an ibis-headed god in a white linen kilt"
+  }
+ },
+ "hinweis_bausteine": "Bausteine: {NAME} in motiv, hinweis oder tex wird durch den Text ersetzt (bildwerk.bat › baue_prompt). 'ausnahme' nennt Wörter, die pruefe_plan.py hier bewusst durchlässt, 'grund' sagt warum."
 }
