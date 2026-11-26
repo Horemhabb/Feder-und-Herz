@@ -461,8 +461,8 @@ func _kamera(delta: float, sofort := false) -> void:
 		mitte = feind.position + Vector3(0, 1.3, 0)
 		weit = 5.0
 	elif ziel == 3:
-		mitte = Vector3(0, 0.5, 3.6)
-		weit = 5.5
+		mitte = Vector3(0, 0.6, 3.6)
+		weit = 7.5
 	var k := 1.0 if sofort else minf(1.0, delta * 3.0)
 	cam_mitte = cam_mitte.lerp(mitte, k)
 	cam_weit = lerpf(cam_weit, weit, k)
@@ -495,19 +495,25 @@ const TIERE := [["esel", 0.0], ["schaf", 0.0], ["ziege", 0.0], ["katze", 0.0], [
 var tiere: Array = []
 
 func _tiere() -> void:
-	var x := -5.6
+	# erst die Breite der Reihe, dann mittig vor die Podeste stellen (große Tiere hinten, kleine vorn)
+	var reihe := []
+	var breite := 0.0
 	for t in TIERE:
+		var gr := 1.0 if t[0] in ["esel", "schaf", "ziege", "ibis_steh", "ibis_flug", "falke_flug", "falke_sitz", "katze"] else 1.6
+		var b: float = Tiere.netz(t[0]).get_aabb().size.x * gr + 0.15
+		reihe.append([t, gr, b])
+		breite += b
+	var x := -breite * 0.5
+	for r in reihe:
+		var t: Array = r[0]
 		var mi := MeshInstance3D.new()
 		mi.mesh = Tiere.netz(t[0])
 		mi.material_override = Tiere.stoff(t[0])
 		mi.extra_cull_margin = 1.0
-		var breit: float = Tiere.netz(t[0]).get_aabb().size.x
-		x += breit * 0.6 + 0.12
-		mi.position = Vector3(x, 0.18 + t[1], 3.6)
+		mi.position = Vector3(x + r[2] * 0.5, 0.18 + t[1], 3.2 if r[1] == 1.0 else 4.0)
 		mi.rotation.y = 0.5
-		var gr := 1.0 if t[0] in ["esel", "schaf", "ziege", "ibis_steh", "ibis_flug", "falke_flug"] else 1.6
-		mi.scale = Vector3.ONE * gr
-		x += breit * 0.6 * gr
+		mi.scale = Vector3.ONE * r[1]
+		x += r[2]
 		add_child(mi)
 		tiere.append(mi)
 

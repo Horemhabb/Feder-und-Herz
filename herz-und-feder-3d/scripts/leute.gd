@@ -102,7 +102,7 @@ static func _ding(art: String) -> Array:
 			teile.append([Deko._commit([[st, _stoff("binse")]]), "chest", Vector3(0.15, 0.1, -0.32), Vector3(0, 0, 25)])
 		"tuch_weiss", "tuch_ocker", "tuch_blau":
 			# Kopftuch: liegt über dem Schädel und fällt hinten in den Nacken
-			_ei(st, Vector3(0, 0.3, -0.03), Vector3(0.2, 0.15, 0.215), 12, 6)
+			_ei(st, Vector3(0, 0.31, -0.03), Vector3(0.205, 0.2, 0.22), 12, 6)
 			Deko.taper(st, Vector2(0.36, 0.07), Vector2(0.3, 0.05), 0.34, Vector3(0, -0.02, -0.16))
 			var farbe: String = {"tuch_weiss": "leinen", "tuch_ocker": "ocker", "tuch_blau": "blau"}[art]
 			teile.append([Deko._commit([[st, _stoff(farbe)]]), "head", Vector3(0, 0.0, 0), Vector3.ZERO])
