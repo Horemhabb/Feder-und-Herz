@@ -48,6 +48,7 @@ var vorhang: ColorRect
 var text_l: Label
 var wer_l: Label
 var titel_l: Label
+var titel_leiste: Control
 var weiter_l: Label
 var staub: CPUParticles2D
 var welt_vorher := {}             # Kamera und Licht vor der ersten Welt-Einstellung
@@ -121,18 +122,16 @@ static func erinnerungen_zeigen(g: Node) -> void:
 	mitte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mitte.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.add_child(mitte)
+	# dunkle Tafel mit Bekrönung, Kartusche als Titel, Zierleiste, Knöpfe: das Gestaltungssystem (zier.gd)
+	var tafel := PanelContainer.new()
+	Zier.tafel(tafel, "dunkel", "udjat")
+	mitte.add_child(tafel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
-	v.custom_minimum_size = Vector2(420, 0)
-	mitte.add_child(v)
-	var schrift: Font = load("res://ui/fonts/almendra.woff")
-	var kopf := Label.new()
-	kopf.text = "Erinnerungen"
-	kopf.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	kopf.add_theme_font_override("font", load("res://ui/fonts/almendra_fett.woff"))
-	kopf.add_theme_font_size_override("font_size", 34)
-	kopf.add_theme_color_override("font_color", PARCH)
-	v.add_child(kopf)
+	v.custom_minimum_size = Vector2(440, 0)
+	tafel.add_child(v)
+	v.add_child(Zier.kartusche("Erinnerungen", 30))
+	v.add_child(Zier.leiste(0.0, "lotos", 16.0))
 	var zu := func():
 		ebene.queue_free()
 		g.get_tree().paused = war
@@ -141,26 +140,18 @@ static func erinnerungen_zeigen(g: Node) -> void:
 		var l := Label.new()
 		l.text = "Noch keine. Sie kommen mit der Nacht."
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_override("font", schrift)
+		l.add_theme_font_override("font", Zier.schrift("text"))
 		l.add_theme_color_override("font_color", DIM)
 		v.add_child(l)
 	for p in liste:
-		var b := Button.new()
-		b.text = "  %s  " % p[1]
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_override("font", schrift)
-		b.add_theme_font_size_override("font_size", 18)
 		var nm: String = p[0]
-		b.pressed.connect(func():
+		v.add_child(Zier.knopf(p[1], "zweit", func():
 			ebene.queue_free()
 			g.get_tree().paused = war
-			Szene.spielen(g, nm, Callable(), true))
-		v.add_child(b)
-	var zurueck := Button.new()
-	zurueck.text = "  Zurück  "
-	zurueck.add_theme_font_override("font", schrift)
-	zurueck.pressed.connect(zu)
+			Szene.spielen(g, nm, Callable(), true)))
+	var zurueck := Zier.knopf("Zurück", "haupt", zu)
 	v.add_child(zurueck)
+	zurueck.focus_mode = Control.FOCUS_ALL
 	zurueck.grab_focus()
 
 # ---------------------------------------------------------------- Aufbau
@@ -246,13 +237,13 @@ func _bauen() -> void:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 2)
 	wurzel.add_child(box)
-	wer_l = _schrift("", 15 if not _touch() else 14, GOLD, "res://ui/fonts/almendra_sc.woff")
+	wer_l = _schrift("", 15 if not _touch() else 17, GOLD, "zier")
 	box.add_child(wer_l)
-	text_l = _schrift("", 30 if not _touch() else 22, PARCH, "res://ui/fonts/almendra.woff")
+	text_l = _schrift("", 30 if not _touch() else 27, PARCH, "text")
 	text_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(text_l)
 	# Zwischentitel (Ende eines Aktes): groß in der Mitte
-	titel_l = _schrift("", 46 if not _touch() else 34, PARCH, "res://ui/fonts/almendra_fett.woff")
+	titel_l = _schrift("", 46 if not _touch() else 34, Zier.GOLD_HELL, "fett")
 	titel_l.set_anchors_preset(Control.PRESET_CENTER)
 	titel_l.anchor_left = 0.0
 	titel_l.anchor_right = 1.0
@@ -260,12 +251,18 @@ func _bauen() -> void:
 	titel_l.grow_vertical = Control.GROW_DIRECTION_BOTH
 	titel_l.modulate.a = 0.0
 	wurzel.add_child(titel_l)
+	# unter dem Zwischentitel eine Zierleiste mit Flügelsonne, wie in der Oberfläche
+	titel_leiste = Zier.leiste(420.0, "sonne", 26.0)
+	titel_leiste.set_anchors_preset(Control.PRESET_CENTER)
+	titel_leiste.position += Vector2(-210, 44)
+	titel_leiste.modulate.a = 0.0
+	wurzel.add_child(titel_leiste)
 	vorhang = ColorRect.new()
 	vorhang.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vorhang.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wurzel.add_child(vorhang)
 	# Hinweise in den Ecken: weiter und überspringen
-	weiter_l = _schrift("Tippen: weiter" if _touch() else "Klick oder Leertaste: weiter", 12, Color(DIM, 0.75), "res://ui/fonts/almendra.woff")
+	weiter_l = _schrift("Tippen: weiter" if _touch() else "Klick oder Leertaste: weiter", 12, Color(DIM, 0.75), "text")
 	weiter_l.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	weiter_l.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	weiter_l.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -276,7 +273,7 @@ func _bauen() -> void:
 	skip.text = "  Überspringen ›  " if _touch() else "  Überspringen  [Esc]  "
 	skip.flat = true
 	skip.focus_mode = Control.FOCUS_NONE
-	skip.add_theme_font_override("font", load("res://ui/fonts/almendra.woff"))
+	skip.add_theme_font_override("font", Zier.schrift("text"))
 	skip.add_theme_font_size_override("font_size", 16 if _touch() else 14)
 	skip.add_theme_color_override("font_color", Color(DIM, 0.85))
 	skip.add_theme_color_override("font_hover_color", PARCH)
@@ -297,13 +294,12 @@ func _balken(oben: bool) -> ColorRect:
 	wurzel.add_child(b)
 	return b
 
-func _schrift(t: String, groesse: int, farbe: Color, font: String) -> Label:
+func _schrift(t: String, groesse: int, farbe: Color, font: String) -> Label:   # font: "text", "zier", "fett" (Zier.schrift)
 	var l := Label.new()
 	l.text = t
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var f: Font = load(font)
-	l.add_theme_font_override("font", f)
+	l.add_theme_font_override("font", Zier.schrift(font))
 	l.add_theme_font_size_override("font_size", groesse)
 	l.add_theme_color_override("font_color", farbe)
 	l.add_theme_constant_override("outline_size", 6)
@@ -456,10 +452,12 @@ func _einstellung_zeigen() -> void:
 	var titel := str(e.get("titel", ""))
 	titel_l.text = titel
 	titel_l.modulate.a = 0.0
+	titel_leiste.modulate.a = 0.0
 	if titel != "":
 		var tt := create_tween()
 		tt.tween_interval(0.6)
 		tt.tween_property(titel_l, "modulate:a", 1.0, 1.2)
+		tt.parallel().tween_property(titel_leiste, "modulate:a", 1.0, 1.2)
 
 # Welches Bild? ["bild", Pfad] · ["portrait", Pfad] · ["breit", Pfad] (Hüter, Akt, Titel) · ["welt", ""] · ["zeichen", Motiv]
 func _bildart(x: Dictionary) -> Array:
@@ -531,38 +529,21 @@ func _bild(art: Array) -> void:
 			buehne.add_child(dunkel)
 		"portrait":
 			# Porträt im Goldrahmen vor einer dunklen Fläche mit Zierleiste (das Zeichen bleibt leise dahinter)
-			var z := Zier.new()
+			var z := Ersatzbild.new()
 			z.motiv = str(e.get("zeichen", ""))
 			z.leise = true
 			z.set_anchors_preset(Control.PRESET_FULL_RECT)
 			buehne.add_child(z)
 			var vs := get_viewport().get_visible_rect().size
-			var ph := vs.y * (0.56 if _touch() else 0.6)
-			var rahmen := Panel.new()
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0, 0, 0, 0.6)
-			sb.border_color = Color("c9a04a")
-			sb.set_border_width_all(2)
-			sb.set_corner_radius_all(4)
-			sb.shadow_color = Color(0, 0, 0, 0.6)
-			sb.shadow_size = 18
-			rahmen.add_theme_stylebox_override("panel", sb)
-			rahmen.size = Vector2(ph * 0.75, ph) + Vector2(8, 8)
-			rahmen.position = Vector2(vs.x * 0.5 - rahmen.size.x * 0.5, vs.y * 0.12)
-			rahmen.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			rahmen.pivot_offset = rahmen.size * 0.5
+			var ph := vs.y * (0.5 if _touch() else 0.56)
+			# Goldrahmen mit Bekrönung aus dem Gestaltungssystem (zier.gd), wie die Porträts im Gespräch
+			var rahmen := Zier.bildrahmen(load(art[1]), Vector2(ph * 0.75, ph), "udjat")
+			rahmen.position = Vector2(vs.x * 0.5 - (ph * 0.75 + 14) * 0.5, vs.y * 0.16)
 			buehne.add_child(rahmen)
-			var pic := TextureRect.new()
-			pic.texture = load(art[1])
-			pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			pic.position = Vector2(4, 4)
-			pic.size = rahmen.size - Vector2(8, 8)
-			pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			rahmen.add_child(pic)
+			rahmen.size = Vector2(ph * 0.75, ph) + Vector2(14, 14)
 			ebenen.append([rahmen, 0.5])
 		"zeichen":
-			var z := Zier.new()
+			var z := Ersatzbild.new()
 			z.motiv = art[1]
 			z.oben = str(e.get("titel", "")) != ""   # unter einem Zwischentitel steht das Zeichen klein darüber
 			z.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -594,8 +575,8 @@ func _fahrt() -> void:
 		n.scale = Vector2.ONE * zt
 		# Verschiebung höchstens so weit, wie der Zoom Rand übrig lässt (x, y = ±1: bis an die Kante)
 		var weg := off * vs * maxf(0.0, zt - 1.0) * 0.5
-		if n is Panel:
-			n.position = Vector2(vs.x * 0.5 - n.size.x * 0.5, vs.y * 0.12) + off * vs * 0.02 + ruck
+		if n is PanelContainer:
+			n.position = Vector2(vs.x * 0.5 - n.size.x * 0.5, vs.y * 0.16) + off * vs * 0.02 + ruck
 		else:
 			n.position = weg + ruck * tiefe
 	if staub.emitting:
@@ -713,7 +694,7 @@ func _aufraeumen() -> void:
 # ---------------------------------------------------------------- Ersatzbild: dunkle Fläche, Zierleiste, Zeichen
 # Steht, solange ein gemaltes Bild fehlt: doppelter Goldrahmen, ein Horizont, darüber in feinen Linien ein Zeichen der
 # Einstellung (sonne, waage, krug, tor, feder, laterne, ba, auge, schlange). Atmet langsam.
-class Zier extends Control:
+class Ersatzbild extends Control:
 	var motiv := "sonne"
 	var leise := false
 	var oben := false   # Zeichen klein im oberen Drittel (unter einem Zwischentitel)
@@ -737,24 +718,15 @@ class Zier extends Control:
 			draw_circle(s * Vector2(0.5, 0.58), r, Color(0.09, 0.07, 0.12, 0.12))
 		var g := Color(0.91, 0.69, 0.29, 0.55 if not leise else 0.3)
 		var gd := Color(g, g.a * 0.45)
-		# doppelter Rahmen mit Ecken wie ein Fries
-		# innerhalb der Schwarzbalken (oben und unten je 8,5 % der Höhe)
-		var m := Vector2(minf(s.x, s.y) * 0.05, s.y * 0.12)
-		draw_rect(Rect2(m, s - m * 2), g, false, 1.5)
-		draw_rect(Rect2(m + Vector2(10, 10), s - m * 2 - Vector2(20, 20)), gd, false, 1.0)
-		for ecke in [m, Vector2(s.x - m.x, m.y), Vector2(m.x, s.y - m.y), s - m]:
-			draw_circle(ecke, 3.0, g)
-		# Fries oben und unten: kleine Rauten zwischen den beiden Rahmenlinien
-		var n := int(s.x / 34.0)
-		for i in n:
-			var x := m.x * 2.0 + (s.x - m.x * 4.0) * (i + 0.5) / n
-			for y in [m.y + 5.0, s.y - m.y - 5.0]:
-				var p := Vector2(x, y)
-				draw_colored_polygon(PackedVector2Array([p + Vector2(0, -3), p + Vector2(3, 0), p + Vector2(0, 3), p + Vector2(-3, 0)]), gd)
+		# Goldfassung und Zierleisten aus dem Gestaltungssystem (zier.gd), innerhalb der Schwarzbalken
+		var m := Vector2(minf(s.x, s.y) * 0.05, s.y * 0.11)
+		draw_style_box(Zier.rahmen_stil(), Rect2(m, s - m * 2))
+		var lb := minf(s.x * 0.5, 620.0)
+		Zier.leiste_zeichnen(self, Rect2(Vector2((s.x - lb) / 2.0, m.y + 34.0), Vector2(lb, 26.0)), "sonne", 0.75 if not leise else 0.45)
 		if leise or motiv == "":
 			return
 		var atem := 0.85 + sin(t * 0.9) * 0.15
-		var c := s * Vector2(0.5, 0.3 if oben else 0.44)
+		var c := s * Vector2(0.5, 0.34 if oben else 0.44)
 		var k := s.y * (0.1 if oben else 0.2)
 		var lc := Color(g, g.a * atem)
 		var hy := c.y + k * 0.9   # Horizont
