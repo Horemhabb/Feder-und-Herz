@@ -299,6 +299,7 @@ static func knopf(text: String, art := "zweit", cb := Callable()) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(0, 46)
 	knopf_stil(b, art)
+	if art == "haupt": b.pressed.connect(func(): Sfx.spiele(b, "knopf_gold"))
 	if cb.is_valid():
 		b.pressed.connect(cb)
 	return b
@@ -402,6 +403,7 @@ static func entfalten(c: Control, dauer := 0.22) -> void:
 	var los := func():
 		if not is_instance_valid(c):
 			return
+		Sfx.spiele(c, "fenster_auf", -3.0)
 		c.pivot_offset = c.size / 2.0
 		var tw := c.create_tween().set_parallel()
 		tw.tween_property(c, "modulate:a", 1.0, dauer)
@@ -416,6 +418,7 @@ static func verblassen(c: Control, dauer := 0.4) -> Tween:
 # kurzer Goldglanz: hell aufleuchten und zurück
 static func glanz(c: CanvasItem, kraft := 0.55) -> void:
 	var tw := c.create_tween()
+	Sfx.spiele(c, "legendary", -8.0)
 	c.modulate = Color(1.0 + kraft, 1.0 + kraft * 0.8, 1.0 + kraft * 0.3, c.modulate.a)
 	tw.tween_property(c, "modulate", Color(1, 1, 1, c.modulate.a), 0.7).set_trans(Tween.TRANS_SINE)
 

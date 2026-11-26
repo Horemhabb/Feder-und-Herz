@@ -58,6 +58,7 @@ var _t := 0.0
 
 func _process(d: float) -> void:
 	_t += d
+	if fmod(_t, TAU / 5.0) < d: Sfx.spiele(self, "herzschlag")   # ein Herzschlag je Atemzug des Glases
 	var k := 0.5 + 0.5 * sin(_t * 5.0)
 	glass.modulate = Color(1.0 + 0.45 * k, 1.0 + 0.1 * k, 1.0 + 0.1 * k)
 

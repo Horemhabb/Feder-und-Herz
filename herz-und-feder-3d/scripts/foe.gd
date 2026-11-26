@@ -664,7 +664,7 @@ func _physics_process_innen(delta: float) -> void:
 				wake_t = 0.2
 			if kind == "boss" and _steht_auf() and wake_t < anim_len(ANIM.rise) * 0.9:
 				return
-			if kind != "boss" and cur_anim != ANIM.wake and randf() < 0.5: game.sfx.play_at(game.sfx.gegner(kind, "wach"), global_position, 0.1, -3.0)
+			if kind != "boss" and cur_anim != ANIM.wake and game.sfx.rng.randf() < 0.5: game.sfx.play_at(game.sfx.gegner(kind, "wach"), global_position, 0.1, -3.0)
 			state = St.FIGHT
 			atk_t = randf_range(0.2, 0.9)
 			return

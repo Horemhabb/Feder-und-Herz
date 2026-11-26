@@ -46,7 +46,7 @@ func starten(kind: String) -> void:
 	grund = _teppich(GRUND[art])
 	if STUNDE.has(h):
 		stunde = _teppich(STUNDE[h])
-	naechstes = randf_range(4.0, 9.0)
+	naechstes = game.sfx.rng.randf_range(4.0, 9.0)
 	kampf = false
 	spannung = false
 	_quellen()
@@ -61,7 +61,7 @@ func _teppich(name: String) -> AudioStreamPlayer:
 	p.stream = s
 	p.volume_db = -60.0
 	add_child(p)
-	p.play(randf() * 10.0)
+	p.play(game.sfx.rng.randf() * 10.0)
 	p.set_meta("klang", name)
 	create_tween().tween_property(p, "volume_db", Sfx.VOL.get(name, -20.0), 4.0)
 	return p
@@ -101,7 +101,7 @@ func quelle(name: String, an: Node3D, weite := 14.0, hoehe := 1.0) -> AudioStrea
 	p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_SQUARE_DISTANCE
 	an.add_child(p)
 	p.position = Vector3(0, hoehe, 0)
-	p.play(randf() * 4.0)
+	p.play(game.sfx.rng.randf() * 4.0)
 	game.sfx.schleife_merken(p)
 	return p
 
@@ -122,13 +122,13 @@ func _process_innen(delta: float) -> void:
 	# einzelne Geräusche: alle sechs bis fünfzehn Sekunden eines, nie zweimal dasselbe hintereinander
 	naechstes -= delta
 	if naechstes <= 0.0:
-		naechstes = randf_range(6.0, 15.0)
+		naechstes = game.sfx.rng.randf_range(6.0, 15.0)
 		var liste: Array = ereignisse.filter(func(n): return n != zuletzt)
 		if not liste.is_empty():
-			var n: String = liste.pick_random()
+			var n: String = liste[game.sfx.rng.randi() % liste.size()]
 			zuletzt = n
-			var w := randf() * TAU
-			var p: Vector3 = game.hero.global_position + Vector3(cos(w), 0, sin(w)) * randf_range(7.0, 18.0)
+			var w: float = game.sfx.rng.randf() * TAU
+			var p: Vector3 = game.hero.global_position + Vector3(cos(w), 0, sin(w)) * game.sfx.rng.randf_range(7.0, 18.0)
 			game.sfx.play_at(n, p, 0.1)
 	# Musik nach Lage. Im Hüterkampf entscheidet main.gd (Sfx.lage("hueter", Phase)).
 	if game.boss_awake:

@@ -80,6 +80,8 @@ var loops := {}
 var voice: AudioStreamPlayer
 var muted := false
 var zuletzt := {}
+# eigener Zufall für Tonhöhe, Variante und Kulisse: Klänge verändern so nie den Zufall des Spiels (Tests mit festem Seed)
+var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -108,7 +110,7 @@ func _stream(key: String) -> AudioStream:
 	return streams[key]
 
 func _pick(name: String) -> String:
-	return "%s%d" % [name, randi_range(1, VARIANTS[name])] if VARIANTS.has(name) else name
+	return "%s%d" % [name, rng.randi_range(1, VARIANTS[name])] if VARIANTS.has(name) else name
 
 # Klang der Klasse des Helden (siehe KLASSE)
 func _klasse(name: String) -> String:
@@ -155,8 +157,23 @@ func _spieler(liste: Array, name: String) -> Node:
 		return null
 	return frei if frei != null else alt
 
+# Für Oberflächen-Bausteine ohne Verweis auf das Spiel (zier.gd, kugel.gd): findet den Ton der laufenden Szene
+static func spiele(von: Node, name: String, vol_add := 0.0) -> void:
+	if von == null or not von.is_inside_tree():
+		return
+	var s = von.get_tree().current_scene.get("sfx") if von.get_tree().current_scene else null
+	if s is Sfx:
+		s.play(name, 0.04, vol_add)
+
 func play(name: String, pitch_var := 0.06, vol_add := 0.0) -> void:
 	name = _klasse(name)
+	# Goldknopf statt des allgemeinen Klicks: wer zuerst kommt, der andere schweigt
+	if name == "ui" and Time.get_ticks_msec() - int(zuletzt.get("knopf_gold", -100000)) < 150:
+		return
+	if name == "knopf_gold":
+		for p in pool:
+			if p.playing and p.get_meta("klang", "") == "ui" and p.get_playback_position() < 0.15:
+				p.stop()
 	var s := _stream(_pick(name))
 	if s == null or muted or not _darf(name):
 		return
@@ -166,7 +183,7 @@ func play(name: String, pitch_var := 0.06, vol_add := 0.0) -> void:
 	p.stream = s
 	p.set_meta("klang", name)
 	p.volume_db = VOL.get(name, -6.0) + vol_add
-	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.pitch_scale = 1.0 + rng.randf_range(-pitch_var, pitch_var)
 	p.play()
 
 # verzoegert: Sekunden bis zum Klang (z. B. ein fallender Körper, der erst später aufschlägt)
@@ -184,7 +201,7 @@ func play_at(name: String, pos: Vector3, pitch_var := 0.08, vol_add := 0.0, verz
 	p.set_meta("klang", name)
 	p.global_position = pos
 	p.volume_db = VOL.get(name, -6.0) + vol_add
-	p.pitch_scale = 1.0 + randf_range(-pitch_var, pitch_var)
+	p.pitch_scale = 1.0 + rng.randf_range(-pitch_var, pitch_var)
 	p.play()
 
 func loop(name: String) -> void:
@@ -240,7 +257,10 @@ func loop_at(name: String, parent: Node3D) -> void:
 	p.max_distance = 22.0
 	p.volume_db = VOL.get(name, -12.0) + 4.0
 	parent.add_child(p)
-	p.play(randf() * 6.0)
+	if p.is_inside_tree():
+		p.play(rng.randf() * 6.0)
+	else:
+		p.autoplay = true   # Träger noch nicht in der Welt (Champion beim Entstehen): spielt, sobald er dort ist
 	schleife_merken(p)
 
 func say(name: String) -> void:
