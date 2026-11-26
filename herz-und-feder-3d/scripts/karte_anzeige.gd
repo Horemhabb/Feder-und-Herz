@@ -96,16 +96,18 @@ func _seen_at(p: Vector3) -> bool:
 func _draw() -> void:
 	if karte == null:
 		return
-	# durchsichtig: nur ein dunkler Hauch, damit die Zeichen auf hellem Sand lesbar bleiben
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.02, 0.04, 0.2))
-	draw_texture_rect(tex, Rect2(Vector2.ZERO, size), false)
-	# Rahmen wie eine Kartusche: feine Doppellinie in Gold, Rauten in den Ecken
-	var gold := Color(0.9, 0.72, 0.36)
-	draw_rect(Rect2(Vector2.ZERO, size), Color(gold, 0.85), false, 1.5)
-	draw_rect(Rect2(Vector2(4, 4), size - Vector2(8, 8)), Color(gold, 0.3), false, 1.0)
-	for e in [Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]:
-		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -6), e + Vector2(6, 0), e + Vector2(0, 6), e + Vector2(-6, 0)]), gold)
-		draw_colored_polygon(PackedVector2Array([e + Vector2(0, -3), e + Vector2(3, 0), e + Vector2(0, 3), e + Vector2(-3, 0)]), Color(0.1, 0.08, 0.06))
+	# durchsichtig: nur ein dunkler Hauch, damit die Zeichen auf hellem Sand lesbar bleiben; groß ein Grund aus
+	# Pergament, wenn gemalt vorhanden (ui/zier/gemalt/karte_grund), sonst dunkles Blau wie Lapislazuli
+	var feld := Rect2(Vector2.ZERO, size)
+	if gross:
+		var g := Zier.tex("karte_grund") if Zier.gemalt("karte_grund") else null
+		if g:
+			draw_texture_rect(g, feld, false)
+		else:
+			draw_rect(feld, Color(0.03, 0.04, 0.08, 0.9))
+	else:
+		draw_rect(feld, Color(0.02, 0.02, 0.04, 0.28))
+	draw_texture_rect(tex, feld, false)
 	var z := 2.2 if gross else 1.0
 	var packs := {}
 	for f in game.foes:
@@ -156,6 +158,13 @@ func _draw() -> void:
 					draw_circle(q, 1.8 * z, Color(0.95, 0.95, 0.85))
 	if game.gate:
 		draw_arc(_to_px(game.gate.global_position), 5.0 * z, 0.0, TAU, 16, Color(0.56, 0.89, 0.88), 1.5 * z)
+	# Fassung (4.3): vertiefter Goldrahmen mit Nieten wie die Plätze der Fähigkeiten; groß dazu eine Windrose
+	Zier.platz_zeichnen(self, feld.grow(3), Color(0, 0, 0, 0), true)
+	if gross:
+		var wr := Zier.tex("windrose")
+		if wr:
+			var w := clampf(size.x * 0.09, 56.0, 96.0)
+			draw_texture_rect(wr, Rect2(Vector2(size.x - w - 14, 14), Vector2(w, w)), false, Color(1, 1, 1, 0.85))
 	if game.hero:
 		# die Figur als Pfeil in Blickrichtung, mit weichem Schein
 		var hp := _to_px(game.hero.global_position)

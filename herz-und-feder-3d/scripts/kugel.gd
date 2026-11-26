@@ -1,6 +1,7 @@
 class_name Kugel extends Control
-# Lebens- und Kraftkugel wie in der 2D-Fassung: eine Glaskugel, in der die Flüssigkeit mit dem Wert steigt und fällt,
-# in einem Ring aus dunkler Bronze und Gold. Die Kugel zeichnet ein Shader, den Ring und die Zahl zeichnet _draw.
+# Lebens- und Kraftkugel wie in der 2D-Fassung: eine Glaskugel, in der die Flüssigkeit mit dem Wert steigt und fällt.
+# Seit 4.3 sitzt sie in einer getriebenen Goldfassung (ui/zier/kugel_fassung.webp: Lotos oben, Federn der Maat zu den
+# Seiten, Skarabäus unten), die etwas über den Platz der Kugel hinausragt. Wenig Leben: das Glas pulsiert langsam.
 
 const CODE := "
 shader_type canvas_item;
@@ -45,12 +46,28 @@ var font: Font
 var mat: ShaderMaterial
 var glass: ColorRect
 var top: Control
+var fassung: Texture2D
+var puls := false:          # wenig Leben: das Glas atmet hell und dunkel
+	set(v):
+		if v != puls:
+			puls = v
+			set_process(v)
+			if not v and glass:
+				glass.modulate = Color.WHITE
+var _t := 0.0
+
+func _process(d: float) -> void:
+	_t += d
+	var k := 0.5 + 0.5 * sin(_t * 5.0)
+	glass.modulate = Color(1.0 + 0.45 * k, 1.0 + 0.1 * k, 1.0 + 0.1 * k)
 
 func setup(col: Color, cap: String, f: Font, px: float) -> void:
 	caption = cap
 	font = f
 	custom_minimum_size = Vector2(px, px)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fassung = Zier.tex("kugel_fassung")
+	set_process(false)
 	if shader == null:
 		shader = Shader.new()
 		shader.code = CODE
@@ -84,6 +101,21 @@ func queue_top() -> void:
 func _draw_top() -> void:
 	var c := size / 2.0
 	var r := minf(size.x, size.y) / 2.0 - 4.0
+	if fassung:
+		# die Fassung so groß, dass ihr innerer Rand (99 von 144 Pixeln des Halbmessers) am Glas liegt
+		var halb := (r - 2.0) * 144.0 / 99.0
+		top.draw_texture_rect(fassung, Rect2(c - Vector2(halb, halb), Vector2(halb, halb) * 2.0), false)
+	else:
+		_ring_alt(c, r)
+	if font:
+		var fs := int(size.y * 0.2)
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var at := c + Vector2(-w / 2.0, fs * 0.36)
+		top.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.85))
+		top.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("f3ead2"))
+
+# der frühere Ring aus Bronze und Gold, falls die Fassung fehlt
+func _ring_alt(c: Vector2, r: float) -> void:
 	top.draw_arc(c, r, 0.0, TAU, 64, Color("1c1712"), 8.0, true)
 	top.draw_arc(c, r + 2.5, 0.0, TAU, 64, Color("7a5a26"), 2.0, true)
 	top.draw_arc(c, r - 3.0, 0.0, TAU, 64, Color("c9a04a"), 1.5, true)
@@ -93,12 +125,6 @@ func _draw_top() -> void:
 		var a := PI / 4 + i * PI / 2
 		top.draw_circle(c + Vector2(cos(a), sin(a)) * r, 3.2, Color("c9a04a"))
 		top.draw_circle(c + Vector2(cos(a), sin(a)) * r, 1.6, Color("3a2c14"))
-	if font:
-		var fs := int(size.y * 0.2)
-		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var at := c + Vector2(-w / 2.0, fs * 0.36)
-		top.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.85))
-		top.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("f3ead2"))
 
 func set_text(v: String) -> void:
 	if v != text:
