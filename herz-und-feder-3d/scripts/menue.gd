@@ -82,6 +82,8 @@ func _haupt() -> void:
 	v.add_child(_knopf("Lexikon: Götter und Begriffe", false, func(): geh("lexikon"), true, 360))
 	v.add_child(_knopf("Steuerung", false, func(): geh("steuerung"), true, 360))
 	v.add_child(_knopf("Einstellungen", false, func(): geh("einstellungen"), true, 360))
+	if not Szene.erinnerungen().is_empty():   # 4.3: gesehene Zwischensequenzen noch einmal ansehen
+		v.add_child(_knopf("Erinnerungen", false, func(): game.toggle_menu(); Szene.erinnerungen_zeigen(game), true, 360))
 	if Spiel.max_fall > 1:
 		v.add_child(_knopf("Stunde wechseln", false, func(): geh("stunden"), true, 360))
 	v.add_child(_knopf("Zum Titel", false, func(): game.zum_titel(), true, 360))
