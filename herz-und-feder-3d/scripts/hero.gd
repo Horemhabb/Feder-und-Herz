@@ -466,26 +466,47 @@ func attack() -> bool:
 	vel = Vector3.ZERO
 	if C.basic == "melee" or C.basic == "combo":
 		lunge = forward() * 3.4   # ein halber Schritt in den Hieb hinein
+	var sch: Dictionary = G.get("schlag", {})
 	match C.basic:
 		"melee":
-			var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
-			var sp := (2.1 if combo % 2 == 1 else 2.5) * tempo
-			play(a, sp, 0.08, true)
-			busy = anim_len(a) / sp * 0.78
-			game.sfx.play("swing", 0.1)
-			var m := (1.0 if combo % 2 == 1 else 1.25) * hm
-			pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, m, 6.0, true, st)])
+			if sch.has("atk_c"):
+				# Eidträger mit den neuen Hieben: zwei schnelle, der dritte weit und schwer (4.2)
+				var stufe := combo % 3
+				var key := "atk_a" if stufe == 1 else ("atk_b" if stufe == 2 else "atk_c")
+				var t: Array = sch[key]
+				var a: String = ANIM[key]
+				var sp: float = t[0] * tempo
+				var dritter := stufe == 0
+				play(a, sp, 0.08, true)
+				busy = anim_len(a) / sp * t[2]
+				game.sfx.play("swing", 0.1, 2.0 if dritter else 0.0)
+				var m: float = t[3] * hm
+				var r: float = 3.6 if dritter else 3.3
+				pending.append([anim_len(a) / sp * t[1], func():
+					game.hero_arc(self, r, 1.3 if dritter else 1.15, m, 8.0 if dritter else 6.0, true, st)
+					if dritter:
+						game.shake = maxf(game.shake, 0.18)])
+			else:
+				var a: String = ANIM.atk_a if combo % 2 == 1 else ANIM.atk_b
+				var sp := (2.1 if combo % 2 == 1 else 2.5) * tempo
+				play(a, sp, 0.08, true)
+				busy = anim_len(a) / sp * 0.78
+				game.sfx.play("swing", 0.1)
+				var m := (1.0 if combo % 2 == 1 else 1.25) * hm
+				pending.append([anim_len(a) / sp * 0.42, func(): game.hero_arc(self, 3.3, 1.15, m, 6.0, true, st)])
 		"combo":
 			# Priester: jeder dritte Schlag weiter, härter, mit Rückstoß
 			var third := combo % 3 == 0
-			var a: String = ANIM.atk_c if third else (ANIM.atk_a if combo % 3 == 1 else ANIM.atk_b)
-			var sp := (1.9 if third else 2.6) * tempo
+			var key := "atk_c" if third else ("atk_a" if combo % 3 == 1 else "atk_b")
+			var a: String = ANIM[key]
+			var t: Array = sch.get(key, [1.9 if third else 2.6, 0.4, 0.7 if third else 0.6, 1.9 if third else 1.0])
+			var sp: float = t[0] * tempo
 			play(a, sp, 0.06, true)
-			busy = anim_len(a) / sp * (0.7 if third else 0.6)
+			busy = anim_len(a) / sp * t[2]
 			game.sfx.play("swing", 0.1)
-			var m := (1.9 if third else 1.0) * hm
+			var m: float = t[3] * hm
 			var r: float = C.range * (1.6 if third else 1.0)
-			pending.append([anim_len(a) / sp * 0.4, func():
+			pending.append([anim_len(a) / sp * t[1], func():
 				game.hero_arc(self, r, 1.35 if third else 1.05, m, 6.0 if third else 3.0, true, st)
 				if third:
 					game.shake = maxf(game.shake, 0.15)
@@ -494,16 +515,18 @@ func attack() -> bool:
 						hp = minf(max_hp, hp + max_hp * 0.02)])
 		"shot":
 			# Jägerin: Pfeil, durchschlägt nicht, +4 Instinkt beim ersten Treffer
-			play(ANIM.atk_a, 2.2 * tempo, 0.06, true)
+			var t: Array = sch.get("atk_a", [2.2, 0.0, 0.0, 1.0])
+			play(ANIM.atk_a, t[0] * tempo, 0.06, true)
 			busy = 0.8 / Spiel.S.rate
 			game.sfx.play("swing", 0.1, -4.0)
-			pending.append([0.1, func(): game.spawn_shot(self, forward(), {"speed": 28.8, "r": 0.16, "life": 0.6, "mult": hm, "pierce": 0, "col": Color(0.85, 1.0, 0.85), "gen": 4.0, "stun": st, "kind": "arrow"})])
+			pending.append([anim_len(ANIM.atk_a) / (t[0] * tempo) * t[1] if t[1] > 0.0 else 0.1, func(): game.spawn_shot(self, forward(), {"speed": 28.8, "r": 0.16, "life": 0.6, "mult": hm, "pierce": 0, "col": Color(0.85, 1.0, 0.85), "gen": 4.0, "stun": st, "kind": "arrow"})])
 		"spark":
 			# Sternleserin: Funke, durchschlägt einmal
-			play(ANIM.atk_a, 2.4 * tempo, 0.06, true)
+			var t: Array = sch.get("atk_a", [2.4, 0.0, 0.0, 1.0])
+			play(ANIM.atk_a, t[0] * tempo, 0.06, true)
 			busy = 0.8 / Spiel.S.rate
 			game.sfx.play("bolt", 0.1, -6.0)
-			pending.append([0.12, func(): game.spawn_shot(self, forward(), {"speed": 21.6, "r": 0.24, "life": 0.7, "mult": 0.95 * hm, "pierce": 1, "col": Color(0.85, 0.6, 1.0), "gen": 4.0, "stun": st})])
+			pending.append([anim_len(ANIM.atk_a) / (t[0] * tempo) * t[1] if t[1] > 0.0 else 0.12, func(): game.spawn_shot(self, forward(), {"speed": 21.6, "r": 0.24, "life": 0.7, "mult": 0.95 * hm, "pierce": 1, "col": Color(0.85, 0.6, 1.0), "gen": 4.0, "stun": st})])
 	return true
 
 # ---------------------------------------------------------------- Fähigkeiten (04-combat.js › cast)
