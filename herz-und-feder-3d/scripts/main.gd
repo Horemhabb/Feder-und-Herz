@@ -1777,7 +1777,7 @@ func on_hero_dead() -> void:
 	if Spiel.hc:
 		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, Stunden.hour_txt(Spiel.fall)], func(): restart(false), "Neue Figur anlegen")
 		return
-	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 6 else "tod"), func():
+	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 5 else "tod"), func():
 		var im_kampf := boss_awake and boss.state != Foe.St.DEAD   # vor dem Zurücksetzen merken: fiel man im Kampf mit dem Hüter?
 		sfx.hush()
 		for f in foes:

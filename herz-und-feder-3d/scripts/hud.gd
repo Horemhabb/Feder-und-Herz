@@ -2055,8 +2055,8 @@ func _render_intro() -> void:
 func _intro_story(v: VBoxContainer) -> void:
 	# in schlichten Worten: worum es geht, wer du bist, was du tun sollst (3.0)
 	v.add_child(_para("Die alten Ägypter erzählten: Jede Nacht fährt die Sonne in einer Barke durch die Unterwelt, die Duat. Zwölf Stunden dauert die Fahrt. Kommt die Barke an, wird es Morgen.", 15, PARCH))
-	v.add_child(_para("Seit dem Herbst kommt der Morgen später. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne dieses Gericht findet niemand Ruhe, und niemand zieht mehr die Barke.", 15, PARCH))
-	v.add_child(_para("Du kommst aus Sandtor, der letzten Stadt vor dem Westen. Die Priester haben dir ihre letzte Laterne in die Hand gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs entscheidest, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
+	v.add_child(_para("Seit drei Nächten geht die Sonne später auf. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne Gewogene zieht niemand die Barke.", 15, PARCH))
+	v.add_child(_para("In Sandtor, der letzten Stadt vor dem Westen, liegt deine kleine Schwester Nebet im Fieber. Es bricht im Morgengrauen, wenn eines kommt. Die Priester geben dir ihre letzte Laterne. Diese Nacht hat zwölf Stunden: Steig hinab und hol den Morgen. Jemand ist dir eine Stunde voraus. Was du unterwegs entscheidest, macht dein Herz leichter oder schwerer, und am Ende wird auch deins gewogen.", 15, DIM))
 
 func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:
