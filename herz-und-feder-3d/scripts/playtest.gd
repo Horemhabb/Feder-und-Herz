@@ -749,6 +749,12 @@ func run() -> void:
 	var huefte := krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
 	check("Physik: der Besiegte fällt als Gliederpuppe (%d Körper, Becken %.2f m hoch)" % [sim.get_child_count() if sim else 0, huefte.origin.y - stand0.y], sim != null and sim.get_child_count() == Physik.GLIEDER.size() and Physik.gezaehlt.faelle == faelle0 + 1)
 	await wait(Physik.FALL_DAUER + 0.3)
+	# auf einem langsamen Rechner (Bau-Server) läuft die Simulation später aus: bis zu vier Sekunden zugeben
+	for i in 14:
+		if krieger.skel.get_node_or_null("Fall") == null:
+			break
+		await wait(0.3)
+	await wait(0.3)
 	huefte = krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
 	check("Physik: danach liegt er still und die Körper sind fort (Becken %.2f m hoch, %.1f m weit)" % [huefte.origin.y - stand0.y, Vector2(huefte.origin.x - stand0.x, huefte.origin.z - stand0.z).length()], krieger.skel.get_node_or_null("Fall") == null and Physik.faelle == 0 and not krieger.ap.active and huefte.origin.y - stand0.y < 0.6)
 	G3.foes.erase(krieger)
