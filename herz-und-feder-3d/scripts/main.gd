@@ -178,7 +178,10 @@ func _ready() -> void:
 		hud.show_intro(Spiel.force_new)
 		Spiel.force_new = false
 	else:
-		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin())
+		# zu Beginn eines Aktes (Stunde 1, 5, 9) steht die Tafel der Stunde vor dem Bild des Aktes, wenn es eingebaut ist
+		var akt_start := Stunden.hour_of(Spiel.fall) in [1, 5, 9]
+		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin(),
+			Stunden.akt_bild(Stunden.akt(Spiel.fall)) if akt_start else "")
 		sprich("vo_chapter")
 	if autotest == null:
 		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
@@ -235,7 +238,7 @@ func begin() -> void:
 		# Akttafel (4.0): Zu Beginn jedes Aktes steht groß, wohin er führt
 		Spiel.merke("akt_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)])
 		var A: Dictionary = Stunden.AKTE[Stunden.akt(Spiel.fall)]
-		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0)
+		hud.announce(null, A.nr, A.name, A.txt + " " + A.eigen, 8.0, Stunden.akt_bild(Stunden.akt(Spiel.fall)))
 	# noch nichts gelernt (neue Figur): der Fähigkeitenbaum öffnet sich von selbst, sonst stünde man ohne alles da
 	var test := autotest != null or "--playtest" in OS.get_cmdline_user_args() or "--klassentest" in OS.get_cmdline_user_args() or "--bosstest" in OS.get_cmdline_user_args() or Fotos.laeuft()
 	if not test and Spiel.tree_points() > 0 and not hero.ORDER.any(func(i): return i != "potion" and Spiel.gelernt(i)):
@@ -1855,7 +1858,8 @@ func _aktende_lohn() -> void:
 	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
 		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
 		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
-	hud.show_dialog("ENDE DES ERSTEN AKTES", "Der Abstieg", "", rueck, wahl)
+	# dahinter schon das Bild des zweiten Aktes (die Waage): der Übergang, solange es keinen eigenen Abspann gibt
+	hud.show_dialog("ENDE DES ERSTEN AKTES", "Der Abstieg", "", rueck, wahl, "", Stunden.akt_bild(1))
 
 # Scheintür: durch sie gehen die Toten zwischen den Welten
 func _build_gate(pos: Vector3) -> void:
@@ -1927,7 +1931,9 @@ func _ask_gate() -> void:
 			go_hour(n1),
 		func():
 			sfx.hush()
-			get_tree().paused = false)
+			get_tree().paused = false,
+		# hinter der Pforte beginnt ein neuer Akt: dessen Bild steht schon hinter der Tafel
+		Stunden.akt_bild(Stunden.akt(n1)) if Stunden.hour_of(n1) in [1, 5, 9] else "")
 
 # in eine andere Stunde wechseln (Pforte, Startbildschirm, Tasche): die Welt baut sich mit der neuen Stunde neu auf
 func go_hour(n: int) -> void:

@@ -55,6 +55,12 @@ Zwei Fronten laufen gleichzeitig: **Erzeugen** (Nacht) und **Einbauen** (Tag). W
 | 11 | `akttafeln`: drei breite Szenen (Abstieg, Waage, Morgen), 1280 × 720, Stil `szene` (neu, zugleich die Probe) | 12 | etwa 25 min | erst nach Code | Hintergrund der Akttafeln und Schluss von Akt 1 (Claude) |
 | 12 | `sand_neu`: Sand ohne Käfer, Löcher und Verlauf | 8 | etwa 20 min | ja | `einbauen.bat texturen`, ersetzt `t09_sand` |
 
+| 13 | `gegner_vorlagen`: Vorder- und Rückansicht von 5 Gegnern auf einem Bogen (Stil `vorlage3d`) | 20 | etwa 1 h | Vorlage fürs 3D | `GEGNERFABRIK.md`, Schritte 2 bis 5 |
+| 14 | `gegner_vorlagen_tiere`: Apophis und Skorpionmutter (Stil `vorlage3d_tier`) | 8 | etwa 25 min | Vorlage fürs 3D | `GEGNERFABRIK.md` |
+| 15 | `bodenzeichen`: acht leuchtende Zeichen auf Schwarz (Stil `zeichen`) | 24 | etwa 1 h 15 | nach Code | additive Bodenzeichen der Hüterarenen und Zauber (Claude) |
+| 16 | `effektbilder`: Glut, Goldstaub, Dunst, Sand, Rauch, Blitzglut auf Schwarz (Stil `funke`) | 18 | etwa 55 min | nach Code | Teilchen (Claude) |
+| 17 | `friese`: sechs Wandbänder, 1280 × 512 (Stil `fries`) | 18 | etwa 40 min | nach Code | Bänder an den Gräbern (Claude) |
+
 Alle Stufen 1 bis 9 sind gerechnet und eingebaut (Fassung 4.1.4). Die Stufen 10 bis 12 dienen Etappe B des Fahrplans (Schluss von Akt 1, Ankündigung der Hüter) und dem Sand; danach ruht die Bildarbeit wieder.
 
 **Vorschlag für die Nächte**

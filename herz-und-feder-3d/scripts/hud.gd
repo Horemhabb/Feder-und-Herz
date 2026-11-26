@@ -46,6 +46,10 @@ var boss_zeichen: Control
 var boss_marken: Control
 var boss_art := ""
 var boss_ph: Array = []
+var boss_bild: TextureRect      # Bildmarke des Hüters links in der Leiste (ui/hueter/…, fehlt die Datei: unsichtbar)
+var boss_bild_rahmen: Control
+var auftritt: Control           # großes Bild beim Erscheinen des Hüters
+var auftritt_fuer := 0          # für welchen Hüter es schon kam (einmal je Hüter und Stunde, nicht nach jeder Niederlage)
 # Champion-Schild (4.1): Name, Eigenschaften mit Zeichen und Farbe, Leben
 var champ_box: PanelContainer
 var champ_name: Label
@@ -594,8 +598,9 @@ func _skill_box(id: String) -> Control:
 	return box
 
 # Ankündigung in der Bildmitte oben: neue Fähigkeit, Stufenaufstieg, freier Punkt. Mehrere stehen nacheinander an.
-func announce(icon: Texture2D, stamp: String, title: String, text: String, secs := 6.0) -> void:
-	ann_queue.append([icon, stamp, title, text, secs])
+# bild: Pfad eines breiten Bildes (Akttafel, ui/akte/…): dann steht der Text hell auf dem abgedunkelten Bild statt auf Papyrus
+func announce(icon: Texture2D, stamp: String, title: String, text: String, secs := 6.0, bild := "") -> void:
+	ann_queue.append([icon, stamp, title, text, secs, bild])
 	if ann_box == null:
 		_announce_next()
 
@@ -605,17 +610,36 @@ func _announce_next() -> void:
 		return
 	var a: Array = ann_queue.pop_front()
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _papyrus(22))
-	papier.append(p)
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	p.position = Vector2(-290, 262)   # unter dem Banner der Stunde, mitten im Blick
-	p.custom_minimum_size = Vector2(580, 0)
-	p.modulate.a = 0.0
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(h)
+	if a[5] != "":
+		# Akttafel mit Bild: Bild, darüber ein Schleier, darüber der Text mit Rand; der Goldrahmen liegt obenauf
+		p.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		# auf dem Handy ist die Oberfläche größer: dort ohne freien Bildstreifen, sonst reicht die Tafel bis an die Leiste
+		p.custom_minimum_size = Vector2(640, 0 if game.touch else 230)
+		p.position = Vector2(-320, 262)
+		_hintergrund(p, a[5], 0.35, 0.9, true)
+		var mc := MarginContainer.new()
+		for side in ["left", "right", "top", "bottom"]:
+			mc.add_theme_constant_override("margin_" + side, 24)
+		mc.add_theme_constant_override("margin_top", 24 if game.touch else 64)   # oben bleibt das Bild frei
+		mc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mc.add_child(h)
+		p.add_child(mc)
+		var rand := Panel.new()
+		rand.add_theme_stylebox_override("panel", _flat(Color(0, 0, 0, 0), 6, Color("c9a04a"), 2))
+		rand.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(rand)
+	else:
+		p.add_theme_stylebox_override("panel", _papyrus(22))
+		papier.append(p)
+		p.custom_minimum_size = Vector2(580, 0)
+		p.position = Vector2(-290, 262)   # unter dem Banner der Stunde, mitten im Blick
+		p.add_child(h)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.modulate.a = 0.0
 	if a[0]:
 		var ic := TextureRect.new()
 		ic.texture = a[0]
@@ -631,6 +655,10 @@ func _announce_next() -> void:
 	v.add_child(_label(a[2], 26, PARCH))
 	var t := _para(a[3], 14, PARCH)
 	v.add_child(t)
+	if a[5] != "":
+		for l in v.get_children():
+			l.add_theme_constant_override("outline_size", 4)
+			l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	root.add_child(p)
 	ann_box = p
 	var tw := create_tween()
@@ -737,10 +765,21 @@ func _hueter_leiste() -> void:
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(p)
 	boss_box = p
+	# links die Bildmarke des Hüters über die ganze Höhe der Leiste, rechts Name, Balken und Phase
+	var aussen := HBoxContainer.new()
+	aussen.add_theme_constant_override("separation", 10)
+	aussen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(aussen)
+	boss_bild_rahmen = _bild_rahmen(Vector2(56, 72), 2)
+	boss_bild = boss_bild_rahmen.get_child(0)
+	boss_bild_rahmen.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	boss_bild_rahmen.visible = false
+	aussen.add_child(boss_bild_rahmen)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 3)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(v)
+	aussen.add_child(v)
 	var kopf := HBoxContainer.new()
 	kopf.add_theme_constant_override("separation", 10)
 	kopf.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -805,6 +844,15 @@ func boss_show(b: Foe) -> void:
 	var col: Color = b.K.get("bcol", Color("c06be0"))
 	bar_boss.add_theme_stylebox_override("fill", _flat(Color.from_hsv(col.h, maxf(col.s, 0.6), 0.72), 4))
 	boss_box.get_theme_stylebox("panel").border_color = col.lerp(Color("7a5a26"), 0.5)
+	# Bild des Hüters (BILDWERK Stufe 10): klein in der Leiste statt des gezeichneten Zeichens, beim ersten Erscheinen groß
+	var pfad := Stunden.hueter_bild(b.hour.get("boss", {}))
+	boss_bild_rahmen.visible = pfad != ""
+	boss_zeichen.visible = pfad == ""
+	if pfad != "":
+		boss_bild.texture = load(pfad)
+		if auftritt_fuer != b.get_instance_id():
+			auftritt_fuer = b.get_instance_id()
+			_hueter_auftritt(boss_bild.texture, b.K.name, bei, Stunden.hour_of(Spiel.fall))
 	boss_box.visible = true
 	champ_box.visible = false
 	_hueter_leiste_tick()
@@ -814,6 +862,80 @@ func boss_show(b: Foe) -> void:
 func boss_hide() -> void:
 	boss_box.visible = false
 	l_ansage.modulate.a = 0.0
+	if is_instance_valid(auftritt):
+		auftritt.queue_free()
+	auftritt = null
+
+# Bild in dünnem Goldrahmen (Hüter-Leiste, Auftritt)
+func _bild_rahmen(groesse: Vector2, rand: int) -> PanelContainer:
+	var frame := PanelContainer.new()
+	var fs := _flat(Color(0, 0, 0, 0.7), 4, Color("c9a04a"), rand)
+	fs.set_content_margin_all(rand + 1)
+	frame.add_theme_stylebox_override("panel", fs)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pic := TextureRect.new()
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.custom_minimum_size = groesse
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(pic)
+	return frame
+
+# Auftritt des Hüters: das Bild steht gut zwei Sekunden groß am rechten Rand (unter der Karte; links liegen die Aufgaben),
+# mit Name und Beiname, und blendet wieder aus. Es hält nichts an und liegt neben der Mitte, wo Held und Hüter stehen;
+# die Kamera schaut in dieser Zeit zum Hüter.
+func _hueter_auftritt(tex: Texture2D, name: String, bei: String, stunde: int) -> void:
+	if is_instance_valid(auftritt):
+		auftritt.queue_free()
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _dunkel_feld(Color("c9a04a")))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	p.modulate.a = 0.0
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	# unter der Karte; auf dem Handy kleiner (die Oberfläche ist dort anderthalbmal so groß, unten rechts liegt „Ausweichen“)
+	var bw := 110.0 if game.touch else 230.0
+	p.custom_minimum_size = Vector2(bw + 20.0, 0)
+	p.position = Vector2(-28, 218 if game.touch else 250)   # rechte Kante; die Breite wächst nach links
+	var rahmen := _bild_rahmen(Vector2(bw, bw * 720.0 / 560.0), 2)
+	(rahmen.get_child(0) as TextureRect).texture = tex
+	v.add_child(rahmen)
+	if not game.touch:   # auf dem Handy reicht der Name, sonst stieße das Bild an die Kugel unten rechts
+		var stamp := _label("HÜTER DER %sN STUNDE" % Stunden.ORD[clampi(stunde - 1, 0, 11)].to_upper(), 12, GOLD)
+		stamp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stamp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		stamp.custom_minimum_size = Vector2(bw, 0)
+		v.add_child(stamp)
+	var nm := _label(name, 16 if game.touch else 22, PARCH)
+	nm.add_theme_font_override("font", f_fett)
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.custom_minimum_size = Vector2(bw, 0)
+	v.add_child(nm)
+	if bei != "":
+		var bl := _label(bei, 12 if game.touch else 14, DIM)
+		bl.add_theme_font_override("font", f_text)
+		bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		bl.custom_minimum_size = Vector2(bw, 0)
+		v.add_child(bl)
+	root.add_child(p)
+	auftritt = p
+	var x0 := p.position.x
+	p.position.x = x0 + 40.0
+	var tw := p.create_tween()
+	tw.tween_property(p, "modulate:a", 1.0, 0.35)
+	tw.parallel().tween_property(p, "position:x", x0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.7)
+	tw.tween_property(p, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(func():
+		p.queue_free()
+		if auftritt == p:
+			auftritt = null)
 
 func boss_phase() -> void:
 	boss_marken.queue_redraw()
@@ -1098,10 +1220,11 @@ func whisper(text: String) -> void:
 # Gespräch oder Entscheidung: Absätze, darunter die Antworten (Tasten 1 bis 9; Esc nimmt die letzte: gehen, liegen lassen)
 # bild: Kürzel eines Porträts (ui/portraits/P01.webp …). Liegt es vor, steht es links neben dem Text, wie bei den
 # alten Rollenspielen; fehlt es, bleibt das Fenster wie bisher.
-func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array, bild := "") -> void:
+# hinter: Bild hinter dem ganzen Fenster (Ende des ersten Aktes: die Tafel des nächsten Aktes, ui/akte/a2)
+func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array, bild := "", hinter := "") -> void:
 	var path := "res://ui/portraits/%s.webp" % bild
 	var has_pic := bild != "" and ResourceLoader.exists(path)
-	var v := _sheet(0.5, 860 if has_pic and not game.touch else 680)
+	var v := _sheet(0.5, 860 if has_pic and not game.touch else 680, false, hinter)
 	if has_pic:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 18)
@@ -1206,7 +1329,33 @@ func _taste(text: String) -> String:
 		return text
 	return text.replace("[E]  ", "").replace("[Esc]  ", "").replace("[I]  ", "")
 
-func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
+# Bild hinter einem Verlauf von oben (Anteil oben) nach unten (Anteil unten) dunkel: Titelbild, Akttafeln
+func _hintergrund(c: Control, pfad: String, oben: float, unten: float, im_container := false) -> void:
+	var bild := TextureRect.new()
+	bild.texture = load(pfad)
+	bild.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bild.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bild.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var g := Gradient.new()
+	g.set_color(0, Color(0.02, 0.02, 0.04, oben))
+	g.set_color(1, Color(0.02, 0.02, 0.04, unten))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill_from = Vector2(0, 0)
+	gt.fill_to = Vector2(0, 1)
+	var schleier := TextureRect.new()
+	schleier.texture = gt
+	schleier.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	schleier.stretch_mode = TextureRect.STRETCH_SCALE
+	schleier.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not im_container:
+		bild.set_anchors_preset(Control.PRESET_FULL_RECT)
+		schleier.set_anchors_preset(Control.PRESET_FULL_RECT)
+	c.add_child(bild)
+	c.add_child(schleier)
+
+# hinter: Pfad eines Bildes, das die ganze Fläche hinter dem Blatt füllt (Akttafeln); titel: das Titelbild mit Fassung
+func _sheet(dim: float, width: float, titel := false, hinter := "") -> VBoxContainer:
 	_close()
 	overlay = ColorRect.new()
 	overlay.color = Color(0.02, 0.02, 0.04, dim)
@@ -1214,27 +1363,10 @@ func _sheet(dim: float, width: float, titel := false) -> VBoxContainer:
 	root.add_child(overlay)
 	if titel:
 		# Titelbild der Nebelmark (X01: Sandtor bei Nacht) hinter einem Verlauf von halb zu fast ganz dunkel, wie in der 2D-Fassung
-		var bild := TextureRect.new()
-		bild.texture = load("res://ui/titel.webp")
-		bild.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		bild.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		bild.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bild.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		overlay.add_child(bild)
-		var g := Gradient.new()
-		g.set_color(0, Color(0.02, 0.02, 0.04, 0.5))
-		g.set_color(1, Color(0.02, 0.02, 0.04, 0.86))
-		var gt := GradientTexture2D.new()
-		gt.gradient = g
-		gt.fill_from = Vector2(0, 0)
-		gt.fill_to = Vector2(0, 1)
-		var schleier := TextureRect.new()
-		schleier.texture = gt
-		schleier.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		schleier.stretch_mode = TextureRect.STRETCH_SCALE
-		schleier.set_anchors_preset(Control.PRESET_FULL_RECT)
-		schleier.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		overlay.add_child(schleier)
+		_hintergrund(overlay, "res://ui/titel.webp", 0.5, 0.86)
+	elif hinter != "":
+		_hintergrund(overlay, hinter, 0.45, 0.85)
+	if titel:
 		# Fassung unten rechts, klein: welcher Stand läuft hier (Web oder eigener Rechner)?
 		var fassung := _label(Spiel.fassung_txt(), 12, DIM)
 		fassung.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -1316,8 +1448,8 @@ func erklaere(text: String) -> void:
 	get_tree().create_timer(2.2, true, false, true).timeout.connect(func():
 		toast("%s: %s" % [e.name, e.txt], 9.0, TEAL))
 
-func show_chapter(no: String, name: String, lead: String, brief: String, btn: String, cb: Callable) -> void:
-	var v := _sheet(1.0, 720)
+func show_chapter(no: String, name: String, lead: String, brief: String, btn: String, cb: Callable, hinter := "") -> void:
+	var v := _sheet(1.0, 720, false, hinter)
 	v.add_child(_para(no, 14, GOLD, true))
 	v.add_child(_para(name, 46, PARCH, true))
 	# Rückblick: was in der Stunde davor geschah (ab der zweiten Stunde der ersten Nacht)
@@ -1351,8 +1483,8 @@ func show_chapter(no: String, name: String, lead: String, brief: String, btn: St
 			b.disabled = false
 			b.grab_focus())
 
-func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no: String, next_name: String, next_lead: String, go: Callable, stay: Callable) -> void:
-	var v := _sheet(0.8, 560)
+func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no: String, next_name: String, next_lead: String, go: Callable, stay: Callable, hinter := "") -> void:
+	var v := _sheet(0.8, 560, false, hinter)
 	v.add_child(_para(stamp, 13, GOLD))
 	v.add_child(_para(title, 28, PARCH))
 	v.add_child(_para(epi, 16, PARCH))

@@ -526,11 +526,11 @@ func run() -> void:
 	G.cam_pos = h.global_position
 	G.wake_pack(killer.pack)
 	var t0 := Time.get_ticks_msec()
-	while not h.dead and Time.get_ticks_msec() - t0 < 25000:
+	while not h.dead and Time.get_ticks_msec() - t0 < 70000:   # auf dem Bau-Server läuft das Spiel langsamer als die Uhr: großzügig
 		h.inv = 0.0
 		h.hp = minf(h.hp, 3.0)   # ein Stufenaufstieg durch den Auto-Angriff heilt sonst
 		await wait(0.2)
-	check("die Figur kann fallen", h.dead)
+	check("die Figur kann fallen (nach %d s: Gegner %s, Zustand %s, Abstand %.1f m, Leben %.1f, Figur geschützt %.2f, gesperrt %.2f)" % [(Time.get_ticks_msec() - t0) / 1000, killer.K.get("name", "?"), str(killer.state), killer.global_position.distance_to(h.global_position), h.hp, h.inv, h.busy], h.dead)
 	await wait(2.6)
 	check("Fenster nach der Niederlage erscheint", G.hud.overlay != null and get_tree().paused)
 	shot("niederlage")
@@ -749,6 +749,12 @@ func run() -> void:
 	var huefte := krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
 	check("Physik: der Besiegte fällt als Gliederpuppe (%d Körper, Becken %.2f m hoch)" % [sim.get_child_count() if sim else 0, huefte.origin.y - stand0.y], sim != null and sim.get_child_count() == Physik.GLIEDER.size() and Physik.gezaehlt.faelle == faelle0 + 1)
 	await wait(Physik.FALL_DAUER + 0.3)
+	# auf einem langsamen Rechner (Bau-Server) läuft die Simulation später aus: bis zu vier Sekunden zugeben
+	for i in 14:
+		if krieger.skel.get_node_or_null("Fall") == null:
+			break
+		await wait(0.3)
+	await wait(0.3)
 	huefte = krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
 	check("Physik: danach liegt er still und die Körper sind fort (Becken %.2f m hoch, %.1f m weit)" % [huefte.origin.y - stand0.y, Vector2(huefte.origin.x - stand0.x, huefte.origin.z - stand0.z).length()], krieger.skel.get_node_or_null("Fall") == null and Physik.faelle == 0 and not krieger.ap.active and huefte.origin.y - stand0.y < 0.6)
 	G3.foes.erase(krieger)
