@@ -1317,7 +1317,7 @@
    "w05_hoehle": "bildwerk/texturen_neu/w05_hoehle_textur_a",
    "t06_pflaster": "bildwerk/texturen_neu/t06_pflaster_textur_c",
    "t07_gruft": "bildwerk/texturen_neu/t07_gruft_textur_a",
-   "t09_sand": "bildwerk/sand_neu/s2_textur_a",
+   "t09_sand": "bildwerk/texturen_neu/t09_sand_textur_a",
    "t10_feld": "bildwerk/texturen_neu/t10_feld_textur_b",
    "t11_glas": "bildwerk/texturen_neu/t11_glas_textur_a",
    "t12_hoehlenboden": "bildwerk/texturen_neu/t12_hoehlenboden_textur_a",
@@ -1346,6 +1346,7 @@
    "a1": "bildwerk/akttafeln/a1_szene_b",
    "a2": "bildwerk/akttafeln/a2_szene_a",
    "a3": "bildwerk/akttafeln/a3_szene_d"
-  }
+  },
+  "hinweis_sand": "Sand neu (Stufe sand_neu) bewusst nicht benutzt: Alle acht Bilder sind leicht von schräg gemalt (Rippel oben feiner als unten), das kachelt nicht. Die Quelle t09_sand_textur_a bleibt; die Datei im Spiel ist die von Hand korrigierte aus 4.1.5."
  }
 }
