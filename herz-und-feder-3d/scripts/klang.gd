@@ -1,24 +1,35 @@
 class_name Klang extends Node
-# Klangkulisse (3.1): drei Schichten je Ort, dazu Musik, die auf die Lage reagiert.
+# Klangkulisse (3.1, überarbeitet in 4.3): Schichten je Ort, dazu Musik, die auf die Lage reagiert.
 #   Grund     ein leiser Teppich je Landschaft (Wüste, Felder, Grab, Glas, Höhle), nahtlos geschleift
-#   Ereignis  einzelne Geräusche in zufälligen Abständen aus zufälliger Richtung (Schakal, Tropfen, fallender Stein …)
+#   Stunde    in manchen Stunden ein zweiter Teppich: die Sandbank des Apophis, der Fluss Nun, die Feuergruben,
+#             der Morgen vor dem Tor des Ostens
+#   Ereignis  einzelne Geräusche in zufälligen Abständen aus zufälliger Richtung (Schakal, Tropfen, fallender Stein …);
+#             jeder Akt bringt eigene dazu (Akt 2: Flüstern, Knochen, ein ferner Gong; Akt 3 je nach Stunde)
 #   Quelle    Geräusche mit Ort im Raum: Becken, Werkstatt, Schrein, Seelenkrug, Reigen der Irrlichter
-# Die Aufnahmen stammen von ElevenLabs (Sound Effects v2); Lautstärken stehen in Sfx.VOL.
+# Musik: Ruhe = Erkunden (Grund und Melodie), Gegner wach in der Nähe = Spannung, mehrere im Kampf = Kampf,
+# danach Stille mit einem kurzen Nachklang (Sfx.lage). Die Aufnahmen stammen von ElevenLabs; Lautstärken in Sfx.VOL.
 
 const GRUND := {"": "amb_freiland", "ruin": "amb_felder", "tomb": "amb_grab", "glass": "amb_rosetau", "vault": "amb_hoehle"}
+const STUNDE := {7: "amb_sandbank", 10: "amb_nun", 11: "amb_feuergrube", 12: "amb_morgen"}
 const EREIGNIS := {
-	"": ["ev_schakal", "ev_falke", "ev_fluegel", "ev_sand", "ev_kaefer", "ev_maus", "ev_esel"],
+	"": ["ev_schakal", "ev_falke", "ev_fluegel", "ev_sand", "ev_kaefer", "ev_maus", "ev_esel", "ev_boe"],
 	"ruin": ["ev_falke", "ev_fluegel", "ev_maus", "ev_kaefer", "ev_esel", "ev_schakal"],
 	"tomb": ["ev_tropfen", "ev_stein", "ev_tor_fern", "ev_fledermaus", "ev_seufzer", "ev_sand", "ev_kaefer"],
 	"glass": ["ev_glas", "ev_seufzer", "ev_sand", "ev_stein", "ev_tor_fern"],
 	"vault": ["ev_tropfen", "ev_seufzer", "ev_stein", "ev_tor_fern", "ev_fledermaus"],
 }
+const EREIGNIS_AKT := {1: ["ev_fluestern", "ev_knochen", "ev_gong"], 2: ["ev_gong"]}
+const EREIGNIS_STUNDE := {10: ["ev_platsch", "ev_fisch", "ev_platsch"], 11: ["ev_flamme", "ev_flamme", "ev_knochen"],
+	12: ["ev_vogel", "ev_vogel", "ev_boe"], 7: ["ev_boe", "ev_boe"]}
 
 var game: Node
 var art := ""
 var grund: AudioStreamPlayer
+var stunde: AudioStreamPlayer
+var ereignisse: Array = []
 var naechstes := 6.0
 var kampf := false
+var spannung := false
 var ruhe_t := 0.0
 var zuletzt := ""
 
@@ -27,19 +38,33 @@ func _ready() -> void:
 
 func starten(kind: String) -> void:
 	art = kind if GRUND.has(kind) else ""
-	var s: AudioStream = game.sfx._stream(GRUND[art])
+	var h: int = Stunden.hour_of(Spiel.fall)
+	ereignisse = EREIGNIS[art].duplicate()
+	ereignisse.append_array(EREIGNIS_AKT.get(Stunden.akt(Spiel.fall), []))
+	ereignisse.append_array(EREIGNIS_STUNDE.get(h, []))
+	ereignisse = ereignisse.filter(func(n): return game.sfx._stream(n) != null)
+	grund = _teppich(GRUND[art])
+	if STUNDE.has(h):
+		stunde = _teppich(STUNDE[h])
+	naechstes = randf_range(4.0, 9.0)
+	kampf = false
+	spannung = false
+	_quellen()
+
+func _teppich(name: String) -> AudioStreamPlayer:
+	var s: AudioStream = game.sfx._stream(name)
 	if s == null:
-		return
+		return null
 	if s is AudioStreamOggVorbis:
 		s.loop = true
-	grund = AudioStreamPlayer.new()
-	grund.stream = s
-	grund.volume_db = -60.0
-	add_child(grund)
-	grund.play(randf() * 10.0)
-	create_tween().tween_property(grund, "volume_db", Sfx.VOL.get(GRUND[art], -20.0), 4.0)
-	naechstes = randf_range(4.0, 9.0)
-	_quellen()
+	var p := AudioStreamPlayer.new()
+	p.stream = s
+	p.volume_db = -60.0
+	add_child(p)
+	p.play(randf() * 10.0)
+	p.set_meta("klang", name)
+	create_tween().tween_property(p, "volume_db", Sfx.VOL.get(name, -20.0), 4.0)
+	return p
 
 # Quellen der Stunde: Wasserbecken, Schreine, Seelenkrüge, die Werkstatt und die Mitte jedes Reigens
 func _quellen() -> void:
@@ -98,32 +123,50 @@ func _process_innen(delta: float) -> void:
 	naechstes -= delta
 	if naechstes <= 0.0:
 		naechstes = randf_range(6.0, 15.0)
-		var liste: Array = EREIGNIS[art].filter(func(n): return n != zuletzt)
+		var liste: Array = ereignisse.filter(func(n): return n != zuletzt)
 		if not liste.is_empty():
 			var n: String = liste.pick_random()
 			zuletzt = n
 			var w := randf() * TAU
 			var p: Vector3 = game.hero.global_position + Vector3(cos(w), 0, sin(w)) * randf_range(7.0, 18.0)
 			game.sfx.play_at(n, p, 0.1)
-	# Musik nach Lage: drei wache Gegner in der Nähe sind ein Kampf, sechs Sekunden Ruhe beenden ihn
+	# Musik nach Lage. Im Hüterkampf entscheidet main.gd (Sfx.lage("hueter", Phase)).
 	if game.boss_awake:
 		return
-	var nah := 0
+	var im_kampf := 0
+	var wach := 0
+	var hp: Vector3 = game.hero.global_position
 	for f in game.live_foes():
-		if f.state == Foe.St.FIGHT and f.kind != "boss" and f.global_position.distance_squared_to(game.hero.global_position) < 16.0 * 16.0:
-			nah += 1
-	if not kampf and nah >= 3:
+		if f.kind == "boss" or f.kind == "objekt":
+			continue
+		var d2: float = f.global_position.distance_squared_to(hp)
+		if f.state == Foe.St.FIGHT and d2 < 16.0 * 16.0:
+			im_kampf += 1
+		elif f.state != Foe.St.SLEEP and d2 < 24.0 * 24.0:
+			wach += 1
+	if not kampf and im_kampf >= 2:
 		kampf = true
+		spannung = false
 		ruhe_t = 0.0
-		game.sfx.music("mus_kampf", 1.5)
-		_grund_ducken(-8.0)
+		game.sfx.lage("kampf", 1, 1.2)
+		_teppich_ducken(-8.0)
 	elif kampf:
-		ruhe_t = ruhe_t + delta if nah == 0 else 0.0
+		ruhe_t = ruhe_t + delta if im_kampf == 0 else 0.0
 		if ruhe_t > 6.0:
 			kampf = false
-			game.sfx.music_set(game.area_music(), 4.0)
-			_grund_ducken(0.0)
+			game.sfx.lage("stille", 1, 4.0)   # einmal der Nachklang, dann von selbst wieder Erkunden
+			_teppich_ducken(0.0)
+	elif not spannung and im_kampf + wach >= 1:
+		spannung = true
+		ruhe_t = 0.0
+		game.sfx.lage("spannung", 1, 3.0)
+	elif spannung:
+		ruhe_t = ruhe_t + delta if im_kampf + wach == 0 else 0.0
+		if ruhe_t > 5.0:
+			spannung = false
+			game.sfx.lage("erkunden", 1, 5.0)
 
-func _grund_ducken(db: float) -> void:
-	if grund:
-		create_tween().tween_property(grund, "volume_db", Sfx.VOL.get(GRUND[art], -20.0) + db, 2.0)
+func _teppich_ducken(db: float) -> void:
+	for p in [grund, stunde]:
+		if p:
+			create_tween().tween_property(p, "volume_db", Sfx.VOL.get(p.get_meta("klang", ""), -20.0) + db, 2.0)

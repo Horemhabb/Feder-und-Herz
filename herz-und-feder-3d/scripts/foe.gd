@@ -648,7 +648,7 @@ func _physics_process_innen(delta: float) -> void:
 			if lying:
 				if cur_anim != ANIM.wake:
 					play(ANIM.wake, 1.5, 0.1, true)
-					game.sfx.play_at("skel_wake", global_position)
+					game.sfx.play_at(game.sfx.gegner(kind, "wach"), global_position)
 					set_collision_layer_value(3, true)
 				if wake_t < anim_len(ANIM.wake) / 1.5 * 0.92:
 					return
@@ -664,6 +664,7 @@ func _physics_process_innen(delta: float) -> void:
 				wake_t = 0.2
 			if kind == "boss" and _steht_auf() and wake_t < anim_len(ANIM.rise) * 0.9:
 				return
+			if kind != "boss" and cur_anim != ANIM.wake and randf() < 0.5: game.sfx.play_at(game.sfx.gegner(kind, "wach"), global_position, 0.1, -3.0)
 			state = St.FIGHT
 			atk_t = randf_range(0.2, 0.9)
 			return
@@ -1227,7 +1228,7 @@ func die() -> void:
 		tw2.tween_interval(5.0)
 		tw2.tween_property(model, "position:y", -1.7, 1.8).set_ease(Tween.EASE_IN)
 		tw2.tween_callback(func(): model.visible = false)
-	game.sfx.play_at("skel_die", global_position)
+	game.sfx.play_at(game.sfx.gegner(kind, "tod"), global_position)
 	if glow:
 		var tw := create_tween()
 		tw.tween_property(glow, "light_energy", 0.0, 1.2)

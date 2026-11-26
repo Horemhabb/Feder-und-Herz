@@ -58,6 +58,7 @@ static func fallen(a: Node3D, stoss: Vector3) -> bool:
 		if sk.find_bone(g[0]) < 0 or (g[1] != "" and sk.find_bone(g[1]) < 0):
 			return false
 	_boden(a.get_parent())
+	a.game.sfx.play_at("koerper_fall", a.global_position, 0.12, 0.0, 0.45)
 	var sim := PhysicalBoneSimulator3D.new()
 	sim.name = "Fall"
 	sk.add_child(sim)
