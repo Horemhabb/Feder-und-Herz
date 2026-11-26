@@ -15,7 +15,7 @@ Kurz halten und aktuell halten. Wer hier etwas ändert, das nicht mehr stimmt, b
 
 ## Aufbau des Codes (`herz-und-feder-3d/scripts/`)
 
-Alles wird im Code gebaut, `main.tscn` enthält nur einen Knoten. Seit 4.2: Hüterkämpfe in `hueter.gd` (Angriffsfolge Ansage → Ausführung → Erholung), Eigenschaften der Champions in `affixe.gd`, Körperschicht (Neigen, Haltung, Blick) in `koerper.gd`, Ragdoll und Scherben in `physik.gd`, Bewegungsprofile je Klasse in `klassen.gd › GANG`. Große Dateien: `main.gd` (2.400 Zeilen, soll zerlegt werden), `hud.gd`, `foe.gd`, `orte.gd`. Texte der Geschichte: `geschichte.gd`, `stunden.gd`, `worte.gd`. Die Skripte greifen über `game` (untypisiert) auf `main.gd` zu: Tippfehler fallen erst zur Laufzeit auf, darum immer den Spieltest laufen lassen.
+Alles wird im Code gebaut, `main.tscn` enthält nur einen Knoten. Seit 4.2: Hüterkämpfe in `hueter.gd` (Angriffsfolge Ansage → Ausführung → Erholung), Eigenschaften der Champions in `affixe.gd`, Körperschicht (Neigen, Haltung, Blick) in `koerper.gd`, Ragdoll und Scherben in `physik.gd`, Bewegungsprofile je Klasse in `klassen.gd › GANG`. Oberfläche seit 4.3 als Gestaltungssystem in `zier.gd` (Rahmen, Knöpfe, Kartusche, Zierleisten; Grafiken erzeugt `tools/ui/zier.py` nach `ui/zier/`, gemalte Flächen nach `tools/bildwerk/wunsch_ui.md`). Große Dateien: `main.gd` (2.400 Zeilen, soll zerlegt werden), `hud.gd`, `foe.gd`, `orte.gd`. Texte der Geschichte: `geschichte.gd`, `stunden.gd`, `worte.gd`. Die Skripte greifen über `game` (untypisiert) auf `main.gd` zu: Tippfehler fallen erst zur Laufzeit auf, darum immer den Spieltest laufen lassen.
 
 ## Prüfen
 
