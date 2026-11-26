@@ -24,6 +24,10 @@ func g() -> Node:
 
 func wait(s: float) -> void:
 	await get_tree().create_timer(s, true, false, true).timeout
+	# ohne Grafikkarte rechnet ein Bild bis zu einer Zehntelsekunde: ein paar Bilder abwarten, damit Überblendungen
+	# der Oberfläche (Fenster entfalten sich) fertig sind, bevor ein Foto entsteht
+	for i in 4:
+		await get_tree().process_frame
 
 func fehler(was: String) -> void:
 	bad += 1
@@ -35,6 +39,8 @@ func _ready() -> void:
 
 # welche Stunden: „--fotos“ alle zwölf, „--fotos=1,5,7“ oder „--fotos=3-6“ eine Auswahl
 func stunden() -> Array:
+	if nur_ui():
+		return [1]
 	var out: Array = []
 	for a in OS.get_cmdline_user_args():
 		if not a.begins_with("--fotos="):
@@ -153,6 +159,9 @@ func run() -> void:
 		# die große Akttafel (Stunden 1, 5, 9) würde die Figur verdecken: als schon gesehen vermerken
 		Spiel.merke("akt_%d_n%d" % [Stunden.akt(Spiel.fall), Stunden.night_of(Spiel.fall)])
 		await wait(0.3)
+		if nur_ui():
+			await wait(0.9)
+			shot("stunde_%02d_tafel" % h)
 		if not G.hud.press_primary():
 			fehler("Stunde %d: die Tafel ließ sich nicht schließen" % h)
 			return ende()
@@ -166,6 +175,8 @@ func run() -> void:
 		check_stunde(G, h)
 		shot("stunde_%02d_start" % h)
 		# zweite Stelle: vor dem ersten Rudel, das aufwacht und auf die Figur zuläuft
+		if nur_ui():
+			continue
 		var f: Foe = erstes_rudel(G)
 		var wo := Vector3.INF
 		if f != null:
@@ -214,7 +225,144 @@ func run() -> void:
 	else:
 		fehler("die Tasche öffnete sich nicht")
 	await wait(0.3)
+	await oberflaeche(g())
 	ende()
+
+# Nur die Oberfläche (Start mit „-- --neu --fotos=ui“): Titel, Tafel der ersten Stunde und jede Fläche einmal
+static func nur_ui() -> bool:
+	return "--fotos=ui" in OS.get_cmdline_user_args()
+
+# Jede Fläche der Oberfläche einmal im Bild (4.3): Leiste mit Meldungen, Ankündigung, Champion, Hüter, Gespräch,
+# Truhe, Pforte, Niederlage, Menü mit Unterseiten, große Karte, Tasche mit gewähltem Teil, Werkstatt.
+func oberflaeche(G: Node) -> void:
+	if G == null:
+		return
+	freimachen(G)
+	ruhig(G)
+	var H: Hud = G.hud
+	var nichts := func(): pass
+	# Leiste, Fundmeldungen und Banner
+	H.toast_item(Daten.ICON.shard, "Truhe geleert", "3 Teile, 42 Scherben", Color(0.95, 0.85, 0.55))
+	var it: Dictionary = Spiel.new_item(6, 3, {"slot": "waffe"})
+	H.toast_item(Daten.icon_of(it), Daten.item_name(it), G.item_sub(it), Daten.RAR[it.rar].col)
+	H.toast_item(Daten.ICON.evid, Daten.EVID[0][0], "Seite aus dem Buch des Thot.", Color(0.98, 0.9, 0.62))
+	H.banner("Die Pforte der Stunde steht offen.", "DER HÜTER IST GEFALLEN", 4.0)
+	H.toast("Dein Ba flüstert: Hier war schon jemand.", 4.0, Hud.TEAL)
+	await wait(0.9)
+	shot("ui_hud")
+	# Ankündigung (neue Fähigkeit)
+	var sid: String = G.hero.ORDER[1]
+	H.announce(Klassen.icon(sid, 176), "JETZT LERNBAR · IM FÄHIGKEITENBAUM", Klassen.SK[sid].name, Klassen.SK[sid].txt, 3.0)
+	await wait(1.0)
+	shot("ui_ankuendigung")
+	await wait(3.6)
+	# Champion-Schild
+	var art := ""
+	for f in G.foes:
+		if f.kind != "boss":
+			art = f.kind
+			break
+	if art != "":
+		Affixe.vorgabe = ["glut", "feder"]
+		var c: Foe = G._spawn(art, G.hero.global_position + Vector3(30, 0, 30), 97, "zaeh", G.hdef)
+		Affixe.vorgabe = []
+		c.process_mode = Node.PROCESS_MODE_DISABLED
+		H.champ_f = c
+		H.champ_t = 1e12
+		H._champion_fuellen(c)
+		H.champ_box.visible = true
+		await wait(0.5)
+		shot("ui_champion")
+		H.champ_t = 0.0
+	# Hüter-Leiste mit Ansage
+	if G.boss:
+		H.boss_show(G.boss)
+		H.boss_ansage("Überfahrt")
+		await wait(0.5)
+		shot("ui_hueter")
+		H.boss_hide()
+		H.champ_t = 0.0
+	# Gespräch mit Porträt und drei Antworten
+	get_tree().paused = true
+	H.show_dialog("EINE BITTE", "Merit, Tochter des Schreibers", "am Eingang der Stunde",
+		["„Mein Bruder ist vorausgegangen, mit einer Lampe und ohne Namen. Wenn du ihn findest, sag ihm, dass ich warte.“",
+		"Sie hält dir ein Stück Leinen hin, auf dem ein Zeichen steht."],
+		[["„Ich halte die Augen offen.“", nichts], ["„Was steht auf dem Leinen?“", nichts], ["„Jetzt nicht.“", nichts]], "P01")
+	await wait(0.6)
+	shot("ui_gespraech")
+	# Gespräch ohne Bild (Schrein)
+	H.show_dialog("SCHREIN DES THOT", "Thot, Schreiber der Götter", "", ["Der Ibis neigt den Kopf und hält dir die Tafel hin, auf der steht, was du gelernt hast."], [["Zum Fähigkeitenbaum", nichts], ["Gehen", nichts]])
+	await wait(0.5)
+	shot("ui_schrein")
+	# Truhe
+	var zeilen := []
+	for r in [1, 2, 3]:
+		var t: Dictionary = Spiel.new_item(6, r, {})
+		zeilen.append([Daten.icon_of(t), Daten.item_name(t), G.item_sub(t), Daten.RAR[t.rar].col])
+	H.show_chest("PRUNKFUND", "Truhe eines Schreibers", zeilen, "Die Truhe ist leer, sobald du alles nimmst.", nichts, nichts)
+	await wait(0.5)
+	shot("ui_truhe")
+	# Pforte
+	H.show_gate(Stunden.case_no(1) + " · VOLLENDET", G.hdef.name, "Hinter dir schließt sich der Sand. Vor dir liegt Wasser, still und schwarz.",
+		[["12:40", "Zeit"], ["84", "Gegner"], ["3 / 4", "Aufgaben"]], "HINTER DER PFORTE · " + Stunden.case_no(2), Stunden.def(2).name, Stunden.def(2).lead, nichts, nichts)
+	await wait(0.5)
+	shot("ui_pforte")
+	# Kapiteltafel
+	H.show_chapter(Stunden.case_no(1), G.hdef.name, G.hdef.lead, G.hdef.get("brief", ""), "Die Stunde betreten", nichts)
+	await wait(1.2)
+	shot("ui_tafel")
+	# Niederlage
+	H.show_dead("Die Schatten haben dich zu Boden gezogen.", nichts)
+	await wait(0.5)
+	shot("ui_niederlage")
+	H._close()
+	get_tree().paused = false
+	await wait(0.2)
+	# Menü und Unterseiten
+	G.toggle_menu()
+	await wait(0.6)
+	if H.menu_open:
+		shot("ui_menue")
+		for s in ["einstellungen", "lexikon", "steuerung"]:
+			H.menue.geh(s)
+			await wait(0.4)
+			shot("ui_menue_" + s)
+		G.toggle_menu()
+	else:
+		fehler("das Menü öffnete sich nicht")
+	await wait(0.3)
+	freimachen(G)
+	# große Karte
+	G.toggle_karte()
+	await wait(0.6)
+	if H.karte_open:
+		shot("ui_karte")
+		G.toggle_karte()
+	else:
+		fehler("die große Karte öffnete sich nicht")
+	await wait(0.3)
+	freimachen(G)
+	# Tasche mit gewähltem Teil, dann die Werkstatt
+	G.toggle_bag()
+	await wait(0.5)
+	if H.bag_open:
+		for t in H.overlay.find_children("*", "Tasche", true, false):
+			t.sel = {"bag": 0}
+			t.render()
+		await wait(0.4)
+		shot("ui_tasche_teil")
+		G.toggle_bag()
+	await wait(0.3)
+	get_tree().paused = true
+	H.show_werkstatt()
+	await wait(0.5)
+	for t in H.overlay.find_children("*", "Tasche", true, false):
+		t.sel = {"eq": "waffe"}
+		t.render()
+	await wait(0.4)
+	shot("ui_werkstatt")
+	H.close_bag()
+	await wait(0.3)
 
 # Stimmt die Stunde? Name der Tafel gegen die Stunde, die verlangt war
 func check_stunde(G: Node, h: int) -> void:

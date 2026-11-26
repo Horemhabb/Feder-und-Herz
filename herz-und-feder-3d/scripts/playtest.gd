@@ -234,6 +234,14 @@ func run() -> void:
 	await wait(0.35)
 	check("Leertaste: Ausweichschritt (%.1f m), kurz unverwundbar" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5 and h.dodge_cd > 0.0)
 	check("Fenster liegen auf Papyrus, die Schrift ist Tinte", G.hud.papier.size() >= 1 and G.hud.f_text != null)
+	# Gestaltungssystem (4.3): Zierwerk ist da, Leiste und Kugeln tragen es, Fenster und Knöpfe nutzen es
+	var zier_fehlt: Array = ["tafel_dunkel", "tafel_klein", "knoepfe", "kartusche", "trenner_linie", "fluegelsonne", "faehnchen", "kugel_fassung", "platz", "platz_rahmen",
+		"leiste_platte", "bildrahmen", "bedienteile", "schriftzug", "medaillon", "raute", "sterne", "windrose", "udjat", "lotos", "skarabaeus"].filter(func(n): return Zier.tex(n) == null)
+	check("Zierwerk vollständig (fehlt: %s)" % ", ".join(zier_fehlt), zier_fehlt.is_empty())
+	check("Leiste unten: Platte aus Leder und Gold, Kugeln in Goldfassung, Abklingbogen", G.hud.leiste.get_child(1).get_child(1).get_theme_stylebox("panel") is StyleBoxTexture and G.hud.orb_hp.fassung != null and G.hud.skill_ui["whirl"].cd is Hud.Abklang)
+	var probe := Zier.knopf("Probe", "haupt")
+	check("Knöpfe aus getriebenem Gold mit vier Zuständen", probe.get_theme_stylebox("normal") is StyleBoxTexture and probe.get_theme_stylebox("disabled") is StyleBoxTexture and probe.get_theme_stylebox("hover") != probe.get_theme_stylebox("normal"))
+	probe.free()
 	# Fähigkeiten werden mit den Stufen gelernt und groß angekündigt
 	# seit 3.0: nichts wirkt von selbst. Zwei Punkte zum Einstand, die Leiste zeigt „LERNEN“ oder die Stufe
 	check("auf Stufe 1 ist nichts gelernt: zwei Punkte, Leiste zeigt LERNEN und Stufen", not h.can("whirl") and Spiel.tree_points() == 2 and G.hud.skill_ui["whirl"].lock.text == "LERNEN" and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2")
