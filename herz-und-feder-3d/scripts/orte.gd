@@ -91,7 +91,9 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			size = Vector3(0.9, 2.0, 0.9)
 			npc = s
 		"helfer":
-			s["vis"] = _build_npc(pos, L.model, Color.WHITE, false, 0.72 if L.get("klein", false) else 1.0)
+			# Kinder sind kleine Leute, keine geschrumpften Alten (4.3); Zubehör nach dem Porträt (leute.gd)
+			s["vis"] = _build_npc(pos, "Mann" if L.get("klein", false) else L.model, Color.WHITE, false, 0.64 if L.get("klein", false) else 1.0)
+			Leute.ausstatten(s.vis.n, Leute.NACH_BILD.get(L.get("bild", ""), []))
 			text = L.wer
 			col = Color(0.85, 0.95, 0.7)
 			size = Vector3(0.9, 2.0, 0.9)
@@ -191,6 +193,8 @@ func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: floa
 	n.add_child(l)
 	l.position = Vector3(0, 2.2, 0)
 	# statt eines Ausrufezeichens: ein schwebendes Anch, golden bei Gestalten der Duat, grün bei Leuten mit einer Sorge
+	# atmen, sich umsehen, dem Helden nachschauen (4.3, koerper.gd über leute_koerper.gd)
+	Leute.beleben(n, game, {"brust": 0.0 if geist else 0.03, "atem": 0.016 if geist else 0.022})
 	var mark := Deko.marke(n, 3.85 / scl, Color(1.0, 0.78, 0.3) if geist else Color(0.62, 0.95, 0.5))
 	marken.append(mark)
 	return {"n": n, "mark": mark}
@@ -299,7 +303,7 @@ func tick(delta: float) -> void:
 				if not s.done:
 					s.vis.item.rotation.y = t * 1.6
 					s.vis.item.position.y = 1.35 + sin(t * 2.0) * 0.08
-		if s.kind == "such" and not s.done and s.vis.tier:
+		if s.kind == "such" and not s.done and s.vis.tier and not s.vis.has("tierobj"):
 			# Tiere stehen nicht still
 			s.vis.n.position.y = absf(sin(t * 2.4 + s.v * 1.7)) * 0.06
 			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004

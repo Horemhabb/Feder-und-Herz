@@ -185,6 +185,35 @@ prozedural), eigene Baupläne für die Hüter.
 - **Ton:** Hintergrundgeräusche und Erzählstimme einkanalig (halbe Größe, hörbar kein Unterschied bei Stimme und Wind).
 - Nicht geändert: die Engine selbst (`index.wasm`, 39,5 MB; der Server liefert sie gepackt aus, rund ein Viertel davon).
 
+### 3e. Kleintiere, Vögel und Leute (Fassung 4.3)
+
+Kleintiere sind viele und klein; für sie lohnt weder Blender noch ein Skelett. Sie werden **im Spiel aus Code gebaut**
+und **im Shader bewegt**:
+
+| Datei | Aufgabe |
+|---|---|
+| `scripts/former.gd` | Baukasten: Leiber aus Ringen entlang eines Weges, Kuppeln aus einem Umriss (Käferpanzer), Häute (Flügel, Flossen, Ohren). Jeder Punkt trägt Teil, Lage im Teil und Gelenk. |
+| `scripts/tiere.gd` | Gestalt jeder Art (Maße, Feld in der Tafel, Stoff); jedes Netz wird einmal gebaut und geteilt |
+| `scripts/tiere.gdshader` | ein Shader für alle: Beine schreiten (Dreifuß, Diagonal-, Kreuzgang, Hüpfen), Leib schlängelt, Flügel schlagen mit nachschwingender Hand, Köpfe nicken und drehen; mit `#define SCHATTEN` der Bodenschatten fliegender Vögel |
+| `scripts/tier.gd` | ein Tier: Zustandsmaschine je Art, Reaktion auf Held und Kampf; schickt dem Shader je Bild Schrittphase, Tempo, vier Posenwerte |
+| `tools/figurenfabrik/kleintiere_tafel.py` | malt die gemeinsame Tafel `models/tiere/tiere_tafel.webp` (Formeln; Musterkacheln aus ComfyUI ersetzen das Korn, siehe `tools/bildwerk/wunsch_lebewesen.md`) |
+| `scripts/leute.gd`, `scripts/leute_koerper.gd` | Zubehör der Leute (Stab, Korb, Krug, Kopftuch, Jugendlocke …) nach ihrem Porträt; Körperschicht (Atmen, Umsehen, Blick zum Helden) für Figuren, die keine Actor sind |
+
+| Art | Dreiecke | Gestalt | Bewegung |
+|---|---|---|---|
+| Dornschwanzagame | 940 | breit, flach, Dornenringe am Schwanz | sonnt sich, Liegestütze, huscht in Schüben mit Körperwelle, flieht in Ritzen |
+| Skarabäus | 840 (+ Kugel 140) | Kopfschild mit sechs Zacken, gerillte Decken, Glanz | Dreifußgang, manche schieben rückwärts ihre Kugel |
+| Schwarzkäfer | 670 | matte, gewölbte Decken | krabbelt (Gräber) |
+| Rennmaus | 460 | Eikörper, Knopfaugen, Quastenschwanz | schnüffelt, hüpft, richtet sich auf und sichert |
+| Falke | 425 Flug / 545 sitzend | spitze Flügel, Bartstreif | kreist mit Gleit- und Schlagphasen, Schatten am Boden, stößt herab, sitzt, fliegt auf |
+| Ibis | 400 stehend / 300 Flug | weiß, schwarzer Hals, Sichelschnabel | schreitet am Becken, stochert, fliegt ans andere Ufer |
+| Nilbuntbarsch | 220 | hochrückig, Flossen | Schwarm folgt einem wandernden Ziel, stiebt auseinander |
+| Grabfledermaus | 170 | Flughaut mit Fingern | flattert unregelmäßig |
+| Esel, Schaf, Ziege, Katze | 670–820 | ein Bauplan, Maße je Art (Hörner, Bart, Quaste) | grasen und kauen, heben den Kopf, schauen nach, weichen aus; Tiere der Aufträge laufen heim |
+
+Kosten: ein Zeichenaufruf je Tier plus einer für alle Schattenflecken (MultiMesh); kein Skelett, keine Bewegungsdaten.
+Was weiter als 24 m vom Helden ist, rechnet und zeichnet nicht.
+
 ## 4. Der Herzlose
 
 Vorlage: G13. Im Spiel hieß die Gegnerart schon „Herzloser“; jetzt sieht man es. Dunkle Schuppenhaut, in der Brust

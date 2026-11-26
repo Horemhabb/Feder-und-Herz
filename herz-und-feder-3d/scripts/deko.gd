@@ -770,22 +770,13 @@ static func such(g: Node, pos: Vector3, ding: String) -> Dictionary:
 	n.rotation.y = randf() * TAU
 	var tier := true
 	match ding:
-		"schaf", "ziege", "esel":
-			var wolle := mat("wolle", Color(0.92, 0.9, 0.84), 1.0) if ding == "schaf" else (mat("ziege", Color(0.5, 0.36, 0.24), 0.9) if ding == "ziege" else mat("esel", Color(0.5, 0.5, 0.52), 0.9))
-			var dunkel := mat("tierkopf", Color(0.14, 0.12, 0.11), 0.8)
-			var gr := 1.3 if ding == "esel" else 1.0
-			_ball(n, Vector3(0.36, 0.3, 0.52) * gr, Vector3(0, 0.62 * gr, 0), wolle)
-			_ball(n, Vector3(0.16, 0.17, 0.22) * gr, Vector3(0, 0.82 * gr, 0.56 * gr), dunkel if ding == "schaf" else wolle)
-			for sx in [-1.0, 1.0]:
-				_ball(n, Vector3(0.04, 0.12 if ding == "esel" else 0.05, 0.07) * gr, Vector3(sx * 0.13, (1.02 if ding == "esel" else 0.9) * gr, 0.5 * gr), dunkel)
-			_legs(n, 0.2 * gr, 0.3 * gr, 0.4 * gr, dunkel)
-		"katze":
-			var fell := mat("katze", Color(0.78, 0.6, 0.36), 0.9)
-			_ball(n, Vector3(0.14, 0.16, 0.2), Vector3(0, 0.2, 0), fell)
-			_ball(n, Vector3(0.11, 0.11, 0.11), Vector3(0, 0.42, 0.14), fell)
-			for sx in [-1.0, 1.0]:
-				_ball(n, Vector3(0.035, 0.07, 0.03), Vector3(sx * 0.07, 0.54, 0.14), fell)
-			_ball(n, Vector3(0.03, 0.03, 0.18), Vector3(0, 0.16, -0.3), fell)
+		"schaf", "ziege", "esel", "katze":
+			# seit 4.3 echte Tiere (tiere.gd): sie grasen, schauen, und laufen heim, wenn man sie findet
+			var tr := Tier.neu(g, ding, pos)
+			tr.fest = true
+			n.queue_free()
+			n = tr.n
+			n.set_meta("tier", tr)
 		"sack", "korb":
 			tier = false
 			var stoff := mat("sack", Color(0.62, 0.5, 0.32), 1.0) if ding == "sack" else mat("korb", Color(0.55, 0.4, 0.2), 1.0)
@@ -823,7 +814,10 @@ static func such(g: Node, pos: Vector3, ding: String) -> Dictionary:
 	l.omni_range = 3.5
 	n.add_child(l)
 	l.position = Vector3(0, 1.3, 0)
-	return {"n": n, "tier": tier, "light": l}
+	var aus := {"n": n, "tier": tier, "light": l}
+	if n.has_meta("tier"):
+		aus["tierobj"] = n.get_meta("tier")
+	return aus
 
 
 # Truhe wie aus einem Grab: Kasten auf Füßen, Deckel in Schreinform (vorn hoch, hinten flach), Beschläge je nach Rang
