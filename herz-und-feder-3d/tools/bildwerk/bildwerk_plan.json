@@ -67,6 +67,18 @@
   "vorlage3d_tier": {
    "beschreibung": "Wie vorlage3d, für Wesen ohne Menschengestalt (Schlange, Skorpion): links schräg von vorn und etwas von oben, rechts genau von der Seite.",
    "text": "Two views of the same creature side by side on a plain flat light grey background: on the left the creature seen from the front and slightly from above, on the right the same creature seen exactly from its side. The creature is {MOTIV} {HINWEIS} {ANSICHT} The whole body is visible in both views, with empty grey space around each view. Soft even neutral white light from all sides, flat and shadowless. Muted earthy colors against the plain light grey. The picture shows only the two views of the creature, nothing written anywhere."
+  },
+  "zeichen": {
+   "beschreibung": "Leuchtende Bodenzeichen für Arenen und Zauber: auf reinem Schwarz, damit das Spiel sie additiv (als Licht) auf den Boden legen kann. Gerade von oben, symmetrisch, zur Mitte hell, zum Rand schwarz.",
+   "text": "Glowing ornamental ground inscription of {MOTIV} {HINWEIS} {ANSICHT} Seen exactly from above, perfectly flat and symmetrical, centered, drawn with thin luminous lines of molten gold and turquoise light with fine carved pictorial patterns inside the lines, soft glow around the lines, ancient Egyptian temple ornament. The design fades smoothly into pure black toward the outer edge. The whole background is pure flat black, nothing else, no ground, no objects, nothing written anywhere."
+  },
+  "funke": {
+   "beschreibung": "Effektbilder für Funken, Glut, Rauch und Staub auf reinem Schwarz (additiv oder als Alpha aus der Helligkeit).",
+   "text": "A single soft cloud of {MOTIV} {HINWEIS} {ANSICHT} Photographed against a pure flat black background, centered, the cloud fades smoothly into black toward all edges so nothing touches the border, fine realistic detail, strong contrast between glowing parts and black. Nothing else in the picture, nothing written anywhere."
+  },
+  "fries": {
+   "beschreibung": "Wandfriese: waagerechtes Band einer Grabwand, gemalte Reliefs, läuft links und rechts bis an den Rand.",
+   "text": "A long horizontal frieze band of an ancient Egyptian tomb wall: {MOTIV} {HINWEIS} {ANSICHT} Painted and carved shallow relief on weathered plaster, muted ochre, turquoise, red and gold on warm sand-colored stone, seen straight from the front, perfectly flat, soft even light, the pattern continues to the left and right edge of the picture. Only the wall surface fills the whole image, no people looking at the viewer, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -104,6 +116,12 @@
    "a": "",
    "b": "",
    "c": "",
+   "d": ""
+  },
+  "flach": {
+   "a": "",
+   "b": "The design is a little simpler and bolder.",
+   "c": "The design is a little richer in fine detail.",
    "d": ""
   }
  },
@@ -378,6 +396,60 @@
    "breite": 1344,
    "hoehe": 768,
    "im_spiel": "nach Bild-zu-3D und aus_netz.py --art kette (GEGNERFABRIK.md)"
+  },
+  "bodenzeichen": {
+   "titel": "Leuchtende Bodenzeichen für Arenen und Zauber, auf Schwarz (additiv)",
+   "gruppen": [
+    "zeichen"
+   ],
+   "stile": [
+    "zeichen"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "flach",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code (Claude): Bodenzeichen der Hüterarenen, Zauberkreise"
+  },
+  "effektbilder": {
+   "titel": "Funken, Glut, Staub, Rauch auf Schwarz für Partikel",
+   "gruppen": [
+    "funke"
+   ],
+   "stile": [
+    "funke"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "flach",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "nach Code (Claude): Teilchen für Treffer, Feuer, Champions"
+  },
+  "friese": {
+   "titel": "Wandfriese: Bänder für Grabwände und Decken",
+   "gruppen": [
+    "fries"
+   ],
+   "stile": [
+    "fries"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "flach",
+   "breite": 1280,
+   "hoehe": 512,
+   "im_spiel": "nach Code (Claude): Band an den Wänden der Gräber"
   }
  },
  "motive": [
@@ -1240,6 +1312,146 @@
    "gruppe": "gegner_vorlagen_tiere",
    "motiv": "a huge desert scorpion with a heavy ochre and black armoured body, two large pincers held forward, eight legs spread wide and a tall curled tail with a glowing amber sting",
    "hinweis": "The scorpion stands on all eight legs, the legs do not overlap each other."
+  },
+  {
+   "id": "z1",
+   "name": "Bodenzeichen: Waage",
+   "gruppe": "zeichen",
+   "motiv": "a great balance scale with a heart on one pan and a feather on the other, surrounded by an ornamental ring of lotus flowers",
+   "tex": ""
+  },
+  {
+   "id": "z2",
+   "name": "Bodenzeichen: Sonnenscheibe",
+   "gruppe": "zeichen",
+   "motiv": "a sun disc with many long straight rays and a wide ring of small repeating ornaments around it",
+   "tex": ""
+  },
+  {
+   "id": "z3",
+   "name": "Bodenzeichen: Sternkranz",
+   "gruppe": "zeichen",
+   "motiv": "a wide wreath of twelve five-pointed stars joined by a thin ring, a large star in the middle",
+   "tex": ""
+  },
+  {
+   "id": "z4",
+   "name": "Bodenzeichen: Skarabäus",
+   "gruppe": "zeichen",
+   "motiv": "a scarab beetle with spread wings pushing a sun disc, inside a ring of papyrus stems",
+   "tex": ""
+  },
+  {
+   "id": "z5",
+   "name": "Bodenzeichen: Udjat-Auge",
+   "gruppe": "zeichen",
+   "motiv": "the eye of Horus in the center with long rays, inside a ring of repeating feathers",
+   "tex": ""
+  },
+  {
+   "id": "z6",
+   "name": "Bodenzeichen: Schlangenring",
+   "gruppe": "zeichen",
+   "motiv": "a serpent biting its own tail to form a ring, scales drawn as fine lines, a small star in the middle",
+   "tex": ""
+  },
+  {
+   "id": "z7",
+   "name": "Bodenzeichen: Feder der Maat",
+   "gruppe": "zeichen",
+   "motiv": "a large ostrich feather in the middle, wide spread wings on both sides, a ring of small repeating ornaments",
+   "tex": ""
+  },
+  {
+   "id": "z8",
+   "name": "Bodenzeichen: Lebenszeichen",
+   "gruppe": "zeichen",
+   "motiv": "a wreath of eight life symbols with loops arranged around a lotus flower in the middle",
+   "tex": ""
+  },
+  {
+   "id": "e1",
+   "name": "Funken: Glut",
+   "gruppe": "funke",
+   "motiv": "glowing orange embers and tiny sparks floating upward, a few brighter embers in the middle",
+   "tex": ""
+  },
+  {
+   "id": "e2",
+   "name": "Funken: Goldstaub",
+   "gruppe": "funke",
+   "motiv": "fine floating golden dust particles that catch the light, softly glittering",
+   "tex": ""
+  },
+  {
+   "id": "e3",
+   "name": "Funken: türkiser Dunst",
+   "gruppe": "funke",
+   "motiv": "soft turquoise mist with a few glowing motes, like a ghostly breath",
+   "tex": ""
+  },
+  {
+   "id": "e4",
+   "name": "Funken: Sandwolke",
+   "gruppe": "funke",
+   "motiv": "pale sand dust kicked into the air, swirling grains lit from the side",
+   "tex": ""
+  },
+  {
+   "id": "e5",
+   "name": "Funken: Rauch",
+   "gruppe": "funke",
+   "motiv": "dark grey smoke curling upward with thin lit edges",
+   "tex": ""
+  },
+  {
+   "id": "e6",
+   "name": "Funken: Blitzglut",
+   "gruppe": "funke",
+   "motiv": "a branching violet lightning flash with a bright white core and glowing sparks around it",
+   "tex": ""
+  },
+  {
+   "id": "f1",
+   "name": "Fries: Götterzug",
+   "gruppe": "fries",
+   "motiv": "a procession of stylized gods and goddesses in profile walking in a row, with long wigs, crowns and offerings, in a band of colored bars above and below",
+   "tex": ""
+  },
+  {
+   "id": "f2",
+   "name": "Fries: Lotos und Papyrus",
+   "gruppe": "fries",
+   "motiv": "alternating blue lotus flowers and green papyrus stems growing in an even row, with small buds between them",
+   "tex": ""
+  },
+  {
+   "id": "f3",
+   "name": "Fries: Sonnenbarke",
+   "gruppe": "fries",
+   "motiv": "the sun boat carrying a red sun disc sailing along a wavy line of water, with small stars above",
+   "tex": ""
+  },
+  {
+   "id": "f4",
+   "name": "Fries: Schakale",
+   "gruppe": "fries",
+   "motiv": "a long row of seated jackals in profile facing right, each with a tall pointed ears and a golden collar, in an even rhythm",
+   "tex": ""
+  },
+  {
+   "id": "f5",
+   "name": "Fries: Sternendecke",
+   "gruppe": "fries",
+   "motiv": "a deep blue ceiling band with an even pattern of golden five-pointed stars in rows",
+   "tex": ""
+  },
+  {
+   "id": "f6",
+   "name": "Fries: Federn und Sonnen",
+   "gruppe": "fries",
+   "motiv": "an even row of tall feathers alternating with small sun discs, with thin colored bars above and below",
+   "tex": ""
   }
  ],
  "einbau": {
