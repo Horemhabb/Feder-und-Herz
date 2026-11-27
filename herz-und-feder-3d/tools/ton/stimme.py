@@ -27,6 +27,9 @@ ROLLEN = {
     "hueter":    (2.2, 0.20, 2200, 2.5, 0.5),
     "hueterin":  (2.0, 0.18, 2800, 1.0, 1.0),
     "leute":     (0.4, 0.05, 5000, 0.0, 1.0),
+    "ba":        (1.4, 0.16, 5000, -1.0, 1.5),   # Nebet als Ba: nah, aber mit einem Hauch Weite, nicht von dieser Welt
+    "gott":      (1.6, 0.12, 4000, 0.5, 1.0),    # Thot, Isis
+    "sammler":   (1.2, 0.10, 3500, 1.0, 0.5),
 }
 
 def bearbeite(x, rolle):

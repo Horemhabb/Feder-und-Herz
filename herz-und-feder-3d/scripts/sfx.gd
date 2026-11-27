@@ -287,7 +287,10 @@ const LAGEN := {
 	"stille": {"grund": 1.0},
 	"titel": {"voll": 1.0},
 }
-const SATZ_SCHICHTEN := {"mus_hueter": ["grund", "p1", "p2", "p3"], "mus_titel": ["voll"]}
+# Namen der Musik bis 4.2 (Zwischensequenzen rufen sie noch): das passende neue Stück
+const ALTE_NAMEN := {"mus_duat": "mus_a2", "mus_hoehle": "mus_a2", "mus_grab": "mus_a2", "mus_wueste": "mus_a1",
+	"mus_felder": "mus_a1", "mus_rosetau": "mus_a1"}
+const SATZ_SCHICHTEN :={"mus_hueter": ["grund", "p1", "p2", "p3"], "mus_titel": ["voll"]}
 
 var satz := ""              # laufendes Stück: mus_a1 … mus_a3, mus_hueter, mus_titel
 var lage_name := ""
@@ -390,6 +393,7 @@ func music(name: String, fade := 2.0) -> void:
 	if name == "mus_hueter":
 		lage("hueter", 1, fade)
 		return
+	name = ALTE_NAMEN.get(name, name)
 	satz_setzen(name, fade)
 	lage("erkunden", 1, fade)
 
