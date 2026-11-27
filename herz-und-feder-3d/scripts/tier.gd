@@ -292,6 +292,7 @@ func _verstecken(g: Vector3) -> void:
 	var vs := _versteck(g)
 	ziel = vs if vs != Vector3.INF else _weg_von(g, 4.0)
 	zustand = "flieht"
+	game.sfx.play_at("ev_maus", n.global_position, 0.15, -8.0)   # Rascheln, wenn Eidechse oder Maus flieht
 	zeit = 3.0
 
 func _aus_versteck(hp: Vector3) -> void:
@@ -483,6 +484,7 @@ func _falke(d: float, hp: Vector3) -> void:
 			var g := _gefahr(hp, SCHEU.falke)
 			if g != Vector3.INF or zeit <= 0.0:
 				zustand = "steigt"
+				game.sfx.play_at("ev_fluegel", pos, 0.15, -6.0)
 				zeit = 4.0
 				flug = true
 				_gestalt("falke_flug")
@@ -498,6 +500,7 @@ func _falke(d: float, hp: Vector3) -> void:
 			pose_soll = Vector4(0, 0, 0.95, 0.1)
 			if zeit <= 0.0 or pos.distance_to(ziel) < 1.0:
 				zustand = "kreist"
+				if game.sfx.rng.randf() < 0.35: game.sfx.play_at("ev_falke", pos, 0.1, -4.0)   # selten ein Schrei beim Kreisen
 				zeit = randf_range(20.0, 45.0)
 				heim = Vector3(pos.x, 0, pos.z)
 
@@ -531,6 +534,7 @@ func _ibis(d: float, hp: Vector3) -> void:
 			bild_flug.visible = true
 			schatten = 0.0
 			zustand = "fliegt"
+			game.sfx.play_at("ev_fluegel", pos, 0.15, -5.0)
 			var gegen: Vector3 = schwarm.get("mitte", heim) * 2.0 - pos
 			gegen.y = 0.0
 			ziel = gegen if gegen.distance_to(hp) > 6.0 and _frei(gegen) else _weg_von(g, 9.0)
@@ -632,6 +636,7 @@ func _fledermaus(d: float) -> void:
 	if zeit <= 0.0 or n.global_position.distance_to(ziel) < 0.4:
 		ziel = heim + Vector3(randf_range(-3.0, 3.0), hoehe + randf_range(-0.5, 0.6), randf_range(-3.0, 3.0))
 		zeit = randf_range(0.4, 1.4)
+		if game.sfx.rng.randf() < 0.04: game.sfx.play_at("ev_fledermaus", n.global_position, 0.15, -8.0)   # selten ein Fiepen
 	_fliege(d, ziel, 3.2 + sin(u * 4.0), 7.0)
 	flatter += d * (17.0 + 6.0 * sin(u * 3.3))
 	pose_soll = Vector4(0, 0, 0.95, 0.05)
@@ -644,6 +649,7 @@ func _vierbeiner(d: float, hp: Vector3) -> void:
 		if g != Vector3.INF and zustand != "weicht":
 			ziel = _weg_von(g, 2.5 if not katze else 4.0)
 			zustand = "weicht"
+			if art == "esel" and game.sfx.rng.randf() < 0.5: game.sfx.play_at("ev_esel", n.global_position, 0.1, -2.0)
 			zeit = 3.0
 	var blick := _blick(hp, 7.0, 1.0)
 	match zustand:

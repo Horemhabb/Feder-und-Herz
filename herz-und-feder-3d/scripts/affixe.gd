@@ -187,6 +187,7 @@ static func anlegen(f, ids: Array) -> void:
 				wolke.orbit_velocity_min = 0.25
 				wolke.orbit_velocity_max = 0.45
 				_teil(f, wolke)
+				f.game.sfx.loop_at("aff_sturm", f)
 				var boden := CylinderMesh.new()
 				boden.top_radius = 5.0
 				boden.bottom_radius = 5.0
@@ -338,7 +339,7 @@ static func auftritt(f) -> void:
 	var col := farbe(f)
 	g.ring_fx(f.global_position, 3.2, col)
 	g.ring_fx(f.global_position, 1.8, Color(0.95, 0.82, 0.29))
-	g.sfx.play_at("boss_appear", f.global_position, 0.1, -11.0)
+	g.sfx.play_at("aff_auftritt", f.global_position, 0.1, -4.0)
 	g.shake = maxf(g.shake, 0.2)
 	for o in g.foes:
 		if o != f and o.pack == f.pack and o.state != Foe.St.DEAD:
@@ -444,6 +445,7 @@ static func _glut_tick(f, s: Dictionary, delta: float, h) -> void:
 		var c: Vector3 = f.global_position
 		if fl.is_empty() or fl[-1].c.distance_to(c) > 0.9:
 			fl.append({"c": c, "bis": g.clock + 5.0, "n": _glutfleck(g, c), "tick": 0.0})
+			g.sfx.play_at("aff_glut", c, 0.15, -6.0)
 			if fl.size() > 8:
 				_fleck_aus(fl.pop_front())
 	for i in range(fl.size() - 1, -1, -1):
@@ -496,7 +498,7 @@ static func _rufen(f, s: Dictionary) -> void:
 	f.set_meta("what", "nichts")
 	f.play(Foe.ANIM.summon if f.ap and f.ap.has_animation(Foe.ANIM.summon) else Foe.ANIM.cast, 1.2, 0.1, true)
 	g.ring_fx(f.global_position, 2.8, LISTE.ruf.farbe)
-	g.sfx.play_at("boss_appear", f.global_position, 0.1, -12.0)
+	g.sfx.play_at("aff_ruf", f.global_position, 0.1, -4.0)
 	g.float_text(f.global_position + Vector3(0, 3.0, 0), "ruft Diener", LISTE.ruf.farbe)
 	var wo: Vector3 = f.global_position
 	f.get_tree().create_timer(1.0, false).timeout.connect(func():
@@ -524,7 +526,7 @@ static func _springen(f, h) -> void:
 	f.act_t = 0.9
 	f.set_meta("what", "nichts")
 	f.play(Foe.ANIM.cast, 1.4, 0.1, true)
-	g.sfx.play_at("dash", f.global_position, 0.1, -4.0)
+	g.sfx.play_at("aff_sprung", f.global_position, 0.1)
 	f.get_tree().create_timer(0.7, false).timeout.connect(func():
 		if not is_instance_valid(f) or f.state == Foe.St.DEAD or f.stun > 0.0:
 			return
@@ -548,7 +550,7 @@ static func _klagen(f) -> void:
 	f.act_t = 1.0
 	f.set_meta("what", "nichts")
 	f.play(f.bew("boss/Kratzen", Foe.ANIM.cast), 0.9, 0.1, true)
-	g.sfx.play_at("boss_phase" if g.sfx._stream("boss_phase") else "boss_appear", f.global_position, 0.1, -10.0)
+	g.sfx.play_at("aff_klage", f.global_position, 0.06, -2.0)
 	g.float_text(f.global_position + Vector3(0, 3.0, 0), "Totenklage", LISTE.klage.farbe)
 	g.ring_fx(f.global_position, 3.0, LISTE.klage.farbe)
 	f.get_tree().create_timer(0.8, false).timeout.connect(func():
@@ -572,7 +574,7 @@ static func _fesseln(f, h) -> void:
 	f.set_meta("what", "nichts")
 	f.play(f.bew("boss/Wurf", Foe.ANIM.cast), 1.2, 0.1, true)
 	g.stripe_fx(von, dir, lang, 1.4, 0.8)
-	g.sfx.play_at("skel_attack", von, 0.1, -2.0)
+	g.sfx.play_at("aff_fessel", von, 0.1)
 	f.get_tree().create_timer(0.8, false).timeout.connect(func():
 		if not is_instance_valid(f) or f.state == Foe.St.DEAD or h.dead:
 			return
@@ -593,6 +595,7 @@ static func _fesseln(f, h) -> void:
 			g.float_text(f.global_position + Vector3(0, 2.8, 0), "verfehlt", Color(0.8, 0.8, 0.8)))
 
 static func _kettenblitz(g, a: Vector3, b: Vector3, col: Color) -> void:
+	g.sfx.play_at("aff_kette", (a + b) * 0.5, 0.1, -4.0)
 	var mi := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 0.07
@@ -698,12 +701,13 @@ static func treffer(f, amount: float, from: Vector3) -> float:
 		return amount   # von der Seite oder von hinten: voller Schaden
 	s.halt -= amount
 	f.game.spark(f.global_position + vorn * (f.radius + 0.5) + Vector3(0, 1.2, 0), LISTE.feder.farbe)
+	f.game.sfx.play_at("aff_feder", f.global_position + vorn * f.radius, 0.08, -3.0)
 	if s.halt <= 0.0:
 		s.bruch_t = 9.0
 		s.scheibe.visible = false
 		s.schwenk.visible = false
 		f.game.ring_fx(f.global_position, f.radius + 2.0, LISTE.feder.farbe)
-		f.game.sfx.play_at("krug_bricht" if f.game.sfx._stream("krug_bricht") else "hit", f.global_position, 0.05)
+		f.game.sfx.play_at("aff_feder_bruch", f.global_position, 0.05)
 		f.game.float_text(f.global_position + Vector3(0, 3.0, 0), "die Feder bricht", LISTE.feder.farbe, 1.3)
 		f.stun = maxf(f.stun, 0.8)
 		return amount * 0.5
@@ -741,6 +745,7 @@ static func tod(f) -> void:
 				if not f.summoned and not f.get_meta("gespalten", false):
 					var art: String = f.kind
 					var wo: Vector3 = f.global_position
+					g.sfx.play_at("aff_spalt", wo, 0.08)
 					f.get_tree().create_timer(0.5, false).timeout.connect(func():
 						for i in 2:
 							var a := TAU * i / 2.0 + randf()

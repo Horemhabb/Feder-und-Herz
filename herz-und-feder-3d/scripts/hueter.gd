@@ -510,10 +510,11 @@ func _objekt_weg(o) -> void:
 func _kreis(c: Vector3, r: float, sek: float, mul: float, col: Color) -> void:
 	c.y = 0.0
 	g.warn_fx(c, r, sek)
+	g.sfx.play_at("hueter_ansage", c, 0.08, -4.0)
 	spaeter(sek, func():
 		g.ring_fx(c, r, col)
 		g.shake = maxf(g.shake, 0.4)
-		g.sfx.play_at("hit", c, 0.1, -3.0)
+		g.sfx.play_at("hueter_schlag", c, 0.1, -3.0)
 		var hero := h()
 		if not hero.dead and f.flat(hero.global_position - c).length() < r + hero.radius * 0.5:
 			hero.hurt(f.dmg * mul, c, f))
@@ -552,13 +553,14 @@ func _kegel(r: float, half: float, sek: float, mul: float) -> void:
 	var c: Vector3 = f.global_position
 	var fa: float = f.face
 	g.cone_fx(c, fa, r, half, sek)
+	g.sfx.play_at("hueter_ansage", c, 0.08, -4.0)
 	spaeter(sek, func():
 		var hero := h()
 		var rel: Vector3 = f.flat(hero.global_position - c)
 		var vor := Vector3(sin(fa), 0, cos(fa))
 		g.ring_fx(c + vor * r * 0.5, r * 0.5, Color(1.0, 0.85, 0.45))
 		g.shake = maxf(g.shake, 0.45)
-		g.sfx.play_at("hit", c, 0.1, -2.0)
+		g.sfx.play_at("hueter_schlag", c, 0.1, -2.0)
 		if not hero.dead and rel.length() < r + hero.radius * 0.5 and (rel.length() < 1.0 or vor.angle_to(rel.normalized()) < half):
 			hero.hurt(f.dmg * mul, c, f))
 
@@ -574,7 +576,7 @@ func _ansturm_ansage(hero: Hero) -> void:
 	f.charge_dir = dir
 	f.face = atan2(dir.x, dir.z)
 	g.stripe_fx(f.global_position, dir, 21.6, f.radius * 2.0, float(cur.ansage))
-	g.sfx.play_at("boss_appear", f.global_position, 0.05, -6.0)
+	g.sfx.play_at("hueter_ansage", f.global_position, 0.05, -2.0)
 	f.play(Foe.ANIM.idle, 1.0)
 
 func _ansturm_los() -> void:
@@ -588,7 +590,7 @@ func _rufen(arten: Array) -> void:
 func _ruf_ansage() -> void:
 	g.ring_fx(f.global_position, 3.0, Color(0.75, 0.45, 0.95))
 	f.play(Foe.ANIM.cast, 0.8, 0.1, true)
-	g.sfx.play_at("boss_appear", f.global_position, 0.1, -10.0)
+	g.sfx.play_at("aff_ruf", f.global_position, 0.1, -4.0)
 
 func _laterne(dunkel: bool) -> void:
 	if dunkel == licht_gedimmt:

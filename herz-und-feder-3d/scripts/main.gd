@@ -164,7 +164,6 @@ func _ready() -> void:
 	elif touch:
 		guete_setzen(1, "Handy oder Tablet")
 	sfx.loop("amb_wind")
-	sfx.loop("amb_drone")
 	klang = Klang.new()
 	klang.game = self
 	add_child(klang)
@@ -848,7 +847,7 @@ func live_foes() -> Array:
 func _impact(n: int, at: Vector3) -> void:
 	if n <= 0:
 		return
-	sfx.play_at("hit", at, 0.12)
+	sfx.treffer(at, 0.12)
 	shake = maxf(shake, 0.22 + 0.05 * n)
 
 # Trefferstopp: Die Zeit steht für einen Herzschlag fast still und gibt dem Hieb Gewicht. Früher bei jedem Treffer,
@@ -993,7 +992,7 @@ func _mark_burst(f: Foe) -> void:
 	var c := f.global_position
 	ring_fx(c, 4.6, Color(0.94, 0.75, 0.45))
 	shake = maxf(shake, 0.3)
-	sfx.play_at("hit", c, 0.1)
+	sfx.treffer(c, 0.1)
 	for o in live_foes():
 		if o != f and (o.global_position - c).length() < 4.6 + o.radius:
 			hero.deal(o, 1.5, 5.0, 0.0, 0.0, false)
@@ -1031,7 +1030,7 @@ func hero_chain(h: Hero, at: Vector3, mult: float) -> void:
 		if nxt == null:
 			break
 		cur = nxt
-	sfx.play_at("bolt", first.global_position, 0.1)
+	sfx.treffer(first.global_position, 0.1)
 
 func _spot_ahead(h: Hero, d: float) -> Vector3:
 	return h.global_position + h.forward() * d
@@ -1108,6 +1107,7 @@ func _shots_tick(delta: float) -> void:
 					hero.deal(f, b.mult, b.push, b.stun, b.gen if b.hit.is_empty() else 0.0)
 					b.hit.append(f)
 					spark(n.global_position, Color(1.0, 0.9, 0.7))
+					sfx.treffer(n.global_position, 0.1, -3.0)
 					if b.pierce >= 0 and b.hit.size() > b.pierce:
 						gone = true
 						break
@@ -1163,7 +1163,7 @@ func meteor(c: Vector3, r: float, mult: float) -> void:
 		ring_fx(c, r, Color(1.0, 0.84, 0.37))
 		spark(c + Vector3(0, 0.8, 0), Color(1.0, 0.84, 0.37))
 		shake = maxf(shake, 0.7)
-		sfx.play_at("hit", c, 0.05)
+		sfx.treffer(c, 0.05)
 		for f in live_foes():
 			if (f.global_position - c).length() < r + f.radius:
 				hero.deal(f, mult, 7.0)
@@ -1314,7 +1314,7 @@ func _level_up() -> void:
 			var S: Dictionary = hero.SK[id]
 			hud.announce(Klassen.icon(id, 176), "JETZT LERNBAR · IM FÄHIGKEITENBAUM", S.name, S.txt, 7.0)
 	lvl_seen = Spiel.lvl
-	sfx.play("aufstieg")
+	sfx.play("stufe" if sfx._stream("stufe") else "aufstieg")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
 
 # ---------------------------------------------------------------- Beute (04-combat.js › kill, 03a-dungeon.js › openChest)
@@ -1446,12 +1446,12 @@ func _take(b: Beute) -> bool:
 				hero.apply_stats()
 				sub = "direkt angelegt"
 			hud.toast_item(Daten.icon_of(b.item), Daten.item_name(b.item), sub, Daten.RAR[b.item.rar].col, 6.5 if b.item.rar >= 2 else 4.0)
-			sfx.play("aufheben", 0.1)
+			sfx.play("anlegen" if res == "angelegt" else "aufheben", 0.1)
 		"shard":
 			var am := int(round(b.amount * float(Spiel.S.shard)))   # ein schweres Herz findet mehr
 			Spiel.shards += am
 			float_text(hero.global_position, "+%d Scherben" % am, Color(0.95, 0.85, 0.55))
-			sfx.play("ui", 0.15, -8.0)
+			sfx.play("belohnung", 0.12, -4.0)
 		"mat":
 			Spiel.mats[b.mat] += b.amount
 			Spiel.speichern()
@@ -1502,7 +1502,7 @@ func smash_around(c: Vector3, r: float) -> void:
 		br.n.queue_free()
 		br.body.queue_free()
 		astar.set_point_solid(br.sub, false)
-		sfx.play_at("hit", br.pos, 0.2, -4.0)
+		sfx.play_at("scherben", br.pos, 0.15, -2.0)
 		spark(br.pos + Vector3(0, 0.8, 0), Color(0.7, 0.55, 0.35))
 		if randf() < 0.34:
 			drop("shard", br.pos, randi_range(1, 3) * _shard_mul())
@@ -1582,7 +1582,6 @@ func _open_chest(c: Dictionary) -> void:
 			get_tree().paused = false)
 
 # Musik der Stunde: im Freiland die Wüstennacht, im Dungeon das Stück seiner Art, jeweils im Wechsel mit einem zweiten
-const MUSIK := {"ruin": "mus_felder", "tomb": "mus_grab", "glass": "mus_rosetau", "vault": "mus_hoehle"}
 
 # Untergrund unter einem Punkt: Stein in Gräbern und Gebäuden, sonst Sand (für den Klang der Schritte)
 func auf_stein(p: Vector3) -> bool:
@@ -1618,15 +1617,15 @@ func untergrund(p: Vector3) -> String:
 			return "glas"
 	return "stein"
 
+# Musik der Stunde (4.3): je Akt ein eigenes Thema in eigener Tonleiter (tools/ton/musik.py). Es liegt in Schichten
+# vor (Grund, Melodie, Spannung, Kampf); welche davon klingen, entscheidet die Lage (sfx.lage, klang.gd).
 func area_music() -> Array:
-	if karte and karte.indoor:
-		return [MUSIK.get(karte.kind, "mus_duat"), "mus_duat"]
-	return ["mus_wueste", "mus_titel"]
+	return ["mus_a%d" % (Stunden.akt(Spiel.fall) + 1)]
 
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
 	cine_t = 2.4
-	sfx.music("mus_kampf", 1.0)
+	sfx.lage("hueter", 1)
 	hud.boss_show(b)
 	if b.kampf:
 		b.kampf.start()
@@ -1641,6 +1640,7 @@ var dunkel_vorher := []   # Mondlicht und Umgebungslicht vor dem Zerbrechen des 
 
 func on_boss_phase(b: Foe, n: int) -> void:
 	shake = maxf(shake, 0.6)
+	sfx.lage("hueter", n)
 	sfx.play("boss_phase" if sfx._stream("boss_phase") else "boss_appear")
 	hud.boss_phase()
 	if b.kampf:

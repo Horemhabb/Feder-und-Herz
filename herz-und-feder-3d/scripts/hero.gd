@@ -695,7 +695,7 @@ func cast(id: String) -> bool:
 			play(ANIM.meteor, 2.0, 0.08, true)
 			busy = 0.45
 			vel = Vector3.ZERO
-			game.sfx.play("bolt", 0.1, -2.0)
+			game.sfx.play("meteor", 0.04)
 			game.meteor(c, 4.6, 4.5 * pw)
 		"potion":
 			pots -= 1
