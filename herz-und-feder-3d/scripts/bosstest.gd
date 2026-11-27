@@ -283,8 +283,12 @@ func mahaf() -> void:
 	await wait(1.5)
 	check("Niederlage gegen Mahaf: die Laterne brennt wieder hell (%.1f), keine Trugbilder" % h.lantern.omni_range, h.lantern.omni_range > voll * 0.9 and B.kampf._trugbilder().is_empty() and not G.boss_awake)
 	await wecken(G, 7.0)
-	await wait(1.6)
-	check("neues Erwachen in Phase 2: er nimmt das Licht wieder", B.kampf.phase == 2 and h.lantern.omni_range < voll * 0.6)
+	# die Laterne wird über die Zeit gedimmt: bis zu sechs Sekunden zugeben, statt auf einen festen Augenblick zu setzen
+	for i in 20:
+		await wait(0.3)
+		if B.kampf.phase == 2 and h.lantern.omni_range < voll * 0.6:
+			break
+	check("neues Erwachen in Phase 2: er nimmt das Licht wieder (%.1f von %.1f m)" % [h.lantern.omni_range, voll], B.kampf.phase == 2 and h.lantern.omni_range < voll * 0.6)
 	auf(B, 0.28)
 	await wait(1.5)
 	check("Mahaf Phase 3 bei 30 %: das Ruder", B.kampf.phase == 3 and B.kampf.ruder != null and B.kampf.ruder.visible)
@@ -527,8 +531,11 @@ func champions() -> void:
 					h.inv = 0.0
 					h.global_position = c.aff.glut.flecken[0].c
 					var hh := h.hp
-					await wait(0.6)
-					check("Glutspur: wer darin steht, verbrennt (%d → %d)" % [int(hh), int(h.hp)], h.hp < hh)
+					var tief := h.hp   # tiefster Stand im Fenster: der Testheld kann den kleinen Brand gleich wieder heilen
+					for k in 16:
+						await wait(0.05)
+						tief = minf(tief, h.hp)
+					check("Glutspur: wer darin steht, verbrennt (%d → %d)" % [int(hh), int(tief)], tief < hh - 0.5)
 					h.inv = 9999.0
 			"sturm":
 				h.global_position = c.global_position + Vector3(2.0, 0, 0)
