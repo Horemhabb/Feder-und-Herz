@@ -150,9 +150,9 @@ Die Tafeln liegen in `C:\CF\ComfyUI\output\bildwerk\texturen_stunden\`. Schick s
 
 Ohne Code: Szenenbilder (`ui/szenen/<name>.webp`, Namen wie `scripts/szenen.gd`, alle 26 geprüft), gemalte Oberfläche (`ui/zier/gemalt/<name>.webp`, `Zier.tex`), Gegenstände (`ui/icons.webp`, `Daten.icon` teilt den Bogen selbst), Titel (`ui/titel.webp`), Sand (`textures/t09_sand.jpg`). Alles andere braucht Code:
 
-1. **Porträts P25 Nebet, P26 Haremhab, P27 Ba** (`ui/portraits/P25.webp` …): in `scripts/szenen.gd` bei den Einstellungen mit Nebet, Haremhab und dem Vogel im Feld `ersatz` vorn `"portrait:P25"` usw. ergänzen; wo die beiden sprechen (Gespräche in `geschichte.gd`/`hud.gd › bild`), das Kürzel setzen.
+1. ~~Porträts P25 Nebet, P26 Haremhab, P27 Ba~~ eingebaut: Ersatz in `szenen.gd` (Auftakt, Fieberhaus, Feldtor, Bug, Ba der Mitte), Gesprächsbild der Fundstücke der Stunden 6 und 11 (`fund_bild`); sie erscheinen, sobald `ui/portraits/P25`–`P27.webp` da sind.
 2. **Fellmuster der Tiere** (`bilder/lebewesen/<name>.webp`): `python3 tools/figurenfabrik/kleintiere_tafel.py`, dann Godot-Import; `eidechse_dornen` und `falke_brust` sind in `FELD_MUSTER` noch keinem Feld zugeordnet (Agent C).
-3. **Hüter 9 bis 12** (`ui/hueter/h09`–`h12.webp`): `stunden.gd › OPEN` bei „Die Ruderer“, „Die Ertrunkenen im Nun“, „Die Feuergruben“, „Das Tor des Ostens“ je `"bild": "h09"` … `"h12"`.
+3. ~~Hüter 9 bis 12~~ eingebaut: `stunden.gd › OPEN` trägt `"bild": "h09"` … `"h12"`; sie erscheinen, sobald `ui/hueter/h09`–`h12.webp` da sind.
 4. **Oberflächen der Stunden 6 bis 12** (`textures/w06_osiris.jpg` … `t12_osten.jpg`, mit `_n`): `main.gd › SURF` je Datei ein Eintrag; `welt.gd › LOOK` nach der Stunde wählen. Helligkeit ist schon gedämpft (`texturen_hell` 0,24).
 5. **Zweite Wandart** (`w01_sandstein_b` …): `welt.gd`, je Mauerabschnitt (`FELD`) zwischen `look.wall` und einer zweiten `SURF`-Oberfläche wechseln.
 6. **Kies und Lehmboden** (`t13_kies`, `t14_lehmboden`): `SURF["sand_aussen"]` auf `t13_kies`, `t14_lehmboden` als Raumboden der Felder.
@@ -166,6 +166,6 @@ Ohne Code: Szenenbilder (`ui/szenen/<name>.webp`, Namen wie `scripts/szenen.gd`,
 14. **Säulen** (`textures/saeule/<id>.jpg`): `deko.gd › stumpf`.
 15. **Ladebilder** (`ui/laden/lade01` … `lade12.webp`): `Stunden.lade_bild(n)` wie `akt_bild`, bei `hud.show_chapter` in `main.gd`.
 16. **Lexikon** (`ui/lexikon/lx_<id>.webp`, `<id>` wie `lexikon.gd › W`): Lexikon-Seite im Menü.
-17. **Bodenzeichen** (Stufe 15, `ui/zeichen/`), **Effektbilder** (Stufe 16, `textures/fx/`), **Friese** (Stufe 17, `textures/fries/`): additiv auf dem Arenaboden, als Teilchen-Textur, als Band an den Grabmauern.
+17. ~~Bodenzeichen, Effektbilder, Friese~~ eingebaut (`scripts/zierwelt.gd`): Zeichen des Hüters je Stunde (`Zierwelt.HUETER`), Zauberkreise, Feuerschalen und Seelenkrüge; Effektbilder in Lagerfeuer, Feuerschalen, Aufstieg, Truhen, Champions, Pforte, Sternmagie; Friese je Stunde (`Zierwelt.FRIES_STUNDE`). Neue Dateien dieser Ordner brauchen beim Import Mipmaps (siehe die vorhandenen `.import`).
 
 Die drei alten „Enden“ (Stufe `enden` aus dem ersten Entwurf) sind gestrichen: Die neue Geschichte hat eigene Schlussbilder (`sz_finale_leicht`, `sz_finale_schwebe`, `sz_finale_schwer`).

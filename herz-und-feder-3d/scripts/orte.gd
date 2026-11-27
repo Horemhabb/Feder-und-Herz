@@ -858,7 +858,7 @@ func _ask_relic(s: Dictionary) -> void:
 		var w: Array = G.wahl[i]
 		opts.append([w[0], func(): _relic(s, w)])
 	opts.append(["Noch liegen lassen", func(): get_tree().paused = false])
-	game.hud.show_dialog("FUNDSTÜCK", G.relikt, "", [G.fund], opts)
+	game.hud.show_dialog("FUNDSTÜCK", G.relikt, "", [G.fund], opts, G.get("fund_bild", ""))
 
 func _relic(s: Dictionary, w: Array) -> void:
 	s.done = true
@@ -906,7 +906,7 @@ func _relic(s: Dictionary, w: Array) -> void:
 			_weaken_boss("%s wird es spüren." % game.boss.K.name)
 		elif w[3] == "xp" and Spiel.xp_gain(Daten.xp_need(Spiel.lvl) * 0.6):
 			game._level_up()
-	game.hud.show_dialog("ENTSCHIEDEN", G.relikt, "", [w[1], lohn, herz], [["Weiter", weiter]])
+	game.hud.show_dialog("ENTSCHIEDEN", G.relikt, "", [w[1], lohn, herz], [["Weiter", weiter]], G.get("fund_bild", ""))
 	if not npc.is_empty():
 		npc.vis.mark.visible = true
 

@@ -585,13 +585,13 @@ func cast(id: String) -> bool:
 			busy = 0.5
 			oath_t = 6.0 * upw
 			game.sfx.play("oath")
-			game.ring_fx(global_position, 3.0, Color(1.0, 0.85, 0.3))
+			game.zeichen_fx(global_position, 3.0, Color(1.0, 0.85, 0.3), "waage")   # Eid der Maat: die Waage leuchtet auf
 		"udjat":
 			play(ANIM.udjat, 1.8, 0.1, true)
 			busy = 0.5
 			vel = Vector3.ZERO
 			game.sfx.play("udjat")
-			pending.append([0.22, func(): game.hero_ring(global_position, 7.0, 2.2 * pw, 2.2, Color(0.78, 0.45, 0.95))])
+			pending.append([0.22, func(): game.hero_ring(global_position, 7.0, 2.2 * pw, 2.2, Color(0.78, 0.45, 0.95), "udjat")])
 		"beam":
 			look_to(aim)
 			play(ANIM.beam, 2.4, 0.08, true)
@@ -616,7 +616,7 @@ func cast(id: String) -> bool:
 			busy = 0.45
 			mantra_t = 7.0 * upw
 			game.sfx.play("oath")
-			game.ring_fx(global_position, 7.2, Color(0.94, 0.9, 0.8))
+			game.zeichen_fx(global_position, 7.2, Color(0.94, 0.9, 0.8), "leben")   # Kreis des Ka: die Lebenszeichen
 		"palm":
 			look_to(aim)
 			play(ANIM.palm, 1.8, 0.06, true)
@@ -657,7 +657,7 @@ func cast(id: String) -> bool:
 			busy = 0.35
 			vel = Vector3.ZERO
 			game.sfx.play("swing", 0.1)
-			game.add_zone(c, 5.0, 3.2, 0.35, 0.85 * pw, 0.0, Color(0.6, 0.95, 0.65))
+			game.add_zone(c, 5.0, 3.2, 0.35, 0.85 * pw, 0.0, Color(0.6, 0.95, 0.65), "feder")
 		"pierce":
 			look_to(aim)
 			play(ANIM.pierce, 2.0, 0.06, true)
@@ -682,13 +682,13 @@ func cast(id: String) -> bool:
 			busy = 0.4
 			vel = Vector3.ZERO
 			game.sfx.play("udjat", 0.1, -6.0)
-			game.add_zone(c, 5.6, 5.0 * upw, 0.5, 0.35 * (1.0 + 0.12 * maxi(0, Spiel.rank(id) - 1)), 1.0, Color(0.56, 0.89, 0.88))
+			game.add_zone(c, 5.6, 5.0 * upw, 0.5, 0.35 * (1.0 + 0.12 * maxi(0, Spiel.rank(id) - 1)), 1.0, Color(0.56, 0.89, 0.88), "sterne")   # Seschat trägt einen Stern auf dem Kopf
 		"nova":
 			play(ANIM.nova, 1.8, 0.08, true)
 			busy = 0.45
 			vel = Vector3.ZERO
 			game.sfx.play("udjat")
-			pending.append([0.2, func(): game.hero_ring(global_position, 8.4, 1.8 * pw, 2.6, Color(0.56, 0.89, 0.88))])
+			pending.append([0.2, func(): game.hero_ring(global_position, 8.4, 1.8 * pw, 2.6, Color(0.56, 0.89, 0.88), "sonne")])
 		"meteor":
 			var c := _clamp_aim(18.4)
 			look_to(c)

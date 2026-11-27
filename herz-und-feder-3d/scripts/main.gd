@@ -69,6 +69,7 @@ var cine_t := 0.0        # so lange blickt die Kamera zum Hüter, wenn er erwach
 var rueck_pos := Vector3.ZERO   # wo die Figur nach der letzten Niederlage erwacht ist (3.4)
 var staub: CPUParticles3D
 var stimmung: Array = []   # Lichtstrahlen, Nebelbänke, Runenkreise (Stimmung): bei „Grafik niedrig“ aus
+var arena_zeichen: MeshInstance3D   # gemaltes Bodenzeichen am Platz des Hüters (welt.gd, zierwelt.gd), sonst null
 
 func _ready() -> void:
 	if ("--schau" in OS.get_cmdline_user_args() or Spiel.web_frage("schau")) and not Spiel.schau_gesehen:
@@ -695,6 +696,22 @@ func _campfire(c: Vector3) -> void:
 	logs.material_override = lm
 	add_child(logs)
 	logs.global_position = c + Vector3(0, 0.12, 0)
+	# mit Effektbild (zierwelt.gd): Glut und ein wenig Rauch statt der orangen Kugeln
+	if Zierwelt.feuer_glut(self, c + Vector3(0, 0.3, 0), 1.0, low_gfx):
+		Zierwelt.flamme(self, c + Vector3(0, 0.1, 0), 0.95, 0.75)
+	else:
+		_campfire_kugeln(c)
+	var l := OmniLight3D.new()
+	l.light_color = Color(1.0, 0.6, 0.3)
+	l.light_energy = 1.6
+	l.omni_range = 7.0
+	add_child(l)
+	l.global_position = c + Vector3(0, 1.0, 0)
+	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
+	_box(c, Vector3(1.0, 0.5, 1.0))
+	astar.set_point_solid(_sub(c), true)
+
+func _campfire_kugeln(c: Vector3) -> void:
 	var fl := CPUParticles3D.new()
 	fl.amount = 14
 	fl.lifetime = 0.5
@@ -715,15 +732,6 @@ func _campfire(c: Vector3) -> void:
 	fl.mesh = qm
 	add_child(fl)
 	fl.global_position = c + Vector3(0, 0.3, 0)
-	var l := OmniLight3D.new()
-	l.light_color = Color(1.0, 0.6, 0.3)
-	l.light_energy = 1.6
-	l.omni_range = 7.0
-	add_child(l)
-	l.global_position = c + Vector3(0, 1.0, 0)
-	torches.append({"l": l, "ph": randf() * 10.0, "e": 1.6})
-	_box(c, Vector3(1.0, 0.5, 1.0))
-	astar.set_point_solid(_sub(c), true)
 
 func _spawn(kind: String, pos: Vector3, pack: int, elite := "", hd := {}) -> Foe:
 	# 4.0.1: wer in einer Mauer landen würde, rückt auf die nächste freie Zelle (Rudel streuen um ihren Platz)
@@ -885,8 +893,8 @@ func hero_slam(c: Vector3, r: float, mult: float, push: float) -> void:
 	smash_around(c, r)
 	_impact(n, c)
 
-func hero_ring(c: Vector3, r: float, mult: float, stun_t: float, col: Color) -> void:
-	ring_fx(c, r, col)
+func hero_ring(c: Vector3, r: float, mult: float, stun_t: float, col: Color, zeichen := "") -> void:
+	zeichen_fx(c, r, col, zeichen)
 	shake = maxf(shake, 0.4)
 	for f in live_foes():
 		if (f.global_position - c).length() < r + f.radius:
@@ -1015,6 +1023,8 @@ func hero_chain(h: Hero, at: Vector3, mult: float) -> void:
 	var from := h.global_position + Vector3(0, 1.5, 0)
 	for i in 6:
 		_bolt_line(from, cur.global_position + Vector3(0, 1.2, 0))
+		# Sternmagie: am Getroffenen zuckt ein violetter Blitz (Effektbild, zierwelt.gd)
+		Zierwelt.stoss(self, "blitz", cur.global_position + Vector3(0, 1.2, 0), 2 if low_gfx else 3, 1.6, Color(1.0, 0.9, 1.0), 0.3, 0.0, 0.3, 0.3)
 		h.deal(cur, mult, 1.2)
 		hit.append(cur)
 		from = cur.global_position + Vector3(0, 1.2, 0)
@@ -1116,7 +1126,14 @@ func _shots_tick(delta: float) -> void:
 			shots.remove_at(i)
 
 # Flächen: Sieben Pfeile der Sachmet (Schaden in Takten) und Seschats Maß (verlangsamt, schwacher Schaden)
-func add_zone(c: Vector3, r: float, t: float, every: float, mult: float, slow: float, col: Color) -> void:
+func add_zone(c: Vector3, r: float, t: float, every: float, mult: float, slow: float, col: Color, zeichen := "") -> void:
+	# mit gemaltem Zeichen (zierwelt.gd): es dreht sich langsam auf der Fläche und blendet zum Ende aus
+	var zm := Zierwelt.bodenzeichen(self, c, r, zeichen, col.lerp(Color.WHITE, 0.45), 0.0, 0.12, true)
+	if zm:
+		var zt := zm.create_tween()
+		zt.tween_method(func(v: float): zm.material_override.set_shader_parameter("kraft", v), 0.0, 0.85, 0.25)
+		zones.append({"n": zm, "zeichen": true, "c": c, "r": r, "t": t, "t0": t, "every": every, "next": 0.0, "mult": mult, "slow": slow, "col": col})
+		return
 	var m := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = r
@@ -1151,7 +1168,11 @@ func _zones_tick(delta: float) -> void:
 				for k in 4:
 					var a := randf() * TAU
 					spark(z.c + Vector3(sin(a), 0, cos(a)) * randf() * z.r + Vector3(0, 0.3, 0), z.col)
-		z.mat.albedo_color.a = 0.22 * clampf(z.t / 0.4, 0.0, 1.0)
+		if z.get("zeichen", false):
+			if z.t < 0.4:
+				z.n.material_override.set_shader_parameter("kraft", 0.85 * clampf(z.t / 0.4, 0.0, 1.0))
+		else:
+			z.mat.albedo_color.a = 0.22 * clampf(z.t / 0.4, 0.0, 1.0)
 		if z.t <= 0.0:
 			z.n.queue_free()
 			zones.remove_at(i)
@@ -1161,7 +1182,8 @@ func meteor(c: Vector3, r: float, mult: float) -> void:
 	warn_fx(c, r, 0.7)
 	get_tree().create_timer(0.7, false).timeout.connect(func():
 		ring_fx(c, r, Color(1.0, 0.84, 0.37))
-		spark(c + Vector3(0, 0.8, 0), Color(1.0, 0.84, 0.37))
+		if not Zierwelt.stoss(self, "goldstaub", c + Vector3(0, 0.6, 0), 8 if low_gfx else 18, 1.1, Color(1.0, 0.9, 0.7), 5.0, -6.0, 0.9, r * 0.3):
+			spark(c + Vector3(0, 0.8, 0), Color(1.0, 0.84, 0.37))
 		shake = maxf(shake, 0.7)
 		sfx.treffer(c, 0.05)
 		for f in live_foes():
@@ -1316,6 +1338,7 @@ func _level_up() -> void:
 	lvl_seen = Spiel.lvl
 	sfx.play("stufe" if sfx._stream("stufe") else "aufstieg")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
+	Zierwelt.stoss(self, "goldstaub", hero.global_position + Vector3(0, 0.8, 0), 10 if low_gfx else 26, 0.7, Color(1.0, 0.92, 0.7), 3.5, -1.2, 1.6, 0.7)
 
 # ---------------------------------------------------------------- Beute (04-combat.js › kill, 03a-dungeon.js › openChest)
 func _shard_mul() -> int:
@@ -1529,6 +1552,7 @@ func _open_chest(c: Dictionary) -> void:
 		tw.tween_property(c.lid, "rotation:x", -1.7, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	sfx.play_at("truhe", c.pos, 0.1)
 	shake = maxf(shake, 0.2)
+	Zierwelt.stoss(self, "goldstaub", c.pos + Vector3(0, 0.8, 0), (6 if low_gfx else 12) + 6 * int(c.tier), 0.55, Color(1.0, 0.9, 0.65), 2.6, -2.5, 1.2, 0.3)
 	var T: int = c.tier
 	var n := Spiel.fall
 	var its := []
@@ -1629,6 +1653,9 @@ func on_boss_wake(b: Foe) -> void:
 	hud.boss_show(b)
 	if b.kampf:
 		b.kampf.start()
+	if arena_zeichen:
+		Zierwelt.hell_setzen(arena_zeichen, 0.6, 1.2)
+		arena_zeichen.material_override.set_shader_parameter("puls", 0.12)
 	hud.banner(hdef.boss.say, b.K.name.to_upper(), 6.0)
 	sfx.play("boss_appear")
 	sprich("vo_boss")
@@ -1643,6 +1670,10 @@ func on_boss_phase(b: Foe, n: int) -> void:
 	sfx.lage("hueter", n)
 	sfx.play("boss_phase" if sfx._stream("boss_phase") else "boss_appear")
 	hud.boss_phase()
+	# das Zeichen der Arena wird mit jeder Phase heller und leuchtet einmal unter dem Hüter auf
+	if arena_zeichen:
+		Zierwelt.hell_setzen(arena_zeichen, 0.6 + 0.15 * (n - 1), 1.0)   # gedämpft: im Dunkel der letzten Phase soll die Laterne das Hellste bleiben
+		Zierwelt.aufleuchten(self, b.global_position, 4.0, Zierwelt.hueter_zeichen(Spiel.fall), Color(1.0, 0.9, 0.75), 1.1, 1.2)
 	if b.kampf:
 		# eigenes Kampfmuster (hueter.gd): Name und Satz der neuen Phase, Ring in seiner Farbe
 		var txt: String = b.kampf.phasen_text()
@@ -1698,8 +1729,11 @@ func fallender_stern(ziel: Vector3, r: float, schaden: float, von: Foe) -> void:
 	add_child(n)
 	var start := ziel + Vector3(7.0, 20.0, 5.0)
 	n.global_position = start
-	var schweif := CPUParticles3D.new()
-	schweif.amount = 24
+	var schweif: CPUParticles3D = Zierwelt.teilchen("goldstaub", 18, 0.5, 0.9, Color(1.0, 0.85, 0.6))
+	var schweif_bild := schweif != null
+	if not schweif_bild:
+		schweif = CPUParticles3D.new()
+		schweif.amount = 24
 	schweif.lifetime = 0.5
 	schweif.local_coords = false
 	schweif.gravity = Vector3.ZERO
@@ -1707,16 +1741,17 @@ func fallender_stern(ziel: Vector3, r: float, schaden: float, von: Foe) -> void:
 	schweif.initial_velocity_max = 0.4
 	schweif.scale_amount_min = 0.5
 	schweif.scale_amount_max = 1.0
-	var q := QuadMesh.new()
-	q.size = Vector2(0.5, 0.5)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	qm.albedo_color = Color(1.0, 0.8, 0.45, 0.6)
-	q.material = qm
-	schweif.mesh = q
+	if not schweif_bild:
+		var q := QuadMesh.new()
+		q.size = Vector2(0.5, 0.5)
+		var qm := StandardMaterial3D.new()
+		qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		qm.albedo_color = Color(1.0, 0.8, 0.45, 0.6)
+		q.material = qm
+		schweif.mesh = q
 	n.add_child(schweif)
 	var tw := n.create_tween()
 	tw.tween_property(n, "global_position", ziel + Vector3(0, 0.3, 0), 1.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -1747,6 +1782,9 @@ func on_boss_dead() -> void:
 	if boss.kampf:
 		boss.kampf.ende()
 	_licht_zurueck()
+	if arena_zeichen:
+		Zierwelt.hell_setzen(arena_zeichen, 0.4, 3.0)
+		arena_zeichen.material_override.set_shader_parameter("puls", 0.0)
 	if boss.ist_aktende():
 		get_tree().create_timer(4.5).timeout.connect(_aktende_lohn)
 	hud.boss_hide()
@@ -1895,8 +1933,12 @@ func _build_gate(pos: Vector3) -> void:
 	# kleine Szene: Der Boden bebt, Sand rieselt, das Tor steigt auf, die Kamera fährt zurück und sieht hin
 	shake = maxf(shake, 0.55)
 	gate_cine_t = 3.2
-	var sandfall := CPUParticles3D.new()
-	sandfall.amount = 70
+	# mit Effektbild (zierwelt.gd): weniger, aber größere Sandschleier statt vieler kleiner Vierecke
+	var sandfall: CPUParticles3D = Zierwelt.teilchen("sand", 16 if low_gfx else 28, 1.6, 1.3, Color(0.85, 0.74, 0.56, 0.75))
+	var mit_bild := sandfall != null
+	if not mit_bild:
+		sandfall = CPUParticles3D.new()
+		sandfall.amount = 70
 	sandfall.lifetime = 1.6
 	sandfall.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	sandfall.emission_box_extents = Vector3(3.6, 0.2, 1.2)
@@ -1907,15 +1949,16 @@ func _build_gate(pos: Vector3) -> void:
 	sandfall.gravity = Vector3(0, -4.0, 0)
 	sandfall.scale_amount_min = 0.6
 	sandfall.scale_amount_max = 1.4
-	var q := QuadMesh.new()
-	q.size = Vector2(0.12, 0.12)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	qm.albedo_color = Color(0.78, 0.68, 0.5, 0.7)
-	q.material = qm
-	sandfall.mesh = q
+	if not mit_bild:
+		var q := QuadMesh.new()
+		q.size = Vector2(0.12, 0.12)
+		var qm := StandardMaterial3D.new()
+		qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		qm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		qm.albedo_color = Color(0.78, 0.68, 0.5, 0.7)
+		q.material = qm
+		sandfall.mesh = q
 	add_child(sandfall)
 	sandfall.global_position = pos + Vector3(0, 0.2, 0)
 	sandfall.emitting = true
@@ -2041,6 +2084,12 @@ func ring_fx(c: Vector3, r: float, col: Color) -> void:
 	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.32)
 	tw.tween_callback(m.queue_free)
 
+# Zauberkreis mit gemaltem Zeichen (zierwelt.gd): leuchtet auf dem Boden auf und vergeht. Fehlt das Bild (oder ist
+# kein Zeichen genannt), bleibt es beim einfachen Ring.
+func zeichen_fx(c: Vector3, r: float, col: Color, zeichen := "") -> void:
+	if zeichen == "" or not Zierwelt.aufleuchten(self, c, r, zeichen, col.lerp(Color.WHITE, 0.5), 0.75, 1.1):
+		ring_fx(c, r, col)
+
 # Ansage eines Hiebs: roter Kegel vor dem Gegner (05-update.js: Kegel ±0,8 rad)
 func cone_fx(c: Vector3, face: float, r: float, half: float, t: float) -> void:
 	var im := ImmediateMesh.new()
@@ -2087,7 +2136,7 @@ func stripe_fx(c: Vector3, dir: Vector3, length: float, width: float, t: float) 
 
 var warnungen: Array = []   # angesagte Treffer am Boden: {c, r, bis} (der Spielroboter weicht ihnen aus)
 
-func warn_fx(c: Vector3, r: float, t: float) -> void:
+func warn_fx(c: Vector3, r: float, t: float, zeichen := "") -> void:
 	# Ansage eines schweren Hiebs: roter Kreis am Boden, der sich füllt
 	warnungen = warnungen.filter(func(w): return w.bis > clock)
 	warnungen.append({"c": c, "r": r, "bis": clock + t + 0.15})
@@ -2107,6 +2156,12 @@ func warn_fx(c: Vector3, r: float, t: float) -> void:
 	var tw := create_tween()
 	tw.tween_property(mat, "albedo_color:a", 0.5, t)
 	tw.tween_callback(m.queue_free)
+	# Hüter (hueter.gd › _kreis): darüber sein Zeichen in Glutrot, das bis zum Schlag heller wird
+	var zm := Zierwelt.bodenzeichen(self, Vector3(c.x, 0.07, c.z), r, zeichen, Color(1.0, 0.38, 0.22), 0.0, 0.4, true)
+	if zm:
+		var zt := zm.create_tween()
+		zt.tween_method(func(v: float): zm.material_override.set_shader_parameter("kraft", v), 0.15, 1.1, t).set_ease(Tween.EASE_IN)
+		zt.tween_callback(zm.queue_free)
 
 func spark(pos: Vector3, col: Color) -> void:
 	var p := CPUParticles3D.new()
@@ -2406,6 +2461,7 @@ func set_low(low: bool, still := false) -> void:
 		cut_mats[name].set_shader_parameter("use_normal", not low and surf(name).normal_texture != null)
 	for key in boden_mats:
 		boden_mats[key].set_shader_parameter("use_normal", not low and surf(boden_mats[key].get_meta("surf")).normal_texture != null)
+	Zierwelt.grafik(low)
 	if not still:
 		hud.toast("Grafik: %s" % ("Niedrig (ohne Schatten und Glühen)" if low else "Hoch"))
 

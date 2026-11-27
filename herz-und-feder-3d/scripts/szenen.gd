@@ -5,6 +5,7 @@ class_name Szenen
 # Eine Sequenz: {"titel": …, "einstellungen": [Einstellung, …]}. Eine Einstellung:
 #   bild      Name des Bildes in ui/szenen/ (ohne .webp)
 #   ersatz    was gezeigt wird, solange das Bild fehlt, der erste vorhandene zählt: "portrait:P05", "hueter:h05",
+#             (Porträts der Geschichte: P25 Nebet, P26 Haremhab, P27 der Ba mit Nebets Gesicht)
 #             "akt:0" (Akttafel 0 bis 2), "titel", "welt" (Blick in die Spielwelt), "zeichen:waage" (immer da)
 #   zeichen   Zeichen auf der Ersatzfläche hinter einem Porträt (sonne, waage, krug, tor, feder, laterne, ba, auge, schlange)
 #   art       "welt": gar kein Bild, die Kamera fährt in der Spielwelt (ziel: hueter, held, pforte, arena; nah: Meter;
@@ -84,7 +85,7 @@ static func baue(name: String) -> Dictionary:
 				{"bild": "sz_auftakt_1", "ersatz": ["titel", "zeichen:sonne"], "fahrt": [[1.18, 0.0, 0.5], [1.04, 0.0, -0.3]], "ton": "amb_wind",
 					"zeilen": [_z("Sandtor, am Rand des Westens. Seit drei Nächten geht die Sonne später auf.", "", "vo_sz_auftakt_01"),
 						_z("Und seit drei Nächten steigen aus den Dächern Lichter, die nicht wiederkommen.", "", "vo_sz_auftakt_02")]},
-				{"bild": "sz_auftakt_2", "ersatz": ["zeichen:laterne"], "fahrt": [[1.04, -0.4, 0.0], [1.16, 0.3, 0.1]],
+				{"bild": "sz_auftakt_2", "ersatz": ["portrait:P25", "zeichen:laterne"], "zeichen": "laterne", "fahrt": [[1.04, -0.4, 0.0], [1.16, 0.3, 0.1]],
 					"zeilen": [_z("Im Fieberhaus liegt Nebet. Sie webt Leinen. Ihre Finger sind blau vom Färben, und sie glüht.", "", "vo_sz_auftakt_03"),
 						_z("Drei Nächte hast du an ihrem Bett gesessen und das Licht gehalten.", "", "vo_sz_auftakt_04")]},
 				{"bild": "sz_auftakt_3", "ersatz": ["zeichen:laterne"], "fahrt": [[1.1, 0.0, 0.0], [1.22, 0.0, 0.2]], "stich": Color(1.0, 0.92, 0.82),
@@ -115,7 +116,7 @@ static func baue(name: String) -> Dictionary:
 		"h02_nach":
 			E = [{"art": "welt", "ziel": "arena", "nah": 7.0, "dreh": 0.15,
 					"zeilen": [_z("Unter der letzten Haut liegt nur Sand. Darin ein Abdruck: ein Königsring, der Name herausgekratzt.", "", "vo_sz_h02_nach_01")]},
-				{"bild": "sz_h02_feldtor", "ersatz": ["welt", "zeichen:tor"], "ziel": "held", "nah": 7.5, "winkel": 0.6, "fahrt": [[1.06, 0.3, 0.0], [1.16, -0.2, 0.0]],
+				{"bild": "sz_h02_feldtor", "ersatz": ["portrait:P26", "welt", "zeichen:tor"], "zeichen": "tor", "ziel": "held", "nah": 7.5, "winkel": 0.6, "fahrt": [[1.06, 0.3, 0.0], [1.16, -0.2, 0.0]],
 					"zeilen": [_z("Am Feldtor kniet ein Mann in der Rüstung eines Generals und prüft das Wachs am Riegel.", "", "vo_sz_h02_nach_02"),
 						_z("„Schlampig. Wer tilgt, muss gründlich tilgen, sonst spricht der Rest.“", "Haremhab", "vo_sz_h02_nach_03"),
 						_z("„Du jagst ihn auch. Gut. Geh vor. Ich bin hinter dir.“", "Haremhab", "vo_sz_h02_nach_04")]}]
@@ -147,7 +148,7 @@ static func baue(name: String) -> Dictionary:
 					"zeilen": [_z("Du sagst deinen Namen.", "", "vo_sz_akt1_03"),
 						_z("Er fährt mit dem Finger die Liste des Westens hinab, bis ganz nach unten, wo die Tinte noch feucht ist. Rot.", "", "vo_sz_akt1_04"),
 						_z("Er nickt. Hinter ihm öffnet sich das Tor. Es öffnet sich nur für Tote.", "", "vo_sz_akt1_05")]},
-				{"bild": "sz_akt1_fieberhaus", "ersatz": ["zeichen:laterne"], "blende": "weiss", "stich": Color(0.82, 0.9, 1.0), "fahrt": [[1.2, 0.0, 0.0], [1.05, 0.0, 0.0]],
+				{"bild": "sz_akt1_fieberhaus", "ersatz": ["portrait:P25", "zeichen:laterne"], "zeichen": "laterne", "blende": "weiss", "stich": Color(0.82, 0.9, 1.0), "fahrt": [[1.2, 0.0, 0.0], [1.05, 0.0, 0.0]],
 					"zeilen": [_z("Du erinnerst dich.", "", "vo_sz_akt1_06"),
 						_z("Das Fieberhaus. Ihr Bett. Deine Hände um die Lampe, und wie sie kalt werden, ganz ruhig, noch vor Mitternacht.", "", "vo_sz_akt1_07"),
 						_z("Nebet hat geschrien. Du hast es nicht mehr gehört.", "", "vo_sz_akt1_08")]},
@@ -182,7 +183,7 @@ static func baue(name: String) -> Dictionary:
 					"zeilen": [_z("Isis sieht nicht dich an. Sie sieht auf deine Schulter.", "", "vo_sz_mitte_01"),
 						_z("„Komm her, Kleine. Ich kenne deinen Namen. Ich kenne jeden Namen.“", "Isis", "vo_sz_mitte_02"),
 						_z("„Nebet.“", "Isis", "vo_sz_mitte_03")]},
-				{"bild": "sz_mitte_ba", "ersatz": ["zeichen:ba"], "stich": Color(0.85, 1.0, 0.98), "fahrt": [[1.1, 0.0, 0.0], [1.3, 0.0, -0.2]],
+				{"bild": "sz_mitte_ba", "ersatz": ["portrait:P27", "zeichen:ba"], "zeichen": "ba", "stich": Color(0.85, 1.0, 0.98), "fahrt": [[1.1, 0.0, 0.0], [1.3, 0.0, -0.2]],
 					"zeilen": [_z("Der Vogel auf deiner Schulter hat ein Gesicht. Du hast es die ganze Nacht nicht angesehen.", "", "vo_sz_mitte_04"),
 						_z("„Ich bin dir nachgeflogen. Aus dem Fieber, als du nicht mehr geatmet hast.“", "Nebet", "vo_sz_mitte_05"),
 						_z("„Ich hab gelogen, die ganze Nacht. Hättest du gewusst, dass du tot bist, wärst du stehen geblieben. Und ich wollte leben.“", "Nebet", "vo_sz_mitte_06")]},
@@ -199,7 +200,7 @@ static func baue(name: String) -> Dictionary:
 				"zeilen": [_z("Eine Windung, dick wie ein Tempel, schiebt sich aus dem Sand. Der Rest liegt darunter und trinkt.", "", "vo_sz_h07_vor_01"),
 					_z("„Endlich etwas, das man ohne Zweifel töten darf.“", "Haremhab", "vo_sz_h07_vor_02")]}]
 		"h07_nach":
-			E = [{"bild": "sz_h07_bug", "ersatz": ["welt", "zeichen:schlange"], "ziel": "held", "nah": 7.0, "winkel": -0.7, "fahrt": [[1.05, -0.3, 0.0], [1.15, 0.3, 0.0]],
+			E = [{"bild": "sz_h07_bug", "ersatz": ["portrait:P26", "welt", "zeichen:schlange"], "zeichen": "schlange", "ziel": "held", "nah": 7.0, "winkel": -0.7, "fahrt": [[1.05, -0.3, 0.0], [1.15, 0.3, 0.0]],
 				"zeilen": [_z("„Ich habe Namen aus Wänden schlagen lassen, als ich König war. Ich weiß, wie man einen Mann auslöscht.“", "Haremhab", "vo_sz_h07_nach_01"),
 					_z("„Ich hole mir sein Buch. Und dann brennt es.“", "Haremhab", "vo_sz_h07_nach_02")]}]
 		"h08_vor":
