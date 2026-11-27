@@ -3973,9 +3973,32 @@
   },
   "hinweis_sand": "Sand neu (Stufe sand_neu) bewusst nicht benutzt: Alle acht Bilder sind leicht von schräg gemalt (Rippel oben feiner als unten), das kachelt nicht. Die Quelle t09_sand_textur_a bleibt; die Datei im Spiel ist die von Hand korrigierte aus 4.1.5.",
   "hinweis_neu": "Neue Arten (5.3), je 'einbauen.bat <art> [namen]': zeichen, fx, fries, saeulen, gegenstaende, champions, abzieh (Schlüssel abziehbilder), wandbilder, tore, ladebilder, buchbilder, titel, szenen, zier, lebewesen. Auswahl jeweils Name -> Quelle (bildwerk/<stufe>/<datei>_<stil>_<variante>, nahtlos gerechnete mit _k am Ende). gegenstaende: Feldnummer 0 bis 35 -> Quelle. Hüter 9 bis 12 kommen unter 'hueter', neue Flächen unter 'texturen' (mit 'texturen_hell': Name -> höchste lineare Helligkeit, z. B. 0.24).",
-  "zeichen": {},
-  "fx": {},
-  "fries": {},
+  "zeichen": {
+   "waage": "bildwerk/bodenzeichen/z1_zeichen_c",
+   "sonne": "bildwerk/bodenzeichen/z2_zeichen_b",
+   "sterne": "bildwerk/bodenzeichen/z3_zeichen_c",
+   "skarabaeus": "bildwerk/bodenzeichen/z4_zeichen_a",
+   "udjat": "bildwerk/bodenzeichen/z5_zeichen_b",
+   "schlange": "bildwerk/bodenzeichen/z6_zeichen_c",
+   "feder": "bildwerk/bodenzeichen/z7_zeichen_b",
+   "leben": "bildwerk/bodenzeichen/z8_zeichen_a"
+  },
+  "fx": {
+   "glut": "bildwerk/effektbilder/e1_funke_a",
+   "goldstaub": "bildwerk/effektbilder/e2_funke_b",
+   "dunst": "bildwerk/effektbilder/e3_funke_a",
+   "sand": "bildwerk/effektbilder/e4_funke_b",
+   "rauch": "bildwerk/effektbilder/e5_funke_b",
+   "blitz": "bildwerk/effektbilder/e6_funke_c"
+  },
+  "fries": {
+   "goetterzug": "bildwerk/friese/f1_fries_a",
+   "lotos": "bildwerk/friese/f2_fries_a",
+   "barke": "bildwerk/friese/f3_fries_b",
+   "schakale": "bildwerk/friese/f4_fries_a",
+   "sterndecke": "bildwerk/friese/f5_fries_b",
+   "federn": "bildwerk/friese/f6_fries_a"
+  },
   "saeulen": {},
   "gegenstaende": {},
   "champions": {},
@@ -3991,7 +4014,9 @@
   "fx_art": {
    "e3": "alpha",
    "e4": "alpha",
-   "e5": "alpha"
+   "e5": "alpha",
+   "rauch": "alpha",
+   "sand": "alpha"
   },
   "gegenstaende_zelle": 160,
   "gegenstaende_schatten": 0.45,
@@ -4095,7 +4120,8 @@
     64
    ]
   },
-  "hinweis_szenen": "szenen: Name wie in scripts/szenen.gd (sz_...) -> Quelle; 1280 x 720 nach ui/szenen/. Namen unter szenen_add werden als Lichter-Ebene gebaut (RGB auf reinem Schwarz, additiv). zier: Zielname (grund_dunkel, karte_grund, sterne, papyrus, fluegelsonne, udjat, lotos, skarabaeus) -> Quelle, nach ui/zier/gemalt/. lebewesen: Dateiname wie in kleintiere_tafel.py -> Quelle, nahtlos nach bilder/lebewesen/; danach die Tafel neu rechnen (Claude). Porträts P25 bis P27 gehen über 'portraets'."
+  "hinweis_szenen": "szenen: Name wie in scripts/szenen.gd (sz_...) -> Quelle; 1280 x 720 nach ui/szenen/. Namen unter szenen_add werden als Lichter-Ebene gebaut (RGB auf reinem Schwarz, additiv). zier: Zielname (grund_dunkel, karte_grund, sterne, papyrus, fluegelsonne, udjat, lotos, skarabaeus) -> Quelle, nach ui/zier/gemalt/. lebewesen: Dateiname wie in kleintiere_tafel.py -> Quelle, nahtlos nach bilder/lebewesen/; danach die Tafel neu rechnen (Claude). Porträts P25 bis P27 gehen über 'portraets'.",
+  "hinweis_vorlagen": "Gegnervorlagen (Stufe gegner_vorlagen) ausgewählt am 27.11.: jeweils Variante a (Vorder- und Rückansicht sauber nebeneinander; b zeigt oft drei Figuren). Weg: GEGNERFABRIK.md, Abschnitt 8."
  },
  "naechte": {
   "proben": {
