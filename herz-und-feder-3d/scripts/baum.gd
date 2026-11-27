@@ -30,15 +30,8 @@ func _knopf(text: String, main: bool, cb: Callable, enabled := true) -> Button:
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
-	b.add_theme_font_size_override("font_size", 15)
-	b.custom_minimum_size = Vector2(44, 42)
-	var edge := Hud.GOLD if main else Color("5c4a2e")
-	b.add_theme_stylebox_override("normal", hud._flat(Color(Hud.GOLD, 0.14) if main else Color(0, 0, 0, 0), 8, edge, 1))
-	b.add_theme_stylebox_override("hover", hud._flat(Color(1, 1, 1, 0.06), 8, Hud.GOLD, 1))
-	b.add_theme_stylebox_override("pressed", hud._flat(Color(1, 1, 1, 0.1), 8, Hud.GOLD, 1))
-	b.add_theme_stylebox_override("disabled", hud._flat(Color(0, 0, 0, 0), 8, Color("2a2731"), 1))
-	b.add_theme_color_override("font_color", Hud.GOLD if main else Hud.PARCH)
-	b.add_theme_color_override("font_disabled_color", Color(Hud.DIM, 0.45))
+	b.custom_minimum_size = Vector2(44, 44)
+	Zier.knopf_stil(b, "haupt" if main else "zweit", 15)
 	b.disabled = not enabled
 	b.pressed.connect(func():
 		game.sfx.play("ui")
@@ -124,18 +117,7 @@ func render() -> void:
 	if wahl == "" or not B.knoten.has(wahl):
 		wahl = _vorschlag()
 	var pts := Spiel.tree_points()
-	var top := HBoxContainer.new()
-	var t := hud._label("Fähigkeitenbaum", 26, Hud.PARCH)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(t)
-	var close := Button.new()
-	close.text = hud._taste("  Schließen  [K]  ").strip_edges()
-	close.focus_mode = Control.FOCUS_NONE
-	close.add_theme_font_size_override("font_size", 15)
-	close.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
-	close.pressed.connect(func(): game.toggle_tree())
-	top.add_child(close)
-	add_child(top)
+	hud.fenster_kopf(self, "Fähigkeitenbaum", ("  Schließen  " if game.touch else "  Schließen  [K]  "), func(): game.toggle_tree())
 	add_child(hud._para("%s · Stufe %d · %s" % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, ("%d freie Punkte" % pts) if pts != 1 else "1 freier Punkt"], 15, Hud.GOLD if pts > 0 else Hud.DIM))
 	if Spiel.baum_neu:
 		add_child(hud._para("Der Baum ist neu gewachsen: Er hat jetzt drei Äste, und lernen lässt sich nur, was neben schon Gelerntem liegt. Deine Punkte sind zurückgegeben, verteile sie neu.", 14, Hud.GOLD))
@@ -149,7 +131,7 @@ func render() -> void:
 	# das Bild des Baums; am Handy in einem eigenen Rollbereich, damit man es seitlich verschieben kann
 	bild = BaumBild.new()
 	bild.baum = self
-	var platz := minf(BREITE, breit - 80.0)
+	var platz := minf(BREITE, breit - 150.0)   # Ränder der dunklen Tafel und des Fensters
 	var s := 1.0 if neben else clampf(platz / BREITE, 0.72, 1.0)
 	bild.skala = s
 	bild.custom_minimum_size = Vector2(BREITE, HOEHE) * s
@@ -208,10 +190,8 @@ func _beschreibung(neben: bool) -> Control:
 	p.custom_minimum_size = Vector2(320 if neben else 0, 0)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	p.add_theme_stylebox_override("panel", hud._flat(Color("211f27"), 8, Color("5c4a2e"), 1))
+	Zier.tafel(p, "klein", "", 16.0)
 	var m := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 12)
 	p.add_child(m)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
@@ -228,13 +208,16 @@ func _beschreibung(neben: bool) -> Control:
 		kopf.add_child(ic)
 	var kv := VBoxContainer.new()
 	kv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	kv.add_child(hud._label(name_von(wahl), 18, Hud.PARCH))
+	var nl := hud._label(name_von(wahl), 20, Zier.GOLD_HELL)
+	nl.add_theme_font_override("font", hud.f_fett)
+	kv.add_child(nl)
 	var art_txt := {"stamm": "Stamm", "faehigkeit": "Fähigkeit", "blatt": "Verstärkung", "staerke": "Dauerhafte Stärke", "schluessel": "Schlüsselstein"}[k.art] as String
 	if ast >= 0:
 		art_txt += " · Ast „%s“" % B.aeste[ast]
 	kv.add_child(hud._label(art_txt, 12, Hud.DIM))
 	kopf.add_child(kv)
 	v.add_child(kopf)
+	v.add_child(Zier.leiste(0.0, "raute", 12.0))
 	var txt := ""
 	var wirkung := ""
 	match k.art:
@@ -263,8 +246,9 @@ func _beschreibung(neben: bool) -> Control:
 		"schluessel":
 			txt = Klassen.KEYSTONE[Spiel.cls].txt
 			wirkung = "Braucht %d verteilte Punkte und einen Weg dorthin." % Klassen.KEY_NEED
-	v.add_child(hud._para(txt, 13, Hud.PARCH))
-	v.add_child(hud._label(wirkung, 12, Hud.TEAL))
+	v.add_child(hud._para(txt, 14, Hud.PARCH))
+	var wl := hud._para(wirkung, 13, Hud.TEAL)
+	v.add_child(wl)
 	if k.art != "stamm":
 		var grund := hindernis(wahl)
 		var schon := Spiel.knoten_gelernt(wahl)
@@ -365,11 +349,17 @@ class BaumBild extends Control:
 				accept_event()
 
 	func _draw() -> void:
+		# Grund: der Sternenhimmel der Nut in einer gefassten Tafel (4.3)
+		var feld := Rect2(Vector2.ZERO, size)
+		var st := Zier.tex("sterne")
+		if st:
+			draw_texture_rect(st, feld.grow(-4), true, Color(0.9, 0.9, 1.0))
+		Zier.platz_zeichnen(self, feld, Color(0, 0, 0, 0), true)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * skala)
 		var B := Klassen.baum(Spiel.cls)
 		var gold := Hud.GOLD
-		var dunkel := Color(0.24, 0.2, 0.15)
-		var font := get_theme_default_font()
+		var dunkel := Color(0.42, 0.38, 0.5, 0.75)
+		var font: Font = Zier.schrift("zier")
 		# Äste: gelernt golden und dick, halb gelernt Tinte, sonst ein dunkler Strich
 		var fertig := {}
 		for a in B.nachbarn:
@@ -392,11 +382,14 @@ class BaumBild extends Control:
 				for i in 13:
 					var u := i / 12.0
 					pts.append(pa.lerp(mitte, u).lerp(mitte.lerp(pb, u), u))
+				if la and lb:
+					draw_polyline(pts, Color(1.0, 0.75, 0.3, 0.18), w * 3.2, true)   # Schein um gelernte Äste
 				draw_polyline(pts, col, w, true)
 		# Namen der Äste über ihren Spitzen
 		var oben := [Vector2(170, 32), Vector2(470, 30), Vector2(640, 40)]
 		for i in 3:
-			draw_string(font, oben[i] - Vector2(60, 0), String(B.aeste[i]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 120, 17, Color(0.3, 0.19, 0.08, 0.9))
+			draw_string_outline(font, oben[i] - Vector2(70, 0), String(B.aeste[i]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 140, 19, 4, Color(0, 0, 0, 0.7))
+			draw_string(font, oben[i] - Vector2(70, 0), String(B.aeste[i]).to_upper(), HORIZONTAL_ALIGNMENT_CENTER, 140, 19, Color(0.98, 0.84, 0.52))
 		# Knoten
 		for k in B.knoten:
 			var n: Dictionary = B.knoten[k]
@@ -404,22 +397,17 @@ class BaumBild extends Control:
 			var r := radius(n.art)
 			var gel := Spiel.knoten_gelernt(k)
 			var offen: bool = not gel and Baum.hindernis(k) == "" and n.art != "stamm"
-			var ring := gold if gel else (Color(0.56, 0.89, 0.88) if offen else Color(0.36, 0.3, 0.22))
 			if offen:
 				# lernbar: ein Schein, der langsam atmet
 				draw_circle(p, r + 7.0 + sin(t * 3.0) * 2.5, Color(0.56, 0.89, 0.88, 0.16))
 			if k == baum.wahl:
 				draw_arc(p, r + 9.0, 0, TAU, 40, Color(1, 1, 1, 0.75), 2.0, true)
-			match n.art:
-				"staerke", "schluessel":
-					var rr := r * 1.25
-					var poly := PackedVector2Array([p + Vector2(0, -rr), p + Vector2(rr, 0), p + Vector2(0, rr), p + Vector2(-rr, 0)])
-					draw_colored_polygon(poly, Color(0.1, 0.09, 0.11))
-					poly.append(poly[0])
-					draw_polyline(poly, ring, 3.0, true)
-				_:
-					draw_circle(p, r, Color(0.1, 0.09, 0.11))
-					draw_arc(p, r, 0, TAU, 40, ring, 3.0, true)
+			var raute: bool = n.art in ["staerke", "schluessel"]
+			if raute:
+				var rr := r * 1.25
+				draw_colored_polygon(PackedVector2Array([p + Vector2(0, -rr), p + Vector2(rr, 0), p + Vector2(0, rr), p + Vector2(-rr, 0)]), Color(0.07, 0.06, 0.1))
+			else:
+				draw_circle(p, r, Color(0.07, 0.06, 0.1))
 			var tex := symbol(k)
 			if tex and rahmen_ab(tex):
 				# Symbole mit eingebranntem Rahmen: nur das Innere zeigen, an der Form des Knotens abgeschnitten
@@ -445,6 +433,13 @@ class BaumBild extends Control:
 			elif n.art == "blatt":
 				var buch: String = "W" if n.aug == "wucht" else "E"
 				draw_string(font, p + Vector2(-8, 6), buch, HORIZONTAL_ALIGNMENT_CENTER, 16, 16, gold if gel else Color(Hud.PARCH, 0.75))
+			# Fassung: Medaillon (Fähigkeit, Blatt, Stamm) oder Raute (Stärke, Schlüsselstein) aus getriebenem Gold;
+			# lernbar mit türkisem Schimmer, gesperrt matt wie altes Messing
+			var ft := Zier.tex("raute" if raute else "medaillon")
+			if ft:
+				var halb := (r * 1.25 * 40.0 / 37.0) if raute else (r * 40.0 / 33.0) + 1.0
+				var tint := Color.WHITE if gel or n.art == "stamm" else (Color(0.85, 1.05, 1.05) if offen else Color(0.5, 0.47, 0.45))
+				draw_texture_rect(ft, Rect2(p - Vector2(halb, halb), Vector2(halb, halb) * 2.0), false, tint)
 			# Ränge als kleine Punkte unter dem Knoten
 			var rk := 0
 			if n.art == "faehigkeit":
@@ -457,10 +452,5 @@ class BaumBild extends Control:
 					draw_circle(q, 3.0, gold if i < rk else Color(0.36, 0.3, 0.22))
 		var kr := knopf_rect()
 		if kr.size.x > 0.0:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0.86, 0.66, 0.25)
-			sb.set_corner_radius_all(9)
-			sb.border_color = Color(0.3, 0.19, 0.08)
-			sb.set_border_width_all(1)
-			draw_style_box(sb, kr)
-			draw_string(font, kr.position + Vector2(0, 22), knopf_text(), HORIZONTAL_ALIGNMENT_CENTER, kr.size.x, 16, Color(0.16, 0.1, 0.04))
+			draw_style_box(Zier.knopf_box("haupt"), kr.grow(4))
+			draw_string(font, kr.position + Vector2(0, 22), knopf_text(), HORIZONTAL_ALIGNMENT_CENTER, kr.size.x, 16, Color(0.12, 0.07, 0.02))

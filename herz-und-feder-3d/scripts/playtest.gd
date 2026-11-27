@@ -149,6 +149,118 @@ func fussaufsaetze(a: Actor, dauer: float) -> void:
 				n += 1
 	auf_zahl = n
 
+# Geschichte (4.3): Rückbezüge, Rückblick am Ende des ersten Aktes, wer flüstert, Anrede, Enden
+func geschichte() -> void:
+	var wv: Dictionary = Spiel.wahl.duplicate()
+	var mf: int = Spiel.max_fall
+	var hz: float = Spiel.herz
+	var cls0: String = Spiel.cls
+	Spiel.wahl = {"1": "maat"}
+	var e_m := Geschichte.echo(2)
+	Spiel.wahl = {"1": "isfet"}
+	var e_i := Geschichte.echo(2)
+	check("Rückbezug: Merit weiß, was mit Mahafs Ruder geschah", e_m.size() == 1 and "Ruder" in e_m[0] and e_i.size() == 1 and "Rauch" in e_i[0])
+	var alle := true
+	for st in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
+		for w in ["maat", "isfet"]:
+			Spiel.wahl = {str(st): w}
+			var e := Geschichte.echo(st + 1)
+			if e.size() != 1 or "{lt}" in e[0]:
+				alle = false
+	Spiel.wahl = {}
+	check("Rückbezug: jede Entscheidung kehrt im Gespräch der nächsten Stunde wieder, ohne Wahl schweigt sie", alle and Geschichte.echo(2).is_empty())
+	Spiel.wahl = {"1": "maat", "2": "isfet", "3": "maat", "4": "isfet"}
+	var rb := Geschichte.akt1_rueckblick()
+	check("Ende des ersten Aktes: Rückblick auf alle vier Entscheidungen und Nebets Krug", rb.size() == 2 and "Ruder liegt" in rb[1] and "gegessen" in rb[1] and "weiß wieder" in rb[1] and "zwei Herzen" in rb[1] and "Nebets Krug" in rb[1])
+	Spiel.max_fall = 3
+	Spiel.wahl = {}
+	var vor := Geschichte.ba_wer(3)
+	Spiel.max_fall = 9
+	Spiel.wahl = {"6": "isfet"}
+	var bleibt := Geschichte.ba_wer(8)
+	Spiel.wahl = {"6": "maat"}
+	var still := Geschichte.ba_wer(7)
+	var still_satz := Geschichte.ba_satz(7)
+	Spiel.wahl = {"6": "maat", "8": "maat"}
+	var eigen := Geschichte.ba_wer(9)
+	var eigen_satz := Geschichte.ba_satz(9)
+	check("Begleiter: erst „dein Ba“, nach der Mitte Nebet oder Stille, später der eigene Ba (%s, %s, „%s“, %s)" % [vor, bleibt, still, eigen],
+		vor == "Dein Ba" and bleibt == "Nebet" and still == "" and still_satz == "" and eigen == "Dein eigener Ba" and eigen_satz == Geschichte.H[8].ba_eigen)
+	Spiel.herz = 40.0
+	Spiel.wahl = {"6": "maat", "4": "maat"}
+	var heim := Geschichte.urteil(12)
+	Spiel.wahl = {"6": "isfet"}
+	var fliegt := Geschichte.urteil(12)
+	Spiel.herz = -40.0
+	var schwer := Geschichte.urteil(12)
+	check("Ende: Nebet ist schon heim oder fliegt erst jetzt; das Urteil folgt dem Herzen",
+		"WAHR AN STIMME" in heim and "setzt sich ein Mädchen" in heim and "Stern" in heim and "fliegt mit dem ersten Licht" in fliegt and "ZU SCHWER" in schwer and "Noch nicht" in schwer)
+	Spiel.cls = "jaegerin"
+	var a_w: String = Geschichte.def(5).gruss[0]
+	Spiel.cls = "ermittler"
+	var a_m: String = Geschichte.def(5).gruss[0]
+	check("Anrede folgt der Klasse (Laternenträgerin, Laternenträger)", "Laternenträgerin" in a_w and "Laternenträger." in a_m and not "{lt}" in a_m)
+	Spiel.cls = cls0
+	Spiel.wahl = {"6": "maat"}
+	var b_heim := Worte.bisher(7)
+	Spiel.wahl = {"6": "isfet"}
+	var b_bleibt := Worte.bisher(7)
+	check("Rückblick der Tafel: zwei Fassungen nach der Entscheidung der sechsten Stunde", "heimgeschickt" in b_heim and "geblieben" in b_bleibt)
+	check("Neue Texte: ihre alte Aufnahme spielt nicht mehr (…_epi2), unveränderte Ansagen schon",
+		Stunden.vo_name(1, "epi") == "vo_h01_epi2" and Stunden.vo_name(1, "lead") == "vo_h01_lead" and Stunden.vo_name(7, "epi") == "vo_h07_epi2" and Stunden.vo_name(12, "epi") == "vo_h12_epi")
+	Spiel.wahl = wv
+	Spiel.max_fall = mf
+	Spiel.herz = hz
+
+# Zwischensequenzen (4.3): Daten vollständig, Tests zeigen keine, eine erzwungene läuft, pausiert, lässt sich weiterschalten
+# und überspringen (Taste und Gamepad), gilt danach als gesehen und steht unter den Erinnerungen
+func zwischensequenzen() -> void:
+	var ids := {}
+	var daten_ok := true
+	var n_z := 0
+	for p in Szenen.LISTE:
+		var d: Dictionary = Szenen.baue(p[0])
+		if d.einstellungen.is_empty():
+			daten_ok = false
+			print("  leer: " + p[0])
+		for e in d.einstellungen:
+			for z in e.get("zeilen", []):
+				n_z += 1
+				var vo := str(z.get("vo", ""))
+				if vo == "" or str(z.t) == "" or "{lt}" in str(z.t) or (ids.has(vo) and ids[vo] != z.t):
+					daten_ok = false
+					print("  Zeile ohne Klangnamen oder doppelt: %s · %s" % [p[0], z.t])
+				ids[vo] = z.t
+	check("Zwischensequenzen: alle %d bauen sich, %d Zeilen mit Text und eigenem Klangnamen" % [Szenen.LISTE.size(), n_z], daten_ok)
+	check("Testläufe zeigen keine Sequenz", Szene.test_lauf() and not Szene.offen("auftakt"))
+	var G := g()
+	if get_tree().paused:
+		G.hud._close()
+		get_tree().paused = false
+	var fertig := [false]
+	Spiel.wissen.erase("sz_h03_nach")
+	Szene.spielen(G, "h03_nach", func(): fertig[0] = true, true)
+	await wait(0.6)
+	check("Sequenz läuft auf eigener Ebene, das Spiel steht, die Anzeige tritt zurück", Szene.laeuft() and get_tree().paused and not G.hud.root.visible)
+	var s: Szene = Szene.jetzt
+	var ersatz_ok: bool = s != null and s._bildart({"bild": "gibt_es_nicht", "ersatz": ["zeichen:krug"]}) == ["zeichen", "krug"] \
+		and s._bildart({"bild": "gibt_es_nicht", "ersatz": ["portrait:P05"]})[0] == "portrait" and s._bildart({"bild": "gibt_es_nicht"})[0] == "zeichen"
+	check("ohne gemaltes Bild: Ersatz (Porträt, sonst Zierfläche mit Zeichen)", ersatz_ok)
+	shot("szene")
+	var vorher: int = s.e_i * 100 + s.z_i if s else 0
+	await key(KEY_SPACE)
+	await wait(0.4)
+	check("Leertaste zeigt die nächste Zeile", s != null and is_instance_valid(s) and s.e_i * 100 + s.z_i > vorher)
+	await key(KEY_ESCAPE)
+	await wait(1.0)
+	check("Esc überspringt: Spiel läuft weiter, die Anzeige ist zurück, die Sequenz gilt als gesehen", not Szene.laeuft() and fertig[0] and not get_tree().paused and G.hud.root.visible and Szene.gesehen("h03_nach"))
+	check("Erinnerungen führen die gesehene Sequenz", Szene.erinnerungen().any(func(p): return p[0] == "h03_nach"))
+	Szene.spielen(G, "auftakt", Callable(), true)
+	await wait(0.6)
+	await pad_knopf(JOY_BUTTON_B)
+	await wait(1.0)
+	check("Gamepad: B überspringt die Sequenz", not Szene.laeuft() and not get_tree().paused)
+
 func run() -> void:
 	await wait(1.6)
 	var G := g()
@@ -234,6 +346,14 @@ func run() -> void:
 	await wait(0.35)
 	check("Leertaste: Ausweichschritt (%.1f m), kurz unverwundbar" % p0.distance_to(h.global_position), p0.distance_to(h.global_position) > 1.5 and h.dodge_cd > 0.0)
 	check("Fenster liegen auf Papyrus, die Schrift ist Tinte", G.hud.papier.size() >= 1 and G.hud.f_text != null)
+	# Gestaltungssystem (4.3): Zierwerk ist da, Leiste und Kugeln tragen es, Fenster und Knöpfe nutzen es
+	var zier_fehlt: Array = ["tafel_dunkel", "tafel_klein", "knoepfe", "kartusche", "trenner_linie", "fluegelsonne", "faehnchen", "kugel_fassung", "platz", "platz_rahmen",
+		"leiste_platte", "bildrahmen", "bedienteile", "schriftzug", "medaillon", "raute", "sterne", "windrose", "udjat", "lotos", "skarabaeus"].filter(func(n): return Zier.tex(n) == null)
+	check("Zierwerk vollständig (fehlt: %s)" % ", ".join(zier_fehlt), zier_fehlt.is_empty())
+	check("Leiste unten: Platte aus Leder und Gold, Kugeln in Goldfassung, Abklingbogen", G.hud.leiste.get_child(1).get_child(1).get_theme_stylebox("panel") is StyleBoxTexture and G.hud.orb_hp.fassung != null and G.hud.skill_ui["whirl"].cd is Hud.Abklang)
+	var probe := Zier.knopf("Probe", "haupt")
+	check("Knöpfe aus getriebenem Gold mit vier Zuständen", probe.get_theme_stylebox("normal") is StyleBoxTexture and probe.get_theme_stylebox("disabled") is StyleBoxTexture and probe.get_theme_stylebox("hover") != probe.get_theme_stylebox("normal"))
+	probe.free()
 	# Fähigkeiten werden mit den Stufen gelernt und groß angekündigt
 	# seit 3.0: nichts wirkt von selbst. Zwei Punkte zum Einstand, die Leiste zeigt „LERNEN“ oder die Stufe
 	check("auf Stufe 1 ist nichts gelernt: zwei Punkte, Leiste zeigt LERNEN und Stufen", not h.can("whirl") and Spiel.tree_points() == 2 and G.hud.skill_ui["whirl"].lock.text == "LERNEN" and G.hud.skill_ui["dash"].lock.text == "AB STUFE 2")
@@ -279,7 +399,7 @@ func run() -> void:
 	check("G schaltet auf niedrige Grafik", G.low_gfx and not h.lantern.shadow_enabled)
 	await key(KEY_G)
 	check("G schaltet zurück", not G.low_gfx and h.lantern.shadow_enabled)
-	check("Musik der ersten Stunde läuft (Wüstennacht)", G.sfx.mus_list.has(G.sfx.mus_name) and G.sfx.mus[0].playing and G.sfx.mus[0].stream != null)
+	check("Musik der ersten Stunde läuft (Thema des ersten Aktes, Grund und Melodie)", G.sfx.satz == "mus_a1" and G.sfx.schicht_spielt("grund") and G.sfx.lage_name in ["erkunden", "spannung", "kampf", "stille"])
 	await key(KEY_M)
 	check("M schaltet den Ton aus", G.sfx.muted)
 	await key(KEY_M)
@@ -548,7 +668,7 @@ func run() -> void:
 	G.boss.hit(99999.0, h.global_position)
 	await wait(3.6)
 	check("Pforte steht", G.gate != null)
-	check("nach dem Hüter wieder die Musik der Stunde", G.sfx.mus_name == "mus_wueste")
+	check("nach dem Hüter wieder die Musik der Stunde", G.sfx.satz == "mus_a1")
 	check("an der Pforte: Hüter-Aufgabe erledigt", G.orte.quest("hueter").done or G.gate != null)
 	h.global_position = G.gate.global_position + Vector3(0.5, 0, 1.0)
 	await wait(0.8)
@@ -794,5 +914,7 @@ func run() -> void:
 		G3.hero.global_position += Vector3(3, 0, 0)
 		await wait(1.0)
 		check("Bitte: das verlorene Stück wird gefunden und gemeldet", bp.auftrag.stand == "gefunden")
+	await geschichte()
+	await zwischensequenzen()
 	print("SPIELTEST: %d ok, %d Fehler" % [ok, bad])
 	get_tree().quit(1 if bad > 0 else 0)   # Fehlercode für die Prüfung beim Bauen (bauen.yml)

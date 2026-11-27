@@ -42,11 +42,12 @@ var kartusche_bei_dir := false
 var nl_schleier: MeshInstance3D
 
 # Was die heimgeführten Ba sagen, einer nach dem anderen. Es ergibt ein Bild, aber nie das ganze.
-const BA_WORTE := ["Wir sind nicht verloren. Man hat uns verlegt.",
-	"Wer uns die Namen nahm, hat sie nicht verbrannt. Er hat sie aufgeschrieben.",
-	"Es gibt ein Buch, das keine Waage kennt.",
-	"Frag den Schreiber, warum seine Binse trocken ist.",
-	"Auf der letzten Seite ist noch Platz."]
+# Seit 4.3 Fährten der Neufassung (GESCHICHTE.md): das Verzeichnis, der Vogel auf der Schulter, der eigene Ba, Nebet
+const BA_WORTE := ["Wir sind nicht verloren. Man hat uns aufgeschrieben.",
+	"Er hat unsere Namen nicht verbrannt. Er hat sie in ein Buch geschrieben, das keine Waage kennt.",
+	"Der Vogel auf deiner Schulter hat seinen Namen noch. Frag ihn danach.",
+	"Einer von uns sucht dich. Er hat dein Gesicht.",
+	"Im Buch steht ein Name, der noch atmet."]
 const BA_SILBEN := ["Mer…", "Nebet…", "…hotep", "Sat…", "…mose", "Ta…", "…nefer"]
 
 func _ready() -> void:
@@ -91,7 +92,9 @@ func add(kind: String, pos: Vector3, v: int) -> void:
 			size = Vector3(0.9, 2.0, 0.9)
 			npc = s
 		"helfer":
-			s["vis"] = _build_npc(pos, L.model, Color.WHITE, false, 0.72 if L.get("klein", false) else 1.0)
+			# Kinder sind kleine Leute, keine geschrumpften Alten (4.3); Zubehör nach dem Porträt (leute.gd)
+			s["vis"] = _build_npc(pos, "Mann" if L.get("klein", false) else L.model, Color.WHITE, false, 0.64 if L.get("klein", false) else 1.0)
+			Leute.ausstatten(s.vis.n, Leute.NACH_BILD.get(L.get("bild", ""), []))
 			text = L.wer
 			col = Color(0.85, 0.95, 0.7)
 			size = Vector3(0.9, 2.0, 0.9)
@@ -191,6 +194,8 @@ func _build_npc(pos: Vector3, model: String, tint: Color, geist: bool, scl: floa
 	n.add_child(l)
 	l.position = Vector3(0, 2.2, 0)
 	# statt eines Ausrufezeichens: ein schwebendes Anch, golden bei Gestalten der Duat, grün bei Leuten mit einer Sorge
+	# atmen, sich umsehen, dem Helden nachschauen (4.3, koerper.gd über leute_koerper.gd)
+	Leute.beleben(n, game, {"brust": 0.0 if geist else 0.03, "atem": 0.016 if geist else 0.022})
 	var mark := Deko.marke(n, 3.85 / scl, Color(1.0, 0.78, 0.3) if geist else Color(0.62, 0.95, 0.5))
 	marken.append(mark)
 	return {"n": n, "mark": mark}
@@ -299,7 +304,7 @@ func tick(delta: float) -> void:
 				if not s.done:
 					s.vis.item.rotation.y = t * 1.6
 					s.vis.item.position.y = 1.35 + sin(t * 2.0) * 0.08
-		if s.kind == "such" and not s.done and s.vis.tier:
+		if s.kind == "such" and not s.done and s.vis.tier and not s.vis.has("tierobj"):
 			# Tiere stehen nicht still
 			s.vis.n.position.y = absf(sin(t * 2.4 + s.v * 1.7)) * 0.06
 			s.vis.n.rotation.y += sin(t * 0.7 + s.v) * 0.004
@@ -618,8 +623,13 @@ func ba(key: String, text: String) -> void:
 	if ba_done.has(key):
 		return
 	ba_done[key] = true
-	# beim allerersten Mal steht dabei, was ein Ba ist; danach kennt man ihn
-	if Spiel.gesehen("ba_stimme"):
+	# wer flüstert, folgt der Geschichte (4.3): erst „dein Ba“, nach der Mitte Nebet oder Stille, später der eigene Ba
+	var wer := Geschichte.ba_wer()
+	if wer == "" or text == "":
+		return
+	if wer != "Dein Ba":
+		game.hud.whisper("%s flüstert: „%s“" % [wer, text])
+	elif Spiel.gesehen("ba_stimme"):
 		game.hud.whisper("Dein Ba flüstert: „%s“" % text)
 	else:
 		Spiel.merke("ba_stimme")
@@ -904,6 +914,11 @@ func _relic(s: Dictionary, w: Array) -> void:
 func talk() -> void:
 	if npc.is_empty() or game.hero.dead or game.hud.overlay != null:
 		return
+	# Zwischensequenz vor dem ersten Gespräch (4.3: in der sechsten Stunde nennt Isis den Namen des Ba)
+	var vorher := Szenen.vor_gespraech(Spiel.fall)
+	if not talked and Szene.offen(vorher):
+		Szene.spielen(game, vorher, talk)
+		return
 	get_tree().paused = true
 	game.sfx.play("papyrus", 0.08)
 	npc.vis.mark.visible = false
@@ -915,7 +930,7 @@ func talk() -> void:
 	elif talked:
 		_page(["„%s“" % G.auftrag], [])
 	else:
-		var paras := []
+		var paras := Geschichte.echo(Spiel.fall)   # Rückbezug (4.3): was die Figur von deinen früheren Entscheidungen weiß
 		for g in G.gruss:
 			paras.append("„%s“" % g)
 		_page(paras, [])

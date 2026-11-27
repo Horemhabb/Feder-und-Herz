@@ -1,5 +1,5 @@
 {
- "version": "5.2.0",
+ "version": "5.4.0",
  "hinweis": "Plan für bildwerk.bat und einbauen.bat. Alle Texte stehen hier, die Skripte enthalten keine. Keine Zahlen und Prozentzeichen in Prompts.",
  "regeln": [
   "Keine Ziffern und kein Prozentzeichen im Prompt: Z-Image malt sie als Schrift ins Bild (aus '80%' wurden %, 0% und 9%).",
@@ -13,7 +13,12 @@
   "Neue Stile erst als Probe mit gleichem Seed gegen den alten Stil prüfen, dann in die Nacht.",
   "Höchstens etwa ein Megapixel, Entschlüsseln in Kacheln (AMD-Treiber). Etwa drei Minuten je Bild, eine Nacht reicht für gut hundert Bilder.",
   "Lange Prompts kosten Zeit (Text-Encoder auf dem Prozessor): etwa 25 Sekunden mehr je Bild.",
-  "Licht nur als Farbe beschreiben: 'moonlight' und 'oil-lamp' werden wörtlich gemalt (Mond und moderne Sturmlaterne in jedem Bild). Kleidung als schlichtes Leinen benennen, sonst kommen Ledergürtel, Schürzen und Strohhüte."
+  "Licht nur als Farbe beschreiben: 'moonlight' und 'oil-lamp' werden wörtlich gemalt (Mond und moderne Sturmlaterne in jedem Bild). Kleidung als schlichtes Leinen benennen, sonst kommen Ledergürtel, Schürzen und Strohhüte.",
+  "Texturen 'von oben' kamen mit Perspektive (neuer Sand: Rippel oben fein, unten grob) und mit Lichtverlauf: nie 'photographed', kein Boden als Szene, sondern eine Materialprobe 'seen perfectly perpendicular', 'the same scale of detail in every corner'. Am sichersten nahtlos rechnen (Knoten SeamlessLatentTiling, Stufenfeld 'kachel'); einbauen.bat misst die Perspektive (P) und baut ab 1,5 nicht ein.",
+  "Die Bilder sind drei- bis neunmal heller, als das Licht im Spiel erwartet (main.gd › HELL): Stile für Flächen sagen 'muted medium-dark', einbauen.bat dämpft neue Flächen auf eine lineare Helligkeit von höchstens 0,24 (nie heller).",
+  "Freistellen: Gegenstände und Abziehbilder auf 'a plain flat medium grey background' (nicht Weiß wegen Leinen, nicht Schwarz wegen Eisen), einbauen.bat schneidet über den Farbabstand frei. Leuchtendes auf 'pure flat black', daraus wird additiv oder Alpha aus der Helligkeit.",
+  "Was additiv auf dem Boden liegt, muss am Rand reines Schwarz sein, sonst sieht man ein Viereck. einbauen.bat zieht das Rest-Grau ab und blendet den Rand weich auf Schwarz.",
+  "Wiederkehrende Figuren (Spielfigur, Laterne, Nebet, Haremhab, Sammler, Ba, Thot) stehen als feste Bausteine unter 'bausteine' und werden in Motiven als {NAME} eingesetzt: überall derselbe Satz, damit sie über alle Bilder wiedererkennbar bleiben. Die Laterne der Spielfigur darf gemalt werden, aber nur über den Baustein LATERNE (alte Form aus Bronze, sonst kommt die moderne Sturmlaterne)."
  ],
  "stile": {
   "alt": {
@@ -38,7 +43,8 @@
   },
   "textur": {
    "beschreibung": "Kachelbare Bodentexturen und Wandtexturen: gerade von oben, gleichmäßiges Licht, das Muster läuft bis an jeden Rand. Die Naht glättet einbauen.bat.",
-   "text": "Seamless tileable game texture of {MOTIV} {HINWEIS} Photographed straight from above, perfectly flat and orthographic, soft even shadowless light, uniform density, the pattern continues to every edge of the frame, high detail, realistic material, ancient Egypt. Only the material surface fills the whole image."
+   "text": "Seamless tileable game texture of {MOTIV} {HINWEIS} Photographed straight from above, perfectly flat and orthographic, soft even shadowless light, uniform density, the pattern continues to every edge of the frame, high detail, realistic material, ancient Egypt. Only the material surface fills the whole image.",
+   "vorschau": "kachel"
   },
   "lexikon": {
    "beschreibung": "Bilder fürs Lexikon der Gegner: dunkle Büste, dramatisches Licht, im Stil der Porträts.",
@@ -70,15 +76,58 @@
   },
   "zeichen": {
    "beschreibung": "Leuchtende Bodenzeichen für Arenen und Zauber: auf reinem Schwarz, damit das Spiel sie additiv (als Licht) auf den Boden legen kann. Gerade von oben, symmetrisch, zur Mitte hell, zum Rand schwarz.",
-   "text": "Glowing ornamental ground inscription of {MOTIV} {HINWEIS} {ANSICHT} Seen exactly from above, perfectly flat and symmetrical, centered, drawn with thin luminous lines of molten gold and turquoise light with fine carved pictorial patterns inside the lines, soft glow around the lines, ancient Egyptian temple ornament. The design fades smoothly into pure black toward the outer edge. The whole background is pure flat black, nothing else, no ground, no objects, nothing written anywhere."
+   "text": "Glowing ornamental ground inscription of {MOTIV} {HINWEIS} {ANSICHT} Seen exactly from above, perfectly flat and symmetrical, centered, drawn with thin luminous lines of molten gold and turquoise light with fine carved pictorial patterns inside the lines, soft glow around the lines, ancient Egyptian temple ornament. The design fades smoothly into pure black toward the outer edge. The whole background is pure flat black, nothing else, no ground, no objects, nothing written anywhere.",
+   "vorschau": "schwarz"
   },
   "funke": {
    "beschreibung": "Effektbilder für Funken, Glut, Rauch und Staub auf reinem Schwarz (additiv oder als Alpha aus der Helligkeit).",
-   "text": "A single soft cloud of {MOTIV} {HINWEIS} {ANSICHT} Photographed against a pure flat black background, centered, the cloud fades smoothly into black toward all edges so nothing touches the border, fine realistic detail, strong contrast between glowing parts and black. Nothing else in the picture, nothing written anywhere."
+   "text": "A single soft cloud of {MOTIV} {HINWEIS} {ANSICHT} Photographed against a pure flat black background, centered, the cloud fades smoothly into black toward all edges so nothing touches the border, fine realistic detail, strong contrast between glowing parts and black. Nothing else in the picture, nothing written anywhere.",
+   "vorschau": "schwarz"
   },
   "fries": {
    "beschreibung": "Wandfriese: waagerechtes Band einer Grabwand, gemalte Reliefs, läuft links und rechts bis an den Rand.",
-   "text": "A long horizontal frieze band of an ancient Egyptian tomb wall: {MOTIV} {HINWEIS} {ANSICHT} Painted and carved shallow relief on weathered plaster, muted ochre, turquoise, red and gold on warm sand-colored stone, seen straight from the front, perfectly flat, soft even light, the pattern continues to the left and right edge of the picture. Only the wall surface fills the whole image, no people looking at the viewer, nothing written anywhere."
+   "text": "A long horizontal frieze band of an ancient Egyptian tomb wall: {MOTIV} {HINWEIS} {ANSICHT} Painted and carved shallow relief on weathered plaster, muted ochre, turquoise, red and gold on warm sand-colored stone, seen straight from the front, perfectly flat, soft even light, the pattern continues to the left and right edge of the picture. Only the wall surface fills the whole image, no people looking at the viewer, nothing written anywhere.",
+   "vorschau": "band"
+  },
+  "flaeche": {
+   "beschreibung": "Texturen, zweiter Weg (5.3): Materialprobe senkrecht wie ein Scan statt 'Foto von oben' (das brachte Perspektive), gedämpfte mittlere Helligkeit statt hell. Mit 'kachel' in der Stufe nahtlos gerechnet. NEU, Probe in Nacht 0.",
+   "vorschau": "kachel",
+   "text": "Seamless repeating surface texture of {MOTIV} {HINWEIS} A flat material sample seen perfectly perpendicular from directly above, like a scan: no horizon, no perspective, every corner of the picture shows the material at the same distance and the same scale of detail. Soft diffuse even light without a direction, no cast shadows, muted medium-dark natural colors. The material fills the whole picture to every edge, nothing else in it, nothing written anywhere."
+  },
+  "ding": {
+   "beschreibung": "Gegenstände für die Tasche (Bildbogen ui/icons.webp): ein Ding, ganz im Bild, auf mittelgrauem Grund zum Freistellen. Ägyptische Werkstoffe. NEU, Probe in Nacht 0.",
+   "vorschau": "grau",
+   "text": "A single {MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian craftsmanship: hammered gold, dark bronze, blue faience, lapis lazuli, red carnelian and plain undyed linen, fine engraved lotus and papyrus ornaments. Painterly dark fantasy item illustration with realistic materials and a soft warm rim glow, the whole object fully visible and centered with empty space around it, a clear readable silhouette. Isolated on a plain flat medium grey background, soft even light. Only this one object, nothing written anywhere."
+  },
+  "abzieh": {
+   "beschreibung": "Abziehbilder für den Boden (Risse, Blut, Sand, Scherben): genau von oben, weich auslaufend, auf mittelgrauem Grund zum Freistellen. NEU, Probe in Nacht 0.",
+   "vorschau": "grau",
+   "text": "Seen exactly from directly above, lying flat on the ground: {MOTIV} {HINWEIS} {ANSICHT} Realistic painterly ground detail for a game, an irregular natural shape that fades softly at its edges, centered with empty space around it. Isolated on a plain flat medium grey background, soft even light without cast shadows. Only this one patch, nothing else, nothing written anywhere."
+  },
+  "relief": {
+   "beschreibung": "Wandbilder: bemaltes versenktes Relief, streng im Profil, füllt das Bild, gerade von vorn, gedämpft. Verwandt mit 'fries' (Stufe 17). NEU, Probe in Nacht 0.",
+   "text": "An ancient Egyptian painted wall relief: {MOTIV} {HINWEIS} {ANSICHT} Shallow sunken relief carved in weathered limestone, painted in faded red ochre, Egyptian blue, malachite green, black and a little gold, figures in strict profile in the manner of tomb painting. Seen straight from the front, perfectly flat, soft even light, muted medium-dark tones. The carved scene fills the whole picture to every edge, nothing written anywhere."
+  },
+  "ansicht": {
+   "beschreibung": "Tore, Türen, Scheintüren: gerade von vorn, symmetrisch, füllt das Bild, gedämpft. NEU, Probe in Nacht 0.",
+   "text": "Straight front view of {MOTIV} {HINWEIS} {ANSICHT} Ancient Egyptian architecture, seen exactly from the front, perfectly flat and symmetrical, weathered realistic materials, soft even light, muted medium-dark tones. The object fills the whole picture to every edge, nothing written anywhere."
+  },
+  "buchbild": {
+   "beschreibung": "Bilder fürs Lexikon im Buch des Thot: Malerei auf Papyrus wie in den Totenbüchern, Figuren im Profil, flache Mineralfarben, passt zum Papyrus der Oberfläche. NEU, Probe in Nacht 0 (Rückfall: Stil 'szene').",
+   "text": "An ancient Egyptian painting on an old sheet of papyrus: {MOTIV} {HINWEIS} {ANSICHT} Figures in strict profile with fine black outlines and flat mineral colors, red ochre, yellow ochre, Egyptian blue, malachite green, white and black, a little gold leaf. The painting fills most of the sheet, the papyrus fibers and small cracks are visible, the edges of the warm golden sheet are darker and worn. Only the painted picture, nothing written anywhere."
+  },
+  "szene_stadt": {
+   "beschreibung": "Wie szene, aber für Sandtor (die Stadt der Lebenden): sonst wird die Stadt zur Unterwelt (Hinweis von Agent D). Bewährt wie szene.",
+   "text": "Wide cinematic matte painting of {MOTIV} {HINWEIS} {ANSICHT} An ancient Egyptian desert town of the living, painterly realistic style with deep atmosphere and depth, large calm areas of dark sky or shadow in the upper third, the main subject in the lower half. Muted earthy colors against deep night blue, {TEX}. No people in the foreground except where described, nothing written anywhere, no frame, no border."
+  },
+  "lichter": {
+   "beschreibung": "Ebene für Zwischensequenzen: nur Lichter auf reinem Schwarz, im Spiel addiert. Verwandt mit funke (Stufe 16). NEU, Probe in Nacht 0.",
+   "vorschau": "schwarz",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} A wide picture on a pure flat black background: the small soft glowing lights float freely and fade into black toward all edges, nothing else in the picture, no landscape, no ground, nothing written anywhere."
+  },
+  "zierflaeche": {
+   "beschreibung": "Gemalte Flächen für die Oberfläche (ui/zier/gemalt/): randlos, senkrecht von oben, ruhig, ohne Gegenstände. Verwandt mit flaeche. NEU, Probe in Nacht 0.",
+   "text": "{MOTIV} {HINWEIS} {ANSICHT} A flat surface seen perfectly perpendicular from directly above, filling the whole picture to every edge, soft even light without a direction, calm and quiet in the middle, no objects on it, nothing written anywhere."
   }
  },
  "ansichten": {
@@ -122,6 +171,18 @@
    "a": "",
    "b": "The design is a little simpler and bolder.",
    "c": "The design is a little richer in fine detail.",
+   "d": ""
+  },
+  "ding": {
+   "a": "",
+   "b": "Seen at a slight angle from above.",
+   "c": "Lying on its side, seen from slightly above.",
+   "d": "A little richer in ornament, with a faint magical glow."
+  },
+  "relief": {
+   "a": "",
+   "b": "The composition is simpler, with fewer and larger forms.",
+   "c": "The composition is richer, with more small details.",
    "d": ""
   }
  },
@@ -450,6 +511,848 @@
    "breite": 1280,
    "hoehe": 512,
    "im_spiel": "nach Code (Claude): Band an den Wänden der Gräber"
+  },
+  "probe_flaeche": {
+   "titel": "Probe: Stil flaeche (Materialprobe statt Foto von oben), gewöhnlich gerechnet",
+   "motive": [
+    "t09_sand_f",
+    "t08_goetter_f",
+    "w07_apophis_f"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Probe: entscheidet über den Stil der Nächte 1 bis 3",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_kachel": {
+   "titel": "Probe: Sand und Steinplatten nahtlos gerechnet (Knoten SeamlessLatentTiling), Vergleich mit probe_flaeche",
+   "motive": [
+    "t09_sand_f",
+    "t08_goetter_f"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Probe: entscheidet, ob die Nächte nahtlos rechnen",
+   "einbau": "keins (Probe)",
+   "kachel": "xy",
+   "probe": true
+  },
+  "probe_ding": {
+   "titel": "Probe: Gegenstände auf Grau zum Freistellen (Stil ding)",
+   "motive": [
+    "i00",
+    "i08",
+    "i15"
+   ],
+   "stile": [
+    "ding"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "ding",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "Probe für Nacht 1",
+   "einbau": "einbauen.bat pruefen",
+   "probe": true
+  },
+  "probe_abzieh": {
+   "titel": "Probe: Abziehbilder auf Grau (Stil abzieh)",
+   "motive": [
+    "d01_riss",
+    "d04_blut",
+    "d03_sandwehe"
+   ],
+   "stile": [
+    "abzieh"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "flach",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "Probe für Nacht 3",
+   "einbau": "einbauen.bat pruefen",
+   "probe": true
+  },
+  "probe_relief": {
+   "titel": "Probe: Wandbilder als bemaltes Relief (Stil relief)",
+   "motive": [
+    "b02_waage",
+    "b06_kater"
+   ],
+   "stile": [
+    "relief"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "Probe für Nacht 3",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_ansicht": {
+   "titel": "Probe: Tor gerade von vorn (Stil ansicht)",
+   "motive": [
+    "o01_zeder"
+   ],
+   "stile": [
+    "ansicht"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "relief",
+   "breite": 768,
+   "hoehe": 1024,
+   "im_spiel": "Probe für Nacht 3",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_frei": {
+   "titel": "Probe: Stil frei (Symbole ohne fremde Spielnamen und ohne Ziffern); Vergleich sind die Symbole im Spiel",
+   "motive": [
+    "c_glut"
+   ],
+   "stile": [
+    "frei"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "emblem",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Probe für die Champion-Zeichen in Nacht 1",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_buchbild": {
+   "titel": "Probe: Lexikonbilder als Malerei auf Papyrus (Stil buchbild)",
+   "motive": [
+    "lx_waage",
+    "lx_ba"
+   ],
+   "stile": [
+    "buchbild"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "Probe für Nacht 4",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "gegenstaende": {
+   "titel": "Gegenstände der Tasche: alle 36 Felder des Bildbogens neu, ägyptisch",
+   "gruppen": [
+    "gegenstaende"
+   ],
+   "stile": [
+    "ding"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "ding",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "ja, sofort nach einbauen.bat gegenstaende (ersetzt ui/icons.webp, Daten.icon teilt den Bogen selbst)",
+   "einbau": "gegenstaende"
+  },
+  "champion_zeichen": {
+   "titel": "Zeichen der neun Champion-Eigenschaften (Stil frei: wie die Fähigkeitssymbole, ohne fremde Spielnamen)",
+   "gruppen": [
+    "champion_zeichen"
+   ],
+   "stile": [
+    "frei"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "emblem",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: hud.gd › _affix_zeichnen zeichnet heute Formen; dort ui/affixe/<id>.webp zeigen",
+   "einbau": "champions"
+  },
+  "requisiten_flaechen": {
+   "titel": "Flächen für Truhen, Särge, Statuen, Krüge (bemaltes Holz, Blattgold, Fayence, Binden, Bronze, Federn, Matte)",
+   "gruppen": [
+    "requisiten_flaechen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: deko.gd › tex_mat mit den neuen Dateinamen in truhe, sarkophag, requisit",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "gegenstaende_d": {
+   "titel": "Reserve: Gegenstände, vierte Variante",
+   "gruppen": [
+    "gegenstaende"
+   ],
+   "stile": [
+    "ding"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "ding",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "wie gegenstaende",
+   "einbau": "gegenstaende"
+  },
+  "stunden_flaechen": {
+   "titel": "Wand und Boden der Stunden 6 bis 12, zweiter Anlauf (Stil flaeche, nahtlos)",
+   "gruppen": [
+    "stunden_flaechen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: main.gd › SURF und welt.gd › LOOK brauchen Einträge je Stunde (Stufe texturen_stunden wurde nie eingebaut)",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "wand_varianten": {
+   "titel": "Zweite Wandart für die Stunden 1 bis 5 gegen Wiederholung",
+   "gruppen": [
+    "wand_varianten"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: welt.gd soll je Mauerabschnitt zwischen zwei Oberflächen wechseln",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "boden_neu": {
+   "titel": "Böden: Sand (dritter Anlauf), Kies fürs Gelände, gestampfter Lehm",
+   "gruppen": [
+    "boden_neu"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Sand sofort (einbauen.bat texturen t09_sand), Kies und Lehm nach Code (SURF)",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "wasser_himmel": {
+   "titel": "Wasser (Nil, Nun), Sternendecke, Himmel der Duat",
+   "gruppen": [
+    "wasser_himmel"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: Wasser im Becken (deko.gd › becken) und in Stunde 10, Decke über Grüften",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "stunden_flaechen_d": {
+   "titel": "Reserve: Flächen der Stunden, vierte Variante",
+   "gruppen": [
+    "stunden_flaechen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "wie stunden_flaechen",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "abziehbilder": {
+   "titel": "Abziehbilder für den Boden: Risse, Sand, Blut, Pfützen, Scherben, Ruß, Knochen, Opfergaben",
+   "gruppen": [
+    "abziehbilder"
+   ],
+   "stile": [
+    "abzieh"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "flach",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: flache Vierecke mit Alpha über dem Boden (GL Compatibility kennt keine Decal-Knoten)",
+   "einbau": "abzieh"
+  },
+  "wandbilder": {
+   "titel": "Wandbilder als bemaltes Relief: Opfer, Waage, Barke, Felder, Schakale, Kater und Schlange ...",
+   "gruppen": [
+    "wandbilder"
+   ],
+   "stile": [
+    "relief"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "nach Code: einzelne Tafeln auf Mauern (welt.gd), wie die Friese",
+   "einbau": "wandbilder"
+  },
+  "tore": {
+   "titel": "Tore und Türen gerade von vorn",
+   "gruppen": [
+    "tore"
+   ],
+   "stile": [
+    "ansicht"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "relief",
+   "breite": 768,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: deko.gd › pforte und Grabeingänge",
+   "einbau": "tore"
+  },
+  "teppiche": {
+   "titel": "Teppiche und Matten als nahtloses Muster",
+   "gruppen": [
+    "teppiche"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: welt.gd › _rug_bild malt Teppiche heute selbst; Muster als Innenfläche, Borte bleibt",
+   "einbau": "texturen",
+   "kachel": "xy"
+  },
+  "saeulen": {
+   "titel": "Säulenmäntel, waagrecht nahtlos",
+   "gruppen": [
+    "saeulen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach Code: Säulen (deko.gd) mit Mantel-Textur",
+   "einbau": "saeulen",
+   "kachel": "x"
+  },
+  "wandbilder_d": {
+   "titel": "Reserve: Wandbilder, vierte Variante",
+   "gruppen": [
+    "wandbilder"
+   ],
+   "stile": [
+    "relief"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "wie wandbilder",
+   "einbau": "wandbilder"
+  },
+  "abziehbilder_d": {
+   "titel": "Reserve: Abziehbilder, vierte Variante",
+   "gruppen": [
+    "abziehbilder"
+   ],
+   "stile": [
+    "abzieh"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "flach",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "wie abziehbilder",
+   "einbau": "abzieh"
+  },
+  "ladebilder": {
+   "titel": "Ladebilder: ein gemaltes Bild je Stunde (Stil szene wie die Akttafeln)",
+   "gruppen": [
+    "ladebilder"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "nach Code: Bild beim Wechsel der Stunde (Stunden.def, hud.gd)",
+   "einbau": "ladebilder"
+  },
+  "buchbilder": {
+   "titel": "Lexikon im Buch des Thot: achtzehn Begriffe als Malerei auf Papyrus",
+   "gruppen": [
+    "buchbilder"
+   ],
+   "stile": [
+    "buchbild"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "nach Code: Lexikon-Seite im Menü (lexikon.gd, hud.gd)",
+   "einbau": "buchbilder"
+  },
+  "hueter_spaet": {
+   "titel": "Hüter der Stunden 9 bis 12 (Stil hueter wie Stufe 10)",
+   "gruppen": [
+    "hueter_spaet"
+   ],
+   "stile": [
+    "hueter"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "fast sofort: einbauen.bat hueter, dazu je Stunde 'bild' in stunden.gd › OPEN (eine Zeile)",
+   "einbau": "hueter"
+  },
+  "titel": {
+   "titel": "Titelbild neu (Querformat, wird auf 1600 x 905 gebracht)",
+   "gruppen": [
+    "titel"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat titel (ersetzt ui/titel.webp)",
+   "einbau": "titel"
+  },
+  "ladebilder_d": {
+   "titel": "Reserve: Ladebilder, vierte Variante",
+   "gruppen": [
+    "ladebilder"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "wie ladebilder",
+   "einbau": "ladebilder"
+  },
+  "buchbilder_d": {
+   "titel": "Reserve: Lexikonbilder, vierte Variante",
+   "gruppen": [
+    "buchbilder"
+   ],
+   "stile": [
+    "buchbild"
+   ],
+   "varianten": [
+    "d"
+   ],
+   "ansichten": "relief",
+   "breite": 1024,
+   "hoehe": 768,
+   "im_spiel": "wie buchbilder",
+   "einbau": "buchbilder"
+  },
+  "vorlagen_mehr": {
+   "titel": "Reserve: Vorlagen für fünf weitere Gegner (Gegnerfabrik, Stil vorlage3d)",
+   "gruppen": [
+    "vorlagen_mehr"
+   ],
+   "stile": [
+    "vorlage3d"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "vorlage",
+   "breite": 1344,
+   "hoehe": 768,
+   "im_spiel": "nach Bild-zu-3D (GEGNERFABRIK.md), erst wenn Stufe 13 getragen hat",
+   "einbau": "keins (Gegnerfabrik)"
+  },
+  "probe_szene": {
+   "titel": "Probe: Hauptfigur mit Laterne und Nebet (Bausteine), Stil szene",
+   "motive": [
+    "sz_auftakt_4",
+    "sz_akt1_fieberhaus"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "Probe für die Szenen-Nacht: bleiben Figur und Laterne wiedererkennbar?",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_lichter": {
+   "titel": "Probe: Lichter-Ebene auf Schwarz",
+   "motive": [
+    "sz_auftakt_4_lichter"
+   ],
+   "stile": [
+    "lichter"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "Probe für die Szenen-Nacht",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "probe_zier": {
+   "titel": "Probe: gemalter dunkler Grund für die Oberfläche",
+   "motive": [
+    "u_grund_lapis"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "Probe für die Szenen-Nacht",
+   "einbau": "keins (Probe)",
+   "probe": true
+  },
+  "szenen": {
+   "titel": "Szenenbilder der Zwischensequenzen (Unterwelt), vier Varianten",
+   "gruppen": [
+    "szenen"
+   ],
+   "stile": [
+    "szene"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen (szene.gd lädt ui/szenen/<name>.webp, bis dahin Ersatz)",
+   "einbau": "szenen"
+  },
+  "szenen_sandtor": {
+   "titel": "Szenenbilder in Sandtor (Stadt der Lebenden)",
+   "gruppen": [
+    "szenen_sandtor"
+   ],
+   "stile": [
+    "szene_stadt"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen",
+   "einbau": "szenen"
+  },
+  "szenen_lichter": {
+   "titel": "Lichter-Ebene über Auftakt 4 (additiv)",
+   "gruppen": [
+    "szenen_lichter"
+   ],
+   "stile": [
+    "lichter"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "szene",
+   "breite": 1280,
+   "hoehe": 720,
+   "im_spiel": "ja, sofort nach einbauen.bat szenen (wird additiv gemischt)",
+   "einbau": "szenen"
+  },
+  "portraet_nebet": {
+   "titel": "Porträt Nebet (P25)",
+   "gruppen": [
+    "portraet_nebet"
+   ],
+   "stile": [
+    "portraet_nah"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "nach einer Zeile Code: Kürzel P25 in Gesprächen/Ersatz von szenen.gd",
+   "einbau": "portraets"
+  },
+  "portraets_geschichte": {
+   "titel": "Porträts Haremhab (P26) und Ba mit Nebets Gesicht (P27)",
+   "gruppen": [
+    "portraets_geschichte"
+   ],
+   "stile": [
+    "portraet_nah_figur"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "ansichten": "portraet_nah",
+   "breite": 896,
+   "hoehe": 1152,
+   "im_spiel": "nach einer Zeile Code: Kürzel P26, P27",
+   "einbau": "portraets"
+  },
+  "zier_flaechen": {
+   "titel": "Oberfläche: dunkler Grund (Leder, Lapislazuli, Ebenholz) und Papyrus",
+   "gruppen": [
+    "zier_flaechen"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, sofort nach einbauen.bat zier (Zier.tex nimmt ui/zier/gemalt/<name>.webp)",
+   "einbau": "zier"
+  },
+  "zier_karte": {
+   "titel": "Oberfläche: Grund der großen Karte",
+   "gruppen": [
+    "zier_karte"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 640,
+   "im_spiel": "ja, sofort nach einbauen.bat zier",
+   "einbau": "zier"
+  },
+  "zier_sterne": {
+   "titel": "Oberfläche: Himmel der Nut hinter dem Fähigkeitenbaum (kachelbar)",
+   "gruppen": [
+    "zier_sterne"
+   ],
+   "stile": [
+    "zierflaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "ja, sofort nach einbauen.bat zier",
+   "einbau": "zier",
+   "kachel": "xy"
+  },
+  "zier_ornamente": {
+   "titel": "Reserve: gemalte Ornamente (Flügelsonne, Udjat, Lotos, Skarabäus), freigestellt",
+   "gruppen": [
+    "zier_ornamente"
+   ],
+   "stile": [
+    "ding"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "ding",
+   "breite": 768,
+   "hoehe": 768,
+   "im_spiel": "ja, sofort nach einbauen.bat zier (freigestellt, Größe wie die erzeugten)",
+   "einbau": "zier"
+  },
+  "lebewesen": {
+   "titel": "Musterkacheln für Kleintiere und Vögel (Schuppen, Panzer, Gefieder, Fell)",
+   "gruppen": [
+    "lebewesen"
+   ],
+   "stile": [
+    "flaeche"
+   ],
+   "varianten": [
+    "a",
+    "b",
+    "c"
+   ],
+   "ansichten": "textur",
+   "breite": 1024,
+   "hoehe": 1024,
+   "im_spiel": "nach einbauen.bat lebewesen rechnet Claude tools/figurenfabrik/kleintiere_tafel.py neu (models/tiere/tiere_tafel.webp)",
+   "einbau": "lebewesen",
+   "kachel": "xy"
   }
  },
  "motive": [
@@ -1452,6 +2355,1515 @@
    "gruppe": "fries",
    "motiv": "an even row of tall feathers alternating with small sun discs, with thin colored bars above and below",
    "tex": ""
+  },
+  {
+   "id": "i00",
+   "name": "Schwert, Klinge, Speer",
+   "gruppe": "gegenstaende",
+   "motiv": "curved sickle-shaped bronze sword with a dark blade edge and a hilt wrapped in gold wire",
+   "tex": "",
+   "hinweis": "The blade curves like a sickle, the typical ancient Egyptian khopesh."
+  },
+  {
+   "id": "i01",
+   "name": "Beil, Axt",
+   "gruppe": "gegenstaende",
+   "motiv": "battle axe with a crescent-shaped bronze blade lashed to a long dark wooden handle with leather straps",
+   "tex": ""
+  },
+  {
+   "id": "i02",
+   "name": "Bogen",
+   "gruppe": "gegenstaende",
+   "motiv": "double-curved hunting bow of dark wood and horn with a linen bowstring and gold bands at the grip",
+   "tex": ""
+  },
+  {
+   "id": "i03",
+   "name": "Stab, Zepter, Keule",
+   "gruppe": "gegenstaende",
+   "motiv": "long ceremonial staff of black ebony with gold bands and a gold head shaped like an open lotus flower",
+   "tex": ""
+  },
+  {
+   "id": "i04",
+   "name": "Wickel, Faustbinden",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of rolled linen hand wraps with small bronze studs, lying empty side by side",
+   "tex": "",
+   "hinweis": "No hands, only the empty rolled bandages."
+  },
+  {
+   "id": "i05",
+   "name": "Dolch, Messer",
+   "gruppe": "gegenstaende",
+   "motiv": "dagger with a narrow gold blade and a handle inlaid with bands of lapis lazuli and carnelian, a round crystal pommel",
+   "tex": ""
+  },
+  {
+   "id": "i06",
+   "name": "Lampe, Räuchergefäß",
+   "gruppe": "gegenstaende",
+   "motiv": "open clay bowl lamp shaped like a lotus flower with a small turquoise flame burning at its spout",
+   "tex": "",
+   "ausnahme": [
+    "lamp"
+   ]
+  },
+  {
+   "id": "i07",
+   "name": "Schild, Spiegel, Sistrum",
+   "gruppe": "gegenstaende",
+   "motiv": "tall shield of stretched black and white cowhide with a rounded top and a bronze rim",
+   "tex": ""
+  },
+  {
+   "id": "i08",
+   "name": "Haube, Kopftuch, Nemes",
+   "gruppe": "gegenstaende",
+   "motiv": "empty pharaoh headcloth of linen with broad blue and gold stripes, standing hollow on its own",
+   "tex": "",
+   "hinweis": "Only the headcloth, no head and no face."
+  },
+  {
+   "id": "i09",
+   "name": "Helm",
+   "gruppe": "gegenstaende",
+   "motiv": "rounded blue war crown helmet covered with small gold discs, a golden cobra at the front",
+   "tex": ""
+  },
+  {
+   "id": "i10",
+   "name": "Geierhaube, Löwenhelm",
+   "gruppe": "gegenstaende",
+   "motiv": "vulture headdress of gold with the wings of a vulture folded around a cap and the vulture head at the front",
+   "tex": ""
+  },
+  {
+   "id": "i11",
+   "name": "Maske",
+   "gruppe": "gegenstaende",
+   "motiv": "golden funeral mask with blue stripes in the headcloth and black kohl-lined eyes",
+   "tex": ""
+  },
+  {
+   "id": "i12",
+   "name": "Robe, Gewand, Schurz",
+   "gruppe": "gegenstaende",
+   "motiv": "neatly folded garment of fine pleated white linen with a colored bead collar laid on top",
+   "tex": ""
+  },
+  {
+   "id": "i13",
+   "name": "Wams, Haut, Fell",
+   "gruppe": "gegenstaende",
+   "motiv": "leopard skin cloak of a priest with the paws hanging down and a gold clasp",
+   "tex": ""
+  },
+  {
+   "id": "i14",
+   "name": "Kettenhemd, Schuppenpanzer",
+   "gruppe": "gegenstaende",
+   "motiv": "short-sleeved scale armor shirt of many overlapping small bronze scales sewn onto linen",
+   "tex": ""
+  },
+  {
+   "id": "i15",
+   "name": "Pektoral",
+   "gruppe": "gegenstaende",
+   "motiv": "pectoral jewel with a winged scarab of lapis lazuli between two golden falcon heads, set in gold",
+   "tex": ""
+  },
+  {
+   "id": "i16",
+   "name": "Handschuhe, Leinenbinden",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of soft red-brown leather gloves with gold-embroidered cuffs, lying flat",
+   "tex": ""
+  },
+  {
+   "id": "i17",
+   "name": "Armschienen, Fäustlinge",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of bronze arm guards engraved with feather patterns, with leather straps",
+   "tex": ""
+  },
+  {
+   "id": "i18",
+   "name": "Sandalen",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of sandals woven from papyrus and palm fiber with a thin toe strap",
+   "tex": ""
+  },
+  {
+   "id": "i19",
+   "name": "Schuhe, Läufer",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of closed shoes of red leather with pointed upturned toes",
+   "tex": ""
+  },
+  {
+   "id": "i20",
+   "name": "Beinschienen",
+   "gruppe": "gegenstaende",
+   "motiv": "pair of bronze shin guards engraved with lotus patterns, tied with linen cords",
+   "tex": ""
+  },
+  {
+   "id": "i21",
+   "name": "Amulett: Auge",
+   "gruppe": "gegenstaende",
+   "motiv": "eye of Horus amulet of blue faience hanging on a cord of small gold beads",
+   "tex": ""
+  },
+  {
+   "id": "i22",
+   "name": "Amulett: Anch, Sonne, Skarabäus",
+   "gruppe": "gegenstaende",
+   "motiv": "ankh amulet of gold inlaid with turquoise, hanging on a thin gold chain",
+   "tex": ""
+  },
+  {
+   "id": "i23",
+   "name": "Amulett: Feder, Djed, Stern",
+   "gruppe": "gegenstaende",
+   "motiv": "ostrich feather amulet of hammered gold with lapis lazuli inlays on a cord of beads",
+   "tex": ""
+  },
+  {
+   "id": "i24",
+   "name": "Ring: Fayence",
+   "gruppe": "gegenstaende",
+   "motiv": "ring of turquoise blue faience with a small lotus flower on top",
+   "tex": ""
+  },
+  {
+   "id": "i25",
+   "name": "Ring: Siegel",
+   "gruppe": "gegenstaende",
+   "motiv": "heavy gold signet ring with an oval dark carnelian stone carved with a scarab",
+   "tex": ""
+  },
+  {
+   "id": "i26",
+   "name": "Ring: Schlange",
+   "gruppe": "gegenstaende",
+   "motiv": "gold ring shaped like a coiled cobra with tiny red eyes",
+   "tex": ""
+  },
+  {
+   "id": "i27",
+   "name": "Edelstein rot (frei)",
+   "gruppe": "gegenstaende",
+   "motiv": "polished oval red carnelian gemstone with a warm inner glow",
+   "tex": ""
+  },
+  {
+   "id": "i28",
+   "name": "Edelstein blau (frei)",
+   "gruppe": "gegenstaende",
+   "motiv": "polished oval lapis lazuli gemstone, deep blue with small gold flecks",
+   "tex": ""
+  },
+  {
+   "id": "i29",
+   "name": "Heiltrank",
+   "gruppe": "gegenstaende",
+   "motiv": "small round flask of clear glass filled with a glowing red liquid, sealed with a clay stopper and tied with linen cord",
+   "tex": ""
+  },
+  {
+   "id": "i30",
+   "name": "Fayencestaub",
+   "gruppe": "gegenstaende",
+   "motiv": "small clay bowl heaped with fine glittering turquoise powder",
+   "tex": ""
+  },
+  {
+   "id": "i31",
+   "name": "Schlangenhaut",
+   "gruppe": "gegenstaende",
+   "motiv": "snake skin with golden scales, rolled up and tied with a thin cord",
+   "tex": ""
+  },
+  {
+   "id": "i32",
+   "name": "Sethknochen (Eisen)",
+   "gruppe": "gegenstaende",
+   "motiv": "dark grey bar of rough raw iron with rust-red flecks",
+   "tex": ""
+  },
+  {
+   "id": "i33",
+   "name": "Himmelseisen",
+   "gruppe": "gegenstaende",
+   "motiv": "small black iron meteorite with a silvery sheen and pale blue glowing veins",
+   "tex": ""
+  },
+  {
+   "id": "i34",
+   "name": "Scherben",
+   "gruppe": "gegenstaende",
+   "motiv": "small heap of broken red clay pottery shards with traces of blue paint",
+   "tex": ""
+  },
+  {
+   "id": "i35",
+   "name": "Beweisstück",
+   "gruppe": "gegenstaende",
+   "motiv": "tightly rolled papyrus tied with a cord and sealed with a lump of red clay",
+   "tex": "",
+   "hinweis": "The papyrus is rolled shut, nothing on it can be seen."
+  },
+  {
+   "id": "c_glut",
+   "name": "Glutspur",
+   "gruppe": "champion_zeichen",
+   "motiv": "A trail of glowing ember footprints burning on dark ground, small orange flames rising from each, a golden sun disc above them.",
+   "tex": "dark basalt",
+   "datei": "c_glut"
+  },
+  {
+   "id": "c_sturm",
+   "name": "Sandsturm",
+   "gruppe": "champion_zeichen",
+   "motiv": "A swirling column of golden desert sand whirling around a dark core, sharp glittering grains flying outward.",
+   "tex": "dark basalt",
+   "datei": "c_sturm"
+  },
+  {
+   "id": "c_feder",
+   "name": "Schild der Maat",
+   "gruppe": "champion_zeichen",
+   "motiv": "The tall white ostrich feather of Maat standing upright in front of a round golden shield, a gleam along its edge.",
+   "tex": "dark basalt",
+   "datei": "c_feder"
+  },
+  {
+   "id": "c_ruf",
+   "name": "Rufer",
+   "gruppe": "champion_zeichen",
+   "motiv": "A tall war standard on a golden pole with a fan of feathers on top, small violet spirit flames rising around its foot.",
+   "tex": "dark basalt",
+   "datei": "c_ruf"
+  },
+  {
+   "id": "c_sprung",
+   "name": "Ba-Sprung",
+   "gruppe": "champion_zeichen",
+   "motiv": "A ba-bird with a small human head diving forward with spread golden wings, a glowing turquoise ring on the ground below it.",
+   "tex": "dark basalt",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon.",
+   "datei": "c_sprung"
+  },
+  {
+   "id": "c_klage",
+   "name": "Totenklage",
+   "gruppe": "champion_zeichen",
+   "motiv": "A mourning woman in profile with both arms raised above her head, long dark hair falling forward, pale blue tears of light.",
+   "tex": "dark basalt",
+   "hinweis": "Drawn like a tomb painting, the hands slender with fingers close together.",
+   "datei": "c_klage"
+  },
+  {
+   "id": "c_fessel",
+   "name": "Fessel der Selket",
+   "gruppe": "champion_zeichen",
+   "motiv": "A golden scorpion with its tail raised, holding a taut glowing red cord that loops around it.",
+   "tex": "dark red sandstone",
+   "datei": "c_fessel"
+  },
+  {
+   "id": "c_spalt",
+   "name": "Zweigeteilt",
+   "gruppe": "champion_zeichen",
+   "motiv": "A dark stone heart split into two halves by a glowing green crack, small green sparks in the gap.",
+   "tex": "dark basalt",
+   "datei": "c_spalt"
+  },
+  {
+   "id": "c_kette",
+   "name": "Feuerkette",
+   "gruppe": "champion_zeichen",
+   "motiv": "Two heavy chain links glowing red-hot, joined by a burning chain, sparks falling from it.",
+   "tex": "dark basalt",
+   "datei": "c_kette"
+  },
+  {
+   "id": "r01_holz_bemalt",
+   "name": "Holz, bemalt",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "dark cedar wood boards painted with faded bands of red, blue and yellow ochre, worn at the edges",
+   "tex": ""
+  },
+  {
+   "id": "r02_blattgold",
+   "name": "Blattgold",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "hammered gold leaf over dark wood with fine engraved feather lines, worn through in a few small places",
+   "tex": ""
+  },
+  {
+   "id": "r03_fayence",
+   "name": "Fayence-Einlagen",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "rows of small rounded turquoise blue faience inlays set in dark resin",
+   "tex": ""
+  },
+  {
+   "id": "r04_binden",
+   "name": "Mumienbinden",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "old mummy bandages of yellowed linen wound in diagonal overlapping strips, stained with dark resin",
+   "tex": ""
+  },
+  {
+   "id": "r05_bronze",
+   "name": "Bronze",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "dark hammered bronze sheet with green patina in the hollows and small round rivets",
+   "tex": ""
+  },
+  {
+   "id": "r06_federn",
+   "name": "Sargfedern",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "painted pattern of overlapping blue, green and gold feathers as on a royal coffin, with cracked old varnish",
+   "tex": ""
+  },
+  {
+   "id": "r07_matte",
+   "name": "Schilfmatte",
+   "gruppe": "requisiten_flaechen",
+   "motiv": "tightly woven mat of dry reeds and palm fiber in a herringbone weave, natural golden brown",
+   "tex": ""
+  },
+  {
+   "id": "w06_osiris_f",
+   "name": "Wand: Leib des Osiris",
+   "gruppe": "stunden_flaechen",
+   "motiv": "dark green-black polished granite masonry with fine joints and thin inlaid gold lines along the joints",
+   "tex": "",
+   "datei": "w06_osiris"
+  },
+  {
+   "id": "t06_osiris_f",
+   "name": "Boden: Leib des Osiris",
+   "gruppe": "stunden_flaechen",
+   "motiv": "black basalt paving slabs dusted with dark grey river silt, with fine cracks",
+   "tex": "",
+   "datei": "t06_osiris"
+  },
+  {
+   "id": "w07_apophis_f",
+   "name": "Wand: Sandbank des Apophis",
+   "gruppe": "stunden_flaechen",
+   "motiv": "crumbling mud-brick masonry with damp dark sand pressed into the joints and faint scale-like ripples",
+   "tex": "",
+   "datei": "w07_apophis"
+  },
+  {
+   "id": "t07_apophis_f",
+   "name": "Boden: Sandbank des Apophis",
+   "gruppe": "stunden_flaechen",
+   "motiv": "damp dark river sand with long winding ripple marks of even size",
+   "tex": "",
+   "datei": "t07_apophis"
+  },
+  {
+   "id": "w08_goetter_f",
+   "name": "Wand: Grüfte der Götter",
+   "gruppe": "stunden_flaechen",
+   "motiv": "painted limestone masonry with faded bands of red ochre, blue and green and flaking plaster",
+   "tex": "",
+   "datei": "w08_goetter"
+  },
+  {
+   "id": "t08_goetter_f",
+   "name": "Boden: Grüfte der Götter",
+   "gruppe": "stunden_flaechen",
+   "motiv": "polished pale limestone paving slabs with a little gold dust in the joints",
+   "tex": "",
+   "datei": "t08_goetter"
+  },
+  {
+   "id": "w09_ruderer_f",
+   "name": "Wand: Die Ruderer",
+   "gruppe": "stunden_flaechen",
+   "motiv": "tightly bound bundles of papyrus reeds tied with rope, as in the hull of a reed boat",
+   "tex": "",
+   "datei": "w09_ruderer"
+  },
+  {
+   "id": "t09_ruderer_f",
+   "name": "Boden: Die Ruderer",
+   "gruppe": "stunden_flaechen",
+   "motiv": "worn wooden deck planks of an old boat with wooden pegs and rope marks",
+   "tex": "",
+   "datei": "t09_ruderer"
+  },
+  {
+   "id": "w10_nun_f",
+   "name": "Wand: Die Ertrunkenen im Nun",
+   "gruppe": "stunden_flaechen",
+   "motiv": "wet stone masonry covered with green river algae and white mineral crusts",
+   "tex": "",
+   "datei": "w10_nun"
+  },
+  {
+   "id": "t10_nun_f",
+   "name": "Boden: Die Ertrunkenen im Nun",
+   "gruppe": "stunden_flaechen",
+   "motiv": "wet black mud with smooth pebbles and shallow puddles",
+   "tex": "",
+   "datei": "t10_nun"
+  },
+  {
+   "id": "w11_feuer_f",
+   "name": "Wand: Die Feuergruben",
+   "gruppe": "stunden_flaechen",
+   "motiv": "scorched red-black volcanic rock with thin glowing orange cracks",
+   "tex": "",
+   "datei": "w11_feuer"
+  },
+  {
+   "id": "t11_feuer_f",
+   "name": "Boden: Die Feuergruben",
+   "gruppe": "stunden_flaechen",
+   "motiv": "grey ash and black cinders with a few small glowing embers",
+   "tex": "",
+   "datei": "t11_feuer"
+  },
+  {
+   "id": "w12_osten_f",
+   "name": "Wand: Das Tor des Ostens",
+   "gruppe": "stunden_flaechen",
+   "motiv": "rose granite masonry with fine joints and small carved sun discs in warm dawn colors",
+   "tex": "",
+   "datei": "w12_osten"
+  },
+  {
+   "id": "t12_osten_f",
+   "name": "Boden: Das Tor des Ostens",
+   "gruppe": "stunden_flaechen",
+   "motiv": "golden beige limestone paving slabs with fine carved lotus bands along the joints",
+   "tex": "",
+   "datei": "t12_osten"
+  },
+  {
+   "id": "w01_sandstein_b",
+   "name": "Wand: Sandstein, zweite Art",
+   "gruppe": "wand_varianten",
+   "motiv": "pale sandstone masonry with a band of faded painted lotus ornament and dark weathering stains",
+   "tex": ""
+  },
+  {
+   "id": "w03_lehm_b",
+   "name": "Wand: Lehm, zweite Art",
+   "gruppe": "wand_varianten",
+   "motiv": "mud-brick masonry with patches of fallen plaster and dark water stains",
+   "tex": ""
+  },
+  {
+   "id": "w04_grab_b",
+   "name": "Wand: Grab, zweite Art",
+   "gruppe": "wand_varianten",
+   "motiv": "limestone tomb masonry with faint painted red and blue lines and small painted reed patterns, flaking plaster",
+   "tex": ""
+  },
+  {
+   "id": "w05_hoehle_b",
+   "name": "Wand: Höhle, zweite Art",
+   "gruppe": "wand_varianten",
+   "motiv": "dark violet-grey cave rock with thin bright mineral veins and small clusters of pale crystals",
+   "tex": ""
+  },
+  {
+   "id": "w02_glas_b",
+   "name": "Wand: Glas, zweite Art",
+   "gruppe": "wand_varianten",
+   "motiv": "fused green-blue desert glass rock with fine cracks and small frozen bubbles",
+   "tex": ""
+  },
+  {
+   "id": "t09_sand_f",
+   "name": "Boden: Sand, dritter Anlauf",
+   "gruppe": "boden_neu",
+   "motiv": "fine pale desert sand with soft wind ripples of even size in gently varied curves",
+   "tex": "",
+   "datei": "t09_sand"
+  },
+  {
+   "id": "t13_kies_f",
+   "name": "Boden: Kies der Wüste (Gelände)",
+   "gruppe": "boden_neu",
+   "motiv": "coarse dark desert gravel and sand with small stones of even size everywhere",
+   "tex": "",
+   "datei": "t13_kies"
+  },
+  {
+   "id": "t14_lehmboden_f",
+   "name": "Boden: gestampfter Lehm",
+   "gruppe": "boden_neu",
+   "motiv": "packed dusty clay earth with fine cracks and a few scattered pebbles",
+   "tex": "",
+   "datei": "t14_lehmboden"
+  },
+  {
+   "id": "x01_nil",
+   "name": "Wasser: Nil",
+   "gruppe": "wasser_himmel",
+   "motiv": "dark river water surface with small calm ripples and a faint turquoise sheen",
+   "tex": ""
+  },
+  {
+   "id": "x02_nun",
+   "name": "Wasser: Nun",
+   "gruppe": "wasser_himmel",
+   "motiv": "black still water of the underworld with slow ripples and fine floating dust",
+   "tex": ""
+  },
+  {
+   "id": "x03_decke",
+   "name": "Decke: Sterne",
+   "gruppe": "wasser_himmel",
+   "motiv": "deep blue painted ceiling with even rows of small golden five-pointed stars",
+   "tex": ""
+  },
+  {
+   "id": "x04_himmel",
+   "name": "Himmel der Duat",
+   "gruppe": "wasser_himmel",
+   "motiv": "dark blue-black night sky full of small stars and thin drifts of turquoise mist",
+   "tex": ""
+  },
+  {
+   "id": "d01_riss",
+   "name": "Riss",
+   "gruppe": "abziehbilder",
+   "motiv": "a long jagged crack in pale stone, dark and deep, with a few small branching cracks",
+   "tex": ""
+  },
+  {
+   "id": "d02_risse",
+   "name": "Trockenrisse",
+   "gruppe": "abziehbilder",
+   "motiv": "a web of fine dry cracks in hard clay",
+   "tex": ""
+  },
+  {
+   "id": "d03_sandwehe",
+   "name": "Sandverwehung",
+   "gruppe": "abziehbilder",
+   "motiv": "a soft drift of pale sand blown into a gentle low heap with a feathered edge",
+   "tex": ""
+  },
+  {
+   "id": "d04_blut",
+   "name": "Blut",
+   "gruppe": "abziehbilder",
+   "motiv": "a dark red splash of dried blood with a few drops around it",
+   "tex": ""
+  },
+  {
+   "id": "d05_pfuetze",
+   "name": "Pfütze",
+   "gruppe": "abziehbilder",
+   "motiv": "a shallow dark puddle of water with a wet rim",
+   "tex": ""
+  },
+  {
+   "id": "d06_scherben",
+   "name": "Scherben",
+   "gruppe": "abziehbilder",
+   "motiv": "broken pieces of a red clay jar scattered in a small heap",
+   "tex": ""
+  },
+  {
+   "id": "d07_russ",
+   "name": "Ruß",
+   "gruppe": "abziehbilder",
+   "motiv": "a black soot burn mark with grey ash in the middle",
+   "tex": ""
+  },
+  {
+   "id": "d08_knochen",
+   "name": "Knochen",
+   "gruppe": "abziehbilder",
+   "motiv": "scattered old bleached bones and the small skull of a jackal",
+   "tex": ""
+  },
+  {
+   "id": "d09_palmblaetter",
+   "name": "Palmblätter",
+   "gruppe": "abziehbilder",
+   "motiv": "a few fallen dry palm fronds lying crossed",
+   "tex": ""
+  },
+  {
+   "id": "d10_schilf",
+   "name": "Schilf",
+   "gruppe": "abziehbilder",
+   "motiv": "a small bundle of cut green reeds tied with a cord",
+   "tex": ""
+  },
+  {
+   "id": "d11_opfer",
+   "name": "Opfergaben",
+   "gruppe": "abziehbilder",
+   "motiv": "round bread loaves, dates and a blue lotus flower on a small reed mat",
+   "tex": ""
+  },
+  {
+   "id": "d12_algen",
+   "name": "Algen",
+   "gruppe": "abziehbilder",
+   "motiv": "a patch of green river algae and wet moss",
+   "tex": ""
+  },
+  {
+   "id": "d13_glut",
+   "name": "Glutfleck",
+   "gruppe": "abziehbilder",
+   "motiv": "a patch of glowing embers and black cinders",
+   "tex": ""
+  },
+  {
+   "id": "d14_schutt",
+   "name": "Schutt",
+   "gruppe": "abziehbilder",
+   "motiv": "a small heap of broken limestone rubble and dust",
+   "tex": ""
+  },
+  {
+   "id": "b01_opfer",
+   "name": "Opferszene",
+   "gruppe": "wandbilder",
+   "motiv": "a kneeling man in a white kilt presenting bread and a lotus flower to a seated god with the head of a falcon",
+   "tex": ""
+  },
+  {
+   "id": "b02_waage",
+   "name": "Wägung des Herzens",
+   "gruppe": "wandbilder",
+   "motiv": "a jackal-headed god at a tall balance scale with a heart on one pan and a feather on the other",
+   "tex": ""
+  },
+  {
+   "id": "b03_barke",
+   "name": "Sonnenbarke",
+   "gruppe": "wandbilder",
+   "motiv": "the sun boat with a ram-headed god standing in a shrine, a row of gods towing the boat with a long rope",
+   "tex": ""
+  },
+  {
+   "id": "b04_felder",
+   "name": "Binsengefilde",
+   "gruppe": "wandbilder",
+   "motiv": "farmers harvesting tall barley with sickles, a canal full of lotus flowers below",
+   "tex": ""
+  },
+  {
+   "id": "b05_schakale",
+   "name": "Schakale",
+   "gruppe": "wandbilder",
+   "motiv": "two black jackals lying on shrines facing each other with a lotus flower between them",
+   "tex": ""
+  },
+  {
+   "id": "b06_kater",
+   "name": "Kater und Schlange",
+   "gruppe": "wandbilder",
+   "motiv": "a cat with a knife cutting the head off a coiling serpent beneath a sacred tree",
+   "tex": "",
+   "hinweis": "The cat is a real cat sitting upright, the knife held in its front paw."
+  },
+  {
+   "id": "b07_himmel",
+   "name": "Himmelsgöttin",
+   "gruppe": "wandbilder",
+   "motiv": "the sky goddess arching her long blue body full of stars over the green earth god lying below",
+   "tex": ""
+  },
+  {
+   "id": "b08_klage",
+   "name": "Klagefrauen",
+   "gruppe": "wandbilder",
+   "motiv": "a row of mourning women in white linen dresses with raised arms and loose dark hair",
+   "tex": ""
+  },
+  {
+   "id": "b09_fluegel",
+   "name": "Geflügelte Sonne",
+   "gruppe": "wandbilder",
+   "motiv": "a large winged sun disc with two cobras, its feathered wings spreading across the whole picture",
+   "tex": ""
+  },
+  {
+   "id": "b10_dickicht",
+   "name": "Papyrusdickicht",
+   "gruppe": "wandbilder",
+   "motiv": "a papyrus thicket with ducks flying up and fish swimming in the water below",
+   "tex": ""
+  },
+  {
+   "id": "o01_zeder",
+   "name": "Tür aus Zedernholz",
+   "gruppe": "tore",
+   "motiv": "a massive closed double door of dark cedar wood with bronze bands and large bronze studs, set in a stone gateway",
+   "tex": ""
+  },
+  {
+   "id": "o02_scheintuer",
+   "name": "Scheintür",
+   "gruppe": "tore",
+   "motiv": "a tall false door of a tomb carved in limestone, its panels recessed in several steps, faded red paint",
+   "tex": ""
+  },
+  {
+   "id": "o03_pylon",
+   "name": "Tempeltor",
+   "gruppe": "tore",
+   "motiv": "a great temple gateway of sandstone with a winged sun disc above a closed bronze door",
+   "tex": ""
+  },
+  {
+   "id": "o04_versiegelt",
+   "name": "Versiegeltes Grab",
+   "gruppe": "tore",
+   "motiv": "a sealed tomb entrance blocked with rough stones and plaster, a lump of clay seal stamped with a jackal",
+   "tex": ""
+  },
+  {
+   "id": "o05_unterwelt",
+   "name": "Tor der Unterwelt",
+   "gruppe": "tore",
+   "motiv": "a dark iron-bound gate of the underworld with a coiled serpent carved around the doorway",
+   "tex": ""
+  },
+  {
+   "id": "k01_lotos",
+   "name": "Teppich: Lotos",
+   "gruppe": "teppiche",
+   "motiv": "woven red and ochre linen with a repeating pattern of small lotus flowers and zigzag bands",
+   "tex": ""
+  },
+  {
+   "id": "k02_sterne",
+   "name": "Teppich: Sterne",
+   "gruppe": "teppiche",
+   "motiv": "woven dark blue linen with rows of small golden stars and thin red stripes",
+   "tex": ""
+  },
+  {
+   "id": "k03_matte",
+   "name": "Teppich: Schilfmatte",
+   "gruppe": "teppiche",
+   "motiv": "coarse woven reed mat with dyed green and black diamond patterns",
+   "tex": ""
+  },
+  {
+   "id": "k04_federn",
+   "name": "Teppich: Federn",
+   "gruppe": "teppiche",
+   "motiv": "woven cream linen with bands of small blue and black checks and feathers",
+   "tex": ""
+  },
+  {
+   "id": "s01_papyrus",
+   "name": "Säule: Papyrus",
+   "gruppe": "saeulen",
+   "motiv": "painted sandstone column surface with vertical papyrus ribs and faded colored bands",
+   "tex": ""
+  },
+  {
+   "id": "s02_granit",
+   "name": "Säule: Granit",
+   "gruppe": "saeulen",
+   "motiv": "dark granite column surface with carved bands of lotus and feather ornaments",
+   "tex": ""
+  },
+  {
+   "id": "s03_holz",
+   "name": "Säule: Holz",
+   "gruppe": "saeulen",
+   "motiv": "red painted wooden column surface with gold bands",
+   "tex": ""
+  },
+  {
+   "id": "lade01",
+   "name": "Ladebild: Das Tor des Westens",
+   "gruppe": "ladebilder",
+   "motiv": "a small mud-brick desert town gate at the edge of a vast dark desert, faint glowing souls drifting from it like sparks toward the western horizon",
+   "tex": "deep night blue and warm amber colors",
+   "datei": "lade01"
+  },
+  {
+   "id": "lade02",
+   "name": "Ladebild: Die Felder von Wernes",
+   "gruppe": "ladebilder",
+   "motiv": "vast fields of tall dark barley in the underworld, pale shed skins of giant snakes lying among the stalks, a river glimmering far away",
+   "tex": "deep night blue and dull gold colors",
+   "datei": "lade02"
+  },
+  {
+   "id": "lade03",
+   "name": "Ladebild: Der König ohne Namen",
+   "gruppe": "ladebilder",
+   "motiv": "a dark royal tomb hall of tall columns at a still black water, a black stone sarcophagus with a golden sword on its lid, every carving on the walls smashed",
+   "tex": "deep night blue and dull gold colors",
+   "datei": "lade03"
+  },
+  {
+   "id": "lade04",
+   "name": "Ladebild: Rosetau",
+   "gruppe": "ladebilder",
+   "motiv": "the night boat of the sun being dragged on ropes across dark dunes by a long line of dim figures, narrow paths between walls of red fire",
+   "tex": "deep night blue and ember red colors",
+   "datei": "lade04"
+  },
+  {
+   "id": "lade05",
+   "name": "Ladebild: Die Höhle des Sokar",
+   "gruppe": "ladebilder",
+   "motiv": "a vast cave full of thousands of sealed clay jars glowing softly from inside, in the middle a great boat lying stranded on dry ground",
+   "tex": "deep violet and warm amber colors",
+   "datei": "lade05"
+  },
+  {
+   "id": "lade06",
+   "name": "Ladebild: Der Leib des Osiris",
+   "gruppe": "ladebilder",
+   "motiv": "the deepest chamber of the underworld, a giant green-skinned god in white linen resting on a bier, rows of kneeling gods in deep shadow around him",
+   "tex": "deep night blue and pale green colors",
+   "datei": "lade06"
+  },
+  {
+   "id": "lade07",
+   "name": "Ladebild: Die Sandbank des Apophis",
+   "gruppe": "ladebilder",
+   "motiv": "a dry river bed of pale sand, one enormous coil of a giant black and red serpent rising from the sandbank across the path of a golden boat",
+   "tex": "deep night blue and blood red colors",
+   "datei": "lade07"
+  },
+  {
+   "id": "lade08",
+   "name": "Ladebild: Die Grüfte der Götter",
+   "gruppe": "ladebilder",
+   "motiv": "long rows of closed dark tomb doors cut into a cliff along a black river, a small golden boat passing by",
+   "tex": "deep night blue and faint turquoise colors",
+   "datei": "lade08"
+  },
+  {
+   "id": "lade09",
+   "name": "Ladebild: Die Ruderer",
+   "gruppe": "ladebilder",
+   "motiv": "a golden boat gliding on a black river, a row of rowers at their long oars, one rowing bench in the middle stays empty",
+   "tex": "deep night blue and gold colors",
+   "datei": "lade09"
+  },
+  {
+   "id": "lade10",
+   "name": "Ladebild: Die Ertrunkenen im Nun",
+   "gruppe": "ladebilder",
+   "motiv": "dark primeval waters, pale drowned souls floating just below the surface, a falcon-headed god on the shore reaching his hand into the water",
+   "tex": "deep teal and pale silver colors",
+   "datei": "lade10"
+  },
+  {
+   "id": "lade11",
+   "name": "Ladebild: Die Feuergruben",
+   "gruppe": "ladebilder",
+   "motiv": "deep pits full of red fire in a black valley, at the edge of each pit a goddess with a long knife, sparks rising into the dark sky",
+   "tex": "black and deep red colors",
+   "datei": "lade11"
+  },
+  {
+   "id": "lade12",
+   "name": "Ladebild: Das Tor des Ostens",
+   "gruppe": "ladebilder",
+   "motiv": "a giant eastern gate at the end of the underworld, beyond it the pale rose colors of dawn, a giant scarab beetle pushing a red sun disc up into the sky",
+   "tex": "pale rose, gold and deep blue colors of first dawn",
+   "datei": "lade12"
+  },
+  {
+   "id": "lx_duat",
+   "name": "Lexikon: Duat",
+   "gruppe": "buchbilder",
+   "motiv": "the ram-headed sun god standing in his golden boat on a dark river of the underworld, rows of gods and serpents along both banks",
+   "tex": ""
+  },
+  {
+   "id": "lx_barke",
+   "name": "Lexikon: Barke",
+   "gruppe": "buchbilder",
+   "motiv": "the golden boat of the sun with a shrine in the middle and a tall steering oar, on dark water",
+   "tex": ""
+  },
+  {
+   "id": "lx_maat",
+   "name": "Lexikon: Maat",
+   "gruppe": "buchbilder",
+   "motiv": "the goddess of truth kneeling with spread wings and a tall ostrich feather on her head",
+   "tex": ""
+  },
+  {
+   "id": "lx_isfet",
+   "name": "Lexikon: Isfet",
+   "gruppe": "buchbilder",
+   "motiv": "a writhing dark serpent among broken jars and toppled statues",
+   "tex": ""
+  },
+  {
+   "id": "lx_waage",
+   "name": "Lexikon: Herzwaage",
+   "gruppe": "buchbilder",
+   "motiv": "a tall balance scale with a heart on one pan and a feather on the other, a jackal-headed god at the scale, an ibis-headed god watching",
+   "tex": ""
+  },
+  {
+   "id": "lx_fresserin",
+   "name": "Lexikon: Die Fresserin",
+   "gruppe": "buchbilder",
+   "motiv": "a crouching beast with the head of a crocodile, the front body of a lioness and the hind body of a hippopotamus, waiting beside a scale",
+   "tex": ""
+  },
+  {
+   "id": "lx_ba",
+   "name": "Lexikon: Ba",
+   "gruppe": "buchbilder",
+   "motiv": "a ba bird with a small human head and golden wings hovering over a mummy lying on a bier",
+   "tex": ""
+  },
+  {
+   "id": "lx_ka",
+   "name": "Lexikon: Ka",
+   "gruppe": "buchbilder",
+   "motiv": "a standing man and behind him his twin as a faint shadow, two raised arms rising above the twin's head",
+   "tex": ""
+  },
+  {
+   "id": "lx_krug",
+   "name": "Lexikon: Seelenkrug",
+   "gruppe": "buchbilder",
+   "motiv": "a sealed clay jar on a stand with a faint glowing heart visible inside",
+   "tex": ""
+  },
+  {
+   "id": "lx_apophis",
+   "name": "Lexikon: Apophis",
+   "gruppe": "buchbilder",
+   "motiv": "a giant coiled serpent being speared by a god standing at the front of the sun boat",
+   "tex": ""
+  },
+  {
+   "id": "lx_sebau",
+   "name": "Lexikon: Sebau",
+   "gruppe": "buchbilder",
+   "motiv": "a crowd of dark serpent-like demons with human arms creeping out of the sand",
+   "tex": ""
+  },
+  {
+   "id": "lx_thot",
+   "name": "Lexikon: Thot",
+   "gruppe": "buchbilder",
+   "motiv": "the god with the head of an ibis, a pale disc and crescent on his head, standing calm and watchful",
+   "tex": ""
+  },
+  {
+   "id": "lx_osiris",
+   "name": "Lexikon: Osiris",
+   "gruppe": "buchbilder",
+   "motiv": "the god Osiris seated on a throne, green skin, a tall white crown with feathers, holding a crook and a flail",
+   "tex": ""
+  },
+  {
+   "id": "lx_anubis",
+   "name": "Lexikon: Anubis",
+   "gruppe": "buchbilder",
+   "motiv": "a black jackal lying on a shrine with a golden collar and a red sash",
+   "tex": ""
+  },
+  {
+   "id": "lx_sokar",
+   "name": "Lexikon: Sokar",
+   "gruppe": "buchbilder",
+   "motiv": "a falcon-headed mummy god standing on a mound of sand inside a cave, two serpents guarding him",
+   "tex": ""
+  },
+  {
+   "id": "lx_chepri",
+   "name": "Lexikon: Chepri",
+   "gruppe": "buchbilder",
+   "motiv": "a giant scarab beetle pushing a red sun disc up from the horizon",
+   "tex": ""
+  },
+  {
+   "id": "lx_geb",
+   "name": "Lexikon: Geb und Nut",
+   "gruppe": "buchbilder",
+   "motiv": "the sky goddess arched over the earth god lying below, the air god standing between them holding her up",
+   "tex": ""
+  },
+  {
+   "id": "lx_scherben",
+   "name": "Lexikon: Scherben",
+   "gruppe": "buchbilder",
+   "motiv": "broken pottery shards on the ground, a few of them glowing faintly blue",
+   "tex": ""
+  },
+  {
+   "id": "h09",
+   "name": "Der zwölfte Ruderer",
+   "gruppe": "hueter_spaet",
+   "motiv": "a gaunt ghostly rower of the sun boat with hollow eyes, holding a long broken oar, his body half transparent and pale blue",
+   "tex": "a black river and an empty rowing bench"
+  },
+  {
+   "id": "h10",
+   "name": "Der Ertrunkene König",
+   "gruppe": "hueter_spaet",
+   "motiv": "a drowned king with a dripping blue crown and waterlogged dark linen, green river weeds tangled in his beard and arms, cold pale eyes",
+   "tex": "dark water and drifting reeds"
+  },
+  {
+   "id": "h11",
+   "name": "Die Entronnene",
+   "gruppe": "hueter_spaet",
+   "motiv": "a woman who crawled out of a fire pit, her linen dress scorched black, embers glowing in her hair, a bronze knife in her hand, a fierce face",
+   "tex": "deep pits of red fire"
+  },
+  {
+   "id": "h12",
+   "name": "Der Schatten des Sammlers",
+   "gruppe": "hueter_spaet",
+   "motiv": "{SCHATTEN}, only a cold proud face faintly visible in the smoke, small clay jars floating around it",
+   "tex": "a great eastern gate in the rose colors of dawn"
+  },
+  {
+   "id": "titel",
+   "name": "Titelbild",
+   "gruppe": "titel",
+   "motiv": "a lone figure with a staff standing on a high desert ridge, looking down into a vast underworld valley where a golden boat glides on a river of stars",
+   "tex": "deep night blue, warm amber and gold colors"
+  },
+  {
+   "id": "v_priesterin",
+   "name": "Sebau-Priesterin",
+   "gruppe": "vorlagen_mehr",
+   "motiv": "a gaunt hollow-eyed priestess in tattered dark ritual linen wraps, a tall bronze staff with a small glowing jar on top held at her side",
+   "tex": "",
+   "hinweis": "The staff stands upright beside her, held loosely."
+  },
+  {
+   "id": "v_koloss",
+   "name": "Sebau-Koloss",
+   "gruppe": "vorlagen_mehr",
+   "motiv": "a hulking giant with cracked grey stone skin, a small head, massive arms and fists and a plain linen kilt",
+   "tex": "",
+   "hinweis": "The giant is broad and heavy but stands upright."
+  },
+  {
+   "id": "v_ruheloser",
+   "name": "Ruheloser",
+   "gruppe": "vorlagen_mehr",
+   "motiv": "a mummy guardian in dark dusty linen wraps with a round bronze shield strapped to one forearm",
+   "tex": "",
+   "hinweis": "The wraps are dark and dusty, the shield is plain and round."
+  },
+  {
+   "id": "v_erloschener",
+   "name": "Erloschener",
+   "gruppe": "vorlagen_mehr",
+   "motiv": "a gaunt bald man with ashen grey skin and dim ember eyes in a faded blue linen robe that reaches to the knees",
+   "tex": ""
+  },
+  {
+   "id": "v_herzloser",
+   "name": "Herzloser",
+   "gruppe": "vorlagen_mehr",
+   "motiv": "a tall thin figure in grey linen wraps with an empty hole in the middle of the chest glowing cold blue inside",
+   "tex": ""
+  },
+  {
+   "id": "sz_auftakt_1",
+   "name": "Auftakt 1: Sandtor bei Nacht, Lichter steigen auf",
+   "gruppe": "szenen_sandtor",
+   "motiv": "a small mud-brick desert town at the edge of the western desert at night, flat roofs, palm trees, a single window glowing warm amber, many small turquoise soul lights rising slowly from the roofs into the sky towards the west",
+   "tex": "deep night blue and faint turquoise colors"
+  },
+  {
+   "id": "sz_auftakt_2",
+   "name": "Auftakt 2: Nebet im Fieberhaus, du wachst neben ihr",
+   "gruppe": "szenen_sandtor",
+   "motiv": "{NEBET} lying asleep and feverish on a reed mat in a bare mud-brick room, one blue-stained hand hanging down; beside her sits {FIGUR}, holding {LATERNE}, glowing warm amber",
+   "tex": "warm amber glow against deep shadow"
+  },
+  {
+   "id": "sz_auftakt_3",
+   "name": "Auftakt 3: der Priester gibt dir die Laterne",
+   "gruppe": "szenen_sandtor",
+   "motiv": "an old Egyptian priest with a shaved head and a lined face, seen in profile, handing {LATERNE} to {FIGUR}, both their hands hidden in long linen sleeves, inside it a flame burns with a deep red heart-shaped glow, a dark temple wall behind",
+   "tex": "warm red and amber against deep night blue"
+  },
+  {
+   "id": "sz_mitte_sandtor",
+   "name": "Mitte: in Sandtor wird Nebets Leib kälter",
+   "gruppe": "szenen_sandtor",
+   "motiv": "{NEBET} lying very still on a reed mat in a dark mud-brick room, her skin frost-pale, beside her a small clay dish with a tiny flame that has almost burned out",
+   "tex": "cold blue colors with a dying ember of amber"
+  },
+  {
+   "id": "sz_finale_morgen",
+   "name": "Finale: Morgen über Sandtor",
+   "gruppe": "szenen_sandtor",
+   "motiv": "sunrise over a small mud-brick desert town, the sun rising red from the eastern horizon; through an open window {NEBET} sitting up on her reed mat while {BA} flies in through the window",
+   "tex": "warm rose and gold colors of sunrise"
+  },
+  {
+   "id": "sz_auftakt_4",
+   "name": "Auftakt 4: am Tor des Westens (Grund für die Lichter-Ebene)",
+   "gruppe": "szenen",
+   "motiv": "{FIGUR}, holding up {LATERNE}, glowing warm amber, standing before a colossal ancient stone gate in the desert cliffs, the gate opens onto a stair leading down into darkness",
+   "tex": "deep night blue and warm amber colors"
+  },
+  {
+   "id": "sz_h02_feldtor",
+   "name": "Zweite Stunde: Haremhab prüft das Siegel am Feldtor",
+   "gruppe": "szenen",
+   "motiv": "{HAREMHAB}, seen from behind, kneeling at a tall wooden field gate in a ruined golden barley field, studying a broken red clay seal on the bolt",
+   "tex": "dusty gold and deep night blue colors"
+  },
+  {
+   "id": "sz_h03_krug",
+   "name": "Dritte Stunde: Nebets Krug im Sarkophag",
+   "gruppe": "szenen",
+   "motiv": "a single small white alabaster jar with a lid standing in an open stone sarcophagus, a thin indigo blue thread tied around its neck, gold grave goods scattered in shadow, the jar faintly glowing as if warm",
+   "tex": "warm amber glow inside deep tomb darkness"
+  },
+  {
+   "id": "sz_akt1_liste",
+   "name": "Ende Akt 1: der Türhüter fährt die Liste der Toten hinab",
+   "gruppe": "szenen",
+   "motiv": "a tall grey stone gatekeeper without a mouth, faceless and calm, holding a very long unrolled band of pale papyrus that hangs down to the floor, one stone finger resting near its lower end on a single fresh drop of red ink",
+   "tex": "cold grey and deep night blue with a touch of red",
+   "hinweis": "The papyrus band is blank, only its fibres can be seen."
+  },
+  {
+   "id": "sz_akt1_fieberhaus",
+   "name": "Ende Akt 1, Erinnerung: du stirbst an Nebets Bett",
+   "gruppe": "szenen",
+   "motiv": "seen from high above, a bare fever room: {FIGUR} slumped motionless against the wall with {LATERNE} still glowing warm amber in the lap, on the reed mat beside it {NEBET} sitting up and reaching out, her mouth open in a cry",
+   "tex": "cold pale blue with one warm amber glow"
+  },
+  {
+   "id": "sz_akt1_hoehle",
+   "name": "Ende Akt 1, Haken: das Zugseil führt in die Höhle",
+   "gruppe": "szenen",
+   "motiv": "a thick rope stretched taut across desert sand, leading down into the mouth of a vast cave, deep inside countless tiny jars glowing faintly violet like a field of embers",
+   "tex": "violet glow and deep night blue"
+  },
+  {
+   "id": "sz_h05_angebot",
+   "name": "Fünfte Stunde: das Angebot des Sammlers",
+   "gruppe": "szenen",
+   "motiv": "{SAMMLER}, his hands hidden in the long sleeves of the mantle, holding out an open white alabaster jar as an offering, behind him rows of small clay jars glowing violet",
+   "tex": "violet glow and deep night blue"
+  },
+  {
+   "id": "sz_mitte_isis",
+   "name": "Mitte: Isis sieht auf deine Schulter",
+   "gruppe": "szenen",
+   "motiv": "the goddess Isis as a grieving woman with a small throne-shaped crown, large folded wings of a kite behind her shoulders, gazing tenderly down at {BA} perched on the shoulder of {FIGUR}",
+   "tex": "soft green-gold glow and deep night blue"
+  },
+  {
+   "id": "sz_mitte_ba",
+   "name": "Mitte, die Enthüllung: der Vogel hat Nebets Gesicht",
+   "gruppe": "szenen",
+   "motiv": "a close view of {BA} perched on a dark cloaked shoulder, the girl's face tear-stained and ashamed, looking up",
+   "tex": "pale turquoise glow and deep shadow",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon."
+  },
+  {
+   "id": "sz_h06_mitternacht",
+   "name": "Sechste Stunde: im Licht der Mitternacht das Ende der Nacht",
+   "gruppe": "szenen",
+   "motiv": "a blinding white-gold burst where the sun god and the mummified Osiris meet, far beyond it on the horizon a great eastern gate, and before the gate a tiny dark figure of smoke carrying a jar",
+   "tex": "white gold burst fading into deep night blue"
+  },
+  {
+   "id": "sz_h07_bug",
+   "name": "Siebte Stunde: Haremhab am Bug der Sonnenbarke",
+   "gruppe": "szenen",
+   "motiv": "{HAREMHAB}, seen from behind, standing at the prow of the golden sun boat, wiping his sword, looking east over dark water where the coils of a giant serpent sink away",
+   "tex": "dark water, gold and deep night blue"
+  },
+  {
+   "id": "sz_akt2_gruft",
+   "name": "Ende Akt 2: in der stummen Gruft sitzt dein eigener Ba",
+   "gruppe": "szenen",
+   "motiv": "a small ba bird with a human head sitting alone in a dark stone crypt, a broken golden oval ring hanging around its neck, its face shimmering and impossible to make out, turned towards the viewer",
+   "tex": "cold silver and deep night blue"
+  },
+  {
+   "id": "sz_akt2_osten",
+   "name": "Ende Akt 2: zwei gehen der Barke voraus",
+   "gruppe": "szenen",
+   "motiv": "a vast dark landscape seen from above, a faint glowing path leading to a distant eastern gate on the horizon, far ahead on the path a tiny dark figure of smoke carrying a jar, behind it {HAREMHAB} running",
+   "tex": "deep night blue with first pale rose at the horizon"
+  },
+  {
+   "id": "sz_h12_schatten",
+   "name": "Zwölfte Stunde: der Schatten mit Nebets Krug",
+   "gruppe": "szenen",
+   "motiv": "{SCHATTEN} cradling a small white alabaster jar tied with a thin indigo blue thread, standing before a colossal eastern gate",
+   "tex": "deep night blue with pale rose colors behind the gate"
+  },
+  {
+   "id": "sz_finale_waage",
+   "name": "Finale: die Halle der Waage",
+   "gruppe": "szenen",
+   "motiv": "a vast hall of tall columns with a giant golden balance scale at its centre, {THOT} standing beside it, rows of seated judges in shadow, one seat empty",
+   "tex": "deep night blue and gold colors"
+  },
+  {
+   "id": "sz_finale_dunkel",
+   "name": "Finale: du nimmst dein Herz aus der Laterne",
+   "gruppe": "szenen",
+   "motiv": "{LATERNE} standing open on a dark stone floor, a glowing red heart floating up out of it, the last warm glow fading into complete darkness all around",
+   "tex": "deep red glow fading into black"
+  },
+  {
+   "id": "sz_finale_leicht",
+   "name": "Finale, Ende Wahr an Stimme",
+   "gruppe": "szenen",
+   "motiv": "a golden balance scale perfectly level, a heart on one pan and a white ostrich feather on the other, behind it through a tall doorway a single bright new star rising in the northern sky over the desert at first dawn",
+   "tex": "pale rose, gold and deep blue colors of first dawn"
+  },
+  {
+   "id": "sz_finale_schwebe",
+   "name": "Finale, Ende In der Schwebe: es fehlt ein Fährmann",
+   "gruppe": "szenen",
+   "motiv": "a small wooden ferry boat moored at the bank of a dark river at first dawn, a cedar oar lying across it, faint turquoise soul lights waiting on the far bank",
+   "tex": "pale grey dawn and turquoise colors"
+  },
+  {
+   "id": "sz_finale_schwer",
+   "name": "Finale, Ende Zu schwer: die Fresserin hebt den Kopf",
+   "gruppe": "szenen",
+   "motiv": "a crocodile-headed beast with the mane of a lion and the hind body of a hippopotamus lifting its head beside a tilted golden balance scale, {THOT} resting one hand on the sinking pan",
+   "tex": "dark red and gold against deep shadow"
+  },
+  {
+   "id": "sz_finale_schatten",
+   "name": "Finale: Thot sagt dem Schatten die Wahrheit",
+   "gruppe": "szenen",
+   "motiv": "{THOT} speaking to {SCHATTEN}; the shadow sets down a small alabaster jar tied with an indigo thread and takes {LATERNE} instead, the first pale rose colors of dawn falling between them",
+   "tex": "pale rose and deep night blue"
+  },
+  {
+   "id": "sz_auftakt_4_lichter",
+   "name": "Ebene über Auftakt 4: Seelenlichter auf Schwarz (addiert)",
+   "gruppe": "szenen_lichter",
+   "motiv": "dozens of small soft glowing turquoise soul lights drifting downwards in a loose stream",
+   "tex": ""
+  },
+  {
+   "id": "P25",
+   "name": "Nebet",
+   "gruppe": "portraet_nebet",
+   "motiv": "a slender girl in her early teens with dark braided hair and fingertips stained deep indigo blue from dye, pale and feverish",
+   "tex": "a dark mud-brick room"
+  },
+  {
+   "id": "P26",
+   "name": "Haremhab",
+   "gruppe": "portraets_geschichte",
+   "motiv": "a broad-shouldered Egyptian general with a blue war crown and bronze scale armour, a hard weathered face with sharp watchful eyes",
+   "tex": "a ruined barley field in deep dusk"
+  },
+  {
+   "id": "P27",
+   "name": "Der Ba mit Nebets Gesicht",
+   "gruppe": "portraets_geschichte",
+   "motiv": "a ba bird with golden-brown folded wings and the small human head of a young girl with dark braided hair, her face tear-stained and ashamed",
+   "tex": "a dark cloaked shoulder and deep shadow",
+   "hinweis": "The ba is the human-headed soul bird of Egyptian tombs, not a falcon."
+  },
+  {
+   "id": "u_grund_leder",
+   "name": "Grund dunkel: Leder",
+   "gruppe": "zier_flaechen",
+   "motiv": "dark brown tooled leather with fine grain and soft creases and a faint pressed lotus pattern, very dark umber with a subtle warm amber sheen in the middle fading to near black toward the edges",
+   "tex": ""
+  },
+  {
+   "id": "u_grund_lapis",
+   "name": "Grund dunkel: Lapislazuli",
+   "gruppe": "zier_flaechen",
+   "motiv": "a polished slab of dark lapis lazuli, deep midnight blue with fine golden flecks and thin pale veins, a faint cool blue sheen in the middle",
+   "tex": ""
+  },
+  {
+   "id": "u_grund_holz",
+   "name": "Grund dunkel: Ebenholz",
+   "gruppe": "zier_flaechen",
+   "motiv": "a dark ebony wood panel with tight straight grain, oiled, very dark brown almost black, a faint warm amber sheen",
+   "tex": ""
+  },
+  {
+   "id": "u_papyrus",
+   "name": "Papyrus für Schriftstücke",
+   "gruppe": "zier_flaechen",
+   "motiv": "a single sheet of pale papyrus with crossed horizontal and vertical reed fibres, warm light beige and honey colour, darker frayed irregular edges, a few soft brown stains, empty and clean",
+   "tex": ""
+  },
+  {
+   "id": "u_karte_grund",
+   "name": "Grund der großen Karte",
+   "gruppe": "zier_karte",
+   "motiv": "an aged dark papyrus sheet with crossed reed fibres, a few faint ink stains and soft smudges, warm umber and dark ochre, darker toward the edges, very dark overall",
+   "tex": ""
+  },
+  {
+   "id": "u_sterne",
+   "name": "Himmel der Nut (kachelbar)",
+   "gruppe": "zier_sterne",
+   "motiv": "a deep night sky full of dense small pale stars with a faint violet and indigo haze like a milky band, very dark blue black",
+   "tex": ""
+  },
+  {
+   "id": "u_fluegelsonne",
+   "name": "Ornament: Flügelsonne",
+   "gruppe": "zier_ornamente",
+   "motiv": "winged sun disc of polished gold with two rearing cobras beside the disc and long outstretched feathered wings, raised relief with fine engraved feathers, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_udjat",
+   "name": "Ornament: Udjat",
+   "gruppe": "zier_ornamente",
+   "motiv": "eye of Horus amulet of polished gold with lapis lazuli inlay, raised relief, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_lotos",
+   "name": "Ornament: Lotos",
+   "gruppe": "zier_ornamente",
+   "motiv": "blue lotus flower in profile cast in polished gold, a fan of pointed petals, raised relief, seen straight from the front",
+   "tex": ""
+  },
+  {
+   "id": "u_skarabaeus",
+   "name": "Ornament: Skarabäus",
+   "gruppe": "zier_ornamente",
+   "motiv": "scarab beetle amulet of gold seen from above, lapis lazuli wing cases, fine engraving",
+   "tex": ""
+  },
+  {
+   "id": "lw_eidechse_schuppen",
+   "name": "Eidechse: Schuppen",
+   "gruppe": "lebewesen",
+   "motiv": "lizard skin of a desert spiny-tailed lizard, small round granular scales, olive brown and ochre",
+   "tex": "",
+   "datei": "eidechse_schuppen"
+  },
+  {
+   "id": "lw_eidechse_dornen",
+   "name": "Eidechse: Dornenringe",
+   "gruppe": "lebewesen",
+   "motiv": "lizard tail skin with rows of spiny keeled scales in rings, grey brown and dark umber",
+   "tex": "",
+   "datei": "eidechse_dornen"
+  },
+  {
+   "id": "lw_kaefer_panzer",
+   "name": "Skarabäus: Flügeldecken",
+   "gruppe": "lebewesen",
+   "motiv": "beetle wing case of a black scarab with fine parallel grooves, glossy black with a faint blue-green sheen",
+   "tex": "",
+   "datei": "kaefer_panzer"
+  },
+  {
+   "id": "lw_schwarzkaefer_panzer",
+   "name": "Schwarzkäfer",
+   "gruppe": "lebewesen",
+   "motiv": "beetle shell of a desert darkling beetle, matte black and covered in small round bumps",
+   "tex": "",
+   "datei": "schwarzkaefer_panzer"
+  },
+  {
+   "id": "lw_maus_fell",
+   "name": "Rennmaus: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "gerbil fur of short soft sandy orange hairs",
+   "tex": "",
+   "datei": "maus_fell"
+  },
+  {
+   "id": "lw_falke_gefieder",
+   "name": "Falke: Rücken",
+   "gruppe": "lebewesen",
+   "motiv": "falcon back feathers in overlapping rows, slate grey and brown with darker bars and pale edges",
+   "tex": "",
+   "datei": "falke_gefieder"
+  },
+  {
+   "id": "lw_falke_brust",
+   "name": "Falke: Brust",
+   "gruppe": "lebewesen",
+   "motiv": "falcon breast feathers, pale cream with small dark brown drop-shaped spots",
+   "tex": "",
+   "datei": "falke_brust"
+  },
+  {
+   "id": "lw_ibis_gefieder",
+   "name": "Ibis: Gefieder",
+   "gruppe": "lebewesen",
+   "motiv": "ibis feathers in soft white overlapping layers with faint warm grey shading",
+   "tex": "",
+   "datei": "ibis_gefieder"
+  },
+  {
+   "id": "lw_fisch_schuppen",
+   "name": "Nilbuntbarsch: Schuppen",
+   "gruppe": "lebewesen",
+   "motiv": "fish scales of a Nile tilapia, olive grey with faint vertical bars",
+   "tex": "",
+   "datei": "fisch_schuppen"
+  },
+  {
+   "id": "lw_esel_fell",
+   "name": "Esel: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "donkey hair, short and grey with a slight brownish tint",
+   "tex": "",
+   "datei": "esel_fell"
+  },
+  {
+   "id": "lw_schaf_vlies",
+   "name": "Schaf: Vlies",
+   "gruppe": "lebewesen",
+   "motiv": "sheep wool of small tight cream-colored curly locks",
+   "tex": "",
+   "datei": "schaf_vlies"
+  },
+  {
+   "id": "lw_ziege_fell",
+   "name": "Ziege: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "goat hair of long straight dark brown strands",
+   "tex": "",
+   "datei": "ziege_fell"
+  },
+  {
+   "id": "lw_katze_fell",
+   "name": "Katze: Fell",
+   "gruppe": "lebewesen",
+   "motiv": "cat fur, sandy tabby with faint darker stripes",
+   "tex": "",
+   "datei": "katze_fell"
   }
  ],
  "einbau": {
@@ -1559,6 +3971,271 @@
    "a2": "bildwerk/akttafeln/a2_szene_a",
    "a3": "bildwerk/akttafeln/a3_szene_d"
   },
-  "hinweis_sand": "Sand neu (Stufe sand_neu) bewusst nicht benutzt: Alle acht Bilder sind leicht von schräg gemalt (Rippel oben feiner als unten), das kachelt nicht. Die Quelle t09_sand_textur_a bleibt; die Datei im Spiel ist die von Hand korrigierte aus 4.1.5."
- }
+  "hinweis_sand": "Sand neu (Stufe sand_neu) bewusst nicht benutzt: Alle acht Bilder sind leicht von schräg gemalt (Rippel oben feiner als unten), das kachelt nicht. Die Quelle t09_sand_textur_a bleibt; die Datei im Spiel ist die von Hand korrigierte aus 4.1.5.",
+  "hinweis_neu": "Neue Arten (5.3), je 'einbauen.bat <art> [namen]': zeichen, fx, fries, saeulen, gegenstaende, champions, abzieh (Schlüssel abziehbilder), wandbilder, tore, ladebilder, buchbilder, titel, szenen, zier, lebewesen. Auswahl jeweils Name -> Quelle (bildwerk/<stufe>/<datei>_<stil>_<variante>, nahtlos gerechnete mit _k am Ende). gegenstaende: Feldnummer 0 bis 35 -> Quelle. Hüter 9 bis 12 kommen unter 'hueter', neue Flächen unter 'texturen' (mit 'texturen_hell': Name -> höchste lineare Helligkeit, z. B. 0.24).",
+  "zeichen": {},
+  "fx": {},
+  "fries": {},
+  "saeulen": {},
+  "gegenstaende": {},
+  "champions": {},
+  "abziehbilder": {},
+  "wandbilder": {},
+  "tore": {},
+  "ladebilder": {},
+  "buchbilder": {},
+  "titel": {},
+  "texturen_hell": {},
+  "zeichen_groesse": 1024,
+  "fx_groesse": 512,
+  "fx_art": {
+   "e3": "alpha",
+   "e4": "alpha",
+   "e5": "alpha"
+  },
+  "gegenstaende_zelle": 160,
+  "gegenstaende_schatten": 0.45,
+  "abzieh_groesse": 512,
+  "hell_ziel": {
+   "fries": 0.24,
+   "saeulen": 0.24,
+   "wandbilder": 0.22,
+   "tore": 0.2,
+   "grund_dunkel": 0.035,
+   "karte_grund": 0.05
+  },
+  "champions_farben": {
+   "glut": [
+    255,
+    128,
+    38
+   ],
+   "sturm": [
+    235,
+    194,
+    115
+   ],
+   "feder": [
+    250,
+    224,
+    115
+   ],
+   "ruf": [
+    194,
+    128,
+    255
+   ],
+   "sprung": [
+    115,
+    242,
+    230
+   ],
+   "klage": [
+    128,
+    148,
+    255
+   ],
+   "fessel": [
+    217,
+    77,
+    64
+   ],
+   "spalt": [
+    153,
+    255,
+    140
+   ],
+   "kette": [
+    255,
+    82,
+    31
+   ]
+  },
+  "texturen_von_hand": [
+   "t09_sand"
+  ],
+  "hinweis_von_hand": "texturen_von_hand: diese Dateien im Spiel sind von Hand nachgearbeitet; einbauen.bat ohne Namen lässt sie aus (sonst würde es sie überschreiben). Bauen nur ausdrücklich: einbauen.bat texturen t09_sand.",
+  "szenen": {},
+  "zier": {},
+  "lebewesen": {},
+  "szenen_add": [
+   "sz_auftakt_4_lichter"
+  ],
+  "zier_groessen": {
+   "grund_dunkel": [
+    1024,
+    1024
+   ],
+   "karte_grund": [
+    1024,
+    640
+   ],
+   "sterne": [
+    512,
+    512
+   ],
+   "papyrus": [
+    768,
+    768
+   ],
+   "fluegelsonne": [
+    200,
+    48
+   ],
+   "udjat": [
+    96,
+    64
+   ],
+   "lotos": [
+    64,
+    64
+   ],
+   "skarabaeus": [
+    64,
+    64
+   ]
+  },
+  "hinweis_szenen": "szenen: Name wie in scripts/szenen.gd (sz_...) -> Quelle; 1280 x 720 nach ui/szenen/. Namen unter szenen_add werden als Lichter-Ebene gebaut (RGB auf reinem Schwarz, additiv). zier: Zielname (grund_dunkel, karte_grund, sterne, papyrus, fluegelsonne, udjat, lotos, skarabaeus) -> Quelle, nach ui/zier/gemalt/. lebewesen: Dateiname wie in kleintiere_tafel.py -> Quelle, nahtlos nach bilder/lebewesen/; danach die Tafel neu rechnen (Claude). Porträts P25 bis P27 gehen über 'portraets'."
+ },
+ "naechte": {
+  "proben": {
+   "titel": "Nacht 0: Proben der neuen Stile (unter einer Stunde)",
+   "zweck": "Klärt vor den großen Nächten: bleiben Hauptfigur, Laterne und Nebet wiedererkennbar, tragen die neuen Stile (Fläche, Oberfläche, Lichter, Ding, Symbol ohne Spielnamen, Abziehbild, Relief, Tor, Papyrus) und rechnet der Knoten für nahtlose Texturen auf der AMD-Karte?",
+   "stufen": [
+    "probe_kachel",
+    "probe_flaeche",
+    "probe_szene",
+    "probe_lichter",
+    "probe_zier",
+    "probe_ding",
+    "probe_frei",
+    "probe_abzieh",
+    "probe_relief",
+    "probe_ansicht",
+    "probe_buchbild"
+   ],
+   "fuellen": [],
+   "stunden": 1.0,
+   "danach": "Tafeln an Claude schicken. Claude entscheidet je Stil: tragen, umschreiben oder Rückfall."
+  },
+  "szenen": {
+   "titel": "Nacht 1: Szenen (alle 26 Bilder der Zwischensequenzen, Porträts Nebet, Haremhab und Ba, gemalte Flächen der Oberfläche)",
+   "zweck": "Die neue Geschichte läuft in 22 Sequenzen mit Ersatzbildern. Danach hat jede Einstellung ihr Bild, Nebet und Haremhab ein Gesicht, und Menü, Karte und Papyrus sind gemalt. Szenen und Oberfläche sind sofort im Spiel, ohne Code.",
+   "stufen": [
+    "szenen_sandtor",
+    "szenen",
+    "szenen_lichter",
+    "portraet_nebet",
+    "portraets_geschichte",
+    "zier_flaechen",
+    "zier_karte",
+    "zier_sterne"
+   ],
+   "fuellen": [
+    "zier_ornamente",
+    "lebewesen"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; Claude wählt vor; einbauen.bat szenen und einbauen.bat zier; sync.bat."
+  },
+  "dinge": {
+   "titel": "Nacht 2: Dinge (Gegenstände der Tasche, Champion-Zeichen, Flächen für Requisiten)",
+   "zweck": "Der größte Gewinn ohne Code: alle Gegenstände der Tasche ägyptisch statt mittelalterlich, sofort im Spiel.",
+   "stufen": [
+    "gegenstaende",
+    "champion_zeichen",
+    "requisiten_flaechen"
+   ],
+   "fuellen": [
+    "gegenstaende_d",
+    "lebewesen",
+    "vorlagen_mehr"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; Claude trägt die Auswahl ein; einbauen.bat gegenstaende; sync.bat."
+  },
+  "welt": {
+   "titel": "Nacht 3: Welt (Wände und Böden der Stunden 6 bis 12, zweite Wandart, Sand, Wasser, Himmel)",
+   "zweck": "Die Stunden 6 bis 12 sehen heute aus wie 1 bis 5. Eigene Oberflächen je Stunde, nahtlos gerechnet.",
+   "stufen": [
+    "stunden_flaechen",
+    "boden_neu",
+    "wand_varianten",
+    "wasser_himmel"
+   ],
+   "fuellen": [
+    "stunden_flaechen_d",
+    "lebewesen"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; Sand sofort einbauen; die Stunden brauchen Code (SURF, LOOK)."
+  },
+  "boden_wand": {
+   "titel": "Nacht 4: Boden und Wand (Abziehbilder, Wandbilder, Tore, Teppiche, Säulen)",
+   "zweck": "Gegen die leeren Flächen: Risse, Sand, Scherben und Blut auf dem Boden, Reliefs und Tore an den Wänden.",
+   "stufen": [
+    "abziehbilder",
+    "wandbilder",
+    "tore",
+    "teppiche",
+    "saeulen"
+   ],
+   "fuellen": [
+    "abziehbilder_d",
+    "wandbilder_d",
+    "vorlagen_mehr"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; alles braucht Code (Claude baut die Stellen ein)."
+  },
+  "erzaehlung": {
+   "titel": "Nacht 5: Erzählung (Titel, Hüter 9 bis 12, Ladebild je Stunde, Lexikon)",
+   "zweck": "Gemalte Bilder rund um die Geschichte: jede Stunde beginnt mit einem Bild, das Buch des Thot bekommt Bilder, die späten Hüter ein Gesicht.",
+   "stufen": [
+    "titel",
+    "hueter_spaet",
+    "ladebilder",
+    "buchbilder"
+   ],
+   "fuellen": [
+    "buchbilder_d",
+    "ladebilder_d",
+    "vorlagen_mehr"
+   ],
+   "stunden": 7.5,
+   "danach": "Tafeln schicken; Titel und Hüter fast sofort, der Rest mit Code."
+  }
+ },
+ "hinweis_naechte": "Nächte: bildwerk.bat nacht <Nummer oder Name>, Nummern in dieser Reihenfolge ab 0. stufen in der Reihenfolge ihres Nutzens; fuellen: Reserve-Stufen, die nur laufen, solange der Zeitrahmen 'stunden' (ab Beginn) noch reicht. Die Lebewesen laufen als Reserve in den Nächten 1 bis 3.",
+ "bausteine": {
+  "FIGUR": {
+   "text": "a lone traveller in a long dark hooded cloak of undyed linen, seen from behind, the face hidden"
+  },
+  "LATERNE": {
+   "text": "a small round lantern of dark bronze with pierced holes, carried on a short chain",
+   "ausnahme": [
+    "lantern"
+   ],
+   "grund": "Die Laterne ist der Gegenstand der Hauptfigur und muss sichtbar sein. 'oil-lamp' ergab früher eine moderne Sturmlaterne; darum immer diese alte Form aus Bronze, und Licht nur als Farbe dazu ('glowing warm amber')."
+  },
+  "NEBET": {
+   "text": "a slender girl in her early teens with dark braided hair, a plain undyed linen dress and fingertips stained deep indigo blue from dye"
+  },
+  "HAREMHAB": {
+   "text": "a broad-shouldered Egyptian general in bronze scale armour with a blue war crown and a short curved sword at his hip"
+  },
+  "SAMMLER": {
+   "text": "a very old tired judge of the dead with a shaved head, a deeply lined face and sorrowful eyes, a single tall white feather tied into a plain white headband, a heavy grey linen mantle"
+  },
+  "SCHATTEN": {
+   "text": "a tall faceless shadow made of black smoke in the shape of an old judge with a single tall white feather on his head"
+  },
+  "BA": {
+   "text": "a small ba bird with golden-brown wings and the small human head of a young girl with dark braided hair"
+  },
+  "THOT": {
+   "text": "an ibis-headed god in a white linen kilt"
+  }
+ },
+ "hinweis_bausteine": "Bausteine: {NAME} in motiv, hinweis oder tex wird durch den Text ersetzt (bildwerk.bat › baue_prompt). 'ausnahme' nennt Wörter, die pruefe_plan.py hier bewusst durchlässt, 'grund' sagt warum."
 }

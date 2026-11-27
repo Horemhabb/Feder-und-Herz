@@ -164,7 +164,6 @@ func _ready() -> void:
 	elif touch:
 		guete_setzen(1, "Handy oder Tablet")
 	sfx.loop("amb_wind")
-	sfx.loop("amb_drone")
 	klang = Klang.new()
 	klang.game = self
 	add_child(klang)
@@ -180,9 +179,15 @@ func _ready() -> void:
 	else:
 		# zu Beginn eines Aktes (Stunde 1, 5, 9) steht die Tafel der Stunde vor dem Bild des Aktes, wenn es eingebaut ist
 		var akt_start := Stunden.hour_of(Spiel.fall) in [1, 5, 9]
-		hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin(),
-			Stunden.akt_bild(Stunden.akt(Spiel.fall)) if akt_start else "")
-		sprich("vo_chapter")
+		var tafel := func():
+			hud.show_chapter(Stunden.case_no(Spiel.fall), hdef.name, hdef.lead, hdef.brief, "Eintreten", func(): begin(),
+				Stunden.akt_bild(Stunden.akt(Spiel.fall)) if akt_start else "")
+			sprich("vo_chapter")
+		# vor der ersten Stunde der ersten Nacht: der Auftakt (4.3, Zwischensequenz; einmal je Spielstand)
+		if Spiel.fall == 1:
+			Szene.spielen(self, "auftakt", tafel)
+		else:
+			tafel.call()
 	if autotest == null:
 		if "--klassentest" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Klassentest"):
 			var kt: Node = load("res://scripts/klassentest.gd").new()
@@ -204,6 +209,10 @@ func _ready() -> void:
 			var pt: Node = load("res://scripts/playtest.gd").new()
 			pt.name = "Playtest"
 			get_tree().root.add_child.call_deferred(pt)
+		if "--szenenfotos" in OS.get_cmdline_user_args() and not get_tree().root.has_node("Szenenfotos"):
+			var sf: Node = load("res://scripts/szenenfotos.gd").new()   # Bilder jeder Zwischensequenz (4.3)
+			sf.name = "Szenenfotos"
+			get_tree().root.add_child.call_deferred(sf)
 
 # Erzählerstimme (3.0): Es gibt vier Aufnahmen, und sie klangen in jeder Stunde gleich. Jede spielt jetzt nur noch
 # ein einziges Mal je Figur; danach erzählt allein der Text, der in jeder Stunde ein anderer ist.
@@ -211,7 +220,7 @@ func sprich(name: String) -> void:
 	# seit 3.1 hat jede Stunde ihre eigenen Ansagen (Leitsatz, Satz des Hüters, Epilog); sie spielen einmal je Figur und Stunde
 	var art: String = {"vo_chapter": "lead", "vo_boss": "say", "vo_epi": "epi"}.get(name, "")
 	if art != "":
-		var eigen := "vo_h%02d_%s" % [Stunden.hour_of(Spiel.fall), art]
+		var eigen := Stunden.vo_name(Spiel.fall, art)   # 4.3: neu geschriebene Texte haben neue Aufnahmen (…_epi2)
 		if ResourceLoader.exists("res://audio/%s.ogg" % eigen):
 			var k := "%s_n%d" % [eigen, Stunden.night_of(Spiel.fall)]
 			if not Spiel.gesehen(k):
@@ -838,7 +847,7 @@ func live_foes() -> Array:
 func _impact(n: int, at: Vector3) -> void:
 	if n <= 0:
 		return
-	sfx.play_at("hit", at, 0.12)
+	sfx.treffer(at, 0.12)
 	shake = maxf(shake, 0.22 + 0.05 * n)
 
 # Trefferstopp: Die Zeit steht für einen Herzschlag fast still und gibt dem Hieb Gewicht. Früher bei jedem Treffer,
@@ -983,7 +992,7 @@ func _mark_burst(f: Foe) -> void:
 	var c := f.global_position
 	ring_fx(c, 4.6, Color(0.94, 0.75, 0.45))
 	shake = maxf(shake, 0.3)
-	sfx.play_at("hit", c, 0.1)
+	sfx.treffer(c, 0.1)
 	for o in live_foes():
 		if o != f and (o.global_position - c).length() < 4.6 + o.radius:
 			hero.deal(o, 1.5, 5.0, 0.0, 0.0, false)
@@ -1021,7 +1030,7 @@ func hero_chain(h: Hero, at: Vector3, mult: float) -> void:
 		if nxt == null:
 			break
 		cur = nxt
-	sfx.play_at("bolt", first.global_position, 0.1)
+	sfx.treffer(first.global_position, 0.1)
 
 func _spot_ahead(h: Hero, d: float) -> Vector3:
 	return h.global_position + h.forward() * d
@@ -1098,6 +1107,7 @@ func _shots_tick(delta: float) -> void:
 					hero.deal(f, b.mult, b.push, b.stun, b.gen if b.hit.is_empty() else 0.0)
 					b.hit.append(f)
 					spark(n.global_position, Color(1.0, 0.9, 0.7))
+					sfx.treffer(n.global_position, 0.1, -3.0)
 					if b.pierce >= 0 and b.hit.size() > b.pierce:
 						gone = true
 						break
@@ -1153,7 +1163,7 @@ func meteor(c: Vector3, r: float, mult: float) -> void:
 		ring_fx(c, r, Color(1.0, 0.84, 0.37))
 		spark(c + Vector3(0, 0.8, 0), Color(1.0, 0.84, 0.37))
 		shake = maxf(shake, 0.7)
-		sfx.play_at("hit", c, 0.05)
+		sfx.treffer(c, 0.05)
 		for f in live_foes():
 			if (f.global_position - c).length() < r + f.radius:
 				hero.deal(f, mult, 7.0)
@@ -1304,7 +1314,7 @@ func _level_up() -> void:
 			var S: Dictionary = hero.SK[id]
 			hud.announce(Klassen.icon(id, 176), "JETZT LERNBAR · IM FÄHIGKEITENBAUM", S.name, S.txt, 7.0)
 	lvl_seen = Spiel.lvl
-	sfx.play("aufstieg")
+	sfx.play("stufe" if sfx._stream("stufe") else "aufstieg")
 	ring_fx(hero.global_position, 2.6, Color(1.0, 0.85, 0.4))
 
 # ---------------------------------------------------------------- Beute (04-combat.js › kill, 03a-dungeon.js › openChest)
@@ -1436,12 +1446,12 @@ func _take(b: Beute) -> bool:
 				hero.apply_stats()
 				sub = "direkt angelegt"
 			hud.toast_item(Daten.icon_of(b.item), Daten.item_name(b.item), sub, Daten.RAR[b.item.rar].col, 6.5 if b.item.rar >= 2 else 4.0)
-			sfx.play("aufheben", 0.1)
+			sfx.play("anlegen" if res == "angelegt" else "aufheben", 0.1)
 		"shard":
 			var am := int(round(b.amount * float(Spiel.S.shard)))   # ein schweres Herz findet mehr
 			Spiel.shards += am
 			float_text(hero.global_position, "+%d Scherben" % am, Color(0.95, 0.85, 0.55))
-			sfx.play("ui", 0.15, -8.0)
+			sfx.play("belohnung", 0.12, -4.0)
 		"mat":
 			Spiel.mats[b.mat] += b.amount
 			Spiel.speichern()
@@ -1492,7 +1502,7 @@ func smash_around(c: Vector3, r: float) -> void:
 		br.n.queue_free()
 		br.body.queue_free()
 		astar.set_point_solid(br.sub, false)
-		sfx.play_at("hit", br.pos, 0.2, -4.0)
+		sfx.play_at("scherben", br.pos, 0.15, -2.0)
 		spark(br.pos + Vector3(0, 0.8, 0), Color(0.7, 0.55, 0.35))
 		if randf() < 0.34:
 			drop("shard", br.pos, randi_range(1, 3) * _shard_mul())
@@ -1572,7 +1582,6 @@ func _open_chest(c: Dictionary) -> void:
 			get_tree().paused = false)
 
 # Musik der Stunde: im Freiland die Wüstennacht, im Dungeon das Stück seiner Art, jeweils im Wechsel mit einem zweiten
-const MUSIK := {"ruin": "mus_felder", "tomb": "mus_grab", "glass": "mus_rosetau", "vault": "mus_hoehle"}
 
 # Untergrund unter einem Punkt: Stein in Gräbern und Gebäuden, sonst Sand (für den Klang der Schritte)
 func auf_stein(p: Vector3) -> bool:
@@ -1608,15 +1617,15 @@ func untergrund(p: Vector3) -> String:
 			return "glas"
 	return "stein"
 
+# Musik der Stunde (4.3): je Akt ein eigenes Thema in eigener Tonleiter (tools/ton/musik.py). Es liegt in Schichten
+# vor (Grund, Melodie, Spannung, Kampf); welche davon klingen, entscheidet die Lage (sfx.lage, klang.gd).
 func area_music() -> Array:
-	if karte and karte.indoor:
-		return [MUSIK.get(karte.kind, "mus_duat"), "mus_duat"]
-	return ["mus_wueste", "mus_titel"]
+	return ["mus_a%d" % (Stunden.akt(Spiel.fall) + 1)]
 
 func on_boss_wake(b: Foe) -> void:
 	boss_awake = true
 	cine_t = 2.4
-	sfx.music("mus_kampf", 1.0)
+	sfx.lage("hueter", 1)
 	hud.boss_show(b)
 	if b.kampf:
 		b.kampf.start()
@@ -1624,12 +1633,14 @@ func on_boss_wake(b: Foe) -> void:
 	sfx.play("boss_appear")
 	sprich("vo_boss")
 	shake = maxf(shake, 0.6)
+	Szene.spielen(self, Szenen.vor(Spiel.fall))   # 4.3: kurzer Moment vor dem Kampf, wo die Geschichte ihn trägt
 
 # Der Stumme Türhüter wechselt die Phase (4.0)
 var dunkel_vorher := []   # Mondlicht und Umgebungslicht vor dem Zerbrechen des Tores
 
 func on_boss_phase(b: Foe, n: int) -> void:
 	shake = maxf(shake, 0.6)
+	sfx.lage("hueter", n)
 	sfx.play("boss_phase" if sfx._stream("boss_phase") else "boss_appear")
 	hud.boss_phase()
 	if b.kampf:
@@ -1747,6 +1758,13 @@ func on_boss_dead() -> void:
 			f.hit(9999.0, boss.global_position)
 	# die Pforte wächst in der Mitte der Bodenplatte, auf der der Hüter fiel (nie in einer Mauer)
 	_build_gate(Welt.cell_pos(karte.lair))
+	# 4.3: nach dem Hüter ein Moment der Geschichte (am Ende eines Aktes die große Sequenz), wenn die Pforte steht
+	var nach := Szenen.nach(Spiel.fall)
+	if Szene.offen(nach):
+		get_tree().create_timer(3.4).timeout.connect(func():
+			if hero.dead:
+				return
+			Szene.spielen(self, nach))
 
 func on_hero_dead() -> void:
 	deaths += 1
@@ -1759,7 +1777,7 @@ func on_hero_dead() -> void:
 	if Spiel.hc:
 		hud.show_dead("Hardcore: %s, Stufe %d, gefallen in der %s. Ausrüstung und Erfahrung sind verloren." % [Spiel.CLS[Spiel.cls].name, Spiel.lvl, Stunden.hour_txt(Spiel.fall)], func(): restart(false), "Neue Figur anlegen")
 		return
-	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 6 else "tod"), func():
+	hud.show_dead(Worte.zieh("tod_wissend" if Spiel.max_fall >= 5 else "tod"), func():
 		var im_kampf := boss_awake and boss.state != Foe.St.DEAD   # vor dem Zurücksetzen merken: fiel man im Kampf mit dem Hüter?
 		sfx.hush()
 		for f in foes:
@@ -1855,7 +1873,7 @@ func _aktende_lohn() -> void:
 			if wo == "voll":
 				drop_item(hero.global_position, it)
 			hero.apply_stats()])
-	var rueck := ["Vier Stunden der Nacht liegen hinter dir: das Tor des Westens, die Felder von Wernes, der König ohne Namen und Rosetau. Der Türhüter hat geschwiegen, bis zuletzt. Jetzt steht das Tor offen, und dahinter beginnt, was du noch nicht wissen willst.",
+	var rueck := Geschichte.akt1_rueckblick() + [   # 4.3: Rückblick auf die Entscheidungen des Aktes
 		"Zeit dieser Stunde %s · Rückschläge %d · Dein Herz ist %s." % [_clock(), deaths, Geschichte.herz_name(Spiel.herz)],
 		"Als Lohn für den ersten Akt darfst du eines von drei legendären Stücken wählen."]
 	# dahinter schon das Bild des zweiten Aktes (die Waage): der Übergang, solange es keinen eigenen Abspann gibt
@@ -1912,6 +1930,10 @@ func _build_gate(pos: Vector3) -> void:
 	gate_ask = not (boss.ist_aktende() and not akt_lohn_genommen and not Spiel.gesehen(_akt_lohn_key()))
 
 func _ask_gate() -> void:
+	# 4.3: am Tor des Ostens zuerst das Ende der Geschichte (Waage, Urteil, Nebet), dann die Pforte
+	if Stunden.hour_of(Spiel.fall) == 12 and Szene.offen("finale"):
+		Szene.spielen(self, "finale", _ask_gate)
+		return
 	get_tree().paused = true
 	sfx.play("ui")
 	sprich("vo_epi")

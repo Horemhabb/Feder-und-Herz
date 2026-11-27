@@ -10,20 +10,21 @@ const T := {
 		"Jedes Feuer hier unten ist ein Stück Tag.",
 		"Alle, die im Dunkeln warten, sehen es jetzt.",
 		"Brenn weiter, kleines Licht. Wir kommen wieder vorbei.",
-		"Ein Feuer mehr. Die Nacht zählt mit."],
+		"Ein Feuer mehr. Die Nacht zählt mit.",
+		"Zu Hause hast du die Lampe immer als Erstes angezündet. Vor allen anderen."],
 	# dein Ba, wenn du ein Herz freilässt
 	"ba_frei": ["Es hat „Danke“ gesagt. Hast du es gehört?",
 		"Es ist nach oben geflogen. Es wusste den Weg noch.",
 		"Hast du gesehen, wie leicht es war?",
 		"Jemand in Sandtor schläft heute ruhiger und weiß nicht, warum.",
 		"Du hättest es behalten können. Ich bin froh, dass ich zu dir gehöre.",
-		"Wieder eines. Die Waage bekommt zu tun."],
+		"Wieder eines. Der, der die Krüge aufstellt, wird schimpfen."],
 	# dein Ba, wenn du einen Krug plünderst
 	"ba_raub": ["Es hat nicht geschrien. Das ist das Schlimme.",
 		"Zähl es nicht vor mir.",
 		"Es war nur ein Krug. Sag dir das ruhig.",
 		"Ich habe weggesehen. Du auch?",
-		"Der Sammler hätte genickt.",
+		"Der, der sie aufstellt, hätte genickt.",
 		"Etwas ist stiller geworden. Vielleicht bist du es."],
 	# Seelenkrug: was du siehst und hörst
 	"krug_bild": ["Der Krug ist warm. Unter dem Siegel schlägt es, langsam und geduldig, wie etwas, das seit dem Herbst wartet.",
@@ -31,9 +32,10 @@ const T := {
 		"Staub liegt auf dem Deckel, aber nicht auf dem Siegel. Jemand kommt her und wischt es ab. Darunter schlägt es schnell, wie nach einem Lauf.",
 		"Der Krug steht schief, als hätte ihn jemand eilig abgestellt. Was darin schlägt, stockt, als du die Hand auflegst, und schlägt dann weiter.",
 		"Kein Staub, keine Spinnweben. Der Krug ist neuer als alles um ihn herum. Das Herz darin schlägt ruhig. Es weiß noch nicht, wo es ist.",
-		"Um den Hals des Kruges hängt ein Band aus blauen Perlen, wie man es Kindern umlegt oder denen, die man liebt. Es schlägt darin, sehr leise."],
+		"Um den Hals des Kruges hängt ein Band aus blauen Perlen, wie man es Kindern umlegt oder denen, die man liebt. Es schlägt darin, sehr leise.",
+		"Auf dem Siegel ist kein Name eingedrückt, nur eine Feder, sauber und tief. So siegeln die Zweiundvierzig. Darunter schlägt es, als hätte es Angst."],
 	# wem das Herz gehört
-	"krug_name": ["Amenemhet, Töpfer", "Satre, Hebamme", "Kawab, Ruderer", "Nebet, Weberin", "Intef, Soldat der Torwache",
+	"krug_name": ["Amenemhet, Töpfer", "Satre, Hebamme", "Kawab, Ruderer", "Meritamun, Färberin", "Intef, Soldat der Torwache",
 		"Mutnofret, Sängerin im Tempel", "Hapu, Schreiberlehrling", "Tjeti, Fischhändler", "Ahmose, Bierbrauerin", "Sennefer, Gärtner",
 		"Renseneb, Zimmermann", "Ipuy, Salbenmischer", "Neferu, noch ein Kind", "Chnumhotep, Ziegelstreicher"],
 	# die Wahl, jedes Mal klar benannt
@@ -45,13 +47,13 @@ const T := {
 	"helfer_wink": ["%s winkt dir zu.", "%s nickt dir zu und zählt noch einmal nach.", "%s summt vor sich hin und hebt die Hand zum Gruß.",
 		"%s sieht auf und lächelt."],
 	# nach einer Niederlage (solange du nicht weißt, was du bist)
-	"tod": ["Dein Ba hat den Weg zurück in den Leib gefunden, und die Laterne brennt noch. Was dich angegriffen hat, ist noch dort.",
-		"Für einen Augenblick war es dunkel. Dann hat dein Ba dich gefunden, und die Flamme hat wieder Luft bekommen. Sie warten noch auf dich.",
-		"Dein Ba hat über dir gekreist, bis du die Augen geöffnet hast. Die Flamme in der Laterne ist klein geworden, aber sie brennt.",
-		"Die Laterne lag neben dir im Staub und ist nicht ausgegangen. Steh auf. Es ist noch dort, wo du es gelassen hast."],
+	"tod": ["Für einen Augenblick war es dunkel. Dann hat dich etwas mit kleinen Flügeln an der Wange gestreift, bis du die Augen geöffnet hast. Was dich angegriffen hat, ist noch dort.",
+		"Die Laterne lag neben dir im Staub und ist nicht ausgegangen. Merkwürdig, eigentlich. Steh auf. Es ist noch dort, wo du es gelassen hast.",
+		"Dein Ba hat über dir gekreist und geschimpft, bis du wieder aufgestanden bist. Die Flamme ist klein geworden, aber sie brennt.",
+		"Du wachst auf und atmest nicht schwer. Du atmest gar nicht schwer. Steh auf, sie warten noch auf dich."],
 	# nach der fünften Stunde weißt du es
-	"tod_wissend": ["Man stirbt hier nicht zweimal. Aber es tut jedes Mal so weh, als wäre es das erste Mal. Steh auf.",
-		"Dein Ba hat den Weg zurück gefunden, wie immer. Tote haben Zeit. Die Sonne hat keine.",
+	"tod_wissend": ["Man stirbt hier nicht zweimal. Aber es tut jedes Mal so weh wie beim ersten Mal. Steh auf.",
+		"Tote haben Zeit. Die Sonne hat keine. Nebet auch nicht.",
 		"Die Laterne brennt noch. Solange sie brennt, bist du nicht fertig.",
 		"Dunkel, dann wieder Licht. Du kennst das inzwischen. Die anderen warten, wo du sie gelassen hast."],
 	# Leute unterwegs (3.2): ein Satz im Vorbeigehen. Sie wissen nicht, wo sie sind, und reden, als wäre es ein Abend in Sandtor.
@@ -67,6 +69,10 @@ const T := {
 		"Du trägst eine Laterne? Wie schön. Hier hat niemand mehr Licht.",
 		"Ich sollte mich beeilen. Ich weiß nur nicht, wohin.",
 		"Wenn du zum Markt gehst, sag Nebet, ich komme später.",
+		"Im Fieberhaus brennt noch eine Lampe. Einer sitzt daneben und rührt sich nicht.",
+		"Hast du das Mädchen mit den blauen Fingern gesehen? Sie hat mir ein Tuch gewebt.",
+		"Mir war so heiß. Und dann auf einmal gar nicht mehr.",
+		"Ein alter Mann hat meinen Namen aufgeschrieben. Er war sehr freundlich. Er hat geweint.",
 		"Seit wann sind die Sterne so tief?",
 		"Ich träume viel in letzter Zeit. Immer von einer Waage.",
 		"Pass auf die Schatten auf. Manche sind keine.",
@@ -85,18 +91,24 @@ const T := {
 }
 
 # Rückblick auf der Tafel jeder Stunde: was in der Stunde davor geschah, in schlichten Worten
+# Rückblick auf der Tafel jeder Stunde: was in der Stunde davor geschah, in schlichten Worten (bisher() wählt nach Entscheidung)
 const BISHER := ["",
-	"Du hast Mahaf besiegt, den Fährmann, der die Seelen im Kreis führte. Sein Licht brennt jetzt in deiner Laterne und weist nach unten.",
-	"In den Feldern hast du die Schlangenbrut des Apophis vertrieben. Sie trug ein Königssiegel ohne Namen: Jemand hat ihr das Tor geöffnet.",
-	"Der König ohne Namen hatte seinen Namen verkauft, damit sein Herz nie gewogen wird. Der Käufer ließ einen Krug zurück, in dem es schlägt. Du trägst ihn bei dir.",
-	"In Rosetau standen die erloschenen Sterne, die früher die Sonnenbarke zogen. Jemand hat ihnen die Herzen genommen. Das Zugseil der Barke führt in eine Höhle.",
-	"Du hast den Sammler besiegt, der die Herzen in Krügen hortete, damit keines mehr gewogen wird. Die Waage geht wieder, die Barke fährt. Und du weißt jetzt, dass du selbst im Herbst gestorben bist.",
-	"Re und Osiris sind einander begegnet, die Sonne ist wieder jung. Vor der Barke liegt die Sandbank des Apophis.",
-	"Apophis ist gebunden, das Wasser ist zurück. Die Barke fährt an den Grüften der Götter vorbei.",
-	"Aus den Grüften antworten wieder die richtigen Stimmen. Aber der Barke fehlt ein Ruderer.",
-	"Zwölf Ruder tauchen wieder ein. Die Barke erreicht das Urwasser, in dem die Ertrunkenen treiben.",
-	"Horus hat die Ertrunkenen ans Ufer gerufen. Vor dem Morgen liegen nur noch die Feuergruben.",
-	"Die Feuergruben sind wieder verschlossen, am Rand des Himmels wird es grau. Eine Stunde bleibt bis zum Morgen."]
+	"Mahaf ist zu Licht zerfallen und brennt jetzt in deiner Laterne. Bevor er verlosch, sagte er, er habe dich heute schon übergesetzt.",
+	"Das Feldtor wurde mit einem Königsring geöffnet, dessen Name herausgekratzt ist. Ein General jagt denselben Mann wie du.",
+	"Der König ohne Namen hat Name und Ring an einen weinenden Richter verkauft. In seinem Sarkophag stand ein leerer Krug. Auf dem Siegel: Nebet.",
+	"Der Türhüter hat deinen Namen auf der Liste der Toten gefunden. Du bist heute Abend gestorben, an Nebets Bett. Hinter dem Tor wartet der Richter mit seinen Krügen.",
+	"Der Sammler ist gefallen, die Waage bewegt sich, und Thot hat dein Herz gewogen. Aber sein Schatten ist fort, mit dem Verzeichnis und mit Nebets Krug.",
+	["Isis hat den Namen des Vogels auf deiner Schulter gesagt: Nebet. Sie ist dir aus dem Fieber nachgeflogen. Du hast sie heimgeschickt, allein, durch sechs Stunden Dunkel.",
+		"Isis hat den Namen des Vogels auf deiner Schulter gesagt: Nebet. Sie ist dir aus dem Fieber nachgeflogen, und sie ist geblieben. Ihr Leib in Sandtor wartet."],
+	"Apophis ist gebunden, das Wasser ist zurück. Der Schatten hat ihm den Weg gezeigt, und er geht der Barke zu Fuß voraus.",
+	"In der stummen Gruft saß dein eigener Ba, ohne Namen. Haremhab ist fort, dem Schatten nach. Er will das Verzeichnis verbrennen, mit allen Namen darin.",
+	"Der zwölfte Ruderer sitzt wieder auf seiner Bank. Er war nur eine Nacht fort und hätte sie beinahe nicht wiedergefunden.",
+	"Horus hat die Ertrunkenen gerufen. Am Ufer trieben angekohlte Seiten voller Namen aus Sandtor.",
+	["Am Rand der Feuergrube hast du Haremhab das Verzeichnis abgenommen. Es liegt in deiner Tasche, schwer wie ein Kind. Eine Stunde bleibt.",
+		"Das Verzeichnis ist in der Feuergrube verbrannt. Tausend Namen sind als Funken aufgestiegen. Eine Stunde bleibt."]]
+
+# Stunden mit zwei Fassungen: welche Entscheidung sie wählt
+const BISHER_WAHL := {7: 6, 12: 11}
 
 const SO_GEHT_ES := "So geht es: Besiege die Gegner dieser Stunde, bis sich ihr Hüter zeigt. Fällt er, öffnet sich die Pforte zur nächsten Stunde. Am Eingang wartet jemand, der dir mehr erzählen kann, und daneben steht die Werkstatt des Ptah für deine Ausrüstung."
 
@@ -112,7 +124,12 @@ static func zieh(key: String) -> String:
 		var k: Array = T[key].duplicate()
 		k.shuffle()
 		stapel[key] = k
-	return stapel[key].pop_back()
+	return Geschichte.fuell(stapel[key].pop_back())
 
 static func bisher(stunde: int) -> String:
-	return BISHER[stunde - 1] if stunde >= 1 and stunde <= BISHER.size() else ""
+	if stunde < 1 or stunde > BISHER.size():
+		return ""
+	var b: Variant = BISHER[stunde - 1]
+	if b is Array:
+		return b[0 if Geschichte.gewaehlt(BISHER_WAHL[stunde]) == "maat" else 1]
+	return b

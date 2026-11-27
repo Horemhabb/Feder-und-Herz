@@ -1,6 +1,8 @@
 class_name Hud extends CanvasLayer
 # Anzeige: Stunde und Fortschritt oben links, Leben, Eidkraft und Fähigkeiten unten,
 # dazu Tafel (Kapitel), Pfortenfenster und das Fenster nach einer Niederlage.
+# Seit 4.3 kommt alles Zierwerk aus dem Gestaltungssystem (scripts/zier.gd): dunkle Tafeln mit Goldfassung für
+# Spielanzeigen und Menüs, Papyrus für Schriftstücke, Knöpfe aus getriebenem Gold, Kartuschen, Zierleisten und Fähnchen.
 
 const PARCH := Color("ece3cb")
 const DIM := Color("a39c8e")
@@ -60,6 +62,7 @@ var champ_t := 0.0
 var l_banner: Label
 var l_banner_small: Label
 var banner_box: Control
+var banner_band: PanelContainer   # Fähnchen hinter der kleinen Zeile des Banners
 var l_fps: Label
 var l_toast: Label
 var overlay: Control       # was gerade über dem Spiel liegt (Tafel, Pforte, Niederlage)
@@ -88,11 +91,9 @@ func _ready() -> void:
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	f_zier = load("res://ui/fonts/almendra_sc.woff")
-	f_text = load("res://ui/fonts/almendra.woff")
-	f_fett = load("res://ui/fonts/almendra_fett.woff")
-	for f in [f_zier, f_text, f_fett]:
-		f.fallbacks = [ThemeDB.fallback_font]
+	f_zier = Zier.schrift("zier")
+	f_text = Zier.schrift("text")
+	f_fett = Zier.schrift("fett")
 	get_tree().node_added.connect(_on_node_added)
 	# Vignette: der Bildrand dunkelt ab, der Blick bleibt bei der Figur
 	var vig := ColorRect.new()
@@ -107,6 +108,7 @@ func _ready() -> void:
 	var th := Theme.new()
 	th.default_font = f_text
 	th.default_font_size = 18
+	Zier.thema(th)   # Bildlaufleisten, Regler, Kästchen, Tooltips und schlichte Knöpfe im Stil des Spiels (4.3)
 	root.theme = th
 	add_child(root)
 	# oben links: Stunde, Name, Fortschritt
@@ -122,11 +124,7 @@ func _ready() -> void:
 	tlp.add_child(tl)
 	tl.add_child(_label(Stunden.case_no(Spiel.fall), 13, GOLD))
 	tl.add_child(_label(game.hdef.name, 24, PARCH))
-	var rule := ColorRect.new()
-	rule.color = Color("7a5a26")
-	rule.custom_minimum_size = Vector2(0, 1)
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tl.add_child(rule)
+	tl.add_child(Zier.leiste(0.0, "lotos", 14.0))
 	quest_box = VBoxContainer.new()
 	quest_box.add_theme_constant_override("separation", 1)
 	quest_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -151,12 +149,8 @@ func _ready() -> void:
 			var b := Button.new()
 			b.text = t[0]
 			b.focus_mode = Control.FOCUS_NONE
-			b.add_theme_font_size_override("font_size", 13)
-			b.custom_minimum_size = Vector2(86, 40)
-			b.add_theme_stylebox_override("normal", _flat(PANEL, 8, Color("5c4a2e"), 1))
-			b.add_theme_stylebox_override("hover", _flat(PANEL, 8, Color("5c4a2e"), 1))
-			b.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, DIM, 1))
-			b.add_theme_color_override("font_color", PARCH)
+			Zier.knopf_stil(b, "zweit", 14)
+			b.custom_minimum_size = Vector2(92, 42)
 			b.pressed.connect(t[1])
 			row.add_child(b)
 			if t[0] == "Tasche":
@@ -190,9 +184,15 @@ func _ready() -> void:
 	banner_box.modulate.a = 0.0
 	banner_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(banner_box)
-	l_banner_small = _label("", 13, GOLD)
+	banner_box.add_theme_constant_override("separation", 4)
+	banner_band = PanelContainer.new()
+	banner_band.add_theme_stylebox_override("panel", Zier.stil("faehnchen"))
+	banner_band.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	banner_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner_box.add_child(banner_band)
+	l_banner_small = _label("", 13, Zier.GOLD_HELL)
 	l_banner_small.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner_box.add_child(l_banner_small)
+	banner_band.add_child(l_banner_small)
 	l_banner = _label("", 26, PARCH)
 	l_banner.add_theme_font_override("font", f_text)   # ganze Sätze: Textschrift statt Zierschrift
 	l_banner.add_theme_font_size_override("font_size", 28)
@@ -201,6 +201,9 @@ func _ready() -> void:
 	l_banner.add_theme_constant_override("outline_size", 6)
 	l_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	banner_box.add_child(l_banner)
+	var bl := Zier.leiste(300.0, "raute", 14.0)
+	bl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	banner_box.add_child(bl)
 	toasts = VBoxContainer.new()
 	toasts.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	toasts.position = Vector2(18, -330)
@@ -215,11 +218,13 @@ func _ready() -> void:
 	l_toast.custom_minimum_size = Vector2(600, 0)
 	l_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l_toast.modulate.a = 0.0
+	l_toast.add_theme_constant_override("outline_size", 6)
+	l_toast.add_theme_color_override("font_outline_color", Color(0.02, 0.01, 0.0, 0.9))
 	root.add_child(l_toast)
 	# unten: Lebenskugel, Fähigkeitenleiste mit Herzwaage und Erfahrung, Kraftkugel
 	var bottom := HBoxContainer.new()
 	bottom.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	bottom.position = Vector2(-460, -188)
+	bottom.position = Vector2(-460, -196)
 	bottom.custom_minimum_size = Vector2(920, 180)
 	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
 	bottom.add_theme_constant_override("separation", 4)
@@ -252,12 +257,9 @@ func _ready() -> void:
 	l_buff.size_flags_vertical = Control.SIZE_SHRINK_END
 	l_buff.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top.add_child(l_buff)
+	# Platte aus dunklem Leder mit Goldkante, an den Enden Papyrusdolden, die zu den Kugeln weisen
 	var bar := PanelContainer.new()
-	var bs := _flat(Color(0.065, 0.055, 0.06, 0.93), 5, Color("7a5a26"), 2)
-	bs.set_content_margin_all(7)
-	bs.shadow_color = Color(0, 0, 0, 0.5)
-	bs.shadow_size = 6
-	bar.add_theme_stylebox_override("panel", bs)
+	bar.add_theme_stylebox_override("panel", Zier.stil("platte"))
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mid.add_child(bar)
 	var slots := HBoxContainer.new()
@@ -275,16 +277,10 @@ func _ready() -> void:
 	# freier Fähigkeitenpunkt: goldener Knopf mitten über der Leiste, pulsiert, öffnet den Baum
 	punkt_btn = Button.new()
 	punkt_btn.focus_mode = Control.FOCUS_NONE
-	punkt_btn.add_theme_font_override("font", f_zier)
-	punkt_btn.add_theme_font_size_override("font_size", 15)
-	punkt_btn.add_theme_stylebox_override("normal", _flat(GOLD, 8, Color("fff0c0"), 2))
-	punkt_btn.add_theme_stylebox_override("hover", _flat(GOLD.lightened(0.15), 8, Color("fff0c0"), 2))
-	punkt_btn.add_theme_stylebox_override("pressed", _flat(GOLD.darkened(0.15), 8, Color("fff0c0"), 2))
-	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
-		punkt_btn.add_theme_color_override(c, Color("14110c"))
+	Zier.knopf_stil(punkt_btn, "haupt", 15)
 	punkt_btn.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	punkt_btn.position = Vector2(-170, -244)
-	punkt_btn.custom_minimum_size = Vector2(340, 40)
+	punkt_btn.custom_minimum_size = Vector2(340, 44)
 	punkt_btn.visible = false
 	punkt_btn.pressed.connect(func(): game.toggle_tree())
 	root.add_child(punkt_btn)
@@ -294,11 +290,7 @@ func _ready() -> void:
 		var ab := Button.new()
 		ab.text = "Ausweichen"
 		ab.focus_mode = Control.FOCUS_NONE
-		ab.add_theme_font_override("font", f_zier)
-		ab.add_theme_font_size_override("font_size", 14)
-		ab.add_theme_stylebox_override("normal", _flat(Color(0.065, 0.055, 0.06, 0.9), 8, Color("7a5a26"), 2))
-		ab.add_theme_stylebox_override("pressed", _flat(Color("211f27"), 8, GOLD, 2))
-		ab.add_theme_color_override("font_color", PARCH)
+		Zier.knopf_stil(ab, "zweit", 15)
 		ab.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		ab.position = Vector2(-150, -96)
 		ab.custom_minimum_size = Vector2(132, 78)
@@ -428,6 +420,42 @@ func _quests() -> void:
 				segen.append("%s %d s" % [g.name, int(game.orte.buffs[id])])
 	l_buff.text = "Segen: " + ", ".join(segen) if not segen.is_empty() else ""
 
+# Symbole aus ui/symbole/ tragen einen eigenen Goldrahmen: nur das Innere zeigen (wie im Fähigkeitenbaum)
+func _ohne_rahmen(t: Texture2D) -> Texture2D:
+	if t == null or not Baum.BaumBild.rahmen_ab(t):
+		return t
+	var a := AtlasTexture.new()
+	a.atlas = t
+	var r := Baum.BaumBild.RAHMEN_RAND * 0.8
+	a.region = Rect2(t.get_size() * r, t.get_size() * (1.0 - 2.0 * r))
+	return a
+
+# Abklingzeit als gezeichneter Bogen: der noch fehlende Teil liegt als dunkler Fächer über dem Zeichen,
+# an seiner Kante läuft ein goldener Bogen im Uhrzeigersinn
+class Abklang extends Control:
+	var wert := 0.0:
+		set(v):
+			if absf(v - wert) > 0.004 or (v <= 0.0) != (wert <= 0.0):
+				wert = v
+				queue_redraw()
+
+	func _draw() -> void:
+		if wert <= 0.0:
+			return
+		var m := size / 2.0
+		var r := size.x * 0.72
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.28))
+		var a0 := -PI / 2.0 + TAU * (1.0 - wert)
+		var pts := PackedVector2Array([m])
+		var n := maxi(3, int(40 * wert))
+		for i in n + 1:
+			var a := a0 + TAU * wert * float(i) / float(n)
+			var q := m + Vector2(cos(a), sin(a)) * r
+			pts.append(Vector2(clampf(q.x, 0.0, size.x), clampf(q.y, 0.0, size.y)))
+		draw_colored_polygon(pts, Color(0.02, 0.015, 0.02, 0.5))
+		draw_arc(m, size.x * 0.43, a0, -PI / 2.0 + TAU, maxi(4, int(48 * wert)), Color(1.0, 0.82, 0.42, 0.95), 3.0, true)
+		draw_circle(m + Vector2(cos(a0), sin(a0)) * size.x * 0.43, 3.5, Color(1.0, 0.92, 0.65))
+
 static var _grau_mat: ShaderMaterial
 static func _grau() -> ShaderMaterial:
 	if _grau_mat == null:
@@ -451,7 +479,7 @@ func _label(t: String, size: int, col: Color) -> Label:
 # Papyrusblatt als Fläche: gekreuzte Fasern, ausgefranster dunkler Rand (ui/papyrus.webp, erzeugt mit tools/papyrus.py)
 func _papyrus(margin := 26) -> StyleBoxTexture:
 	var sb := StyleBoxTexture.new()
-	sb.texture = load("res://ui/papyrus.webp")
+	sb.texture = Zier.papyrus_tex()
 	sb.set_texture_margin_all(40)
 	sb.set_content_margin_all(margin)
 	return sb
@@ -480,6 +508,8 @@ func _ink_color(c: Color) -> Color:
 	return c
 
 func _ink_walk(n: Node, blatt: Node) -> void:
+	if n != blatt and n.has_meta("dunkel"):
+		return   # dunkle Einlage im Stil des Spiels (Zier): bleibt, wie sie ist
 	if n != blatt and (n is PanelContainer or n is Panel):
 		var sb: StyleBox = n.get_theme_stylebox("panel")
 		if sb is StyleBoxFlat and sb.bg_color.a > 0.5 and sb.bg_color.get_luminance() < 0.35:
@@ -515,16 +545,31 @@ func _flat(col: Color, radius := 6, border := Color(0, 0, 0, 0), bw := 0) -> Sty
 		s.corner_detail = 1
 	return s
 
-func _bar(col: Color, h: int) -> ProgressBar:
+func _bar(col: Color, h: int, gefasst := false) -> ProgressBar:
 	var b := ProgressBar.new()
 	b.show_percentage = false
 	b.max_value = 1.0
 	b.step = 0.001
 	b.custom_minimum_size = Vector2(0, h)
-	b.add_theme_stylebox_override("background", _flat(Color(0.03, 0.03, 0.05, 0.85), 4, Color("5c4a2e"), 1))
-	b.add_theme_stylebox_override("fill", _flat(col, 4))
+	var bg := _flat(Color(0.03, 0.025, 0.03, 0.9), 3 if gefasst else 4, Color("b08840") if gefasst else Color("5c4a2e"), 1)
+	if gefasst:
+		bg.set_expand_margin_all(2)
+		bg.border_color = Color("c9a04a")
+		bg.shadow_color = Color(0, 0, 0, 0.6)
+		bg.shadow_size = 3
+	b.add_theme_stylebox_override("background", bg)
+	b.add_theme_stylebox_override("fill", _fuellung(col) if gefasst else _flat(col, 4))
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return b
+
+# Füllung eines Balkens: satte Farbe, oben ein heller Rand wie Licht auf Glas
+func _fuellung(col: Color) -> StyleBoxFlat:
+	var f := _flat(col, 2)
+	f.border_color = col.lightened(0.45)
+	f.border_width_top = 2
+	f.border_width_bottom = 1
+	f.border_color = col.lightened(0.4)
+	return f
 
 func _skill_box(id: String) -> Control:
 	var S: Dictionary = game.hero.SK[id]
@@ -534,7 +579,7 @@ func _skill_box(id: String) -> Control:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var p := Panel.new()
 	p.custom_minimum_size = Vector2(84, 84)
-	p.add_theme_stylebox_override("panel", _flat(Color(0.115, 0.1, 0.095, 1.0), 5, Color("7a5a26"), 2))
+	p.add_theme_stylebox_override("panel", Zier.stil("platz"))
 	p.tooltip_text = "%s: %s" % [S.name, S.txt]
 	p.gui_input.connect(func(ev):
 		# Maus oder Finger. Ein zweiter Finger kommt nur als Berührung an (der erste hält die Figur in Bewegung),
@@ -551,21 +596,27 @@ func _skill_box(id: String) -> Control:
 			game.hero.auto_aim = true
 			game.hero.cast(id))
 	box.add_child(p)
-	# das Zeichen füllt den Platz: goldene Hieroglyphe auf der Steintafel der Klasse (scripts/glyphen.gd)
+	# das Zeichen füllt den Platz: goldene Hieroglyphe auf der Steintafel der Klasse (scripts/glyphen.gd); trägt es
+	# einen eigenen Goldrahmen (ui/symbole/), wird der abgeschnitten, die Fassung des Platzes liegt darüber
 	var ic := TextureRect.new()
-	ic.texture = Klassen.icon(id, 160)
+	ic.texture = _ohne_rahmen(Klassen.icon(id, 160))
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.position = Vector2(2, 2)
-	ic.size = Vector2(80, 80)
+	ic.position = Vector2(5, 5)
+	ic.size = Vector2(74, 74)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(ic)
-	var cdr := ColorRect.new()
-	cdr.color = Color(0, 0, 0, 0.66)
+	var cdr := Abklang.new()
 	cdr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cdr.position = Vector2(2, 2)
-	cdr.size = Vector2(80, 80)
-	cdr.scale.y = 0.0
+	cdr.position = Vector2(5, 5)
+	cdr.size = Vector2(74, 74)
 	p.add_child(cdr)
+	# Fassung über dem Zeichen, innen ein feiner Ring in der Farbe der Klasse
+	var fassung := Control.new()
+	fassung.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fassung.size = Vector2(84, 84)
+	var kfarbe: Color = Color(Spiel.CLS[Spiel.cls].get("col", GOLD), 0.55)
+	fassung.draw.connect(func(): Zier.platz_zeichnen(fassung, Rect2(Vector2.ZERO, fassung.size), kfarbe, true))
+	p.add_child(fassung)
 	var k := _label(Klassen.keys()[slot], 13, PARCH)
 	k.position = Vector2(8, 4)
 	k.add_theme_constant_override("outline_size", 5)
@@ -629,30 +680,30 @@ func _announce_next() -> void:
 		mc.add_child(h)
 		p.add_child(mc)
 		var rand := Panel.new()
-		rand.add_theme_stylebox_override("panel", _flat(Color(0, 0, 0, 0), 6, Color("c9a04a"), 2))
+		rand.add_theme_stylebox_override("panel", Zier.rahmen_stil())
 		rand.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.add_child(rand)
 	else:
-		p.add_theme_stylebox_override("panel", _papyrus(22))
-		papier.append(p)
-		p.custom_minimum_size = Vector2(580, 0)
-		p.position = Vector2(-290, 262)   # unter dem Banner der Stunde, mitten im Blick
+		# dunkle Tafel mit Goldfassung und Flügelsonne: eine Nachricht des Spiels, kein Schriftstück
+		Zier.tafel(p, "dunkel", "sonne", 26.0)
+		p.custom_minimum_size = Vector2(600, 0)
+		p.position = Vector2(-300, 272)   # unter dem Banner der Stunde, mitten im Blick
 		p.add_child(h)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.modulate.a = 0.0
 	if a[0]:
-		var ic := TextureRect.new()
-		ic.texture = a[0]
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.custom_minimum_size = Vector2(88, 88)
-		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		h.add_child(ic)
+		h.add_child(_zeichen_platz(_ohne_rahmen(a[0]), 92.0))
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_theme_constant_override("separation", 3)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
 	v.add_child(_label(a[1], 13, GOLD))
-	v.add_child(_label(a[2], 26, PARCH))
+	v.add_child(_label(a[2], 26, Zier.GOLD_HELL if a[5] == "" else PARCH))
+	if a[5] == "":
+		var zl := Zier.leiste(220.0, "raute", 12.0)
+		zl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		v.add_child(zl)
 	var t := _para(a[3], 14, PARCH)
 	v.add_child(t)
 	if a[5] != "":
@@ -661,13 +712,30 @@ func _announce_next() -> void:
 			l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	root.add_child(p)
 	ann_box = p
+	p.pivot_offset = Vector2(p.custom_minimum_size.x / 2.0, 60)
+	p.scale = Vector2(0.94, 0.94)
 	var tw := create_tween()
 	tw.tween_property(p, "modulate:a", 1.0, 0.35)
+	tw.parallel().tween_property(p, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(a[4])
 	tw.tween_property(p, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(func():
 		p.queue_free()
 		_announce_next())
+
+# ein Zeichen (Fähigkeit, Gegenstand) in einem vertieften Platz mit Goldfassung; farbe: Ring der Seltenheit
+func _zeichen_platz(t: Texture2D, groesse: float, farbe := Color(0, 0, 0, 0)) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(groesse, groesse)
+	c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(func():
+		var r := Rect2(Vector2.ZERO, c.size)
+		Zier.platz_zeichnen(c, r)
+		if t:
+			c.draw_texture_rect(t, r.grow(-groesse * 0.1), false)
+		Zier.platz_zeichnen(c, r, farbe, true))
+	return c
 
 func _process(_d: float) -> void:
 	var _u := Time.get_ticks_usec()
@@ -687,6 +755,7 @@ func mouse_over_ui() -> bool:
 func refresh() -> void:
 	var h: Hero = game.hero
 	orb_hp.value = h.hp / h.max_hp
+	orb_hp.puls = h.hp < h.max_hp * 0.3 and h.hp > 0.0
 	orb_hp.set_text(str(int(ceil(h.hp))))
 	orb_en.value = h.en / 100.0
 	orb_en.set_text(str(int(h.en)))
@@ -709,7 +778,7 @@ func refresh() -> void:
 	for id in h.ORDER:
 		var S: Dictionary = h.SK[id]
 		var u: Dictionary = skill_ui[id]
-		u.cd.scale.y = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
+		u.cd.wert = clampf(h.cd[id] / h.cd_of(id), 0.0, 1.0)
 		if id != "potion" and S.cost > 0:
 			u.sub.text = str(int(round(h.cost_of(id))))
 		var poor: bool = (h.pots <= 0) if id == "potion" else h.en < h.cost_of(id)
@@ -746,21 +815,25 @@ func toggle_fps() -> void:
 # Phase und was gerade zu tun ist. Starke Angriffe werden groß angesagt.
 const ANSAGE := Color(1.0, 0.6, 0.38)
 
-func _dunkel_feld(rand := Color("7a5a26")) -> StyleBoxFlat:
-	var s := _flat(Color(0.05, 0.04, 0.045, 0.88), 6, rand, 2)
-	s.set_content_margin_all(10)
-	s.content_margin_top = 6
-	s.content_margin_bottom = 6
-	s.shadow_color = Color(0, 0, 0, 0.5)
-	s.shadow_size = 6
+# schlanke dunkle Tafel mit feiner Goldlinie (Zier „klein“), für Hüter-Leiste, Champion-Schild und Auftritt
+func _dunkel_feld() -> StyleBox:
+	var s: StyleBox = Zier.stil("klein", 12.0).duplicate()
+	s.content_margin_left = 16
+	s.content_margin_right = 16
+	s.content_margin_top = 10
+	s.content_margin_bottom = 9
 	return s
 
 func _hueter_leiste() -> void:
 	var p := PanelContainer.new()
 	p.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	p.position = Vector2(-290, 14)
-	p.custom_minimum_size = Vector2(580, 0)
+	# Platz für die Flügelsonne darüber; am Handy schmaler, damit sie nicht an die Aufgaben stößt
+	var bw := 520.0 if game.touch else 600.0
+	p.position = Vector2(-bw / 2.0, 34)
+	p.custom_minimum_size = Vector2(bw, 0)
 	p.add_theme_stylebox_override("panel", _dunkel_feld())
+	p.set_meta("dunkel", true)
+	p.draw.connect(func(): _krone(p, "fluegelsonne", 0.9))
 	p.visible = false
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(p)
@@ -770,7 +843,7 @@ func _hueter_leiste() -> void:
 	aussen.add_theme_constant_override("separation", 10)
 	aussen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(aussen)
-	boss_bild_rahmen = _bild_rahmen(Vector2(56, 72), 2)
+	boss_bild_rahmen = _bild_rahmen(Vector2(56, 72), 2, "")
 	boss_bild = boss_bild_rahmen.get_child(0)
 	boss_bild_rahmen.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	boss_bild_rahmen.visible = false
@@ -794,7 +867,7 @@ func _hueter_leiste() -> void:
 	namen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	namen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	kopf.add_child(namen)
-	l_boss = _label("", 24, PARCH)
+	l_boss = _label("", 24, Zier.GOLD_HELL)
 	l_boss.add_theme_constant_override("outline_size", 4)
 	l_boss.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	namen.add_child(l_boss)
@@ -804,7 +877,7 @@ func _hueter_leiste() -> void:
 	balken.custom_minimum_size = Vector2(0, 16)
 	balken.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(balken)
-	bar_boss = _bar(Color("c06be0"), 16)
+	bar_boss = _bar(Color("c06be0"), 16, true)
 	bar_boss.set_anchors_preset(Control.PRESET_FULL_RECT)
 	balken.add_child(bar_boss)
 	boss_marken = Control.new()
@@ -828,7 +901,7 @@ func _hueter_leiste() -> void:
 	l_ansage.add_theme_constant_override("outline_size", 8)
 	l_ansage.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	l_ansage.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	l_ansage.position = Vector2(-360, 130)   # unter der Leiste, über dem Banner
+	l_ansage.position = Vector2(-360, 150)   # unter der Leiste, über dem Banner
 	l_ansage.custom_minimum_size = Vector2(720, 0)
 	l_ansage.modulate.a = 0.0
 	root.add_child(l_ansage)
@@ -842,8 +915,7 @@ func boss_show(b: Foe) -> void:
 	boss_art = b.kampf.art if b.kampf else "tuer"
 	boss_ph = M.get("phasen", [])
 	var col: Color = b.K.get("bcol", Color("c06be0"))
-	bar_boss.add_theme_stylebox_override("fill", _flat(Color.from_hsv(col.h, maxf(col.s, 0.6), 0.72), 4))
-	boss_box.get_theme_stylebox("panel").border_color = col.lerp(Color("7a5a26"), 0.5)
+	bar_boss.add_theme_stylebox_override("fill", _fuellung(Color.from_hsv(col.h, maxf(col.s, 0.6), 0.72)))
 	# Bild des Hüters (BILDWERK Stufe 10): klein in der Leiste statt des gezeichneten Zeichens, beim ersten Erscheinen groß
 	var pfad := Stunden.hueter_bild(b.hour.get("boss", {}))
 	boss_bild_rahmen.visible = pfad != ""
@@ -866,20 +938,16 @@ func boss_hide() -> void:
 		auftritt.queue_free()
 	auftritt = null
 
-# Bild in dünnem Goldrahmen (Hüter-Leiste, Auftritt)
-func _bild_rahmen(groesse: Vector2, rand: int) -> PanelContainer:
-	var frame := PanelContainer.new()
-	var fs := _flat(Color(0, 0, 0, 0.7), 4, Color("c9a04a"), rand)
-	fs.set_content_margin_all(rand + 1)
-	frame.add_theme_stylebox_override("panel", fs)
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var pic := TextureRect.new()
-	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	pic.custom_minimum_size = groesse
-	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_child(pic)
-	return frame
+# Bild in Goldrahmen mit Bekrönung (Hüter-Leiste, Auftritt); Kind 0 ist das Bild
+func _bild_rahmen(groesse: Vector2, _rand: int, krone := "udjat") -> PanelContainer:
+	return Zier.bildrahmen(null, groesse, krone)
+
+# Bekrönung oben in der Mitte einer Fläche (Flügelsonne, Udjat …), halb über der Kante
+func _krone(c: Control, name: String, s := 1.0) -> void:
+	var t := Zier.tex(name)
+	if t:
+		var gr := t.get_size() * s
+		c.draw_texture_rect(t, Rect2(Vector2((c.size.x - gr.x) / 2.0, -gr.y * 0.55), gr), false)
 
 # Auftritt des Hüters: das Bild steht gut zwei Sekunden groß am rechten Rand (unter der Karte; links liegen die Aufgaben),
 # mit Name und Beiname, und blendet wieder aus. Es hält nichts an und liegt neben der Mitte, wo Held und Hüter stehen;
@@ -888,20 +956,22 @@ func _hueter_auftritt(tex: Texture2D, name: String, bei: String, stunde: int) ->
 	if is_instance_valid(auftritt):
 		auftritt.queue_free()
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _dunkel_feld(Color("c9a04a")))
+	p.add_theme_stylebox_override("panel", _dunkel_feld())
+	p.set_meta("dunkel", true)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	p.modulate.a = 0.0
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 2)
+	v.add_theme_constant_override("separation", 4)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
 	# unter der Karte; auf dem Handy kleiner (die Oberfläche ist dort anderthalbmal so groß, unten rechts liegt „Ausweichen“)
 	var bw := 110.0 if game.touch else 230.0
 	p.custom_minimum_size = Vector2(bw + 20.0, 0)
 	p.position = Vector2(-28, 218 if game.touch else 250)   # rechte Kante; die Breite wächst nach links
-	var rahmen := _bild_rahmen(Vector2(bw, bw * 720.0 / 560.0), 2)
+	var rahmen := _bild_rahmen(Vector2(bw, bw * 720.0 / 560.0), 2, "")
+	rahmen.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	(rahmen.get_child(0) as TextureRect).texture = tex
 	v.add_child(rahmen)
 	if not game.touch:   # auf dem Handy reicht der Name, sonst stieße das Bild an die Kugel unten rechts
@@ -910,7 +980,7 @@ func _hueter_auftritt(tex: Texture2D, name: String, bei: String, stunde: int) ->
 		stamp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		stamp.custom_minimum_size = Vector2(bw, 0)
 		v.add_child(stamp)
-	var nm := _label(name, 16 if game.touch else 22, PARCH)
+	var nm := _label(name, 16 if game.touch else 22, Zier.GOLD_HELL)
 	nm.add_theme_font_override("font", f_fett)
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -990,6 +1060,10 @@ func _hueter_leiste_tick() -> void:
 
 func _marken_zeichnen() -> void:
 	var sz := boss_marken.size
+	for x in [0.0, sz.x]:
+		var m := Vector2(x, sz.y / 2.0)
+		boss_marken.draw_colored_polygon(PackedVector2Array([m + Vector2(0, -9), m + Vector2(7, 0), m + Vector2(0, 9), m + Vector2(-7, 0)]), Color("d9a94e"))
+		boss_marken.draw_colored_polygon(PackedVector2Array([m + Vector2(0, -4), m + Vector2(3, 0), m + Vector2(0, 4), m + Vector2(-3, 0)]), Color(0.2, 0.12, 0.05))
 	var ph: int = boss_marken.get_meta("ph", 1)
 	for i in boss_ph.size():
 		var x: float = sz.x * float(boss_ph[i])
@@ -1036,9 +1110,11 @@ func _gestalt_zeichnen(c: Control, art: String) -> void:
 func _champion_schild() -> void:
 	champ_box = PanelContainer.new()
 	champ_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	champ_box.position = Vector2(-230, 14)
-	champ_box.custom_minimum_size = Vector2(460, 0)
+	var cw := 440.0 if game.touch else 480.0
+	champ_box.position = Vector2(-cw / 2.0, 22)
+	champ_box.custom_minimum_size = Vector2(cw, 0)
 	champ_box.add_theme_stylebox_override("panel", _dunkel_feld())
+	champ_box.set_meta("dunkel", true)
 	champ_box.visible = false
 	champ_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(champ_box)
@@ -1051,7 +1127,7 @@ func _champion_schild() -> void:
 	champ_name.add_theme_font_override("font", f_fett)
 	champ_name.add_theme_font_size_override("font_size", 21)
 	v.add_child(champ_name)
-	champ_bar = _bar(Color(0.85, 0.62, 0.22), 10)
+	champ_bar = _bar(Color(0.85, 0.62, 0.22), 10, true)
 	v.add_child(champ_bar)
 	champ_reihe = HBoxContainer.new()
 	champ_reihe.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1106,8 +1182,7 @@ func _champion_fuellen(f: Foe) -> void:
 	if grund != "":
 		champ_reihe.add_child(_label(grund, 13, DIM))
 	var col := Affixe.farbe(f)
-	champ_box.get_theme_stylebox("panel").border_color = col.lerp(Color("7a5a26"), 0.45)
-	champ_bar.add_theme_stylebox_override("fill", _flat(col.lerp(Color(0.85, 0.62, 0.22), 0.5), 4))
+	champ_bar.add_theme_stylebox_override("fill", _fuellung(col.lerp(Color(0.85, 0.62, 0.22), 0.5)))
 
 # Zeichen der Eigenschaften: wenige Striche in ihrer Farbe auf dunklem Grund
 func _affix_zeichnen(c: Control, id: String) -> void:
@@ -1153,6 +1228,7 @@ func _affix_zeichnen(c: Control, id: String) -> void:
 func banner(text: String, small := "", secs := 3.5) -> void:
 	l_banner.text = text
 	l_banner_small.text = small
+	banner_band.visible = small != ""
 	if banner_tw:
 		banner_tw.kill()
 	banner_tw = create_tween()
@@ -1163,22 +1239,22 @@ func banner(text: String, small := "", secs := 3.5) -> void:
 # Fundmeldung mit Symbol (höchstens fünf, ältere fallen heraus)
 func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) -> void:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _flat(Color(0.067, 0.063, 0.086, 0.92), 8, Color("5c4a2e"), 1))
+	var st: StyleBox = Zier.stil("klein", 8.0).duplicate()
+	st.content_margin_left = 10
+	st.content_margin_right = 12
+	p.add_theme_stylebox_override("panel", st)
+	p.set_meta("dunkel", true)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
+	h.add_theme_constant_override("separation", 9)
 	p.add_child(h)
-	var bar := ColorRect.new()
-	bar.color = col
-	bar.custom_minimum_size = Vector2(3, 0)
-	h.add_child(bar)
 	if icon >= 0:
-		var tr := TextureRect.new()
-		tr.texture = Daten.icon(icon)
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.custom_minimum_size = Vector2(36, 36)
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		h.add_child(tr)
+		h.add_child(_zeichen_platz(Daten.icon(icon), 44.0, Color(col, 0.85)))
+	else:
+		var bar := ColorRect.new()
+		bar.color = col
+		bar.custom_minimum_size = Vector2(3, 0)
+		h.add_child(bar)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1196,7 +1272,12 @@ func toast_item(icon: int, title: String, sub: String, col: Color, secs := 4.0) 
 		var o := toasts.get_child(0)
 		toasts.remove_child(o)
 		o.queue_free()
+	# weich einblenden; seltene Funde (lange Anzeige) glänzen kurz golden auf
+	p.modulate.a = 0.0
 	var tw := p.create_tween()
+	tw.tween_property(p, "modulate:a", 1.0, 0.2)
+	if secs >= 6.0:
+		tw.tween_callback(func(): Zier.glanz(p, 0.5))
 	tw.tween_interval(secs)
 	tw.tween_property(p, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(p.queue_free)
@@ -1224,55 +1305,96 @@ func whisper(text: String) -> void:
 func show_dialog(stamp: String, title: String, sub: String, paras: Array, opts: Array, bild := "", hinter := "") -> void:
 	var path := "res://ui/portraits/%s.webp" % bild
 	var has_pic := bild != "" and ResourceLoader.exists(path)
-	var v := _sheet(0.5, 860 if has_pic and not game.touch else 680, false, hinter)
+	# wie in den großen Rollenspielen: links das Porträt in einem Goldrahmen mit dem Auge des Horus, rechts Rubrik,
+	# Name, eine Zierleiste, der Text und darunter die Antworten als beschriftete Zeilen mit Nummer
+	var v := _sheet(0.55, 920 if has_pic and not game.touch else 700, false, hinter, "papyrus", "" if has_pic else "lotos")
 	if has_pic:
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 18)
-		var frame := PanelContainer.new()
-		var fs := _flat(Color(0, 0, 0, 0.6), 6, Color("c9a04a"), 2)
-		fs.set_content_margin_all(3)
-		frame.add_theme_stylebox_override("panel", fs)
+		row.add_theme_constant_override("separation", 26)
+		var frame := Zier.bildrahmen(load(path), Vector2(156, 208) if game.touch else Vector2(222, 296), "udjat")
 		frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		var pic := TextureRect.new()
-		pic.texture = load(path)
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		pic.custom_minimum_size = Vector2(150, 200) if game.touch else Vector2(192, 256)
-		frame.add_child(pic)
-		row.add_child(frame)
+		var fm := MarginContainer.new()
+		fm.add_theme_constant_override("margin_top", 26)   # Platz für das Udjat über dem Rahmen
+		fm.add_theme_constant_override("margin_left", 4)
+		fm.add_child(frame)
+		row.add_child(fm)
 		var right := VBoxContainer.new()
 		right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		right.add_theme_constant_override("separation", 14)
+		right.add_theme_constant_override("separation", 12)
 		row.add_child(right)
 		v.add_child(row)
 		v = right
-	v.add_child(_para(stamp, 13, GOLD))
+	if stamp != "":
+		v.add_child(_para(stamp, 13, GOLD))
 	v.add_child(_para(title, 28, PARCH))
+	var zl := Zier.leiste(0.0, "lotos", 16.0)
+	v.add_child(zl)
 	if sub != "":
 		v.add_child(_para(sub, 14, DIM))
 	for p in paras:
 		if p != "":
-			v.add_child(_para(p, 16, PARCH))
+			v.add_child(_para(p, 17, PARCH))
 	_fussnoten(v, [title, sub] + paras, 2)
 	var cbs := []
 	var i := 0
+	var liste := VBoxContainer.new()
+	liste.add_theme_constant_override("separation", 2)
+	if opts.size() > 1:
+		v.add_child(liste)
 	for o in opts:
 		i += 1
 		var cb: Callable = o[1]
-		var b := _button(("  %d    %s  " % [i, o[0]]) if not game.touch and opts.size() > 1 else "  %s  " % o[0], opts.size() == 1, cb)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_override("font", f_text)
-		b.add_theme_font_size_override("font_size", 18)
-		v.add_child(b)
-		cbs.append(cb)
 		if opts.size() == 1:
+			var b := _button("  %s  " % o[0], true, cb)
+			b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			v.add_child(b)
 			primary = cb
 			primary_btn = b
 			b.grab_focus()
+		else:
+			liste.add_child(_antwort(i, o[0], cb))
+		cbs.append(cb)
 	if opts.size() > 1:
 		secondary = cbs[-1]
 	dialog_opts = cbs
 	_pass_all(v)
+
+# eine Antwort im Gespräch: Zeile in Tinte, links eine goldene Marke mit der Taste (am Handy eine Raute); beim
+# Darüberfahren ein warmer Streifen und rote Schrift wie eine Rubrik
+func _antwort(nr: int, text: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.custom_minimum_size = Vector2(0, 46)
+	Zier.knopf_stil(b, "tinte")
+	b.add_theme_font_override("font", f_text)
+	b.add_theme_font_size_override("font_size", 19)
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		var sb: StyleBox = b.get_theme_stylebox(st).duplicate()
+		sb.content_margin_left = 50
+		b.add_theme_stylebox_override(st, sb)
+	b.draw.connect(func():
+		var m := Vector2(24, b.size.y / 2.0)
+		var heiss := b.is_hovered() or b.button_pressed
+		if game.touch:
+			b.draw_colored_polygon(PackedVector2Array([m + Vector2(0, -8), m + Vector2(8, 0), m + Vector2(0, 8), m + Vector2(-8, 0)]), Color("b8862e"))
+		else:
+			b.draw_circle(m, 13.0, Color("8a6424"))
+			b.draw_circle(m, 11.5, Color("e0b257") if heiss else Color("c9993f"))
+			b.draw_arc(m, 11.5, PI * 1.05, PI * 1.6, 8, Color(1, 0.95, 0.75, 0.8), 1.5, true)
+			var t := str(nr)
+			var fs := 16
+			var w := f_fett.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			b.draw_string(f_fett, m + Vector2(-w / 2.0, 6), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("2a1606")))
+	b.mouse_entered.connect(b.queue_redraw)
+	b.mouse_exited.connect(b.queue_redraw)
+	b.pressed.connect(func():
+		game.sfx.play("ui")
+		var f := cb
+		_close()
+		f.call())
+	return b
 
 func press_option(i: int) -> bool:
 	if i < 0 or i >= dialog_opts.size():
@@ -1297,25 +1419,12 @@ func _close() -> void:
 	secondary = Callable()
 	primary_btn = null
 
+# Knopf eines Fensters: „haupt“ getriebenes Gold, sonst dunkles Leder mit Goldkante (Zier)
 func _button(text: String, main: bool, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.add_theme_font_override("font", f_zier)
-	b.add_theme_font_size_override("font_size", 17)
-	b.custom_minimum_size = Vector2(0, 46)
-	if main:
-		b.add_theme_stylebox_override("normal", _flat(GOLD, 8))
-		b.add_theme_stylebox_override("hover", _flat(GOLD.lightened(0.15), 8))
-		b.add_theme_stylebox_override("pressed", _flat(GOLD.darkened(0.15), 8))
-		b.add_theme_stylebox_override("disabled", _flat(Color(GOLD, 0.3), 8))
-		b.add_theme_stylebox_override("focus", _flat(Color(0, 0, 0, 0), 8, PARCH, 2))
-		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
-			b.add_theme_color_override(c, Color("14110c"))
-	else:
-		b.add_theme_stylebox_override("normal", _flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
-		b.add_theme_stylebox_override("hover", _flat(Color(1, 1, 1, 0.06), 8, DIM, 1))
-		b.add_theme_color_override("font_color", PARCH)
-	var m := MarginContainer.new()
+	b.custom_minimum_size = Vector2(0, 48)
+	Zier.knopf_stil(b, "haupt" if main else "zweit", 17)
 	b.pressed.connect(func():
 		game.sfx.play("ui")
 		var f := cb
@@ -1355,12 +1464,33 @@ func _hintergrund(c: Control, pfad: String, oben: float, unten: float, im_contai
 	c.add_child(schleier)
 
 # hinter: Pfad eines Bildes, das die ganze Fläche hinter dem Blatt füllt (Akttafeln); titel: das Titelbild mit Fassung
-func _sheet(dim: float, width: float, titel := false, hinter := "") -> VBoxContainer:
+# art: "papyrus" (Schriftstück) oder "dunkel" (Leder mit Goldfassung); krone: Bekrönung über dem Blatt
+# ("sonne", "udjat", "lotos"); anim: das Fenster entfaltet sich (nicht beim Neuzeichnen desselben Fensters)
+func _sheet(dim: float, width: float, titel := false, hinter := "", art := "papyrus", krone := "", anim := true) -> VBoxContainer:
 	_close()
 	overlay = ColorRect.new()
 	overlay.color = Color(0.02, 0.02, 0.04, dim)
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(overlay)
+	if not titel and hinter == "":
+		# zum Rand hin dunkler: der Blick bleibt beim Fenster
+		var vg := Gradient.new()
+		vg.set_color(0, Color(0, 0, 0, 0))
+		vg.set_color(1, Color(0.01, 0.005, 0.02, 0.55))
+		var vt := GradientTexture2D.new()
+		vt.gradient = vg
+		vt.fill = GradientTexture2D.FILL_RADIAL
+		vt.fill_from = Vector2(0.5, 0.5)
+		vt.fill_to = Vector2(1.05, 1.05)
+		vt.width = 128
+		vt.height = 128
+		var vr := TextureRect.new()
+		vr.texture = vt
+		vr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		vr.stretch_mode = TextureRect.STRETCH_SCALE
+		vr.set_anchors_preset(Control.PRESET_FULL_RECT)
+		vr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.add_child(vr)
 	if titel:
 		# Titelbild der Nebelmark (X01: Sandtor bei Nacht) hinter einem Verlauf von halb zu fast ganz dunkel, wie in der 2D-Fassung
 		_hintergrund(overlay, "res://ui/titel.webp", 0.5, 0.86)
@@ -1384,6 +1514,8 @@ func _sheet(dim: float, width: float, titel := false, hinter := "") -> VBoxConta
 	mc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]:
 		mc.add_theme_constant_override("margin_" + side, 16)
+	if krone != "":
+		mc.add_theme_constant_override("margin_top", 40)   # die Bekrönung ragt über das Blatt
 	sc.add_child(mc)
 	var center := CenterContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1391,18 +1523,47 @@ func _sheet(dim: float, width: float, titel := false, hinter := "") -> VBoxConta
 	mc.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(minf(width, get_viewport().get_visible_rect().size.x - 32.0), 0)
-	panel.add_theme_stylebox_override("panel", _papyrus(14))
-	papier.append(panel)
+	var innen := 24
+	if art == "papyrus":
+		panel.add_theme_stylebox_override("panel", _papyrus(14))
+		papier.append(panel)
+		if krone != "":
+			var kname: String = {"sonne": "fluegelsonne"}.get(krone, krone)
+			panel.draw.connect(func(): _krone(panel, kname, 1.2 if krone == "sonne" else 0.9))
+	else:
+		Zier.tafel(panel, "dunkel", krone, 26.0 if game.touch else 34.0)
+		innen = 4 if game.touch else 10
 	center.add_child(panel)
+	blatt = panel
 	var m := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 24)
+		m.add_theme_constant_override("margin_" + s, innen)
 	panel.add_child(m)
+	if anim:
+		Zier.entfalten(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	m.add_child(v)
 	_pass_all.call_deferred(overlay)
 	return v
+
+# Kopf eines dunklen Fensters: Titel in Gold, rechts ein Knopf (Schließen), darunter eine Zierleiste
+func fenster_kopf(v: Control, titel: String, knopf_text := "", cb := Callable()) -> void:
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 12)
+	var t := _label(titel, 28, Zier.GOLD_HELL)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t.add_theme_constant_override("outline_size", 3)
+	t.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	top.add_child(t)
+	if knopf_text != "":
+		var b := Zier.knopf(knopf_text, "zweit", func():
+			game.sfx.play("ui")
+			cb.call())
+		b.custom_minimum_size = Vector2(0, 44)
+		top.add_child(b)
+	v.add_child(top)
+	v.add_child(Zier.leiste(0.0, "sonne", 22.0))
 
 # Fenster rollen per Finger nur, wenn die Berührung beim Rollbereich ankommt: alle Flächen darin reichen sie weiter
 # (Knöpfe lösen trotzdem aus). Die Abdeckung selbst bleibt dicht, damit nichts ins Spiel durchgeht.
@@ -1449,9 +1610,13 @@ func erklaere(text: String) -> void:
 		toast("%s: %s" % [e.name, e.txt], 9.0, TEAL))
 
 func show_chapter(no: String, name: String, lead: String, brief: String, btn: String, cb: Callable, hinter := "") -> void:
-	var v := _sheet(1.0, 720, false, hinter)
+	# Kapiteltafel: ein Blatt Papyrus unter der Flügelsonne, die Stunde als Rubrik, der Name groß, darunter eine Zierleiste
+	var v := _sheet(1.0, 740, false, hinter, "papyrus", "sonne")
 	v.add_child(_para(no, 14, GOLD, true))
 	v.add_child(_para(name, 46, PARCH, true))
+	var zl := Zier.leiste(380.0, "lotos", 18.0)
+	zl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(zl)
 	# Rückblick: was in der Stunde davor geschah (ab der zweiten Stunde der ersten Nacht)
 	var bisher := Worte.bisher(Stunden.hour_of(Spiel.fall)) if Stunden.night_of(Spiel.fall) == 1 else ""
 	if bisher != "":
@@ -1484,29 +1649,38 @@ func show_chapter(no: String, name: String, lead: String, brief: String, btn: St
 			b.grab_focus())
 
 func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no: String, next_name: String, next_lead: String, go: Callable, stay: Callable, hinter := "") -> void:
-	var v := _sheet(0.8, 560, false, hinter)
-	v.add_child(_para(stamp, 13, GOLD))
-	v.add_child(_para(title, 28, PARCH))
-	v.add_child(_para(epi, 16, PARCH))
+	# Pforte: dunkle Tafel unter der Flügelsonne; die Stunde ist vollbracht, darunter, was vor dir liegt
+	var v := _sheet(0.8, 620, false, hinter, "dunkel", "sonne")
+	v.add_child(_para(stamp, 13, GOLD, true))
+	v.add_child(_para(title, 30, Zier.GOLD_HELL, true))
+	v.add_child(Zier.leiste(0.0, "lotos", 16.0))
+	v.add_child(_para(epi, 16, PARCH, true))
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 10)
 	for s in stats:
 		var p := PanelContainer.new()
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("5c4a2e"), 1))
+		Zier.tafel(p, "klein", "", 10.0)
 		var pv := VBoxContainer.new()
-		pv.add_child(_label("  " + s[0], 20, PARCH))
-		pv.add_child(_label("  " + s[1].to_upper(), 11, DIM))
+		pv.add_theme_constant_override("separation", 0)
+		var zahl := _label(s[0], 22, Zier.GOLD_HELL)
+		zahl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pv.add_child(zahl)
+		var was := _label(s[1].to_upper(), 11, DIM)
+		was.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pv.add_child(was)
 		p.add_child(pv)
 		row.add_child(p)
 	v.add_child(row)
+	v.add_child(Zier.leiste(0.0, "raute", 12.0))
 	v.add_child(_para(next_no, 12, TEAL))
-	v.add_child(_para(next_name, 20, PARCH))
+	v.add_child(_para(next_name, 22, PARCH))
 	v.add_child(_para(next_lead, 14, DIM))
 	_fussnoten(v, [epi], 2)
 	v.add_child(_para("Die Pforte bleibt offen, solange du willst.", 13, DIM))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
+	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	primary_btn = _button(_taste("  Durch die Pforte gehen  [E]  "), true, go)
 	btns.add_child(primary_btn)
 	btns.add_child(_button(_taste("  Noch bleiben  [Esc]  "), false, stay))
@@ -1518,20 +1692,16 @@ func show_gate(stamp: String, title: String, epi: String, stats: Array, next_no:
 # Große Karte der Stunde (3.4): dieselbe Karte wie oben rechts, groß, mit Legende
 func show_karte() -> void:
 	var vs := get_viewport().get_visible_rect().size
-	var v := _sheet(0.86, minf(1100.0, vs.x - 32.0))
+	var v := _sheet(0.86, minf(1100.0, vs.x - 32.0), false, "", "dunkel")
 	karte_open = true
-	var kopf := HBoxContainer.new()
-	var t := _label("Karte · " + Stunden.hour_txt(Spiel.fall), 24, PARCH)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	kopf.add_child(t)
-	kopf.add_child(_button(_taste("  Schließen  [Tab]  "), false, func(): close_bag()))
-	v.add_child(kopf)
+	v.add_theme_constant_override("separation", 10)
+	fenster_kopf(v, "Karte · " + Stunden.hour_txt(Spiel.fall), _taste("  Schließen  [Tab]  "), func(): close_bag())
 	var k := KarteAnzeige.new()
 	k.gross = true
 	k.setup(game, game.karte)
 	k.seen = game.karte_ui.seen   # was die Figur schon gesehen hat, ist auch groß aufgedeckt
 	var breite := minf(1100.0, vs.x - 32.0) - 48.0
-	var hoehe := minf(breite * float(Karte.GH) / float(Karte.GW), vs.y - 240.0)
+	var hoehe := minf(breite * float(Karte.GH) / float(Karte.GW), vs.y - (215.0 if game.touch else 280.0))
 	k.custom_minimum_size = Vector2(hoehe * float(Karte.GW) / float(Karte.GH), hoehe)
 	k.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(k)
@@ -1541,14 +1711,15 @@ func show_karte() -> void:
 			["■", Color(0.95, 0.75, 0.4), "Werkstatt des Ptah"], ["●", Color(0.95, 0.82, 0.29), "Rudel"], ["◆", Color(1.0, 0.85, 0.4), "Fundstück der Stunde"],
 			["○", Color(0.56, 0.89, 0.88), "Pforte"], ["▲", Color(1.0, 0.97, 0.88), "du"]]:
 		var h := HBoxContainer.new()
-		h.add_child(_label(e[0], 14, e[1]))
-		h.add_child(_label(e[2], 12, DIM))
+		h.add_theme_constant_override("separation", 6)
+		h.add_child(_label(e[0], 15, e[1]))
+		h.add_child(_label(e[2], 13, PARCH))
 		leg.add_child(h)
 	v.add_child(leg)
 	secondary = func(): get_tree().paused = false
 
 func show_bag() -> void:
-	var v := _sheet(0.86, 880)
+	var v := _sheet(0.86, 940, false, "", "dunkel")
 	bag_open = true
 	var t := Tasche.new()
 	t.hud = self
@@ -1559,7 +1730,7 @@ func show_bag() -> void:
 
 # Spielmenü: hält das Spiel an (Esc)
 func show_menu() -> void:
-	var v := _sheet(0.82, 640)
+	var v := _sheet(0.82, 660, false, "", "dunkel", "sonne")
 	menu_open = true
 	menue = Menue.new()
 	menue.hud = self
@@ -1568,7 +1739,7 @@ func show_menu() -> void:
 
 # Werkstatt des Ptah: dasselbe Fenster wie die Tasche, aber mit Aufwerten, Neu-Fassen und der Fundkiste
 func show_werkstatt() -> void:
-	var v := _sheet(0.86, 880)
+	var v := _sheet(0.86, 940, false, "", "dunkel")
 	bag_open = true
 	var t := Tasche.new()
 	t.hud = self
@@ -1578,7 +1749,7 @@ func show_werkstatt() -> void:
 	secondary = func(): get_tree().paused = false
 
 func show_tree() -> void:
-	var v := _sheet(0.86, 1180)
+	var v := _sheet(0.86, 1200, false, "", "dunkel")
 	tree_open = true
 	var t := Baum.new()
 	t.hud = self
@@ -1592,11 +1763,13 @@ func close_bag() -> void:
 	get_tree().paused = false
 
 func show_dead(text: String, cb: Callable, btn := "Zurück in die Stunde") -> void:
-	var v := _sheet(0.8, 560)
-	v.add_child(_para("IN DER DUAT", 13, GOLD))
-	v.add_child(_para("Du wurdest überwältigt.", 28, PARCH))
-	v.add_child(_para(text + ("" if Spiel.hc else " Deine Kraft kehrt zurück."), 16, PARCH))
+	var v := _sheet(0.8, 580, false, "", "dunkel", "udjat")
+	v.add_child(_para("IN DER DUAT", 13, GOLD, true))
+	v.add_child(_para("Du wurdest überwältigt.", 30, Color("e8a08a"), true))
+	v.add_child(Zier.leiste(0.0, "raute", 14.0))
+	v.add_child(_para(text + ("" if Spiel.hc else " Deine Kraft kehrt zurück."), 16, PARCH, true))
 	var btns := HBoxContainer.new()
+	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	primary_btn = _button(_taste("  %s  [E]  " % btn), true, cb)
 	btns.add_child(primary_btn)
 	v.add_child(btns)
@@ -1623,6 +1796,7 @@ func leiste_skalieren() -> void:
 	punkt_btn.position.y = -188.0 * s - 56.0
 
 var baum_ui: Baum
+var blatt: PanelContainer   # das Blatt des offenen Fensters (Papyrus oder dunkle Tafel)
 
 # Gamepad in Fenstern (4.0): A bestätigt bzw. wählt die erste Antwort, X und Y die zweite und dritte, B schließt.
 # Im Baum wählt das Steuerkreuz links/rechts einen Knoten, A lernt ihn.
@@ -1710,36 +1884,35 @@ func _input(ev: InputEvent) -> void:
 
 # Fund aus einer Truhe (07-ui.js › showChest): „Alles nehmen“ (E) oder „Liegen lassen“ (Esc)
 func show_chest(stamp: String, title: String, lines: Array, note: String, take: Callable, leave: Callable) -> void:
-	var v := _sheet(0.8, 500)
-	v.add_child(_para(stamp, 13, GOLD))
-	v.add_child(_para(title, 26, PARCH))
+	# Fund: dunkle Tafel, je Teil eine schlanke Zeile mit gefasstem Zeichen im Ring seiner Seltenheit
+	var v := _sheet(0.8, 540, false, "", "dunkel", "skarabaeus")
+	v.add_child(_para(stamp, 13, GOLD, true))
+	v.add_child(_para(title, 28, Zier.GOLD_HELL, true))
+	v.add_child(Zier.leiste(0.0, "lotos", 16.0))
 	for ln in lines:
 		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", _flat(Color("211f27"), 8, Color("5c4a2e"), 1))
+		var st: StyleBox = Zier.stil("klein", 7.0).duplicate()
+		st.content_margin_left = 9
+		p.add_theme_stylebox_override("panel", st)
+		p.set_meta("dunkel", true)
 		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 10)
+		h.add_theme_constant_override("separation", 12)
 		p.add_child(h)
-		var bar := ColorRect.new()
-		bar.color = ln[3]
-		bar.custom_minimum_size = Vector2(3, 0)
-		h.add_child(bar)
-		var tr := TextureRect.new()
-		tr.texture = Daten.icon(ln[0])
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.custom_minimum_size = Vector2(44, 44)
-		h.add_child(tr)
+		h.add_child(_zeichen_platz(Daten.icon(ln[0]), 52.0, Color(ln[3], 0.9)))
 		var tv := VBoxContainer.new()
 		tv.add_theme_constant_override("separation", 0)
 		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tv.add_child(_label(ln[1], 16, ln[3]))
+		tv.alignment = BoxContainer.ALIGNMENT_CENTER
+		tv.add_child(_label(ln[1], 17, ln[3]))
 		if ln[2] != "":
 			tv.add_child(_label(ln[2], 11, Color("7ad08a") if String(ln[2]).contains("▲") else DIM))
 		h.add_child(tv)
 		v.add_child(p)
 	if note != "":
-		v.add_child(_para(note, 13, DIM))
+		v.add_child(_para(note, 13, DIM, true))
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
+	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	primary_btn = _button(_taste("  Alles nehmen  [E]  "), true, take)
 	btns.add_child(primary_btn)
 	btns.add_child(_button(_taste("  Liegen lassen  [Esc]  "), false, leave))
@@ -1754,37 +1927,68 @@ var intro_diff := 0
 var intro_hc := false
 var intro_cls := "ermittler"
 
+# Klassenkarte (4.3): Porträt in einer vertieften, gefassten Tafel, darunter der Name; die gewählte Klasse leuchtet in
+# ihrer Farbe und trägt einen Lotos. Am Handy liegen Bild und Name nebeneinander, damit alles ohne Rollen passt.
 func _class_card(c: String) -> Control:
 	var C: Dictionary = Klassen.CLS[c]
 	var on := c == intro_cls
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 92 if game.touch else 146)
-	b.add_theme_stylebox_override("normal", _flat(Color("211f27"), 8, C.col if on else Color("5c4a2e"), 3 if on else 1))
-	b.add_theme_stylebox_override("hover", _flat(Color("2a2731"), 8, C.col, 2))
-	b.add_theme_stylebox_override("pressed", _flat(Color("2a2731"), 8, C.col, 3))
-	var h := HBoxContainer.new()
-	h.set_anchors_preset(Control.PRESET_FULL_RECT)
-	h.offset_left = 6
-	h.offset_right = -6
-	h.offset_top = 6
-	h.offset_bottom = -6
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_theme_constant_override("separation", 6)
+	b.custom_minimum_size = Vector2(0, 96 if game.touch else 232)
+	var sb: StyleBoxTexture = Zier.stil("platz", 8.0).duplicate()
+	var hov: StyleBoxTexture = sb.duplicate()
+	hov.modulate_color = Color(1.18, 1.1, 0.98)
+	b.add_theme_stylebox_override("normal", sb)
+	b.add_theme_stylebox_override("hover", hov)
+	b.add_theme_stylebox_override("pressed", hov)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var box: BoxContainer = HBoxContainer.new() if game.touch else VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_left = 9
+	box.offset_right = -9
+	box.offset_top = 9
+	box.offset_bottom = -9
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 6)
 	var tr := TextureRect.new()
 	tr.texture = Klassen.portrait(c)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.custom_minimum_size = Vector2(60 if game.touch else 100, 0)
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if not game.touch else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.custom_minimum_size = Vector2(64, 0) if game.touch else Vector2(0, 160)
+	tr.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(tr)
-	var l := _label(C.name, 11 if game.touch else 14, C.col if on else PARCH)
+	if not on:
+		tr.modulate = Color(0.62, 0.6, 0.58)
+	box.add_child(tr)
+	var l := _label(C.name, 12 if game.touch else 17, C.col if on else PARCH)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if game.touch else HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	h.add_child(l)
-	b.add_child(h)
+	l.add_theme_font_override("font", f_fett if on else f_text)
+	box.add_child(l)
+	b.add_child(box)
+	# gewählt: Ring und Schein in der Farbe der Klasse, oben ein Lotos (über den Kindern gezeichnet)
+	if on:
+		var ueber := Control.new()
+		ueber.set_anchors_preset(Control.PRESET_FULL_RECT)
+		ueber.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ueber.draw.connect(func():
+			var r := Rect2(Vector2.ZERO, ueber.size)
+			var ring := StyleBoxFlat.new()
+			ring.draw_center = false
+			ring.border_color = C.col
+			ring.set_border_width_all(2)
+			ring.set_corner_radius_all(7)
+			ring.shadow_color = Color(C.col, 0.45)
+			ring.shadow_size = 10
+			ueber.draw_style_box(ring, r.grow(-4))
+			var lt := Zier.tex("lotos")
+			if lt:
+				var g := Vector2(34, 34)
+				ueber.draw_texture_rect(lt, Rect2(Vector2((r.size.x - g.x) / 2.0, -g.y * 0.6), g), false))
+		b.add_child(ueber)
 	b.pressed.connect(func():
 		game.sfx.play("ui")
 		intro_cls = c
@@ -1816,7 +2020,10 @@ func _hour_pick() -> Control:
 			row.add_child(b)
 	return row
 
+var _intro_anim := true   # das Titelblatt entfaltet sich nur beim ersten Zeigen, nicht bei jedem Klick darin
+
 func show_intro(force_new := false) -> void:
+	_intro_anim = true
 	intro_fall = Spiel.fall
 	intro_new = force_new or not Spiel.hat_stand
 	intro_diff = Spiel.diff
@@ -1825,12 +2032,22 @@ func show_intro(force_new := false) -> void:
 	_render_intro()
 
 func _render_intro() -> void:
-	var v := _sheet(1.0, 760, true)
-	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG " + Spiel.FASSUNG, 13, GOLD))
-	v.add_child(_para("Herz und Feder", 34 if game.touch else 46, PARCH))
+	# Aushängeschild: dunkle Tafel auf dem Titelbild, oben der Schriftzug in getriebenem Gold unter der Flügelsonne
+	var v := _sheet(1.0, 820, true, "", "dunkel", "sonne", _intro_anim)
+	_intro_anim = false
+	v.add_theme_constant_override("separation", 6 if game.touch else 12)
+	var zug := TextureRect.new()
+	zug.texture = Zier.tex("schriftzug")
+	zug.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	zug.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	zug.custom_minimum_size = Vector2(0, 54 if game.touch else 92)
+	zug.tooltip_text = "Herz und Feder"
+	v.add_child(zug)
+	v.add_child(_para("ZWÖLF STUNDEN DURCH DIE DUAT · FASSUNG " + Spiel.FASSUNG, 13, GOLD, true))
+	v.add_child(Zier.leiste(0.0, "lotos", 16.0))
 	if game.touch:
 		# auf dem Handy knapp, damit der Startknopf ohne Rollen zu sehen ist
-		v.add_child(_para("Unten steht die Waage still. Steig mit der letzten Laterne aus Sandtor hinab, Stunde um Stunde, und finde heraus, wer sie angehalten hat.", 14, PARCH))
+		v.add_child(_para("Unten steht die Waage still. Steig mit der letzten Laterne aus Sandtor hinab, Stunde um Stunde, und finde heraus, wer sie angehalten hat.", 14, PARCH, true))
 	else:
 		_intro_story(v)
 	_intro_rest(v)
@@ -1838,17 +2055,17 @@ func _render_intro() -> void:
 func _intro_story(v: VBoxContainer) -> void:
 	# in schlichten Worten: worum es geht, wer du bist, was du tun sollst (3.0)
 	v.add_child(_para("Die alten Ägypter erzählten: Jede Nacht fährt die Sonne in einer Barke durch die Unterwelt, die Duat. Zwölf Stunden dauert die Fahrt. Kommt die Barke an, wird es Morgen.", 15, PARCH))
-	v.add_child(_para("Seit dem Herbst kommt der Morgen später. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne dieses Gericht findet niemand Ruhe, und niemand zieht mehr die Barke.", 15, PARCH))
-	v.add_child(_para("Du kommst aus Sandtor, der letzten Stadt vor dem Westen. Die Priester haben dir ihre letzte Laterne in die Hand gegeben. Steig hinab, Stunde um Stunde, und finde heraus, wer die Waage angehalten hat. Was du unterwegs entscheidest, macht dein eigenes Herz leichter oder schwerer. Am Ende wird auch deins gewogen.", 15, DIM))
+	v.add_child(_para("Seit drei Nächten geht die Sonne später auf. Tief unten steht die Waage still, auf der die Herzen der Toten gegen eine Feder gewogen werden. Ohne Gewogene zieht niemand die Barke.", 15, PARCH))
+	v.add_child(_para("In Sandtor, der letzten Stadt vor dem Westen, liegt deine kleine Schwester Nebet im Fieber. Es bricht im Morgengrauen, wenn eines kommt. Die Priester geben dir ihre letzte Laterne. Diese Nacht hat zwölf Stunden: Steig hinab und hol den Morgen. Jemand ist dir eine Stunde voraus. Was du unterwegs entscheidest, macht dein Herz leichter oder schwerer, und am Ende wird auch deins gewogen.", 15, DIM))
 
 func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new:
 		v.add_child(_para("Spielstand: %s%s, Stufe %d, %d von %d Seiten im Buch des Thot." % [Spiel.CLS[Spiel.cls].name, " (Hardcore)" if Spiel.hc else "", Spiel.lvl, Spiel.evid.size(), Daten.EVID.size()], 15, TEAL))
 	else:
 		if not game.touch:
-			v.add_child(_para("WÄHLE DEINE KLASSE", 12, DIM))
+			v.add_child(_para("WÄHLE DEINE KLASSE", 12, GOLD, true))
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 10)
 		for c in Klassen.ORDER:
 			row.add_child(_class_card(c))
 		v.add_child(row)
@@ -1865,7 +2082,7 @@ func _intro_rest(v: VBoxContainer) -> void:
 	if not intro_new and Spiel.max_fall > 1:
 		v.add_child(_hour_pick())
 	if not game.touch:
-		v.add_child(_para("SCHWIERIGKEIT", 12, DIM))
+		v.add_child(_para("SCHWIERIGKEIT", 12, GOLD))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	for i in Daten.DIFF.size():
@@ -1884,8 +2101,11 @@ func _intro_rest(v: VBoxContainer) -> void:
 		var hc := CheckBox.new()
 		hc.text = "Hardcore: Stirbt die Figur, ist sie verloren."
 		hc.button_pressed = intro_hc
-		hc.add_theme_font_size_override("font_size", 14)
-		hc.add_theme_color_override("font_color", DIM)
+		hc.add_theme_font_size_override("font_size", 15)
+		hc.add_theme_color_override("font_color", PARCH)
+		hc.add_theme_color_override("font_hover_color", Zier.GOLD_HELL)
+		hc.add_theme_color_override("font_pressed_color", PARCH)
+		hc.add_theme_color_override("font_hover_pressed_color", Zier.GOLD_HELL)
 		hc.toggled.connect(func(on): intro_hc = on)
 		v.add_child(hc)
 	if chapter_note != "":

@@ -20,21 +20,8 @@ func _knopf(text: String, main: bool, cb: Callable, enabled := true, breit := 0.
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_PASS
-	b.add_theme_font_size_override("font_size", 17)
-	b.custom_minimum_size = Vector2(breit, 46)
-	if main:
-		b.add_theme_stylebox_override("normal", hud._flat(Hud.GOLD, 8))
-		b.add_theme_stylebox_override("hover", hud._flat(Hud.GOLD.lightened(0.15), 8))
-		b.add_theme_stylebox_override("pressed", hud._flat(Hud.GOLD.darkened(0.15), 8))
-		for c in ["font_color", "font_hover_color", "font_pressed_color"]:
-			b.add_theme_color_override(c, Color("14110c"))
-	else:
-		b.add_theme_stylebox_override("normal", hud._flat(Color(0, 0, 0, 0), 8, Color("5c4a2e"), 1))
-		b.add_theme_stylebox_override("hover", hud._flat(Color(1, 1, 1, 0.06), 8, Hud.DIM, 1))
-		b.add_theme_stylebox_override("pressed", hud._flat(Color(1, 1, 1, 0.1), 8, Hud.DIM, 1))
-		b.add_theme_stylebox_override("disabled", hud._flat(Color(0, 0, 0, 0), 8, Color("2a2731"), 1))
-		b.add_theme_color_override("font_color", Hud.PARCH)
-		b.add_theme_color_override("font_disabled_color", Color(Hud.DIM, 0.5))
+	b.custom_minimum_size = Vector2(breit, 48)
+	Zier.knopf_stil(b, "haupt" if main else "zweit", 17)
 	b.disabled = not enabled
 	b.pressed.connect(func():
 		game.sfx.play("ui")
@@ -53,13 +40,18 @@ func zurueck() -> bool:
 	return true
 
 func _kopf(titel: String) -> void:
-	var top := HBoxContainer.new()
-	var t := hud._label(titel, 26, Hud.PARCH)
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(t)
-	if seite != "":
-		top.add_child(_knopf(hud._taste("  Zurück  [Esc]  "), false, func(): geh("")))
-	add_child(top)
+	hud.fenster_kopf(self, titel, hud._taste("  Zurück  [Esc]  ") if seite != "" else "", func(): geh(""))
+
+# Zwischenüberschrift: Rubrik in Gold, daneben eine feine Zierleiste
+func _abschnitt(t: String) -> void:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	var l := hud._label(t.to_upper(), 12, Hud.GOLD)
+	h.add_child(l)
+	var zl := Zier.leiste(0.0, "", 12.0)
+	zl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(zl)
+	add_child(h)
 
 func render() -> void:
 	_clear()
@@ -74,44 +66,63 @@ func render() -> void:
 
 func _haupt() -> void:
 	add_child(hud._para("PAUSE", 13, Hud.GOLD, true))
-	add_child(hud._para("Herz und Feder", 34, Hud.PARCH, true))
+	var zug := TextureRect.new()
+	zug.texture = Zier.tex("schriftzug")
+	zug.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	zug.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	zug.custom_minimum_size = Vector2(0, 58)
+	add_child(zug)
 	add_child(hud._para("%s · %s · Stufe %d" % [Stunden.hour_txt(Spiel.fall), Spiel.CLS[Spiel.cls].name, Spiel.lvl], 14, Hud.DIM, true))
+	add_child(Zier.leiste(0.0, "lotos", 16.0))
 	var mitte := CenterContainer.new()
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 7)
 	mitte.add_child(v)
 	v.add_child(_knopf(hud._taste("Weiterspielen  [Esc]"), true, func(): game.toggle_menu(), true, 360))
 	v.add_child(_knopf("Lexikon: Götter und Begriffe", false, func(): geh("lexikon"), true, 360))
 	v.add_child(_knopf("Steuerung", false, func(): geh("steuerung"), true, 360))
 	v.add_child(_knopf("Einstellungen", false, func(): geh("einstellungen"), true, 360))
+	if not Szene.erinnerungen().is_empty():   # 4.3: gesehene Zwischensequenzen noch einmal ansehen
+		v.add_child(_knopf("Erinnerungen", false, func(): game.toggle_menu(); Szene.erinnerungen_zeigen(game), true, 360))
 	if Spiel.max_fall > 1:
 		v.add_child(_knopf("Stunde wechseln", false, func(): geh("stunden"), true, 360))
 	v.add_child(_knopf("Zum Titel", false, func(): game.zum_titel(), true, 360))
 	v.add_child(_knopf("Neue Figur anlegen", false, func(): geh("figur"), true, 360))
 	add_child(mitte)
+	add_child(Zier.leiste(0.0, "raute", 12.0))
 	add_child(hud._para("Dein Fortschritt wird laufend gespeichert.", 12, Hud.DIM, true))
 	add_child(hud._para(Spiel.fassung_txt(), 11, Hud.DIM, true))
 
 func _lexikon() -> void:
 	_kopf("Lexikon")
 	add_child(hud._para("Was du schon gehört hast, steht in dunkler Tinte. Der Rest ist zum Nachschlagen da.", 13, Hud.DIM))
+	# das Lexikon ist ein Schriftstück: ein Blatt Papyrus in der dunklen Tafel
+	var blatt := PanelContainer.new()
+	blatt.add_theme_stylebox_override("panel", Zier.stil("papyrus", 26.0))
+	hud.papier.append(blatt)
+	var bv := VBoxContainer.new()
+	bv.add_theme_constant_override("separation", 10)
+	blatt.add_child(bv)
+	add_child(blatt)
 	for g in Lexikon.gruppen():
-		add_child(hud._label(g.to_upper(), 12, Hud.GOLD))
+		var kopf := hud._para(g.to_upper(), 13, Hud.GOLD, true)
+		bv.add_child(kopf)
+		bv.add_child(Zier.leiste(0.0, "lotos", 14.0))
 		for e in Lexikon.W:
 			if e.gruppe != g:
 				continue
 			var kennt := Lexikon.kennt(e.id)
 			var z := VBoxContainer.new()
 			z.add_theme_constant_override("separation", 0)
-			z.add_child(hud._label(e.name, 17, Hud.PARCH if kennt else Hud.DIM))
+			z.add_child(hud._label(e.name, 18, Hud.PARCH if kennt else Hud.DIM))
 			z.add_child(hud._para(e.txt, 14, Hud.PARCH if kennt else Hud.DIM))
-			add_child(z)
+			bv.add_child(z)
 
 func _zeile(a: String, b: String) -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)
-	var l := hud._label(a, 15, Hud.GOLD)
-	l.custom_minimum_size = Vector2(250, 0)
+	var l := hud._label(a, 15, Zier.GOLD_HELL)
+	l.custom_minimum_size = Vector2(230, 0)
 	h.add_child(l)
 	var r := hud._para(b, 15, Hud.PARCH)
 	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -176,11 +187,11 @@ func _regler(name: String, key: String) -> void:
 
 func _einstellungen() -> void:
 	_kopf("Einstellungen")
-	add_child(hud._label("TON", 12, Hud.GOLD))
+	_abschnitt("Ton")
 	_schalter("Ton", "Aus" if game.sfx.muted else "An", func(): game.sfx.set_muted(not game.sfx.muted))
 	_regler("Lautstärke gesamt", "laut")
 	_regler("Musik", "musik")
-	add_child(hud._label("BILD", 12, Hud.GOLD))
+	_abschnitt("Bild")
 	_schalter("Grafik", game.GUETE_NAME[game.guete], func(): game.guete_von_hand((game.guete + 1) % 4))
 	if not game.touch:
 		_schalter("Leiste unten", "%d %%" % round(float(Spiel.einst.get("leiste", 0.75)) * 100.0), func():
@@ -197,11 +208,11 @@ func _einstellungen() -> void:
 	_schalter("Bildrate anzeigen", "An" if hud.l_fps.visible else "Aus", func(): hud.toggle_fps())
 	add_child(hud._para("Vier Stufen: „Niedrig“ schaltet Schatten, Glühen und Dunst ab und rechnet das Bild kleiner; „Sparsam“ und „Minimal“ rechnen noch kleiner und mit weniger Lichtern. Ruckelt es, stellt das Spiel die Stufe von selbst herunter.", 13, Hud.DIM))
 	# Protokoll (4.0.1): was beim Spielen passiert, zum Nachlesen bei Fehlern und Ruckeln
-	add_child(hud._label("PROTOKOLL", 12, Hud.GOLD))
+	_abschnitt("Protokoll")
 	_schalter("Protokoll", "Herunterladen" if OS.has_feature("web") else "Ordner öffnen", func(): hud.toast(Protokoll.ausgeben(), 6.0))
 	add_child(hud._para("Das Spiel schreibt Bildrate, Ruckler, Rechenzeit, Fehler und eine Bau-Prüfung jeder Stunde mit (Taste F9 geht auch). Die Datei kannst du weitergeben, wenn etwas nicht stimmt.", 13, Hud.DIM))
 	# Schwierigkeit nachträglich wechseln (4.0, G2): gilt ab der nächsten Stunde oder wenn man eine Stunde neu betritt
-	add_child(hud._label("SCHWIERIGKEIT", 12, Hud.GOLD))
+	_abschnitt("Schwierigkeit")
 	var hf := HFlowContainer.new()
 	hf.add_theme_constant_override("h_separation", 6)
 	for i in Daten.DIFF.size():
