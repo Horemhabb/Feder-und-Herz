@@ -446,6 +446,11 @@ static func feuerschale(g: Node, pos: Vector3) -> Dictionary:
 static func entzuenden(g: Node, s: Dictionary) -> void:
 	s.coal.material_override = mat("kohle_glut", Color(1.0, 0.5, 0.15), 1.0, Color(1.0, 0.45, 0.1), 2.5)
 	_fire(s.n, Vector3(0, 1.45, 0), 1.25)
+	# gemalte Bilder (zierwelt.gd): Funken und Rauch steigen aus der Schale, die Sonne glüht auf dem Boden auf
+	Zierwelt.feuer_glut(s.n, Vector3(0, 1.4, 0), 1.0, g.low_gfx)
+	var sonne := Zierwelt.bodenzeichen(s.n, Vector3.ZERO, 1.7, "sonne", Color(1.0, 0.8, 0.6), 0.0, 0.02, true)
+	if sonne:
+		Zierwelt.hell_setzen(sonne, 0.45, 1.2)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.66, 0.32)
 	l.light_energy = 0.1
@@ -706,6 +711,20 @@ static func krug(g: Node, pos: Vector3) -> Dictionary:
 	lid.mesh = _commit([[kopf, mat("krugkopf", Color(0.8, 0.7, 0.52), 0.55)], [tuch, mat("krugtuch", Color(0.1, 0.14, 0.3), 0.6)], [band, gold()]])
 	n.add_child(lid)
 	lid.position = Vector3(0, 1.15, 0)
+	# gemalte Bilder (zierwelt.gd): unter dem Krug die Waage, vor die das Herz gehört, über dem Deckel steigt Dunst
+	# auf. Beides hängt am Deckel und verschwindet mit ihm, sobald der Krug geöffnet oder zerschlagen ist.
+	Zierwelt.bodenzeichen(lid, Vector3(0, -1.15, 0), 1.25, "waage", Color(0.9, 0.85, 0.85), 0.3, 0.02)
+	var dunst := Zierwelt.teilchen("dunst", 3 if g.low_gfx else 5, 2.6, 0.8, Color(0.7, 1.0, 0.95, 0.45))
+	if dunst:
+		dunst.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		dunst.emission_sphere_radius = 0.15
+		dunst.direction = Vector3(0, 1, 0)
+		dunst.spread = 20.0
+		dunst.initial_velocity_min = 0.2
+		dunst.initial_velocity_max = 0.45
+		dunst.gravity = Vector3(0, 0.1, 0)
+		lid.add_child(dunst)
+		dunst.position = Vector3(0, 0.3, 0)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.3, 0.25)
 	l.light_energy = 0.8
@@ -726,6 +745,18 @@ static func relikt(g: Node, pos: Vector3) -> Dictionary:
 	it.material_override = mat("relikt", Color(1.0, 0.82, 0.4), 0.3, Color(1.0, 0.75, 0.3), 2.2, 0.6)
 	n.add_child(it)
 	it.position = Vector3(0, 1.35, 0)
+	# Goldstaub um den Splitter (Effektbild, zierwelt.gd); verschwindet mit ihm, wenn entschieden ist
+	var staub := Zierwelt.teilchen("goldstaub", 3 if g.low_gfx else 6, 2.0, 0.45, Color(1.0, 0.9, 0.7, 0.8))
+	if staub:
+		staub.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		staub.emission_sphere_radius = 0.45
+		staub.direction = Vector3(0, 1, 0)
+		staub.spread = 60.0
+		staub.initial_velocity_min = 0.05
+		staub.initial_velocity_max = 0.25
+		staub.gravity = Vector3(0, 0.08, 0)
+		staub.local_coords = true
+		it.add_child(staub)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.8, 0.4)
 	l.light_energy = 1.6

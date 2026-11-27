@@ -509,7 +509,7 @@ func _objekt_weg(o) -> void:
 # ---------------------------------------------------------------- Bausteine: Ansagen und Treffer
 func _kreis(c: Vector3, r: float, sek: float, mul: float, col: Color) -> void:
 	c.y = 0.0
-	g.warn_fx(c, r, sek)
+	g.warn_fx(c, r, sek, Zierwelt.hueter_zeichen(Spiel.fall))   # sein Zeichen in Glutrot über der Marke, wenn gemalt
 	g.sfx.play_at("hueter_ansage", c, 0.08, -4.0)
 	spaeter(sek, func():
 		g.ring_fx(c, r, col)

@@ -493,6 +493,20 @@ func run() -> void:
 	h.global_position = fs.pos + Vector3(1.3, 0, 0)
 	await wait(0.5)
 	check("Feuerschale entzündet sich bei Berührung, das Herz wird leichter", fs.done and G.torches.size() == lights + 1 and Spiel.herz > 0.0)
+	# gemalte Bilder (zierwelt.gd): ohne die Dateien wie früher, mit ihnen Glut über der Schale und Zeichen am Boden
+	var glut_da: bool = fs.vis.n.find_children("*", "CPUParticles3D", true, false).size() > 0
+	check("Feuerschale: Glut aus dem Effektbild genau dann, wenn es vorliegt", glut_da == Zierwelt.fx_da("glut"))
+	check("Arena: Bodenzeichen des Hüters (%s) genau dann, wenn es gemalt ist" % Zierwelt.hueter_zeichen(1),
+		(G.arena_zeichen != null) == Zierwelt.zeichen_da(Zierwelt.hueter_zeichen(1)) and (G.arena_zeichen == null or G.arena_zeichen.material_override is ShaderMaterial))
+	var vor_kinder: int = G.get_child_count()
+	G.zeichen_fx(h.global_position, 3.0, Color(1.0, 0.85, 0.3), "waage")
+	check("Zauberkreis: Zeichen oder Ring entsteht", G.get_child_count() == vor_kinder + 1)
+	check("Hüter 9 bis 12: eigenes Bild, sonst das geliehene (%s)" % Stunden.def(9).boss.get("bild", ""),
+		Stunden.def(9).boss.get("bild", "") == ("h09" if ResourceLoader.exists("res://ui/hueter/h09.webp") else "h01")
+		and Stunden.def(12).boss.get("bild", "") == ("h12" if ResourceLoader.exists("res://ui/hueter/h12.webp") else "h05"))
+	check("Porträts der Geschichte: Nebet, Haremhab und der Ba stehen als Ersatz in den Sequenzen",
+		"portrait:P25" in Szenen.baue("auftakt").einstellungen[1].ersatz and "portrait:P26" in Szenen.baue("h07_nach").einstellungen[0].ersatz
+		and "portrait:P27" in Szenen.baue("mitte").einstellungen[1].ersatz)
 	var sr: Dictionary = site.call("schrein")
 	h.global_position = sr.pos + Vector3(1.4, 0, 0)
 	await wait(0.5)
@@ -700,6 +714,11 @@ func run() -> void:
 	check("Eintreten startet die zweite Stunde", G2.started and not get_tree().paused and G2.foes.size() > 10 and G2.chests.size() > 0)
 	check("Hüter der zweiten Stunde ist die Mutter der Häute", G2.boss.K.name == "Die Mutter der Häute")
 	check("Schrein des Thot steht auch in der zweiten Stunde (Dungeon)", not G2.orte.thot.is_empty())
+	var fries_n := 0
+	for n in G2.get_children():
+		if n is MeshInstance3D and n.material_override != null and n.material_override == Zierwelt.cache.get("fries_lotos"):
+			fries_n += 1
+	check("Friese an den Mauern der Felder (%d Abschnitte) genau dann, wenn das Band gemalt ist" % fries_n, (fries_n > 0) == Zierwelt.fries_da("lotos"))
 	G2.go_hour(1)
 	await wait(2.5)
 	var G3 := g()
@@ -867,11 +886,11 @@ func run() -> void:
 	await wait(0.5)
 	var sim := krieger.skel.get_node_or_null("Fall")
 	var huefte := krieger.skel.global_transform * krieger.skel.get_bone_global_pose(krieger.skel.find_bone("hips"))
-	check("Physik: der Besiegte fällt als Gliederpuppe (%d Körper, Becken %.2f m hoch)" % [sim.get_child_count() if sim else 0, huefte.origin.y - stand0.y], sim != null and sim.get_child_count() == Physik.GLIEDER.size() and Physik.gezaehlt.faelle == faelle0 + 1)
+	check("Physik: der Besiegte fällt als Gliederpuppe (%d Körper, Becken %.2f m hoch)" % [sim.get_child_count() if sim else 0, huefte.origin.y - stand0.y], sim != null and sim.get_child_count() == Physik.GLIEDER.size() and Physik.gezaehlt.faelle >= faelle0 + 1)
 	await wait(Physik.FALL_DAUER + 0.3)
 	# auf einem langsamen Rechner (Bau-Server) läuft die Simulation später aus: bis zu vier Sekunden zugeben
 	for i in 14:
-		if krieger.skel.get_node_or_null("Fall") == null:
+		if krieger.skel.get_node_or_null("Fall") == null and Physik.faelle == 0 and not krieger.ap.active:
 			break
 		await wait(0.3)
 	await wait(0.3)

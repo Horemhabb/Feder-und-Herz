@@ -183,7 +183,7 @@ static func anlegen(f, ids: Array) -> void:
 			"glut":
 				f.aff.glut["flecken"] = []
 			"sturm":
-				var wolke := _funken(LISTE.sturm.farbe, 16 if low else 42, 1.6, Vector3(0, 0.8, 0), 4.2, Vector3(0, 0.3, 0), 0.16)
+				var wolke := _funken(LISTE.sturm.farbe, 16 if low else 42, 1.6, Vector3(0, 0.8, 0), 4.2, Vector3(0, 0.3, 0), 0.16, "sand", 1.6)
 				wolke.orbit_velocity_min = 0.25
 				wolke.orbit_velocity_max = 0.45
 				_teil(f, wolke)
@@ -268,7 +268,7 @@ static func anlegen(f, ids: Array) -> void:
 					_am_knochen(f, "chest", st, Vector3(0, 1.2 * f.sc, -0.4))
 					st.position = Vector3(0, 0.0, -0.32)
 			"sprung":
-				_teil(f, _funken(LISTE.sprung.farbe, 6 if low else 16, 0.6, Vector3(0, 1.0, 0), f.radius * 0.9, Vector3(0, 0.1, 0), 0.22))
+				_teil(f, _funken(LISTE.sprung.farbe, 6 if low else 16, 0.6, Vector3(0, 1.0, 0), f.radius * 0.9, Vector3(0, 0.1, 0), 0.22, "dunst", 0.9))
 			"klage":
 				var traenen := _funken(LISTE.klage.farbe, 6 if low else 14, 1.0, Vector3(0, 2.1 * maxf(1.0, f.sc) if not f.proc else 1.8, 0), 0.25, Vector3(0, -2.5, 0), 0.08)
 				_teil(f, traenen)
@@ -307,9 +307,22 @@ static func anlegen(f, ids: Array) -> void:
 				f.aff.kette["partner"] = null
 	f.set_meta("aff_bereit", true)
 
-# Wenige Teilchen in einer Farbe (im Browser billig): Spur, Sandwolke, Tränen
-static func _funken(col: Color, n: int, life: float, pos: Vector3, radius: float, grav: Vector3, groesse := 0.1) -> CPUParticles3D:
-	var p := CPUParticles3D.new()
+# Wenige Teilchen in einer Farbe (im Browser billig): Spur, Sandwolke, Tränen.
+# bild: Effektbild aus textures/fx (zierwelt.gd); liegt es vor, werden es weniger, größere, gemalte Teilchen
+# (Sand, Dunst, Glut, Rauch) in der Farbe col, sonst wie bisher kleine Vierecke.
+static func _funken(col: Color, n: int, life: float, pos: Vector3, radius: float, grav: Vector3, groesse := 0.1, bild := "", bild_groesse := 0.0) -> CPUParticles3D:
+	var p: CPUParticles3D = Zierwelt.teilchen(bild, maxi(3, int(n * 0.6)), life, bild_groesse if bild_groesse > 0.0 else groesse * 4.0, Color(col.lerp(Color.WHITE, 0.4), 0.9)) if bild != "" else null
+	if p:
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		p.emission_sphere_radius = radius
+		p.direction = Vector3(0, 1, 0)
+		p.spread = 180.0
+		p.initial_velocity_min = 0.05
+		p.initial_velocity_max = 0.4
+		p.gravity = grav
+		p.position = pos
+		return p
+	p = CPUParticles3D.new()
 	p.amount = n
 	p.lifetime = life
 	p.local_coords = false
@@ -474,7 +487,19 @@ static func _glutfleck(g, c: Vector3) -> Node3D:
 	cm2.radial_segments = 10
 	n.add_child(_mesh(cm2, _unshaded(Color(1.0, 0.8, 0.35, 0.7), true)))
 	if not g.low_gfx:
-		n.add_child(_funken(Color(1.0, 0.55, 0.2), 5, 0.8, Vector3(0, 0.1, 0), 0.6, Vector3(0, 1.5, 0), 0.08))
+		n.add_child(_funken(Color(1.0, 0.55, 0.2), 5, 0.8, Vector3(0, 0.1, 0), 0.6, Vector3(0, 1.5, 0), 0.08, "glut", 0.4))
+		# Ruß über der Glut (Effektbild „rauch“, nur wenn es vorliegt)
+		var russ := Zierwelt.teilchen("rauch", 4, 1.8, 1.0, Color(0.16, 0.14, 0.13, 0.4))
+		if russ:
+			russ.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+			russ.emission_sphere_radius = 0.4
+			russ.direction = Vector3(0, 1, 0)
+			russ.spread = 40.0
+			russ.initial_velocity_min = 0.2
+			russ.initial_velocity_max = 0.5
+			russ.gravity = Vector3(0, 0.7, 0)
+			russ.position = Vector3(0, 0.4, 0)
+			n.add_child(russ)
 	g.add_child(n)
 	n.global_position = c + Vector3(0, 0.07, 0)
 	n.scale = Vector3(0.3, 1, 0.3)
@@ -792,9 +817,24 @@ static func zerfall(f) -> void:
 	q.rings = 3
 	q.material = _unshaded(Color(1.0, 0.85, 0.4))
 	p.mesh = q
+	# goldene Fontäne mit Effektbild (zierwelt.gd): Goldstaub statt Kugeln
+	var gold := Zierwelt.teilchen("goldstaub", 10 if g.low_gfx else 22, 1.4, 0.6, Color(1.0, 0.9, 0.65))
+	if gold:
+		p.free()
+		p = gold
+		p.one_shot = true
+		p.emitting = true
+		p.explosiveness = 0.85
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		p.emission_sphere_radius = 0.6
+		p.direction = Vector3(0, 1, 0)
+		p.spread = 25.0
+		p.initial_velocity_min = 4.0
+		p.initial_velocity_max = 8.0
+		p.gravity = Vector3(0, -9.0, 0)
 	g.add_child(p)
 	p.global_position = f.global_position + Vector3(0, 1.0, 0)
-	var sand := _funken(col, 24 if not g.low_gfx else 10, 1.2, Vector3.ZERO, 0.8, Vector3(0, -1.0, 0), 0.14)
+	var sand := _funken(col, 24 if not g.low_gfx else 10, 1.2, Vector3.ZERO, 0.8, Vector3(0, -1.0, 0), 0.14, "sand", 0.9)
 	sand.one_shot = true
 	sand.explosiveness = 0.9
 	sand.initial_velocity_min = 1.0

@@ -46,6 +46,7 @@ func bauen() -> void:
 	_ground()
 	_floors()
 	_walls()
+	_friese()
 	_edges()
 	_rugs()
 	_obstacles()
@@ -66,8 +67,12 @@ func bauen() -> void:
 	_packs()
 	g.boss = g._spawn("boss", cell_pos(k.lair), 99, "", g.hdef)
 	g.boss.home_face = atan2(k.start.x - k.lair.x, k.start.y - k.lair.y)
-	# der Platz des Hüters: ein Bannkreis glüht auf dem Boden
-	g.stimmung.append(Stimmung.runenkreis(g, cell_pos(k.lair), 4.4, Color(1.0, 0.42, 0.2), 0.42))
+	# der Platz des Hüters: ein Bannkreis glüht auf dem Boden. Liegt das gemalte Zeichen seiner Geschichte vor
+	# (zierwelt.gd › HUETER), dreht sich das langsam auf dem Boden und wird im Kampf mit jeder Phase heller (main.gd).
+	var bc := Color(1.0, 0.92, 0.8).lerp(Color(str(g.hdef.boss.get("col", "#ffd890"))), 0.25)
+	g.arena_zeichen = Zierwelt.bodenzeichen(g, cell_pos(k.lair), 5.2, Zierwelt.hueter_zeichen(Spiel.fall), bc, 0.45, 0.025, true)
+	if g.arena_zeichen == null:
+		g.stimmung.append(Stimmung.runenkreis(g, cell_pos(k.lair), 4.4, Color(1.0, 0.42, 0.2), 0.42))
 	g.boss.face = g.boss.home_face
 	if g.boss.model:
 		g.boss.model.rotation.y = g.boss.face
@@ -183,6 +188,88 @@ func _walls() -> void:
 		mi.material_override = g.cut_mat(merge[key][1])
 		g.add_child(mi)
 	merge.clear()
+
+# Friese (4.3): bemalte Bänder aus ComfyUI (textures/fries/) an Mauern, die zu einem Raum zeigen und lang genug
+# sind, dass man das Band liest. Nur Flächen, die der Kamera zugewandt sind (sie schaut immer von +X/+Z herab), nur
+# volle Mauern, nur Läufe ab drei Zellen, und nicht jeder: So wirkt es wie Wandmalerei, nicht wie Tapete.
+# Das Band auf halber Höhe liegt unter den Wandfackeln (2,2 m), das obere dicht unter der Mauerkrone (Mauer 3,6 m).
+const FRIES_MITTE := [0.95, 1.8]
+const FRIES_OBEN := [2.78, 3.52]
+const FRIES_MIN := 3
+
+func _friese() -> void:
+	if not k.indoor:
+		return
+	var wahl: Array = Zierwelt.fries_der_stunde(Spiel.fall)
+	var mats := []
+	for i in 2:
+		var m: ShaderMaterial = Zierwelt.fries_mat(wahl[i], g.MAUER_SHADER, g.low_gfx)
+		mats.append(m)
+	if mats[0] == null and mats[1] == null:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = Spiel.fall * 131 + 7
+	var teile := {}
+	# +Z: Mauerzelle mit Raum südlich davon, Lauf entlang x; +X: Raum östlich, Lauf entlang z
+	for achse in 2:
+		for a in (Karte.GH if achse == 0 else Karte.GW):
+			var lauf := []
+			for b in range((Karte.GW if achse == 0 else Karte.GH) + 1):
+				var x := b if achse == 0 else a
+				var y := a if achse == 0 else b
+				if b < (Karte.GW if achse == 0 else Karte.GH) and _fries_zelle(x, y, achse):
+					lauf.append(Vector2i(x, y))
+					continue
+				if lauf.size() >= FRIES_MIN and rng.randf() < 0.75:
+					for i in 2:
+						if mats[i] != null:
+							_fries_lauf(teile, lauf, achse, wahl[i], FRIES_OBEN if i == 1 else FRIES_MITTE)
+				lauf = []
+	for key in teile:
+		var mi := MeshInstance3D.new()
+		teile[key][0].generate_tangents()
+		mi.mesh = teile[key][0].commit()
+		mi.material_override = Zierwelt.fries_mat(teile[key][1], g.MAUER_SHADER, g.low_gfx)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.add_child(mi)
+
+func _fries_zelle(x: int, y: int, achse: int) -> bool:
+	var nx := x if achse == 0 else x + 1
+	var ny := y + 1 if achse == 0 else y
+	if not k.in_grid(nx, ny) or not k.wall(x, y) or k.wall(nx, ny):
+		return false
+	var hpx := k.height(x, y)
+	return hpx != Karte.TOWER and wall_m(hpx) >= 3.5 and k.flr[Karte.gi(nx, ny)] == 0
+
+func _fries_lauf(teile: Dictionary, lauf: Array, achse: int, id: String, hoehe: Array) -> void:
+	var v: Array = Zierwelt.FRIES_V.get(id, [0.0, 1.0])
+	var tex: Texture2D = load(Zierwelt.FRIES % id)
+	var band: float = hoehe[1] - hoehe[0]
+	var periode: float = band * float(tex.get_width()) / (float(tex.get_height()) * (v[1] - v[0]))
+	var y0: float = hoehe[0]
+	var y1: float = hoehe[1]
+	for c in lauf:
+		# doppelt so große Abschnitte wie bei den Mauern: wenige Bänder, wenige Zeichenaufrufe
+		var key := "%s|%d|%d" % [id, c.x / (FELD * 2), c.y / (FELD * 2)]
+		if not teile.has(key):
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			teile[key] = [st, id]
+		var st: SurfaceTool = teile[key][0]
+		if achse == 0:
+			# Fläche nach +Z, eine Handbreit vor der Mauer; u läuft mit x weiter, so stößt das Band nahtlos an
+			var z: float = (c.y + 1) * C + 0.02
+			var x0: float = c.x * C
+			var x1: float = x0 + C
+			g._quad(st, Vector3(x0, y0, z), Vector3(x1, y0, z), Vector3(x1, y1, z), Vector3(x0, y1, z), Vector3(0, 0, 1),
+				Vector2(x0 / periode, v[1]), Vector2(x1 / periode, v[1]), Vector2(x1 / periode, v[0]), Vector2(x0 / periode, v[0]))
+		else:
+			# Fläche nach +X; von dort gesehen liegt rechts −Z
+			var x: float = (c.x + 1) * C + 0.02
+			var z0: float = c.y * C
+			var z1: float = z0 + C
+			g._quad(st, Vector3(x, y0, z1), Vector3(x, y0, z0), Vector3(x, y1, z0), Vector3(x, y1, z1), Vector3(1, 0, 0),
+				Vector2(-z1 / periode, v[1]), Vector2(-z0 / periode, v[1]), Vector2(-z0 / periode, v[0]), Vector2(-z1 / periode, v[0]))
 
 func _add_merge(surf_name: String, mesh: ArrayMesh, xf: Transform3D, x: int, y: int) -> void:
 	var key := "%s|%d|%d" % [surf_name, x / FELD, y / FELD]
@@ -474,7 +561,11 @@ func _stimmung() -> void:
 				g.stimmung.append(Stimmung.staub(g, p + Vector3(0, 2.5, 0), Vector3(2.4, 5.0, 2.4)))
 			"glass":     # Rosetau: kalter Dunst über dem Glas, erloschene Sternzeichen im Boden
 				g.stimmung.append(Stimmung.nebel(g, p, gr * 1.1, Color(0.5, 0.75, 0.9), 0.28, 0.25))
-				g.stimmung.append(Stimmung.runenkreis(g, p, minf(2.6, gr * 0.3), Color(0.45, 0.8, 1.0), 0.32, ["nova", "meteor", "glass", "blink", "chain", "nova", "meteor", "glass"]))
+				var sz := Zierwelt.bodenzeichen(g, p, minf(3.0, gr * 0.34), "sterne", Color(0.55, 0.8, 1.0), 0.32, 0.015)
+				if sz:
+					g.stimmung.append(sz)
+				else:
+					g.stimmung.append(Stimmung.runenkreis(g, p, minf(2.6, gr * 0.3), Color(0.45, 0.8, 1.0), 0.32, ["nova", "meteor", "glass", "blink", "chain", "nova", "meteor", "glass"]))
 			"vault":     # Höhle des Sokar: violetter Dunst, fahle Strahlen von den Krügen
 				g.stimmung.append(Stimmung.nebel(g, p, gr * 1.1, Color(0.62, 0.45, 0.85), 0.3, 0.3))
 				g.stimmung.append(Stimmung.lichtstrahl(g, p, 7.0, 1.6, Color(0.75, 0.6, 1.0), 0.26, 0.15, rng.randf() * TAU))

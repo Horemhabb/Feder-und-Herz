@@ -90,6 +90,7 @@ const H := [
 			"Auf dem Lager meines Bruders liegt einer, der dort nicht hingehört. Solange er liegt, können Re und Osiris einander nicht begegnen, und die Sonne wird nicht jung."],
 		"fragen": [["Woher kanntest du ihren Namen?", "Ich habe Re seinen geheimen Namen abgelistet, als die Welt noch jung war. Ich höre einen Namen, auch wenn er flattert. Die Frage ist nicht, wer sie ist. Die Frage ist, wie lange ihr Leib in Sandtor noch auf sie wartet."]],
 		"quest": "Das Leinen des Osiris", "auftrag": "Ein Streifen vom Leinen des Osiris ist vom Lager gerissen. An so einem Faden findet ein Ba zurück zu seinem Leib, sagt Isis. Oder er bleibt, wo er ist.",
+		"fund_bild": "P27",   # die Wahl um Nebet: der Ba auf deiner Schulter (ui/portraits/P27, wenn gemalt)
 		"relikt": "Das Leinen des Osiris", "fund": "Ein Streifen feinsten Leinens, getränkt mit Harz und Myrrhe. Wo du ihn anfasst, hören deine Hände auf zu zittern. Auf deiner Schulter wird es sehr still.",
 		"wahl": [["Nebet das Leinen umbinden und sie heimschicken", "Sie sagt nichts. Sie drückt nur einmal den Kopf an deine Wange, wie früher, wenn sie nicht schlafen konnte. Dann zieht der Faden sie nach oben, durch sechs Stunden Dunkel, allein.", 10, "xp"],
 			["Das Leinen behalten. Sie bleibt bei dir.", "Sie bleibt. Sie ist leichter als vorhin, ein wenig durchscheinend. Das Leinen heilt alles, was es berührt. Sie berührt es nicht.", -8, "trank"]],
@@ -157,6 +158,7 @@ const H := [
 			"Hier endet, wer gegen die Ordnung stand. Dort drüben steht einer, der die Ordnung so liebt, dass er ein ganzes Buch in die Glut halten will. Ich verstehe ihn gut. Das macht mir Sorgen."],
 		"fragen": [["Der Sammler nannte das Grausamkeit.", "Der Sammler hat recht. Und er hat tausend Sterne gelöscht und die Sonne angehalten, um recht zu behalten. Gnade ohne Ordnung ist auch nur ein Feuer. Ordnung ohne Gnade auch."]],
 		"quest": "Das Verzeichnis", "auftrag": "Haremhab hat dem Schatten das Buch abgenommen und steht damit am Rand der Grube. Darin stehen alle Namen aus Sandtor, auch deiner.",
+		"fund_bild": "P26",   # Haremhab hält das Buch über die Glut (ui/portraits/P26, wenn gemalt)
 		"relikt": "Das Verzeichnis", "fund": "Ein Buch aus Papyrus, dick wie ein Arm, die Ränder schwarz vom Feuer. Haremhab hält es über die Glut. „Brennt es, ist der Richter niemand mehr.“ Auf der letzten Seite stehen zwei Namen nebeneinander, frisch. Deiner. Und ihrer.",
 		"wahl": [["Das Buch an dich nehmen und zur Waage tragen", "Haremhab lässt los, langsam, als täte es ihm weh. „Dann soll Thot sie lesen. Alle.“ Er sieht dich nicht an. „Auch meinen, wenn er darin steht.“", 12, "xp"],
 			["Haremhab nicken", "Das Buch fällt. Für einen Atemzug brennt die Grube grün, und tausend Namen steigen als Funken auf, und keiner ruft sie. Haremhab steht sehr gerade. „Ordnung“, sagt er. Es klingt nicht wie ein Sieg.", -10, "legende"]],

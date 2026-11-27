@@ -10,7 +10,7 @@ const VERSION := 1   # Aufbau des Spielstands (nicht die Fassung)
 # Fassung des Spiels, sichtbar auf dem Titel und im Menü. Bei jeder Änderung, die man im Spiel merkt, erhöhen.
 # Dahinter steht der Bau: GitHub schreibt beim Veröffentlichen Nummer, Zeit und Stand in scripts/bau.gd,
 # am eigenen Rechner steht dort „eigener Stand“. So lässt sich die Webfassung vom PC unterscheiden.
-const FASSUNG := "4.3.0"
+const FASSUNG := "4.3.1"
 
 func fassung_txt() -> String:
 	var bau = load("res://scripts/bau.gd")
